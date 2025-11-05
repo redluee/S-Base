@@ -1,13 +1,41 @@
 // migrations/recipe.ts
-import type { Database } from "bun:sqlite";
+import db from "../index.ts";
+import { exit } from "process";
 
-export function up(db: Database): void {
+const arg = process.argv[2];
+
+if (!arg) {
+  console.error("Please provide an argument: 'up' or 'down'");
+  exit(1);
+}
+
+try {
+  if (arg === "up") {
+    console.log("Running 'up' migration...");
+    up(db);
+    console.log("Migration 'up' completed successfully.");
+  }
+  else if (arg === "down") {
+    console.log("Running 'down' migration (resetting database)...");
+    down(db);
+    console.log("Migration 'down' completed successfully.");
+  }
+  else {
+    console.error(`Unknown argument: ${arg}. Use 'up' or 'down'.`);
+    exit(1);
+  }
+} catch (error) {
+  console.error("Migration failed:", error);
+  exit(1);
+}
+
+export function up(db: any): void {
   db.run(`
     BEGIN TRANSACTION;
 
     -- 1. Tabel 'recipes'
     -- Status en rating gebruiken CHECK constraints om de ENUM-logica na te bootsen.
-    CREATE TABLE recipes (
+    CREATE TABLE if not exists recipes (
       recipe_id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       cooking_time INTEGER, -- in minuten
@@ -30,7 +58,7 @@ export function up(db: Database): void {
 
     -- 2. Tabel 'ingredients'
     -- Food_type gebruikt ook een CHECK constraint.
-    CREATE TABLE ingredients (
+    CREATE TABLE if not exists ingredients (
       ingredient_id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       food_type TEXT CHECK(
@@ -49,7 +77,7 @@ export function up(db: Database): void {
 
     -- 3. Koppeltabel 'recipe_ingredients'
     -- Unit gebruikt een CHECK constraint.
-    CREATE TABLE recipe_ingredients (
+    CREATE TABLE if not exists recipe_ingredients (
       recipe_id INTEGER NOT NULL,
       ingredient_id INTEGER NOT NULL,
       quantity DECIMAL(8, 2) NOT NULL,
@@ -78,16 +106,17 @@ export function up(db: Database): void {
 
     -- 4. Indices (Optioneel, maar goed voor performance)
     -- Maakt het zoeken op naam sneller.
-    CREATE INDEX idx_recipes_name ON recipes (name);
-    CREATE INDEX idx_ingredients_name ON ingredients (name);
+    CREATE INDEX if not exists idx_recipes_name ON recipes (name);
+    CREATE INDEX if not exists idx_ingredients_name ON ingredients (name);
     -- Maakt het opzoeken van recepten op basis van een ingrediënt sneller.
-    CREATE INDEX idx_recipe_ingredients_ingredient_id ON recipe_ingredients (ingredient_id);
+    CREATE INDEX if not exists idx_recipe_ingredients_ingredient_id ON recipe_ingredients (ingredient_id);
 
     COMMIT;
   `);
+  console.log("Recipe migration 'up' executed successfully.");
 }
 
-export function down(db: Database): void {
+export function down(db: any): void {
   db.run(`
     BEGIN TRANSACTION;
 
