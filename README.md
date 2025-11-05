@@ -1,17 +1,13 @@
-# s-base
+# S-Base
+Made to be a multi-app platform for personal use and development.
 
-To install dependencies:
-
+**Start developing:**
 ```bash
-bun install
+bun run dev
 ```
 
-To run:
 
-```bash
-bun run index.ts
-```
+## Recipes
+Database design:
 
-This project was created using `bun init` in bun v1.3.1. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
-
-Database design 
+<img width="694" height="532" alt="recepi-database" src="https://github.com/user-attachments/assets/8af45400-993d-4f2b-b5ac-043174b91128" />
