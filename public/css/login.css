@@ -51,7 +51,7 @@ div.login-container input {
     border-radius: 5px;
     font-size: 1rem;
     margin: 5px 0;
-    transition: 0.2s;
+    transition: 0.4s;
 }
 
 div.login-container input:focus {
@@ -61,6 +61,12 @@ div.login-container input:focus {
     transform: scale(1.02);
 }
 
+div.login-container input:focus::-webkit-input-placeholder { color: transparent; }
+div.login-container input:focus:-moz-placeholder { color: transparent; }  /* Firefox 18- */
+div.login-container input:focus::-moz-placeholder { color: transparent; } /* Firefox 19+ */
+div.login-container input:focus:-ms-input-placeholder { color: transparent; } /* IE 10+ */
+div.login-container input:focus::placeholder { color: transparent; }
+
 div.login-container button {
     width: 20rem;
     padding: 0.75rem 1rem;
@@ -68,7 +74,9 @@ div.login-container button {
     border: none;
     border-radius: 5px;
     color: #111;
-    font-size: 1.2rem;
+    font-family: 'oatmeal', serif;
+    font-weight: 900;
+    font-size: 1.5rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin: 5px 0;

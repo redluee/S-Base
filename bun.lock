@@ -5,6 +5,7 @@
       "name": "s-base",
       "devDependencies": {
         "@types/bun": "latest",
+        "@types/node": "^24.10.0",
       },
       "peerDependencies": {
         "typescript": "^5",
