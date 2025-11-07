@@ -3,8 +3,6 @@ import { exit } from "process";
 import { readdir } from "fs/promises";
 import path from "path";
 
-console.log("Starting database initialization...");
-
 // Read all migration files from the migrations directory
 const migrationDir = "./src/database/migrations";
 const migrationFiles = (await readdir(migrationDir))
@@ -21,7 +19,7 @@ const seedFiles = (await readdir(seedDir))
 seedFiles.sort();
 
 console.log(
-  `Found ${migrationFiles.length} migration(s), ${seedFiles.length} seeder(s)`
+  `\nFound ${migrationFiles.length} migration(s), ${seedFiles.length} seeder(s)`
 );
 
 // Begin a transaction to run all migrations
@@ -31,7 +29,7 @@ if (migrationFiles.length > 0) {
       try {
         const sql = await Bun.file(file).text();
         db.run(sql); // Run the migration SQL
-        console.log(`Migrated: ${file}`);
+        console.log(`MIGRATED: ${file}`);
       } catch (e) {
         console.error(`FAILED migration: ${file}`, e);
         throw e; // This will cause the transaction to roll back
@@ -48,7 +46,7 @@ if (seedFiles.length > 0) {
       try {
         const sql = await Bun.file(file).text();
         db.run(sql); // Run the seeder SQL
-        console.log(`Seeded: ${file}`);
+        console.log(`SEEDED: ${file}`);
       } catch (e) {
         console.error(`FAILED seeding: ${file}`, e);
         throw e; // This will cause the transaction to roll back

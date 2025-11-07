@@ -1,21 +1,29 @@
-import {join} from "path";
+import { join } from "path";
+import { handleLogin } from "./modules/auth";
 
-const PUBLIC_PATH = join(process.cwd(), 'public');
+const PUBLIC_PATH = join(process.cwd(), "public");
 console.log(`Serving static files from: ${PUBLIC_PATH}`);
 
-export async function handleRequest(request: Request, db: any): Promise<Response> {
-    let url = new URL(request.url);
-    let path = url.pathname;
+export async function handleRequest(
+  request: Request,
+  db: any
+): Promise<Response> {
+  let url = new URL(request.url);
+  let path = url.pathname;
 
-    console.log(`Received request for: ${path}`);
+  console.log(`Received request for: ${path}`);
 
-    try {
-
+  try {
     //root path to index.html
-    if (path === '/') {
-      path = '/index.html';
+    if (path === "/") {
+      path = "/index.html";
     }
-    
+
+    // Handle login route
+    if (path === "/login" && request.method === "POST") {
+      return handleLogin(request, db);
+    }
+
     const filePath = join(PUBLIC_PATH, path);
 
     // Bun.file() creates a reference to a file
@@ -33,7 +41,6 @@ export async function handleRequest(request: Request, db: any): Promise<Response
     // If the file doesn't exist, return a 404 response
     console.warn(`File not found: ${filePath}`);
     return new Response("Not Found", { status: 404 });
-
   } catch (error) {
     console.error(`Error handling request for ${path}:`, error);
     return new Response("Internal Server Error", { status: 500 });
