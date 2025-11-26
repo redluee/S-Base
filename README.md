@@ -12,8 +12,8 @@ Database design:
 
 <img width="694" height="532" alt="recepi-database" src="https://github.com/user-attachments/assets/8af45400-993d-4f2b-b5ac-043174b91128" />
 
-Database initiation:
-```bun run migrate```
-
-Database migrations:
-```bun run [migrationfile] up/down```
+Database management:
+```bun run migrate up
+bun run migrate seed
+bun run migrate down
+```

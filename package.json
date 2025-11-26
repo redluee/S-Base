@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "initiate": "bun run src/database/initiate.ts"
+    "migrate": "bun run src/database/migrate.ts",
+    "newuser": "bun run src/database/create_user.ts"
   }
 }

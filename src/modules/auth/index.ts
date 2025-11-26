@@ -16,18 +16,14 @@ export async function handleLogin(request: Request, db: Database): Promise<Respo
         }
 
         // 2. Find the user in the database
-        // We only need the password hash.
         const userQuery = db.query<{ pswd_hash: string }, [string]>(
             "SELECT pswd_hash FROM users WHERE username = ? LIMIT 1"
         );
         const user = userQuery.get(username);
 
         if (!user) {
-            // User not found. Redirect back to login.
-            // (To prevent user enumeration, we give a generic error)
             console.warn(`Login failed: User not found (${username})`);
-            // Redirect back to the root/login page
-            return Response.redirect(new URL("/", request.url), 302);
+            return Response.redirect(new URL("/", request.url).toString(), 302);
         }
 
         // 3. Verify the password using Bun's built-in, secure API
@@ -39,12 +35,12 @@ export async function handleLogin(request: Request, db: Database): Promise<Respo
             // In a real app, you would create a session or JWT here.
             // For now, we'll just log success and redirect to the homepage.
             console.log(`Login successful: ${username}`);
-            return Response.redirect(new URL("/dashboard.html", request.url), 302);
+            return Response.redirect(new URL("/dashboard.html", request.url).toString(), 302);
         } else {
             // FAILURE
             console.warn(`Login failed: Invalid password for ${username}`);
             // Redirect back to login
-            return Response.redirect(new URL("/", request.url), 302);
+            return Response.redirect(new URL("/", request.url).toString(), 302);
         }
 
     } catch (error) {
