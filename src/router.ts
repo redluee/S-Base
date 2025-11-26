@@ -1,5 +1,6 @@
 import { join } from "path";
-import { handleLogin } from "./modules/auth";
+import { AuthService } from "./modules/auth/index";
+import { handleAuthRoutes } from "./modules/auth/router";
 
 const PUBLIC_PATH = join(process.cwd(), "public");
 console.log(`Serving static files from: ${PUBLIC_PATH}`);
@@ -10,8 +11,10 @@ export async function handleRequest(
 ): Promise<Response> {
   let url = new URL(request.url);
   let path = url.pathname;
-
+  
   console.log(`Received request for: ${path}`);
+
+  const AuthServiceInstance = new AuthService(db);
 
   try {
     //root path to index.html
@@ -21,7 +24,7 @@ export async function handleRequest(
 
     // Handle login route
     if (path === "/login" && request.method === "POST") {
-      return handleLogin(request, db);
+      return handleAuthRoutes(request, AuthServiceInstance);
     }
 
     const filePath = join(PUBLIC_PATH, path);
@@ -31,16 +34,15 @@ export async function handleRequest(
 
     // Check if the file exists
     if (await file.exists()) {
-      // If it exists, return the file.
-      // Bun is smart enough to set the correct Content-Type header
-      // (e.g., "text/html", "text/css", "application/javascript").
       return new Response(file);
     }
 
-    // --- Route 3: Not Found (404) ---
     // If the file doesn't exist, return a 404 response
-    console.warn(`File not found: ${filePath}`);
+    console.error(`File not found: ${filePath}`);
+
+
     return new Response("Not Found", { status: 404 });
+
   } catch (error) {
     console.error(`Error handling request for ${path}:`, error);
     return new Response("Internal Server Error", { status: 500 });

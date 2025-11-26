@@ -1,50 +1,48 @@
 import type { Database } from "bun:sqlite";
 
 /**
- * Handles the /login POST request.
- * It parses form data, finds the user, and verifies the password using Bun.password.
+ * AuthService handles the business logic for authentication.
+ * It interacts with the database but knows nothing about HTTP requests.
  */
-export async function handleLogin(request: Request, db: Database): Promise<Response> {
-    try {
-        // 1. Parse the form data (username, password) from the HTML form
-        const formData = await request.formData();
-        const username = formData.get("username") as string;
-        const password = formData.get("password") as string;
+export class AuthService {
+    private db: Database;
 
-        if (!username || !password) {
-            return new Response("Username and password are required", { status: 400 });
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    /**
+     * Verifies if the username and password match a record in the database.
+     */
+    public async verifyCredentials(username: string, pswdPlain: string): Promise<boolean> {
+        if (!username || !pswdPlain) return false;
+
+        try {
+            // 1. Prepare query
+            const userQuery = this.db.query<{ pswd_hash: string }, [string]>(
+                "SELECT pswd_hash FROM users WHERE username = ? LIMIT 1"
+            );
+            
+            // 2. Fetch user
+            const user = userQuery.get(username);
+
+            if (!user) {
+                console.warn(`Auth Failed: User not found (${username})`);
+                return false;
+            }
+
+            // 3. Verify password
+            const isMatch = await Bun.password.verify(pswdPlain, user.pswd_hash);
+            
+            if (!isMatch) {
+                console.warn(`Auth Failed: Invalid password for (${username})`);
+            }
+
+            return isMatch;
+
+        } catch (error) {
+            console.error("Database error during verification:", error);
+            return false;
         }
-
-        // 2. Find the user in the database
-        const userQuery = db.query<{ pswd_hash: string }, [string]>(
-            "SELECT pswd_hash FROM users WHERE username = ? LIMIT 1"
-        );
-        const user = userQuery.get(username);
-
-        if (!user) {
-            console.warn(`Login failed: User not found (${username})`);
-            return Response.redirect(new URL("/", request.url).toString(), 302);
-        }
-
-        // 3. Verify the password using Bun's built-in, secure API
-        const isMatch = await Bun.password.verify(password, user.pswd_hash);
-
-        // 4. Handle success or failure
-        if (isMatch) {
-            // SUCCESS!
-            // In a real app, you would create a session or JWT here.
-            // For now, we'll just log success and redirect to the homepage.
-            console.log(`Login successful: ${username}`);
-            return Response.redirect(new URL("/dashboard.html", request.url).toString(), 302);
-        } else {
-            // FAILURE
-            console.warn(`Login failed: Invalid password for ${username}`);
-            // Redirect back to login
-            return Response.redirect(new URL("/", request.url).toString(), 302);
-        }
-
-    } catch (error) {
-        console.error("Error in handleLogin:", error);
-        return new Response("Internal Server Error", { status: 500 });
     }
 }

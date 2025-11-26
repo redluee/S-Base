@@ -47,7 +47,7 @@ div.login-container {
 div.login-container input {
     width: 20rem;
     padding: 0.75rem 1rem;
-    border: 1px solid #000;
+    border: 2px solid #fff;
     border-radius: 5px;
     font-size: 1rem;
     margin: 5px 0;
@@ -67,11 +67,11 @@ div.login-container input:focus::-moz-placeholder { color: transparent; } /* Fir
 div.login-container input:focus:-ms-input-placeholder { color: transparent; } /* IE 10+ */
 div.login-container input:focus::placeholder { color: transparent; }
 
-div.login-container button {
+button {
     width: 20rem;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 1rem;
     background-color: #00e3a4;
-    border: none;
+    border: 2px solid #fff;
     border-radius: 5px;
     color: #111;
     font-family: 'oatmeal', serif;
@@ -79,13 +79,13 @@ div.login-container button {
     font-size: 1.5rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    margin: 5px 0;
+    margin: 5px 0px;
     transition: 0.2s;
 }
 
 div.login-container button:hover {
-    background-color: #008e7e;
-    transform: scale(.95);
+    background-color: #03f5b0;
+    transform: scale(.97);
 }
 
 div.login-container button:active {
