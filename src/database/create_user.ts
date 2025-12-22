@@ -4,6 +4,8 @@ import db  from ".";
 console.log("-- Create new user; --");
 
 const username = prompt("Enter new username:");
+const usernameRegex = /^[\w\-\p{L}]+$/u;
+const passwordRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};'"\\|,.<>\/?`~]+$/;
 if (!username) {
     console.error("Username is required.");
     process.exit(1);
@@ -13,7 +15,7 @@ if (username.length < 4) {
     process.exit(1);
 }
 // only allow alphanumeric usernames
-if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+if (!usernameRegex.test(username)) {
     console.error("Username can only contain alphanumeric characters and underscores.");
     process.exit(1);
 }
@@ -36,7 +38,7 @@ if (password.length < 5) {
     process.exit(1);
 }
 // password can only contain certain special characters and alphanumerics
-if (!/^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]+$/.test(password)) {
+if (!passwordRegex.test(password)) {
     console.error("Password contains invalid characters.");
     process.exit(1);
 }

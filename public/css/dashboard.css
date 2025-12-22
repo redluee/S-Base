@@ -1,0 +1,32 @@
+@font-face {
+    font-family: 'oatmeal';
+    src: url('../fonts/oatmeal.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'epilogue';
+    src: url('../fonts/epilogue.ttf') format('truetype');
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    background-color: #000;
+    font-family: 'epilogue', sans-serif;
+    color: #fff;
+}
+
+header{
+    margin-top: 30vh;
+    text-align: center;
+}
+
+header h1 {
+    font-family: 'oatmeal', serif;
+    font-size: clamp(1rem, 4vw + 1rem, 6rem);
+    text-shadow: 0 0 2rem #00e3a4;
+}
