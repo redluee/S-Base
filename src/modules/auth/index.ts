@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { resolve } from "path";
 
 /**
  * AuthService handles the business logic for authentication.
@@ -54,6 +55,21 @@ export class AuthService {
 		);
 
 		return sessionId;
+	}
+
+	public verifySession(session_id: number): boolean {
+
+		const query = this.db.run(`
+            SELECT session_id
+            FROM sessions
+            WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
+            LIMIT 1
+        `, [session_id]);
+
+		const result = query;
+		
+		// if session is valid, true is returned.
+		return !!result;
 	}
 
 	/**

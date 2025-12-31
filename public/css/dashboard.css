@@ -30,3 +30,7 @@ header h1 {
     font-size: clamp(1rem, 4vw + 1rem, 6rem);
     text-shadow: 0 0 2rem #00e3a4;
 }
+
+.title-s {
+    color: #00e3a4;
+}

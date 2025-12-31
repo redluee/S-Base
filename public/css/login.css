@@ -37,6 +37,10 @@ header p {
     color: #00e3a4;
 }
 
+.title-s {
+    color: #00e3a4;
+}
+
 div.login-container {
     display: flex;
     flex-direction: column;
