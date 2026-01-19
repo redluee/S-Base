@@ -1,15 +1,14 @@
 import { join } from "path";
 
 // import services
-import { AuthService } from "./modules/auth/index";
+import { AuthService } from "./auth/index";
 import { RecipeService } from "./modules/recipes/index";
 
 // import routers
-import { handleAuthRoutes } from "./modules/auth/router";
+import { handleAuthRoutes } from "./auth/router";
 import { handleRecipeRoutes } from "./modules/recipes/router";
 
 const PUBLIC_PATH = join(process.cwd(), "public");
-console.log(`Serving static files from: ${PUBLIC_PATH}`);
 
 let cachedDashboardTemplate: string | null = null;
 let navigationbar: string | null = null;
@@ -50,6 +49,27 @@ export async function handleRequest(
 
 	try {
 		//root path to index.html
+
+		if (path == "/" || path == "/index.html" || path == "/login") {
+			return new Response(await Bun.file(join(PUBLIC_PATH, "/index.html")));
+		}
+
+		const assetFile = Bun.file(join(PUBLIC_PATH, path));
+		if (await assetFile.exists()) {
+			return new Response(assetFile);
+		}
+/*
+		if(sessionId && AuthService.verifySession(parseInt(sessionToken)))
+		switch (true) {
+			case path == "/dashboard":
+				return new Response(await Bun.file());
+
+			case path.startsWith("/recipes"):
+				if(moduleAccessCheck(sessionToken)){
+
+				}
+		}
+			*/
 
 		switch (true) {
 			case path == "/":
@@ -96,7 +116,7 @@ export async function handleRequest(
 					path = "/index.html";
 					break;
 				}
-			
+
 			case path.startsWith("/recipes"):
 				return handleRecipeRoutes(request, RecipeServiceInstance);
 
@@ -115,25 +135,11 @@ export async function handleRequest(
 			case path.startsWith("/photos"):
 				path = "wip.html";
 				break;
-			
+
 			case path.startsWith("/volleyball"):
 				path = "wip.html";
 				break;
-				
 		}
-
-		const filePath = join(PUBLIC_PATH, path);
-
-		// Bun.file() creates a reference to a file
-		const file = Bun.file(filePath);
-
-		// Check if the file exists
-		if (await file.exists()) {
-			return new Response(file);
-		}
-
-		// If the file doesn't exist, return a 404 response
-		console.error(`File not found: ${filePath}`);
 
 		return new Response("Not Found", { status: 404 });
 	} catch (error) {
