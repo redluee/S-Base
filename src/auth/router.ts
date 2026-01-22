@@ -13,12 +13,11 @@ export async function handleAuthRoutes(
 	// Route: POST /login
 	if (req.method === "POST" && url.pathname === "/login") {
 		try {
+			console.log("login started");
 			const formData = await req.formData();
 			const username = formData.get("username") as string;
 			const password = formData.get("password") as string;
 
-			// 1. Verify Credentials
-			// (Note: verifyCredentials now returns userId or null)
 			const userId = await authService.verifyCredentials(username, password);
 
 			if (userId) {

@@ -17,7 +17,7 @@ export class AuthService {
 	 */
 	public async verifyCredentials(
 		username: string,
-		pswdPlain: string
+		pswdPlain: string,
 	): Promise<number | null> {
 		if (!username || !pswdPlain) return null;
 
@@ -51,23 +51,22 @@ export class AuthService {
 
 		this.db.run(
 			"INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)",
-			[sessionId, userId, expiresAt]
+			[sessionId, userId, expiresAt],
 		);
 
 		return sessionId;
 	}
 
-	public verifySession(session_id: number): boolean {
+	public verifySession(session_id: string): boolean {
+		const result = this.db
+			.query<{ session_id: string }, [string]>(
+				`
+        	SELECT session_id FROM sessions 
+        	WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP 
+        	LIMIT 1`,
+			)
+			.get(session_id);
 
-		const query = this.db.run(`
-            SELECT session_id
-            FROM sessions
-            WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
-            LIMIT 1
-        `, [session_id]);
-
-		const result = query;
-		
 		// if session is valid, true is returned.
 		return !!result;
 	}
