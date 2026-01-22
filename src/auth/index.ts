@@ -87,4 +87,27 @@ export class AuthService {
 		const result = query.get(sessionId);
 		return result ? result.username : null;
 	}
+
+	public moduleAccessCheck(sessionId: string, moduleName: string): boolean {
+		if (!sessionId || !moduleName) return false;
+
+		try {
+			const query = this.db.query<{ has_access: number }, [string, string]>(`
+				SELECT 1 as has_access
+				FROM sessions s
+				JOIN usermodulepermissions ump ON s.user_id = ump.user_id
+				JOIN modules m ON ump.module_id = m.module_id
+				WHERE s.session_id = ? 
+				AND m.module_name = ?
+				AND s.expires_at > CURRENT_TIMESTAMP
+				LIMIT 1
+			`);
+
+			const result = query.get(sessionId, moduleName);
+			return !!result;
+		} catch (error) {
+			console.error("Module Access Check Error:", error);
+			return false;
+		}
+	}
 }

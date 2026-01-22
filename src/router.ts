@@ -63,9 +63,9 @@ export async function handleRequest(
 					});
 
 				case path.startsWith("/recipes"):
-				// if(moduleAccessCheck(sessionToken)){
-				//	reroute to reciperouter
-				// }
+					if(services.auth.moduleAccessCheck(sessionId, "recipes")){
+						return handleRecipeRoutes(request, services.recipe);
+					}
 			}
 		}
 

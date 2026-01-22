@@ -11,6 +11,7 @@ CREATE TABLE
 	IF NOT EXISTS modules (
 		module_id INTEGER PRIMARY KEY AUTOINCREMENT,
 		module_name TEXT NOT NULL UNIQUE,
+		module_alias TEXT UNIQUE,
 		description TEXT
 	);
 
