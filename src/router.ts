@@ -14,9 +14,6 @@ const PUBLIC_PATH = join(process.cwd(), "public");
 const INDEX_HTML = await Bun.file(join(PUBLIC_PATH, "index.html")).bytes();
 const NOT_FOUND_HTML = await Bun.file(join(PUBLIC_PATH, "404.html")).text();
 
-let cachedDashboardTemplate: string | null = null;
-let navigationbar: string | null = null;
-
 function getCookieValue(
 	cookieHeader: string | null | undefined,
 	name = "session_id",
