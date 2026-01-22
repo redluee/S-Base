@@ -2,9 +2,11 @@ import db from "./database";
 import { handleRequest } from "./router";
 import { AuthService } from "./auth/index";
 import { RecipeService } from "./modules/recipes/index";
+import { DashboardService } from "./base/dashboard";
 
 const services = {
   auth: new AuthService(db),
+  dashboard: new DashboardService(db),
   recipe: new RecipeService(db),
 };
 

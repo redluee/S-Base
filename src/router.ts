@@ -31,16 +31,12 @@ function getCookieValue(
 
 export async function handleRequest(
 	request: Request,
-	services: { auth: AuthService; recipe: RecipeService },
+	services: { auth: AuthService; dashboard: DashboardService; recipe: RecipeService },
 ): Promise<Response> {
 	let url = new URL(request.url);
 	let path = url.pathname;
 
 	console.log(`Received request for: ${path}`);
-
-	const auth = new AuthService(db);
-	const dashboard = new DashboardService(db);
-	const recipe = new RecipeService(db);
 
 	try {
 		//root path to index.html
@@ -52,20 +48,19 @@ export async function handleRequest(
 		}
 
 		if (path == "/login") {
-			console.log("login kicked off");
-			return handleAuthRoutes(request, auth);
+			return handleAuthRoutes(request, services.auth);
 		}
 
 		const sessionId = getCookieValue(
 			request.headers.get("cookie"),
 			"session_id",
 		);
-		const isAuthenticated = sessionId ? auth.verifySession(sessionId) : false;
+		const isAuthenticated = sessionId ? services.auth.verifySession(sessionId) : false;
 
 		if (sessionId && isAuthenticated) {
 			switch (true) {
 				case path === "/dashboard":
-					const dashboardHTML = await dashboard.getDashboard(sessionId);
+					const dashboardHTML = await services.dashboard.getDashboard(sessionId);
 					return new Response(dashboardHTML, {
 						headers: { "Content-Type": "text/html; charset=utf-8" },
 					});
