@@ -140,7 +140,7 @@ export function IngredientAutocomplete({
         }}
         onKeyDown={handleKeyDown}
         placeholder={t("Ingredient")}
-        className="bg-white/5 border-border h-9 text-sm transition-all duration-150 ease-strong focus-visible:border-brand/50"
+        className="bg-white/5 border-border h-9 sm:h-8 text-sm transition-all duration-150 ease-strong focus-visible:border-brand/50"
       />
       {open &&
         suggestions.length > 0 &&
