@@ -1,18 +1,16 @@
 {
   "name": "s-base",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/node": "^24.10.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
+  "workspaces": ["backend", "frontend"],
   "scripts": {
-    "dev": "bun run --hot src/index.ts",
-    "migrate": "bun run src/database/migrate.ts",
-    "newuser": "bun run src/database/create_user.ts"
+    "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:backend": "bun run --cwd backend dev",
+    "dev:frontend": "bun run --cwd frontend dev",
+    "db:migrate": "bun run --cwd backend db:migrate",
+    "db:seed": "bun run --cwd backend db:seed",
+    "db:reset": "bun run --cwd backend db:reset"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   }
 }

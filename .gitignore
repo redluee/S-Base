@@ -35,3 +35,14 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 #sqlite database files
 *.db
+*.db-shm
+*.db-wal
+
+.opencode/
+.gemini/
+.claude/
+
+# dependencies
+node_modules/
+.next/
+*.tsbuildinfo
