@@ -27,11 +27,12 @@ export const serverApi = {
   me: () => serverFetch<{ user: { id: number; username: string } }>("/auth/me"),
 
   recipes: {
-    list: (status?: string, sortBy?: string, sortOrder?: string) => {
+    list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (sortBy) params.set("sortBy", sortBy);
       if (sortOrder) params.set("sortOrder", sortOrder);
+      if (q) params.set("q", q);
       const qs = params.toString();
       return serverFetch<any[]>(`/recipes${qs ? `?${qs}` : ""}`);
     },

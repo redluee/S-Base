@@ -8,11 +8,11 @@ import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 
 const statusColors: Record<string, string> = {
-  "to try": "bg-muted text-foreground",
+  "to try": "bg-muted text-black",
   success: "bg-brand/20 text-brand",
   "needs tweak": "bg-amber-900/30 text-amber-400",
   failure: "bg-destructive/10 text-destructive",
-  archived: "bg-muted text-muted-foreground",
+  archived: "bg-zinc-800 text-zinc-400",
 };
 
 const sortFields = [
@@ -24,7 +24,7 @@ const sortFields = [
 export default async function RecipesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; sortBy?: string; sortOrder?: string }>;
+  searchParams: Promise<{ status?: string; sortBy?: string; sortOrder?: string; q?: string }>;
 }) {
   let user: { id: number; username: string } | null = null;
   try {
@@ -34,8 +34,8 @@ export default async function RecipesPage({
   }
   if (!user) redirect("/");
 
-  const { status, sortBy, sortOrder } = await searchParams;
-  const recipes = await serverApi.recipes.list(status, sortBy, sortOrder);
+  const { status, sortBy, sortOrder, q } = await searchParams;
+  const recipes = await serverApi.recipes.list(status, sortBy, sortOrder, q);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -47,6 +47,9 @@ export default async function RecipesPage({
           </h1>
           <Link href="/recipes/new">
             <Button className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4">
+              <svg className="size-4 sm:size-5 mr-1 sm:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               {t("New Recipe")}
             </Button>
           </Link>
@@ -58,6 +61,7 @@ export default async function RecipesPage({
             if (s) params.set("status", s);
             if (sortBy) params.set("sortBy", sortBy);
             if (sortOrder) params.set("sortOrder", sortOrder);
+            if (q) params.set("q", q);
             return (
               <Link key={s} href={`/recipes${params.toString() ? `?${params.toString()}` : ""}`}>
                 <Badge
@@ -77,10 +81,11 @@ export default async function RecipesPage({
 
         <div className="flex items-center gap-1.5 mb-5">
           {sortFields.map((field) => {
-            const isActive = (sortBy ?? "name") === field.key;
-            const nextOrder = isActive && sortOrder === "asc" ? "desc" : "asc";
+            const isActive = sortBy === field.key || (!sortBy && field.key === "name");
+            const nextOrder = isActive && sortOrder !== "desc" ? "desc" : "asc";
             const params = new URLSearchParams();
             if (status) params.set("status", status);
+            if (q) params.set("q", q);
             params.set("sortBy", field.key);
             params.set("sortOrder", nextOrder);
             return (
@@ -95,7 +100,7 @@ export default async function RecipesPage({
               >
                 {field.label}
                 {isActive && (
-                  <span className="text-[10px] leading-none">
+                  <span className="text-base leading-none">
                     {sortOrder === "desc" ? "\u2193" : "\u2191"}
                   </span>
                 )}
@@ -103,6 +108,24 @@ export default async function RecipesPage({
             );
           })}
         </div>
+
+        {q && (
+          <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+            <span>
+              {t('Search results for "{q}"', { q })}
+            </span>
+            <a
+              href={`/recipes?${new URLSearchParams(
+                Object.fromEntries(
+                  Object.entries({ status, sortBy, sortOrder }).filter(([_, v]) => v !== undefined),
+                ) as Record<string, string>,
+              ).toString()}`}
+              className="text-xs text-brand hover:text-brand-hover underline"
+            >
+              {t("Clear")}
+            </a>
+          </div>
+        )}
 
         {recipes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
@@ -112,13 +135,30 @@ export default async function RecipesPage({
               </svg>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              {status ? t('No recipes with status "{status}".', { status: t(status) }) : t("No recipes yet.")}
+              {q
+                ? t('No recipes found for "{q}".', { q })
+                : status
+                  ? t('No recipes with status "{status}".', { status: t(status) })
+                  : t("No recipes yet.")}
             </p>
-            <Link href="/recipes/new">
-              <Button className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm">
-                {t("Create your first recipe")}
-              </Button>
-            </Link>
+            {q ? (
+              <a
+                href={`/recipes?${new URLSearchParams(
+                  Object.fromEntries(
+                    Object.entries({ status, sortBy, sortOrder }).filter(([_, v]) => v !== undefined),
+                  ) as Record<string, string>,
+                ).toString()}`}
+                className="text-sm text-brand hover:text-brand-hover underline"
+              >
+                {t("Clear search")}
+              </a>
+            ) : (
+              <Link href="/recipes/new">
+                <Button className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm">
+                  {t("Create your first recipe")}
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2">

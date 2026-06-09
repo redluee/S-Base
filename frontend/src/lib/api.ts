@@ -40,14 +40,19 @@ export const api = {
   },
 
   recipes: {
-    list: (status?: string, sortBy?: string, sortOrder?: string) => {
+    list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (sortBy) params.set("sortBy", sortBy);
       if (sortOrder) params.set("sortOrder", sortOrder);
+      if (q) params.set("q", q);
       const qs = params.toString();
       return request<any[]>(`/recipes${qs ? `?${qs}` : ""}`);
     },
+    suggest: (q: string) =>
+      request<{ type: "recipe" | "ingredient" | "kitchen"; value: string }[]>(
+        `/recipes/suggest?q=${encodeURIComponent(q)}`,
+      ),
 
     get: (id: number) => request<any>(`/recipes/${id}`),
 

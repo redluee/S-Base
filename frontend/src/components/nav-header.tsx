@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/search-bar";
 
 export function NavHeader({ username }: { username: string }) {
   const router = useRouter();
@@ -20,7 +21,8 @@ export function NavHeader({ username }: { username: string }) {
         S-Base
       </a>
       <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground">{username}</span>
+        <SearchBar />
+        <span className="text-sm text-muted-foreground hidden sm:inline">{username}</span>
         <Button variant="outline" size="sm" onClick={handleLogout} className="border-border text-xs">
           {t("Logout")}
         </Button>
