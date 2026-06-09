@@ -57,7 +57,15 @@ const app = new Elysia()
     const status = query?.status as string | undefined;
     const sortBy = query?.sortBy as string | undefined;
     const sortOrder = query?.sortOrder as string | undefined;
+    const q = query?.q as string | undefined;
+    if (q) return recipes.search(q, status, sortBy, sortOrder);
     return recipes.list(status, sortBy, sortOrder);
+  })
+
+  .get("/api/recipes/suggest", ({ query }) => {
+    const q = query?.q as string | undefined;
+    if (!q || q.length < 1) return [];
+    return recipes.suggest(q);
   })
 
   .get("/api/recipes/:id", ({ params: { id } }) => {

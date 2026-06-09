@@ -32,6 +32,7 @@ export const recipeIngredients = sqliteTable(
     ingredientId: integer("ingredient_id").notNull().references(() => ingredients.ingredientId, { onDelete: "cascade" }),
     quantity: real("quantity").notNull(),
     unit: text("unit"),
+    sortOrder: integer("sort_order").notNull().default(0),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.recipeId, table.ingredientId] }),
