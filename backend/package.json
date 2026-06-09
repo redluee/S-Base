@@ -1,0 +1,21 @@
+{
+  "name": "s-base-backend",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "db:migrate": "bun run src/db/migrate.ts",
+    "db:seed": "bun run src/db/seed.ts",
+    "db:reset": "bun run src/db/reset.ts",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "elysia": "^1.2.25",
+    "drizzle-orm": "^0.40.1",
+    "@elysiajs/cors": "^1.2.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.6",
+    "bun-types": "latest"
+  }
+}
