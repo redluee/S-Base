@@ -26,7 +26,7 @@ const activeStatusColors: Record<string, string> = {
 };
 
 const unitLabels: Record<string, string> = {
-	g: "g",
+	g: t("g"),
 	kg: "kg",
 	ml: "ml",
 	l: "l",

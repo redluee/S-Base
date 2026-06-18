@@ -6,20 +6,25 @@ import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
 
+import { cn } from "@/lib/utils";
+
 interface Suggestion {
   ingredientId: number;
   name: string;
-  foodType: string | null;
 }
 
 export function IngredientAutocomplete({
   value,
   onSelect,
   onChange,
+  id,
+  className,
 }: {
   value: string;
-  onSelect: (name: string, foodType: string) => void;
+  onSelect: (name: string) => void;
   onChange: (value: string) => void;
+  id?: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -89,7 +94,7 @@ export function IngredientAutocomplete({
   }, []);
 
   function select(suggestion: Suggestion) {
-    onSelect(suggestion.name, suggestion.foodType ?? "other");
+    onSelect(suggestion.name);
     setOpen(false);
     inputRef.current?.blur();
   }
@@ -130,6 +135,7 @@ export function IngredientAutocomplete({
     <div className="relative">
       <Input
         ref={inputRef}
+        id={id}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -140,7 +146,10 @@ export function IngredientAutocomplete({
         }}
         onKeyDown={handleKeyDown}
         placeholder={t("Ingredient")}
-        className="bg-white/5 border-border h-9 sm:h-8 text-sm transition-all duration-150 ease-strong focus-visible:border-brand/50"
+        className={cn(
+          "bg-white/5 border-border h-9 sm:h-8 text-sm transition-all duration-150 ease-strong focus-visible:border-brand/50",
+          className
+        )}
       />
       {open &&
         suggestions.length > 0 &&
@@ -164,9 +173,6 @@ export function IngredientAutocomplete({
                 }`}
               >
                 <span className="flex-1">{suggestion.name}</span>
-                {suggestion.foodType && (
-                  <span className="text-xs text-muted-foreground">{suggestion.foodType}</span>
-                )}
               </button>
             ))}
           </div>,

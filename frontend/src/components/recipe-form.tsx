@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 
 const UNITS = ["g", "kg", "ml", "l", "pcs", "tsp", "tbsp", "pinch"];
-const FOOD_TYPES = ["vegetable", "fruit", "meat", "fish", "spice", "liquid", "dairy", "other"];
 const STATUSES = ["to try", "success", "needs tweak", "failure", "archived"];
 
 const statusStyles: Record<string, string> = {
@@ -47,7 +46,6 @@ interface StepRow {
 interface IngredientRow {
   id: string;
   name: string;
-  foodType: string;
   quantity: string;
   unit: string;
 }
@@ -70,7 +68,6 @@ export function RecipeForm({
     initial?.ingredients?.map((i: any, idx: number) => ({
       id: `ing-${idx}`,
       name: i.name,
-      foodType: i.foodType ?? "other",
       quantity: i.quantity.toString(),
       unit: i.unit ?? "g",
     })) ?? [],
@@ -83,6 +80,7 @@ export function RecipeForm({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
 
@@ -96,13 +94,19 @@ export function RecipeForm({
         return next;
       });
     }, 300);
-    setIngredients((prev) => [...prev, { id, name: "", foodType: "other", quantity: "", unit: "g" }]);
+    setIngredients((prev) => [...prev, { id, name: "", quantity: "", unit: "g" }]);
   }
 
   function removeIngredient(id: string) {
     setExitingIds((prev) => new Set(prev).add(id));
     setTimeout(() => {
       setIngredients((prev) => prev.filter((ing) => ing.id !== id));
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[`${id}-name`];
+        delete next[`${id}-quantity`];
+        return next;
+      });
       setExitingIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
@@ -170,7 +174,7 @@ export function RecipeForm({
   }
 
   function moveIngredientDirect(from: number, to: number) {
-    if (to < 0 || to >= ingredients.length) return;
+    if (to < 0 || to > ingredients.length) return;
     setIngredients((prev) => {
       const next = [...prev];
       const [moved] = next.splice(from, 1);
@@ -193,12 +197,10 @@ export function RecipeForm({
 
       if (i === from) {
         el.style.transform = `translateY(${(to - from) * offset}px)`;
-      } else if (from < to && i > from && i <= to) {
-        el.style.transform = `translateY(-${offset}px)`;
-      } else if (from > to && i >= to && i < from) {
-        el.style.transform = `translateY(${offset}px)`;
-      } else {
-        el.style.transform = '';
+      } else if (i < from) {
+        el.style.transform = to <= i ? `translateY(${offset}px)` : '';
+      } else if (i > from) {
+        el.style.transform = to >= i ? `translateY(-${offset}px)` : '';
       }
     }
   }
@@ -229,6 +231,10 @@ export function RecipeForm({
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(idx));
 
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
+
     if (containerRef.current) {
       const positions: number[] = [];
       for (let i = 0; i < containerRef.current.children.length; i++) {
@@ -247,17 +253,17 @@ export function RecipeForm({
     if (from === null || naturalPositionsRef.current.length === 0) return;
 
     const mouseY = e.clientY;
-    let newHoverIndex = naturalPositionsRef.current.length;
+    let targetIndex = 0;
 
     for (let i = 0; i < naturalPositionsRef.current.length; i++) {
-      if (mouseY < naturalPositionsRef.current[i]) {
-        newHoverIndex = i;
-        break;
+      if (i === from) continue;
+      if (mouseY >= naturalPositionsRef.current[i]) {
+        targetIndex++;
       }
     }
 
-    if (newHoverIndex === hoverIndexRef.current) return;
-    hoverIndexRef.current = newHoverIndex;
+    if (targetIndex === hoverIndexRef.current) return;
+    hoverIndexRef.current = targetIndex;
     updateDragVisuals();
   }
 
@@ -339,10 +345,64 @@ export function RecipeForm({
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setErrors({});
+
+    const newErrors: Record<string, string> = {};
 
     if (!name.trim()) {
-      setError(t("Recipe name is required."));
+      newErrors.name = t("Recipe name is required.");
+    }
+
+    if (cookingTime !== "") {
+      const parsedTime = Number(cookingTime);
+      if (isNaN(parsedTime) || parsedTime < 0) {
+        newErrors.cookingTime = t("Cooking time cannot be negative.");
+      }
+    }
+
+    ingredients.forEach((ing) => {
+      const isNameEmpty = !ing.name.trim();
+      const isQtyEmpty = !ing.quantity.trim();
+      const isQtyInvalid = isQtyEmpty || isNaN(Number(ing.quantity)) || Number(ing.quantity) <= 0;
+
+      const isActive = !isNameEmpty || !isQtyEmpty;
+
+      if (isActive) {
+        if (isNameEmpty) {
+          newErrors[`${ing.id}-name`] = t("Ingredient name is required.");
+        }
+        if (isQtyInvalid) {
+          newErrors[`${ing.id}-quantity`] = t("Quantity must be greater than 0.");
+        }
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setLoading(false);
+
+      // Focus the first invalid input
+      const firstErrorKey = Object.keys(newErrors)[0];
+      let elementId = "";
+      if (firstErrorKey === "name") {
+        elementId = "name";
+      } else if (firstErrorKey === "cookingTime") {
+        elementId = "cookingTime";
+      } else if (firstErrorKey.endsWith("-name")) {
+        elementId = `ing-name-${firstErrorKey.replace("-name", "")}`;
+      } else if (firstErrorKey.endsWith("-quantity")) {
+        elementId = `ing-qty-${firstErrorKey.replace("-quantity", "")}`;
+      }
+
+      if (elementId) {
+        setTimeout(() => {
+          const el = document.getElementById(elementId);
+          if (el) {
+            el.focus();
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 50);
+      }
       return;
     }
 
@@ -354,10 +414,9 @@ export function RecipeForm({
       status,
       rating: rating ? Number(rating) : undefined,
       ingredients: ingredients
-        .filter((ing) => ing.name.trim())
+        .filter((ing) => ing.name.trim() || ing.quantity.trim())
         .map((ing, i) => ({
-          name: ing.name,
-          foodType: ing.foodType,
+          name: ing.name.trim(),
           quantity: Number(ing.quantity),
           unit: ing.unit,
           sortOrder: i,
@@ -410,7 +469,7 @@ export function RecipeForm({
         }
       `}</style>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 sm:gap-8">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6 sm:gap-8">
         {error && (
           <div className="rounded-lg bg-red-950/40 border border-red-900/50 px-4 py-3 text-sm text-red-400">
             {error}
@@ -425,11 +484,27 @@ export function RecipeForm({
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.name;
+                      return next;
+                    });
+                  }
+                }}
                 required
                 placeholder={t("e.g. Grilled Chicken with Salsa")}
-                className="bg-white/5 border-border transition-all duration-150 focus-visible:border-brand/50 h-9 sm:h-8"
+                className={`bg-white/5 h-9 sm:h-8 transition-all duration-150 focus-visible:border-brand/50 ${
+                  errors.name ? "border-red-500/50 focus-visible:ring-red-500/30" : "border-border"
+                }`}
               />
+              {errors.name && (
+                <span className="text-xs text-red-400 mt-0.5">
+                  {errors.name}
+                </span>
+              )}
             </div>
             <div className="grid gap-1.5 sm:gap-2">
               <Label htmlFor="description">{t("Description")}</Label>
@@ -454,10 +529,26 @@ export function RecipeForm({
                   id="cookingTime"
                   type="number"
                   value={cookingTime}
-                  onChange={(e) => setCookingTime(e.target.value)}
+                  onChange={(e) => {
+                    setCookingTime(e.target.value);
+                    if (errors.cookingTime) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.cookingTime;
+                        return next;
+                      });
+                    }
+                  }}
                   placeholder="30"
-                  className="bg-white/5 border-border transition-all duration-150 focus-visible:border-brand/50 h-9 sm:h-8"
+                  className={`bg-white/5 h-9 sm:h-8 transition-all duration-150 focus-visible:border-brand/50 ${
+                    errors.cookingTime ? "border-red-500/50 focus-visible:ring-red-500/30" : "border-border"
+                  }`}
                 />
+                {errors.cookingTime && (
+                  <span className="text-xs text-red-400 mt-0.5">
+                    {errors.cookingTime}
+                  </span>
+                )}
               </div>
               <div className="grid gap-1.5 sm:gap-2">
                 <Label htmlFor="kitchen">{t("Kitchen")}</Label>
@@ -534,32 +625,56 @@ export function RecipeForm({
               </p>
             )}
             {ingredients.map((ing, i) => (
-              <div
-                key={ing.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, i)}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onDragEnd={handleDragEnd}
-                className={`${animateFirstRender || newAddedIds.has(ing.id) ? "ingredient-enter" : ""} grid grid-cols-4 sm:grid-cols-12 gap-1.5 sm:gap-2 items-end rounded-lg border border-border/50 bg-white/[0.02] p-2 sm:p-2.5 transition-colors hover:border-border/80 ${
+  <div
+    key={ing.id}
+    onDragOver={handleDragOver}
+    onDrop={handleDrop}
+    className={`${animateFirstRender || newAddedIds.has(ing.id) ? "ingredient-enter" : ""} flex flex-wrap sm:flex-nowrap items-end gap-1.5 sm:gap-2 rounded-lg border border-border/50 bg-white/[0.02] p-2 sm:p-2.5 transition-colors hover:border-border/80 ${
                   exitingIds.has(ing.id) ? "ingredient-exit" : ""
                 } ${dragIndex === i ? "opacity-50" : ""}`}
                 style={{ animationDelay: exitingIds.has(ing.id) ? "0ms" : `${i * 30}ms` }}
               >
-                <div className="hidden sm:flex col-span-1 items-end justify-center pb-1">
-                  <GripVertical className="size-4 text-muted-foreground/30 cursor-grab active:cursor-grabbing" />
+                <div
+                  className="hidden sm:flex items-end justify-center pb-1 cursor-grab active:cursor-grabbing"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, i)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <GripVertical className="size-4 text-muted-foreground/30 pointer-events-none" />
                 </div>
-                <div className="col-span-4 sm:col-span-3 flex items-start gap-2">
+                 <div className="w-full sm:flex-1 sm:min-w-0 flex items-start gap-2">
                   <div className="flex-1 grid gap-1">
-                    <Label>{t("Name")}</Label>
+                    <Label htmlFor={`ing-name-${ing.id}`}>{t("Name")}</Label>
                     <IngredientAutocomplete
+                      id={`ing-name-${ing.id}`}
                       value={ing.name}
-                      onChange={(value) => updateIngredient(ing.id, "name", value)}
-                      onSelect={(name, foodType) => {
-                        updateIngredient(ing.id, "name", name);
-                        updateIngredient(ing.id, "foodType", foodType);
+                      onChange={(value) => {
+                        updateIngredient(ing.id, "name", value);
+                        if (errors[`${ing.id}-name`]) {
+                          setErrors((prev) => {
+                            const next = { ...prev };
+                            delete next[`${ing.id}-name`];
+                            return next;
+                          });
+                        }
                       }}
+                      onSelect={(name) => {
+                        updateIngredient(ing.id, "name", name);
+                        if (errors[`${ing.id}-name`]) {
+                          setErrors((prev) => {
+                            const next = { ...prev };
+                            delete next[`${ing.id}-name`];
+                            return next;
+                          });
+                        }
+                      }}
+                      className={errors[`${ing.id}-name`] ? "border-red-500/50 focus-visible:ring-red-500/30" : ""}
                     />
+                    {errors[`${ing.id}-name`] && (
+                      <span className="text-xs text-red-400 mt-0.5">
+                        {errors[`${ing.id}-name`]}
+                      </span>
+                    )}
                   </div>
                   <Button
                     type="button"
@@ -571,21 +686,38 @@ export function RecipeForm({
                     <X className="size-3.5" />
                   </Button>
                 </div>
-                <div className="col-span-1 sm:col-span-2 grid gap-1">
-                  <Label>{t("Qty")}</Label>
+                <div className="flex-1 sm:w-24 sm:flex-none grid gap-1">
+                  <Label htmlFor={`ing-qty-${ing.id}`}>{t("Qty")}</Label>
                   <Input
+                    id={`ing-qty-${ing.id}`}
                     type="number"
-                    step="0.01"
+                    step="any"
                     value={ing.quantity}
-                    onChange={(e) => updateIngredient(ing.id, "quantity", e.target.value)}
+                    onChange={(e) => {
+                      updateIngredient(ing.id, "quantity", e.target.value);
+                      if (errors[`${ing.id}-quantity`]) {
+                        setErrors((prev) => {
+                          const next = { ...prev };
+                          delete next[`${ing.id}-quantity`];
+                          return next;
+                        });
+                      }
+                    }}
                     placeholder="0"
-                    className="bg-white/5 border-border h-9 sm:h-8 transition-all focus-visible:border-brand/50"
+                    className={`bg-white/5 h-9 sm:h-8 transition-all focus-visible:border-brand/50 appearance-none ${
+                      errors[`${ing.id}-quantity`] ? "border-red-500/50 focus-visible:ring-red-500/30" : "border-border"
+                    }`}
                   />
+                  {errors[`${ing.id}-quantity`] && (
+                    <span className="text-xs text-red-400 mt-0.5">
+                      {errors[`${ing.id}-quantity`]}
+                    </span>
+                  )}
                 </div>
-                <div className="col-span-1 sm:col-span-2 grid gap-1">
+                <div className="flex-[2] sm:w-28 sm:flex-none grid gap-1">
                   <Label>{t("Unit")}</Label>
                   <Select value={ing.unit} onValueChange={(v) => updateIngredient(ing.id, "unit", v ?? "g")}>
-                    <SelectTrigger className="bg-white/5 border-border h-9 sm:h-8">
+                    <SelectTrigger className="bg-white/5 border-border h-9 sm:h-8 w-full">
                       <SelectValue>{t(ing.unit)}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -595,20 +727,8 @@ export function RecipeForm({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-1 sm:col-span-3 grid gap-1">
-                  <Label>{t("Type")}</Label>
-                  <Select value={ing.foodType} onValueChange={(v) => updateIngredient(ing.id, "foodType", v ?? "other")}>
-                    <SelectTrigger className="bg-white/5 border-border h-9 sm:h-8">
-                      <SelectValue>{t(ing.foodType)}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FOOD_TYPES.map((ft) => (
-                        <SelectItem key={ft} value={ft}>{t(ft)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-1 sm:col-span-1 flex items-end justify-center gap-1 sm:pb-0">
+
+                <div className="flex-none flex items-end justify-center gap-1 sm:pb-0">
                   <div className="flex sm:hidden gap-1.5">
                     <button
                       type="button"
