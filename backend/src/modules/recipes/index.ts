@@ -80,7 +80,6 @@ export class RecipeService {
     const ings = db.select({
       ingredientId: ingredients.ingredientId,
       name: ingredients.name,
-      foodType: ingredients.foodType,
       quantity: recipeIngredients.quantity,
       unit: recipeIngredients.unit,
     })
@@ -110,7 +109,7 @@ export class RecipeService {
     status?: string;
     description?: string;
     rating?: number;
-    ingredients?: { name: string; foodType?: string; quantity: number; unit?: string; sortOrder?: number }[];
+    ingredients?: { name: string; quantity: number; unit?: string; sortOrder?: number }[];
     steps?: { description: string }[];
   }) {
     const recipe = db.insert(recipes).values({
@@ -125,13 +124,13 @@ export class RecipeService {
     if (data.ingredients?.length) {
       for (let i = 0; i < data.ingredients.length; i++) {
         const ing = data.ingredients[i];
+        if (ing.quantity <= 0) throw new Error("Ingredient quantity must be greater than 0");
         let existing = db.select().from(ingredients)
           .where(eq(ingredients.name, ing.name)).get();
 
         if (!existing) {
           existing = db.insert(ingredients).values({
             name: ing.name,
-            foodType: ing.foodType ?? "other",
           }).returning().get();
         }
 
@@ -165,7 +164,7 @@ export class RecipeService {
     status?: string;
     description?: string;
     rating?: number;
-    ingredients?: { name: string; foodType?: string; quantity: number; unit?: string; sortOrder?: number }[];
+    ingredients?: { name: string; quantity: number; unit?: string; sortOrder?: number }[];
     steps?: { description: string }[];
   }) {
     const existing = db.select().from(recipes).where(eq(recipes.recipeId, id)).get();
@@ -185,13 +184,13 @@ export class RecipeService {
 
       for (let i = 0; i < data.ingredients.length; i++) {
         const ing = data.ingredients[i];
+        if (ing.quantity <= 0) throw new Error("Ingredient quantity must be greater than 0");
         let existingIng = db.select().from(ingredients)
           .where(eq(ingredients.name, ing.name)).get();
 
         if (!existingIng) {
           existingIng = db.insert(ingredients).values({
             name: ing.name,
-            foodType: ing.foodType ?? "other",
           }).returning().get();
         }
 
@@ -243,7 +242,6 @@ export class RecipeService {
     return db.select({
       ingredientId: ingredients.ingredientId,
       name: ingredients.name,
-      foodType: ingredients.foodType,
     })
       .from(ingredients)
       .where(like(ingredients.name, `%${q}%`))

@@ -34,7 +34,7 @@ export const api = {
 
   ingredients: {
     search: (q: string) =>
-      request<{ ingredientId: number; name: string; foodType: string | null }[]>(
+      request<{ ingredientId: number; name: string }[]>(
         `/ingredients/search?q=${encodeURIComponent(q)}`,
       ),
   },

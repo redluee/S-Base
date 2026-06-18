@@ -15,7 +15,6 @@ export const recipes = sqliteTable("recipes", {
 export const ingredients = sqliteTable("ingredients", {
   ingredientId: integer("ingredient_id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  foodType: text("food_type"),
 });
 
 export const recipeSteps = sqliteTable("recipe_steps", {
