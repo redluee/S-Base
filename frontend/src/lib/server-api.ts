@@ -38,4 +38,26 @@ export const serverApi = {
     },
     get: (id: number) => serverFetch<any>(`/recipes/${id}`),
   },
+
+  workouts: {
+    templates: {
+      list: () => serverFetch<any[]>("/workouts/templates"),
+      get: (id: number) => serverFetch<any>(`/workouts/templates/${id}`),
+    },
+
+    sessions: {
+      list: (status?: string) =>
+        serverFetch<any[]>(`/workouts/sessions${status ? `?status=${status}` : ""}`),
+      get: (id: number) => serverFetch<any>(`/workouts/sessions/${id}`),
+    },
+
+    exercises: {
+      list: () => serverFetch<string[]>("/workouts/exercises"),
+      progress: (name: string) =>
+        serverFetch<any>(`/workouts/exercises/${encodeURIComponent(name)}/progress`),
+    },
+    stats: () =>
+      serverFetch<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
+  },
 };
+

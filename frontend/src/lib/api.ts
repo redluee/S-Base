@@ -77,4 +77,63 @@ export const api = {
         body: JSON.stringify({ rating }),
       }),
   },
+
+  workouts: {
+    templates: {
+      list: () => request<any[]>("/workouts/templates"),
+
+      get: (id: number) => request<any>(`/workouts/templates/${id}`),
+
+      create: (data: any) =>
+        request<any>("/workouts/templates", { method: "POST", body: JSON.stringify(data) }),
+
+      update: (id: number, data: any) =>
+        request<any>(`/workouts/templates/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+
+      delete: (id: number) =>
+        request<any>(`/workouts/templates/${id}`, { method: "DELETE" }),
+    },
+
+    sessions: {
+      list: (status?: string) =>
+        request<any[]>(`/workouts/sessions${status ? `?status=${status}` : ""}`),
+
+      get: (id: number) => request<any>(`/workouts/sessions/${id}`),
+
+      create: (templateId?: number) =>
+        request<any>("/workouts/sessions", {
+          method: "POST",
+          body: JSON.stringify({ templateId }),
+        }),
+
+      update: (id: number, data: any) =>
+        request<any>(`/workouts/sessions/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      complete: (id: number, completedAt?: string) =>
+        request<any>(`/workouts/sessions/${id}/complete`, {
+          method: "PATCH",
+          body: completedAt ? JSON.stringify({ completedAt }) : undefined,
+        }),
+
+      delete: (id: number) =>
+        request<any>(`/workouts/sessions/${id}`, { method: "DELETE" }),
+    },
+
+    exercises: {
+      list: () => request<string[]>("/workouts/exercises"),
+      suggest: (q: string) =>
+        request<{ type: string; value: string; defaultSets: number | null; defaultReps: number | null }[]>(
+          `/workouts/exercises/suggest?q=${encodeURIComponent(q)}`,
+        ),
+
+      progress: (name: string) =>
+        request<any>(`/workouts/exercises/${encodeURIComponent(name)}/progress`),
+    },
+    stats: () =>
+      request<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
+  },
 };
+
