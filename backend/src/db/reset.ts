@@ -1,7 +1,9 @@
 import { Database } from "bun:sqlite";
+import { join } from "path";
 
 async function reset() {
-  const sqlite = new Database("sbase.db");
+  const dbPath = join(import.meta.dir, "../../..", "sbase.db");
+  const sqlite = new Database(dbPath);
 
   const tables = sqlite.query<{ name: string }, []>(
     "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",

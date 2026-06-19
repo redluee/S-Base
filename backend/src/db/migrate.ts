@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { join } from "path";
 import { readdir } from "fs/promises";
 
-const MIGRATIONS_DIR = join(import.meta.dir, "../../../migrations");
+const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
 async function migrate() {
   const sqlite = new Database(
