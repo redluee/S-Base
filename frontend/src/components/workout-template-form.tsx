@@ -23,6 +23,8 @@ interface ExerciseRow {
   duration: string;
   rpe: string;
   heartRate: string;
+  defaultRestTime: string;
+  equipment: string;
 }
 
 function parseDuration(val: string): number | undefined {
@@ -64,7 +66,9 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       duration: formatDuration(e.defaultDuration),
       rpe: e.defaultRpe?.toString() ?? "",
       heartRate: e.defaultHeartRate?.toString() ?? "",
-    })) ?? [{ id: "ex-0", name: "", category: "resistance", sets: "3", reps: "10", weight: "", distance: "", duration: "", rpe: "", heartRate: "" }],
+      defaultRestTime: e.defaultRestTime?.toString() ?? "90",
+      equipment: e.equipment ?? "none",
+    })) ?? [{ id: "ex-0", name: "", category: "resistance", sets: "3", reps: "10", weight: "", distance: "", duration: "", rpe: "", heartRate: "", defaultRestTime: "90", equipment: "none" }],
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +76,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
 
   function addExercise() {
     const id = `ex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    setExercises((prev) => [...prev, { id, name: "", category: "resistance", sets: "3", reps: "10", weight: "", distance: "", duration: "", rpe: "", heartRate: "" }]);
+    setExercises((prev) => [...prev, { id, name: "", category: "resistance", sets: "3", reps: "10", weight: "", distance: "", duration: "", rpe: "", heartRate: "", defaultRestTime: "90", equipment: "none" }]);
   }
 
   function removeExercise(id: string) {
@@ -131,6 +135,8 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
           duration: (ex.category === "cardio" || ex.category === "isometric") ? parseDuration(ex.duration) : undefined,
           rpe: ex.category === "resistance" && ex.rpe ? Number(ex.rpe) : undefined,
           heartRate: ex.category === "cardio" && ex.heartRate ? Number(ex.heartRate) : undefined,
+          defaultRestTime: ex.defaultRestTime ? Number(ex.defaultRestTime) : 90,
+          equipment: ex.equipment || "none",
         })),
     };
 
@@ -252,13 +258,13 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                   <X className="size-3.5" />
                 </Button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-2">
                 <div className="grid gap-1">
                   <Label className="text-xs text-muted-foreground">{t("Category")}</Label>
                   <select
                     value={ex.category}
                     onChange={(e) => updateExercise(ex.id, "category", e.target.value)}
-                    className="bg-white/5 border border-border/80 rounded-md h-8 px-2 text-xs text-foreground focus:outline-none focus:border-brand/40"
+                    className="bg-white/5 border border-border/80 rounded-md h-8 px-2 text-xs text-foreground focus:outline-none focus:border-brand/40 cursor-pointer"
                   >
                     <option value="resistance" className="bg-zinc-900">{t("Resistance")}</option>
                     <option value="bodyweight" className="bg-zinc-900">{t("Bodyweight")}</option>
@@ -395,6 +401,34 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                     </div>
                   </>
                 )}
+                
+                {/* Rest Time and Equipment */}
+                <div className="grid gap-1">
+                  <Label className="text-xs text-muted-foreground">{t("Rest Time")}</Label>
+                  <Input
+                    type="number"
+                    value={ex.defaultRestTime}
+                    onChange={(e) => updateExercise(ex.id, "defaultRestTime", e.target.value)}
+                    placeholder="90s"
+                    className="bg-white/5 h-8 border-border text-sm"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label className="text-xs text-muted-foreground">{t("Equipment")}</Label>
+                  <select
+                    value={ex.equipment}
+                    onChange={(e) => updateExercise(ex.id, "equipment", e.target.value)}
+                    className="bg-white/5 border border-border/80 rounded-md h-8 px-2 text-xs text-foreground focus:outline-none focus:border-brand/40 cursor-pointer"
+                  >
+                    <option value="none" className="bg-zinc-900">{t("none")}</option>
+                    <option value="barbell" className="bg-zinc-900">{t("barbell")}</option>
+                    <option value="dumbbell" className="bg-zinc-900">{t("dumbbell")}</option>
+                    <option value="kettlebell" className="bg-zinc-900">{t("kettlebell")}</option>
+                    <option value="cable" className="bg-zinc-900">{t("cable")}</option>
+                    <option value="machine" className="bg-zinc-900">{t("machine")}</option>
+                    <option value="band" className="bg-zinc-900">{t("band")}</option>
+                  </select>
+                </div>
               </div>
             </div>
           ))}

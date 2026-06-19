@@ -13,6 +13,7 @@ interface Suggestion {
   category?: string;
   defaultSets: number | null;
   defaultReps: number | null;
+  equipment?: string | null;
 }
 
 export function ExerciseAutocomplete({
@@ -23,7 +24,7 @@ export function ExerciseAutocomplete({
   className,
 }: {
   value: string;
-  onSelect: (name: string, defaultSets?: number, defaultReps?: number, category?: string) => void;
+  onSelect: (name: string, defaultSets?: number, defaultReps?: number, category?: string, equipment?: string) => void;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
@@ -44,7 +45,7 @@ export function ExerciseAutocomplete({
     }
     try {
       const results = await api.workouts.exercises.suggest(q);
-      setSuggestions(results);
+      setSuggestions(results as any);
       setActiveIndex(-1);
     } catch {
       setSuggestions([]);
@@ -100,7 +101,8 @@ export function ExerciseAutocomplete({
       suggestion.value,
       suggestion.defaultSets ?? undefined,
       suggestion.defaultReps ?? undefined,
-      suggestion.category ?? undefined
+      suggestion.category ?? undefined,
+      suggestion.equipment ?? undefined
     );
     setOpen(false);
     inputRef.current?.blur();

@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { kitchens } from "@/lib/kitchens";
 import { t } from "@/lib/lang";
 
 interface Suggestion {
-  type: "recipe" | "ingredient" | "kitchen";
+  type: "recipe" | "ingredient" | "kitchen" | "exercise";
   value: string;
+  rawValue?: string;
+  equipment?: string | null;
 }
 
 export function SearchBar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -25,6 +28,8 @@ export function SearchBar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  const isWorkouts = pathname.includes("/workouts");
+
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.length < 1) {
       setSuggestions([]);
@@ -32,20 +37,33 @@ export function SearchBar() {
       return;
     }
     try {
-      const remote = await api.recipes.suggest(q);
-      const localKitchens = kitchens
-        .filter((k) => k.name.toLowerCase().includes(q.toLowerCase()))
-        .filter((k) => !remote.some((r) => r.type === "kitchen" && r.value === k.name))
-        .map((k) => ({ type: "kitchen" as const, value: k.name }));
-      const all = [...remote, ...localKitchens];
-      setSuggestions(all);
-      setActiveIndex(-1);
-      setOpen(all.length > 0);
+      if (isWorkouts) {
+        const remote = await api.workouts.exercises.suggest(q);
+        const mapped = remote.map((r) => ({
+          type: "exercise" as const,
+          value: r.equipment ? `${r.value} (${t(r.equipment)})` : r.value,
+          rawValue: r.value,
+          equipment: r.equipment,
+        }));
+        setSuggestions(mapped);
+        setActiveIndex(-1);
+        setOpen(mapped.length > 0);
+      } else {
+        const remote = await api.recipes.suggest(q);
+        const localKitchens = kitchens
+          .filter((k) => k.name.toLowerCase().includes(q.toLowerCase()))
+          .filter((k) => !remote.some((r) => r.type === "kitchen" && r.value === k.name))
+          .map((k) => ({ type: "kitchen" as const, value: k.name }));
+        const all = [...remote, ...localKitchens] as Suggestion[];
+        setSuggestions(all);
+        setActiveIndex(-1);
+        setOpen(all.length > 0);
+      }
     } catch {
       setSuggestions([]);
       setOpen(false);
     }
-  }, []);
+  }, [isWorkouts]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -94,7 +112,21 @@ export function SearchBar() {
     setExpanded(false);
     setQuery("");
     setOpen(false);
-    router.push(`/recipes?q=${encodeURIComponent(value.trim())}`);
+
+    if (isWorkouts) {
+      const match = suggestions.find((s) => s.value === value);
+      if (match && match.rawValue) {
+        router.push(
+          `/workouts/exercises/${encodeURIComponent(match.rawValue)}${
+            match.equipment ? `?equipment=${encodeURIComponent(match.equipment)}` : ""
+          }`
+        );
+      } else {
+        router.push(`/workouts/exercises?q=${encodeURIComponent(value.trim())}`);
+      }
+    } else {
+      router.push(`/recipes?q=${encodeURIComponent(value.trim())}`);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -151,7 +183,7 @@ export function SearchBar() {
         <button
           type="button"
           onClick={toggle}
-          className="shrink-0 size-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="shrink-0 size-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
           aria-label={t("Search")}
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -170,7 +202,7 @@ export function SearchBar() {
           onFocus={() => {
             if (suggestions.length > 0) setOpen(true);
           }}
-          placeholder={t("Search recipes\u2026")}
+          placeholder={isWorkouts ? t("Search exercises…") : t("Search recipes…")}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
         />
       </div>
@@ -190,7 +222,7 @@ export function SearchBar() {
                 type="button"
                 onClick={() => submit(suggestion.value)}
                 onMouseEnter={() => setActiveIndex(i)}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 ${
+                className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 cursor-pointer ${
                   i === activeIndex
                     ? "bg-accent text-accent-foreground"
                     : "text-foreground hover:bg-accent/50"
@@ -202,7 +234,11 @@ export function SearchBar() {
                     ? t("Recipe")
                     : suggestion.type === "ingredient"
                       ? t("Ingredient")
-                      : t("Kitchen")}
+                      : suggestion.type === "kitchen"
+                        ? t("Kitchen")
+                        : suggestion.type === "exercise"
+                          ? t("Exercise")
+                          : ""}
                 </span>
               </button>
             ))}
