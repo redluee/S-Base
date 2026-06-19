@@ -123,14 +123,18 @@ export const api = {
     },
 
     exercises: {
-      list: () => request<string[]>("/workouts/exercises"),
+      list: () => request<{ name: string; equipment: string | null }[]>("/workouts/exercises"),
       suggest: (q: string) =>
-        request<{ type: string; value: string; defaultSets: number | null; defaultReps: number | null }[]>(
+        request<{ type: string; value: string; defaultSets: number | null; defaultReps: number | null; equipment: string | null }[]>(
           `/workouts/exercises/suggest?q=${encodeURIComponent(q)}`,
         ),
 
-      progress: (name: string) =>
-        request<any>(`/workouts/exercises/${encodeURIComponent(name)}/progress`),
+      progress: (name: string, equipment?: string) =>
+        request<any>(
+          `/workouts/exercises/${encodeURIComponent(name)}/progress${
+            equipment ? `?equipment=${encodeURIComponent(equipment)}` : ""
+          }`,
+        ),
     },
     stats: () =>
       request<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),

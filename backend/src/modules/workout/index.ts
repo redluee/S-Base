@@ -41,6 +41,8 @@ export class WorkoutService {
       duration?: number;
       rpe?: number;
       heartRate?: number;
+      defaultRestTime?: number;
+      equipment?: string;
     }[];
   }) {
     const template = db.insert(workoutTemplates).values({
@@ -65,6 +67,8 @@ export class WorkoutService {
           defaultDuration: ex.duration,
           defaultRpe: ex.rpe,
           defaultHeartRate: ex.heartRate,
+          defaultRestTime: ex.defaultRestTime,
+          equipment: ex.equipment,
         }).run();
       }
     }
@@ -87,6 +91,8 @@ export class WorkoutService {
       duration?: number;
       rpe?: number;
       heartRate?: number;
+      defaultRestTime?: number;
+      equipment?: string;
     }[];
   }) {
     const existing = db.select().from(workoutTemplates).where(eq(workoutTemplates.templateId, id)).get();
@@ -116,6 +122,8 @@ export class WorkoutService {
           defaultDuration: ex.duration,
           defaultRpe: ex.rpe,
           defaultHeartRate: ex.heartRate,
+          defaultRestTime: ex.defaultRestTime,
+          equipment: ex.equipment,
         }).run();
       }
     }
@@ -191,6 +199,8 @@ export class WorkoutService {
           defaultDuration: templateEx.defaultDuration,
           defaultRpe: templateEx.defaultRpe,
           defaultHeartRate: templateEx.defaultHeartRate,
+          defaultRestTime: templateEx.defaultRestTime,
+          equipment: templateEx.equipment,
         } : null
       };
     });
@@ -224,6 +234,7 @@ export class WorkoutService {
             exerciseName: tex.exerciseName,
             sortOrder: tex.sortOrder,
             category: tex.category ?? "resistance",
+            equipment: tex.equipment,
           }).returning().get();
 
           for (let s = 1; s <= tex.defaultSets; s++) {
@@ -254,6 +265,7 @@ export class WorkoutService {
       exerciseName: string;
       sortOrder: number;
       category?: string;
+      equipment?: string;
       sets?: {
         setId?: number;
         setNumber: number;
@@ -302,6 +314,7 @@ export class WorkoutService {
             exerciseName: ex.exerciseName,
             sortOrder: ex.sortOrder,
             category: ex.category ?? "resistance",
+            equipment: ex.equipment,
           }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
 
           if (ex.sets) {
@@ -327,6 +340,7 @@ export class WorkoutService {
             exerciseName: ex.exerciseName,
             sortOrder: ex.sortOrder,
             category: ex.category ?? "resistance",
+            equipment: ex.equipment,
           }).returning().get();
 
           if (ex.sets) {
@@ -375,6 +389,7 @@ export class WorkoutService {
       category: templateExercises.category,
       defaultSets: templateExercises.defaultSets,
       defaultReps: templateExercises.defaultReps,
+      equipment: templateExercises.equipment,
     })
       .from(templateExercises)
       .where(like(templateExercises.exerciseName, `%${q}%`))
@@ -384,41 +399,59 @@ export class WorkoutService {
     const fromSessions = db.select({
       name: sessionExercises.exerciseName,
       category: sessionExercises.category,
+      equipment: sessionExercises.equipment,
     })
       .from(sessionExercises)
       .where(like(sessionExercises.exerciseName, `%${q}%`))
       .limit(10)
       .all();
 
-    const exerciseMap = new Map<string, { category: string; defaultSets: number | null; defaultReps: number | null }>();
+    const exerciseMap = new Map<string, { category: string; defaultSets: number | null; defaultReps: number | null; equipment: string | null }>();
 
     for (const r of fromTemplates) {
-      if (!exerciseMap.has(r.name)) {
-        exerciseMap.set(r.name, { category: r.category ?? "resistance", defaultSets: r.defaultSets, defaultReps: r.defaultReps });
+      const key = `${r.name}::${r.equipment ?? ""}`;
+      if (!exerciseMap.has(key)) {
+        exerciseMap.set(key, { category: r.category ?? "resistance", defaultSets: r.defaultSets, defaultReps: r.defaultReps, equipment: r.equipment });
       }
     }
 
     for (const r of fromSessions) {
-      if (!exerciseMap.has(r.name)) {
-        exerciseMap.set(r.name, { category: r.category ?? "resistance", defaultSets: null, defaultReps: null });
+      const key = `${r.name}::${r.equipment ?? ""}`;
+      if (!exerciseMap.has(key)) {
+        exerciseMap.set(key, { category: r.category ?? "resistance", defaultSets: null, defaultReps: null, equipment: r.equipment });
       }
     }
 
-    return Array.from(exerciseMap.entries()).map(([name, data]) => ({
-      type: "exercise" as const,
-      value: name,
-      category: data.category,
-      defaultSets: data.defaultSets,
-      defaultReps: data.defaultReps,
-    }));
+    return Array.from(exerciseMap.entries()).map(([key, data]) => {
+      const [name] = key.split("::");
+      return {
+        type: "exercise" as const,
+        value: name,
+        category: data.category,
+        defaultSets: data.defaultSets,
+        defaultReps: data.defaultReps,
+        equipment: data.equipment,
+      };
+    });
   }
 
-  exerciseProgress(name: string) {
+  exerciseProgress(name: string, equipment?: string) {
+    const conditions = [
+      eq(sessionExercises.exerciseName, name),
+      sql`${workoutSessions.completedAt} IS NOT NULL`,
+    ];
+    if (equipment && equipment !== "null" && equipment !== "undefined") {
+      conditions.push(eq(sessionExercises.equipment, equipment));
+    } else {
+      conditions.push(sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '')`);
+    }
+
     const rows = db.select({
       sessionId: workoutSessions.sessionId,
       startedAt: workoutSessions.startedAt,
       exerciseName: sessionExercises.exerciseName,
       category: sessionExercises.category,
+      equipment: sessionExercises.equipment,
       setNumber: sessionSets.setNumber,
       reps: sessionSets.reps,
       weight: sessionSets.weight,
@@ -431,10 +464,7 @@ export class WorkoutService {
       .from(sessionSets)
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        eq(sessionExercises.exerciseName, name),
-        sql`${workoutSessions.completedAt} IS NOT NULL`,
-      ))
+      .where(and(...conditions))
       .orderBy(workoutSessions.startedAt, sessionExercises.sortOrder, sessionSets.setNumber)
       .all();
 
@@ -448,6 +478,8 @@ export class WorkoutService {
 
     return {
       exerciseName: name,
+      category: rows[0]?.category ?? "resistance",
+      equipment: equipment ?? null,
       sessions: Object.entries(sessions).map(([id, s]) => ({
         sessionId: Number(id),
         startedAt: s.startedAt,
@@ -458,20 +490,35 @@ export class WorkoutService {
 
   listUniqueExercises(userId: number) {
     this.cleanupEmptySessions(userId, 300);
-    const fromTemplates = db.select({ name: templateExercises.exerciseName })
+    const fromTemplates = db.select({ name: templateExercises.exerciseName, equipment: templateExercises.equipment })
       .from(templateExercises)
       .all();
-    const fromSessions = db.select({ name: sessionExercises.exerciseName })
+    const fromSessions = db.select({ name: sessionExercises.exerciseName, equipment: sessionExercises.equipment })
       .from(sessionExercises)
       .all();
-    const names = new Set<string>();
+
+    const exerciseSet = new Set<string>();
+    const list: { name: string; equipment: string | null }[] = [];
+
     for (const r of fromTemplates) {
-      if (r.name) names.add(r.name);
+      if (r.name) {
+        const key = `${r.name}::${r.equipment ?? ""}`;
+        if (!exerciseSet.has(key)) {
+          exerciseSet.add(key);
+          list.push({ name: r.name, equipment: r.equipment });
+        }
+      }
     }
     for (const r of fromSessions) {
-      if (r.name) names.add(r.name);
+      if (r.name) {
+        const key = `${r.name}::${r.equipment ?? ""}`;
+        if (!exerciseSet.has(key)) {
+          exerciseSet.add(key);
+          list.push({ name: r.name, equipment: r.equipment });
+        }
+      }
     }
-    return Array.from(names).sort();
+    return list.sort((a, b) => a.name.localeCompare(b.name) || (a.equipment ?? "").localeCompare(b.equipment ?? ""));
   }
 
   getStats(userId: number) {

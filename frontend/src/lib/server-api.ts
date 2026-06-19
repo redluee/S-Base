@@ -52,9 +52,13 @@ export const serverApi = {
     },
 
     exercises: {
-      list: () => serverFetch<string[]>("/workouts/exercises"),
-      progress: (name: string) =>
-        serverFetch<any>(`/workouts/exercises/${encodeURIComponent(name)}/progress`),
+      list: () => serverFetch<{ name: string; equipment: string | null }[]>("/workouts/exercises"),
+      progress: (name: string, equipment?: string) =>
+        serverFetch<any>(
+          `/workouts/exercises/${encodeURIComponent(name)}/progress${
+            equipment ? `?equipment=${encodeURIComponent(equipment)}` : ""
+          }`,
+        ),
     },
     stats: () =>
       serverFetch<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),

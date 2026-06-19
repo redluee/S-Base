@@ -9,7 +9,7 @@ const recipeId = 1;
 async function seed() {
   console.log("Seeding database...");
 
-  const existingUser = db.select().from(users).where((u) => u.username).get();
+  const existingUser = db.select().from(users).limit(1).get();
   if (existingUser) {
     console.log("Database already seeded, skipping.");
     return;

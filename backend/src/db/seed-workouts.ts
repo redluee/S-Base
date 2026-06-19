@@ -22,11 +22,11 @@ function seedWorkouts() {
       targetMuscleGroups: "Benen, Kuiten, Core",
       estimatedTime: 45,
       exercises: [
-        { exerciseName: "Standard Back Squat", sortOrder: 0, defaultSets: 4, defaultReps: 8, defaultWeight: null },
-        { exerciseName: "Bulgarian Split Squat", sortOrder: 1, defaultSets: 3, defaultReps: 8, defaultWeight: null },
-        { exerciseName: "Single-Legged RDL", sortOrder: 2, defaultSets: 3, defaultReps: 8, defaultWeight: null },
-        { exerciseName: "Single-Leg Calf Raise", sortOrder: 3, defaultSets: 3, defaultReps: 12, defaultWeight: null },
-        { exerciseName: "Hanging Leg Raise", sortOrder: 4, defaultSets: 3, defaultReps: 10, defaultWeight: null },
+        { exerciseName: "Standard Back Squat", sortOrder: 0, defaultSets: 4, defaultReps: 8, defaultWeight: null, defaultRestTime: 120, equipment: "barbell" },
+        { exerciseName: "Bulgarian Split Squat", sortOrder: 1, defaultSets: 3, defaultReps: 8, defaultWeight: null, defaultRestTime: 90, equipment: "dumbbell" },
+        { exerciseName: "Single-Legged RDL", sortOrder: 2, defaultSets: 3, defaultReps: 8, defaultWeight: null, defaultRestTime: 90, equipment: "dumbbell" },
+        { exerciseName: "Single-Leg Calf Raise", sortOrder: 3, defaultSets: 3, defaultReps: 12, defaultWeight: null, defaultRestTime: 60, equipment: "none" },
+        { exerciseName: "Hanging Leg Raise", sortOrder: 4, defaultSets: 3, defaultReps: 10, defaultWeight: null, defaultRestTime: 60, equipment: "none" },
       ],
     },
     {
@@ -37,11 +37,11 @@ function seedWorkouts() {
       targetMuscleGroups: "Schouders, Rug, Core",
       estimatedTime: 40,
       exercises: [
-        { exerciseName: "Weighted Plate Shoulder Raise", sortOrder: 0, defaultSets: 3, defaultReps: 10, defaultWeight: null },
-        { exerciseName: "Pull-Up Negatives", sortOrder: 1, defaultSets: 3, defaultReps: 6, defaultWeight: null },
-        { exerciseName: "Lat Pull Down", sortOrder: 2, defaultSets: 3, defaultReps: 10, defaultWeight: null },
-        { exerciseName: "Cable Shoulder Rotation", sortOrder: 3, defaultSets: 2, defaultReps: 10, defaultWeight: null },
-        { exerciseName: "Russian Twist", sortOrder: 4, defaultSets: 3, defaultReps: 30, defaultWeight: null },
+        { exerciseName: "Weighted Plate Shoulder Raise", sortOrder: 0, defaultSets: 3, defaultReps: 10, defaultWeight: null, defaultRestTime: 90, equipment: "dumbbell" },
+        { exerciseName: "Pull-Up Negatives", sortOrder: 1, defaultSets: 3, defaultReps: 6, defaultWeight: null, defaultRestTime: 90, equipment: "none" },
+        { exerciseName: "Lat Pull Down", sortOrder: 2, defaultSets: 3, defaultReps: 10, defaultWeight: null, defaultRestTime: 90, equipment: "machine" },
+        { exerciseName: "Cable Shoulder Rotation", sortOrder: 3, defaultSets: 2, defaultReps: 10, defaultWeight: null, defaultRestTime: 60, equipment: "cable" },
+        { exerciseName: "Russian Twist", sortOrder: 4, defaultSets: 3, defaultReps: 30, defaultWeight: null, defaultRestTime: 60, equipment: "none" },
       ],
     },
     {
@@ -52,12 +52,12 @@ function seedWorkouts() {
       targetMuscleGroups: "Full Body, Core",
       estimatedTime: 50,
       exercises: [
-        { exerciseName: "Standard Back Squat", sortOrder: 0, defaultSets: 3, defaultReps: 8, defaultWeight: null },
-        { exerciseName: "Bulgarian Split Squat", sortOrder: 1, defaultSets: 3, defaultReps: 8, defaultWeight: null },
-        { exerciseName: "Weighted Plate Shoulder Raise", sortOrder: 2, defaultSets: 3, defaultReps: 10, defaultWeight: null },
-        { exerciseName: "Lat Pull Down", sortOrder: 3, defaultSets: 3, defaultReps: 10, defaultWeight: null },
-        { exerciseName: "Single-Leg Calf Raise", sortOrder: 4, defaultSets: 3, defaultReps: 12, defaultWeight: null },
-        { exerciseName: "Russian Twist", sortOrder: 5, defaultSets: 3, defaultReps: 30, defaultWeight: null },
+        { exerciseName: "Standard Back Squat", sortOrder: 0, defaultSets: 3, defaultReps: 8, defaultWeight: null, defaultRestTime: 120, equipment: "barbell" },
+        { exerciseName: "Bulgarian Split Squat", sortOrder: 1, defaultSets: 3, defaultReps: 8, defaultWeight: null, defaultRestTime: 90, equipment: "dumbbell" },
+        { exerciseName: "Weighted Plate Shoulder Raise", sortOrder: 2, defaultSets: 3, defaultReps: 10, defaultWeight: null, defaultRestTime: 90, equipment: "dumbbell" },
+        { exerciseName: "Lat Pull Down", sortOrder: 3, defaultSets: 3, defaultReps: 10, defaultWeight: null, defaultRestTime: 90, equipment: "machine" },
+        { exerciseName: "Single-Leg Calf Raise", sortOrder: 4, defaultSets: 3, defaultReps: 12, defaultWeight: null, defaultRestTime: 60, equipment: "none" },
+        { exerciseName: "Russian Twist", sortOrder: 5, defaultSets: 3, defaultReps: 30, defaultWeight: null, defaultRestTime: 60, equipment: "none" },
       ],
     },
   ];
@@ -79,6 +79,8 @@ function seedWorkouts() {
         defaultSets: ex.defaultSets,
         defaultReps: ex.defaultReps,
         defaultWeight: ex.defaultWeight,
+        defaultRestTime: ex.defaultRestTime,
+        equipment: ex.equipment,
       }).run();
     }
 
