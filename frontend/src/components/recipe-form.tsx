@@ -69,7 +69,7 @@ export function RecipeForm({
       id: `ing-${idx}`,
       name: i.name,
       quantity: i.quantity.toString(),
-      unit: i.unit ?? "g",
+      unit: i.unit ?? "pcs",
     })) ?? [],
   );
   const [steps, setSteps] = useState<StepRow[]>(
@@ -94,7 +94,7 @@ export function RecipeForm({
         return next;
       });
     }, 300);
-    setIngredients((prev) => [...prev, { id, name: "", quantity: "", unit: "g" }]);
+    setIngredients((prev) => [{ id, name: "", quantity: "1", unit: "pcs" }, ...prev]);
   }
 
   function removeIngredient(id: string) {
@@ -716,7 +716,7 @@ export function RecipeForm({
                 </div>
                 <div className="flex-[2] sm:w-28 sm:flex-none grid gap-1">
                   <Label>{t("Unit")}</Label>
-                  <Select value={ing.unit} onValueChange={(v) => updateIngredient(ing.id, "unit", v ?? "g")}>
+                  <Select value={ing.unit} onValueChange={(v) => updateIngredient(ing.id, "unit", v ?? "pcs")}>
                     <SelectTrigger className="bg-white/5 border-border h-9 sm:h-8 w-full">
                       <SelectValue>{t(ing.unit)}</SelectValue>
                     </SelectTrigger>
