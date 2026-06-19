@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { flushSync } from "react-dom";
 import { api } from "@/lib/api";
@@ -51,6 +51,7 @@ interface ExerciseWithSets {
   exerciseName: string;
   sortOrder: number;
   category?: string;
+  equipment?: string;
   sets: SetRow[];
   templateExercise?: {
     defaultReps?: number | null;
@@ -101,6 +102,16 @@ export function WorkoutSessionLive({
   // Timer state
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Rest Timer State
+  const [restSecondsLeft, setRestSecondsLeft] = useState(0);
+  const [restTotalSeconds, setRestTotalSeconds] = useState(0);
+  const [restActive, setRestActive] = useState(false);
+  const [restExerciseName, setRestExerciseName] = useState("");
+  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Pop Burst satisfaction animation state
+  const [lastCompletedSet, setLastCompletedSet] = useState<{ exIdx: number; setIdx: number } | null>(null);
 
   // UI state
   const [sessionName, setSessionName] = useState("");
@@ -207,6 +218,66 @@ export function WorkoutSessionLive({
       setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
     }
   }, [session?.sessionId, session?.startedAt]);
+
+  // Rest timer countdown effect
+  useEffect(() => {
+    if (restActive && restSecondsLeft > 0) {
+      restIntervalRef.current = setInterval(() => {
+        setRestSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(restIntervalRef.current!);
+            setRestActive(false);
+            // Audio beep feedback
+            try {
+              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = "sine";
+              osc.frequency.setValueAtTime(800, ctx.currentTime);
+              gain.gain.setValueAtTime(0.08, ctx.currentTime);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {
+              console.log("AudioContext failed", e);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    }
+    return () => {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    };
+  }, [restActive, restSecondsLeft]);
+
+  // Helper to fetch rest time
+  const getExerciseRestTime = (ex: any, exIdx: number) => {
+    if (typeof window === "undefined") return 90;
+    const key = `sbase_rest_${session?.sessionId}_${exIdx}`;
+    const stored = localStorage.getItem(key);
+    if (stored) return Number(stored);
+    return ex.templateExercise?.defaultRestTime ?? 90;
+  };
+
+  const updateExerciseRestTime = async (exIdx: number, restTime: number) => {
+    if (!session) return;
+    const key = `sbase_rest_${session.sessionId}_${exIdx}`;
+    localStorage.setItem(key, String(restTime));
+    
+    const exercises = [...(session.exercises ?? [])];
+    const ex = { ...exercises[exIdx] };
+    ex.templateExercise = {
+      ...(ex.templateExercise ?? {}),
+      defaultRestTime: restTime,
+    };
+    exercises[exIdx] = ex;
+    setSession({ ...session, exercises });
+  };
 
   useEffect(() => {
     if (!session?.sessionId || isPaused || isSummaryView) return;
@@ -320,6 +391,7 @@ export function WorkoutSessionLive({
           exerciseName: ex.exerciseName,
           sortOrder: ex.sortOrder,
           category: ex.category ?? "resistance",
+          equipment: ex.equipment ?? "none",
           sets: ex.sets.map((s) => ({
             setId: s.setId,
             setNumber: s.setNumber,
@@ -401,6 +473,14 @@ export function WorkoutSessionLive({
     const ex = { ...exercises[exerciseIndex] };
     const sets = [...(ex.sets ?? [])];
     sets[setIndex] = { ...sets[setIndex], [field]: value };
+    
+    // Copy the updated value to subsequent incomplete sets in the same exercise
+    for (let i = setIndex + 1; i < sets.length; i++) {
+      if (sets[i].completed !== 1) {
+        sets[i] = { ...sets[i], [field]: value };
+      }
+    }
+
     ex.sets = sets;
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });
@@ -412,6 +492,7 @@ export function WorkoutSessionLive({
         exerciseName: ex2.exerciseName,
         sortOrder: ex2.sortOrder,
         category: ex2.category ?? "resistance",
+        equipment: ex2.equipment ?? "none",
         sets: ex2.sets?.map((s: SetRow) => ({
           setId: s.setId,
           setNumber: s.setNumber,
@@ -458,6 +539,19 @@ export function WorkoutSessionLive({
         set.duration = set.duration ?? prevSet?.duration ?? 0;
         set.weight = set.weight ?? prevSet?.weight ?? 0;
       }
+
+      // Start rest timer
+      const restTime = getExerciseRestTime(ex, exerciseIndex);
+      if (restTime > 0) {
+        setRestSecondsLeft(restTime);
+        setRestTotalSeconds(restTime);
+        setRestExerciseName(ex.exerciseName);
+        setRestActive(true);
+      }
+
+      // Trigger checkbox pop animation
+      setLastCompletedSet({ exIdx: exerciseIndex, setIdx: setIndex });
+      setTimeout(() => setLastCompletedSet(null), 800);
     }
 
     sets[setIndex] = set;
@@ -787,6 +881,9 @@ export function WorkoutSessionLive({
   if (!session) return null;
 
   const exercises = session.exercises ?? [];
+  const allExercisesCompleted = exercises.length > 0 && exercises.every((ex: any) =>
+    ex.sets?.length > 0 && ex.sets.every((s: any) => s.completed === 1)
+  );
 
   // Calculate volume of completed sets
   function calculateTotalVolume() {
@@ -1057,63 +1154,74 @@ export function WorkoutSessionLive({
         </div>
       ) : (
         <div className="flex-1 flex flex-col gap-6 pb-20">
-          {exercises.map((ex: any, exIdx: number) => (
-            <div
-              key={ex.sessionExerciseId ?? exIdx}
-              data-ex-id={ex.sessionExerciseId}
-              className="rounded-xl bg-card/60 border border-border p-4 sm:p-5 relative transition-colors duration-300"
-            >
-              {/* Exercise Card Header */}
-              <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="flex-1 min-w-0">
-                  {replacingExerciseId === ex.sessionExerciseId ? (
-                    <div className="flex gap-2 items-center w-full">
-                      <div className="flex-1">
-                        <ExerciseAutocomplete
-                          value={replaceName}
-                          onChange={setReplaceName}
-                          onSelect={(v, sets, reps, category) => {
-                            replaceExercise(ex.sessionExerciseId!, v, category);
+          {exercises.map((ex: any, exIdx: number) => {
+            const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: any) => s.completed === 1);
+            return (
+              <div
+                key={ex.sessionExerciseId ?? exIdx}
+                data-ex-id={ex.sessionExerciseId}
+                className={`rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-all duration-300 ${
+                  allSetsDone
+                    ? "border-brand shadow-[0_0_15px_rgba(0,227,164,0.15)] ring-1 ring-brand/35"
+                    : "border-border"
+                }`}
+              >
+                {/* Exercise Card Header */}
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex-1 min-w-0">
+                    {replacingExerciseId === ex.sessionExerciseId ? (
+                      <div className="flex gap-2 items-center w-full">
+                        <div className="flex-1">
+                          <ExerciseAutocomplete
+                            value={replaceName}
+                            onChange={setReplaceName}
+                            onSelect={(v, sets, reps, category) => {
+                              replaceExercise(ex.sessionExerciseId!, v, category);
+                            }}
+                            placeholder={t("Search exercise") + "..."}
+                            className="w-full h-8 text-sm"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setReplacingExerciseId(null);
+                            setReplaceName("");
                           }}
-                          placeholder={t("Search exercise") + "..."}
-                          className="w-full h-8 text-sm"
-                        />
+                          className="h-8 text-xs text-muted-foreground hover:bg-white/5"
+                        >
+                          {t("Cancel")}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setReplacingExerciseId(null);
-                          setReplaceName("");
-                        }}
-                        className="h-8 text-xs text-muted-foreground hover:bg-white/5"
-                      >
-                        {t("Cancel")}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-1">
-                      <h3 className="font-semibold text-foreground text-base sm:text-lg truncate">
-                        {exIdx + 1}. {ex.exerciseName}
-                      </h3>
-                      <select
-                        value={ex.category ?? "resistance"}
-                        onChange={async (e) => {
-                          const updatedExs = [...session.exercises];
-                          updatedExs[exIdx] = { ...updatedExs[exIdx], category: e.target.value };
-                          setSession({ ...session, exercises: updatedExs });
-                          await saveExercises(updatedExs);
-                        }}
-                        className="bg-transparent text-xs text-muted-foreground border-0 hover:text-foreground cursor-pointer focus:outline-none w-fit"
-                      >
-                        <option value="resistance" className="bg-zinc-900">{t("Resistance")}</option>
-                        <option value="bodyweight" className="bg-zinc-900">{t("Bodyweight")}</option>
-                        <option value="cardio" className="bg-zinc-900">{t("Cardio")}</option>
-                        <option value="isometric" className="bg-zinc-900">{t("Isometric")}</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <h3 className="font-semibold text-foreground text-base sm:text-lg truncate flex items-center gap-2">
+                          <span>{exIdx + 1}. {ex.exerciseName}</span>
+                          {allSetsDone && (
+                            <span className="inline-flex items-center justify-center size-5 rounded-full bg-brand/20 text-brand animate-scale-in shrink-0">
+                              <Check className="size-3 stroke-[3px]" />
+                            </span>
+                          )}
+                        </h3>
+                        <select
+                          value={ex.category ?? "resistance"}
+                          onChange={async (e) => {
+                            const updatedExs = [...session.exercises];
+                            updatedExs[exIdx] = { ...updatedExs[exIdx], category: e.target.value };
+                            setSession({ ...session, exercises: updatedExs });
+                            await saveExercises(updatedExs);
+                          }}
+                          className="bg-transparent text-xs text-muted-foreground border-0 hover:text-foreground cursor-pointer focus:outline-none w-fit"
+                        >
+                          <option value="resistance" className="bg-zinc-900">{t("Resistance")}</option>
+                          <option value="bodyweight" className="bg-zinc-900">{t("Bodyweight")}</option>
+                          <option value="cardio" className="bg-zinc-900">{t("Cardio")}</option>
+                          <option value="isometric" className="bg-zinc-900">{t("Isometric")}</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
 
                 {/* Reordering Controls and Kebab Menu */}
                 <div className="flex items-center gap-1 shrink-0">
@@ -1298,183 +1406,216 @@ export function WorkoutSessionLive({
                         }
 
                         return (
-                          <tr
-                            key={setIdx}
-                            className={`border-b border-border/20 last:border-0 transition-colors duration-150 ${
-                              set.completed
-                                ? "bg-brand/5 opacity-70"
-                                : "hover:bg-white/[0.01]"
-                            }`}
-                          >
-                            {/* Set # */}
-                            <td className="py-2.5 px-3 font-medium text-zinc-400 align-middle">
-                              {set.setNumber}
-                            </td>
-
-                            {/* Ghost/Target text */}
-                            <td className="py-2.5 px-3 text-muted-foreground align-middle italic text-xs">
-                              {ghostText}
-                            </td>
-
-                            {/* Dynamic Inputs based on Category */}
-                            {(cat === "resistance") && (
-                              <>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    step="any"
-                                    inputMode="decimal"
-                                    placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                                    value={set.weight ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
-                                    value={set.reps ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Number(e.target.value) : 0)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    step="0.5"
-                                    placeholder={prevSet?.rpe != null ? String(prevSet.rpe) : "—"}
-                                    value={set.rpe ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "rpe", e.target.value ? Number(e.target.value) : null)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                              </>
-                            )}
-
-                            {cat === "bodyweight" && (
-                              <>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    step="any"
-                                    placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                                    value={set.weight ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
-                                    value={set.reps ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Number(e.target.value) : 0)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                              </>
-                            )}
-
-                            {cat === "cardio" && (
-                              <>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    step="any"
-                                    placeholder={prevSet?.distance != null ? String(prevSet.distance) : "0.0"}
-                                    value={set.distance ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "distance", e.target.value ? Number(e.target.value) : null)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="text"
-                                    placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
-                                    value={set.duration != null ? formatSecs(set.duration) : ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    placeholder={prevSet?.heartRate != null ? String(prevSet.heartRate) : "140"}
-                                    value={set.heartRate ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "heartRate", e.target.value ? Number(e.target.value) : null)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                              </>
-                            )}
-
-                            {cat === "isometric" && (
-                              <>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="number"
-                                    step="any"
-                                    placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                                    value={set.weight ?? ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                                <td className="py-2 px-2 align-middle">
-                                  <Input
-                                    type="text"
-                                    placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
-                                    value={set.duration != null ? formatSecs(set.duration) : ""}
-                                    disabled={set.completed === 1}
-                                    onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
-                                    className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                  />
-                                </td>
-                              </>
-                            )}
-
-                            {/* Done / Trash */}
-                            <td className="py-2 px-2 text-center align-middle">
-                              <div className="flex items-center justify-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleSetCompleted(exIdx, setIdx)}
-                                  aria-label={t("Mark set as completed")}
-                                  className={`size-7 sm:size-8 rounded-md flex items-center justify-center transition-all duration-75 active:scale-[0.9] border group/checkbtn ${
-                                    set.completed
-                                      ? "bg-brand border-brand text-zinc-900"
-                                      : "bg-white/5 border-border text-zinc-500 hover:border-brand/40 hover:bg-brand/10 hover:text-brand"
-                                  }`}
-                                >
-                                  {set.completed ? (
-                                    <Check className="size-4 stroke-[3px]" />
-                                  ) : (
-                                    <Check className="size-4 opacity-25 group-hover/checkbtn:opacity-100 transition-opacity text-zinc-500 group-hover/checkbtn:text-brand" />
-                                  )}
-                                </button>
-                                {ex.sets.length > 1 && set.completed !== 1 && (
+                          <React.Fragment key={setIdx}>
+                            <tr
+                              className={`border-b border-border/20 last:border-0 transition-colors duration-150 ${
+                                set.completed
+                                  ? "bg-brand/5 opacity-70"
+                                  : "hover:bg-white/[0.01]"
+                              }`}
+                            >
+                              {/* Set # */}
+                              <td className="py-2.5 px-3 font-medium text-zinc-400 align-middle">
+                                {set.setNumber}
+                              </td>
+  
+                              {/* Ghost/Target text */}
+                              <td className="py-2.5 px-3 text-muted-foreground align-middle italic text-xs">
+                                {ghostText}
+                              </td>
+  
+                              {/* Dynamic Inputs based on Category */}
+                              {(cat === "resistance") && (
+                                <>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      step="any"
+                                      inputMode="decimal"
+                                      placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
+                                      value={set.weight ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      inputMode="numeric"
+                                      placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
+                                      value={set.reps ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Number(e.target.value) : 0)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      step="0.5"
+                                      placeholder={prevSet?.rpe != null ? String(prevSet.rpe) : "—"}
+                                      value={set.rpe ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "rpe", e.target.value ? Number(e.target.value) : null)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                </>
+                              )}
+  
+                              {cat === "bodyweight" && (
+                                <>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      step="any"
+                                      placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
+                                      value={set.weight ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      inputMode="numeric"
+                                      placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
+                                      value={set.reps ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Number(e.target.value) : 0)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                </>
+                              )}
+  
+                              {cat === "cardio" && (
+                                <>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      step="any"
+                                      placeholder={prevSet?.distance != null ? String(prevSet.distance) : "0.0"}
+                                      value={set.distance ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "distance", e.target.value ? Number(e.target.value) : null)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="text"
+                                      placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
+                                      value={set.duration != null ? formatSecs(set.duration) : ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      placeholder={prevSet?.heartRate != null ? String(prevSet.heartRate) : "140"}
+                                      value={set.heartRate ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "heartRate", e.target.value ? Number(e.target.value) : null)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                </>
+                              )}
+  
+                              {cat === "isometric" && (
+                                <>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="number"
+                                      step="any"
+                                      placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
+                                      value={set.weight ?? ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 align-middle">
+                                    <Input
+                                      type="text"
+                                      placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
+                                      value={set.duration != null ? formatSecs(set.duration) : ""}
+                                      disabled={set.completed === 1}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
+                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                                    />
+                                  </td>
+                                </>
+                              )}
+  
+                              {/* Done / Trash */}
+                              <td className="py-2 px-2 text-center align-middle">
+                                <div className="flex items-center justify-center gap-1">
                                   <button
-                                    onClick={() => removeSet(exIdx, setIdx)}
-                                    className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-950/20 transition-colors"
+                                    type="button"
+                                    onClick={() => toggleSetCompleted(exIdx, setIdx)}
+                                    aria-label={t("Mark set as completed")}
+                                    className={`size-7 sm:size-8 rounded-md flex items-center justify-center transition-all duration-75 active:scale-[0.9] border group/checkbtn relative ${
+                                      set.completed
+                                        ? "bg-brand border-brand text-zinc-900"
+                                        : "bg-white/5 border-border text-zinc-500 hover:border-brand/40 hover:bg-brand/10 hover:text-brand"
+                                    }`}
                                   >
-                                    <Trash className="size-3.5" />
+                                    {set.completed ? (
+                                      <>
+                                        <Check className="size-4 stroke-[3px] animate-scale-in" />
+                                        {lastCompletedSet?.exIdx === exIdx && lastCompletedSet?.setIdx === setIdx && (
+                                          <>
+                                            <span className="absolute size-1.5 rounded-full bg-brand animate-particle-1 pointer-events-none" />
+                                            <span className="absolute size-1.5 rounded-full bg-brand animate-particle-2 pointer-events-none" />
+                                            <span className="absolute size-1.5 rounded-full bg-brand animate-particle-3 pointer-events-none" />
+                                            <span className="absolute size-1.5 rounded-full bg-brand animate-particle-4 pointer-events-none" />
+                                          </>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <Check className="size-4 opacity-25 group-hover/checkbtn:opacity-100 transition-opacity text-zinc-500 group-hover/checkbtn:text-brand" />
+                                    )}
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
+                                  {ex.sets.length > 1 && set.completed !== 1 && (
+                                    <button
+                                      onClick={() => removeSet(exIdx, setIdx)}
+                                      className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-950/20 transition-colors"
+                                    >
+                                      <Trash className="size-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                            {setIdx < ex.sets.length - 1 && (
+                              <tr className="bg-zinc-950/25 border-b border-border/10">
+                                <td colSpan={(cat === "resistance" || cat === "cardio") ? 6 : 5} className="py-1 px-3">
+                                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                                    <div className="flex items-center gap-1.5">
+                                      <Timer className="size-3 text-zinc-500" />
+                                      <span>{t("Rest Time")}:</span>
+                                      <input
+                                        type="number"
+                                        className="w-12 bg-zinc-900 border border-zinc-800 rounded px-1 py-0.5 text-center text-[11px] text-zinc-300 font-semibold focus:outline-none focus:border-brand/40"
+                                        value={getExerciseRestTime(ex, exIdx)}
+                                        onChange={(e) => updateExerciseRestTime(exIdx, Number(e.target.value))}
+                                      />
+                                      <span>s</span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground/60 italic">
+                                      {t("Rest after set")} {set.setNumber}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
@@ -1493,7 +1634,8 @@ export function WorkoutSessionLive({
                 {t("Add set")}
               </Button>
             </div>
-          ))}
+          );
+        })}
 
           {/* Floating Action / Global Footer for Add Exercise */}
           <div className="flex flex-col items-center gap-3 pt-4 border-t border-border/20">
@@ -1535,6 +1677,24 @@ export function WorkoutSessionLive({
               </Button>
             )}
           </div>
+
+          {allExercisesCompleted && (
+            <div className="mt-4 p-4 bg-brand/10 border border-brand/20 rounded-xl flex flex-col items-center gap-3 text-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center justify-center size-10 rounded-full bg-brand/20 text-brand">
+                <Trophy className="size-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm sm:text-base">{t("All exercises completed!")}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("Good job! Finish your workout to save your results.")}</p>
+              </div>
+              <Button
+                onClick={handleFinishClick}
+                className="w-full max-w-sm bg-brand hover:bg-brand-hover text-zinc-900 font-semibold h-11 text-xs sm:text-sm shadow-glow active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {t("Complete workout")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1687,23 +1847,59 @@ export function WorkoutSessionLive({
                     return (
                       <div
                         key={idx}
-                        className="bg-white/[0.01] border border-white/5 hover:border-white/10 p-3 rounded-xl flex items-center justify-between transition-colors text-sm"
+                        className="bg-white/[0.01] border border-white/5 p-3 rounded-xl flex flex-col gap-2.5 transition-colors text-sm"
                       >
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium text-zinc-200">
-                            {date.toLocaleDateString("nl-NL", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {sessionItem.sets.length} sets
-                          </span>
+                        <div className="flex justify-between items-center w-full">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-zinc-200">
+                              {date.toLocaleDateString("nl-NL", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {sessionItem.sets.length} sets
+                            </span>
+                          </div>
+                          {vol > 0 && (
+                            <div className="text-right flex flex-col gap-0.5">
+                              <span className="font-semibold text-brand tabular-nums text-xs">{vol} kg</span>
+                              <span className="text-[10px] text-muted-foreground">{t("Volume")}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right flex flex-col gap-0.5">
-                          <span className="font-semibold text-brand tabular-nums">{vol} kg</span>
-                          <span className="text-xs text-muted-foreground">{t("Volume")}</span>
+                        
+                        {/* Sets breakdown */}
+                        <div className="pt-2 border-t border-white/5 grid grid-cols-2 xs:grid-cols-3 gap-1.5">
+                          {sessionItem.sets.map((s: any, sIdx: number) => {
+                            let detail = "";
+                            if (s.reps && s.weight) {
+                              detail = `${s.reps}x${s.weight}kg`;
+                              if (s.rpe) detail += `@${s.rpe}`;
+                            } else if (s.reps) {
+                              detail = `${s.reps} herh`;
+                            } else if (s.duration) {
+                              const min = Math.floor(s.duration / 60);
+                              const sec = s.duration % 60;
+                              const durStr = `${min}:${String(sec).padStart(2, "0")}`;
+                              detail = durStr;
+                              if (s.weight) detail += ` w/${s.weight}kg`;
+                            } else if (s.distance) {
+                              detail = `${s.distance}km`;
+                              if (s.duration) {
+                                const min = Math.floor(s.duration / 60);
+                                const sec = s.duration % 60;
+                                detail += ` (${min}:${String(sec).padStart(2, "0")})`;
+                              }
+                            }
+                            return (
+                              <div key={sIdx} className="bg-white/5 border border-white/5 rounded px-2 py-1 text-[10px] font-mono text-zinc-300 flex justify-between">
+                                <span className="text-muted-foreground font-semibold mr-1">S{s.setNumber}:</span>
+                                <span className="truncate">{detail || "—"}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -1726,6 +1922,72 @@ export function WorkoutSessionLive({
         </div>
       )}
 
+      {/* Floating Rest Timer Widget */}
+      {restActive && restSecondsLeft > 0 && (
+        <div className="fixed bottom-6 right-6 z-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-2xl w-64 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-brand flex items-center gap-1.5">
+              <Timer className="size-3.5 animate-pulse" />
+              {t("Resting")}...
+            </span>
+            <button
+              onClick={() => setRestActive(false)}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <div className="text-center py-2.5">
+            <div className="text-3xl font-mono font-bold text-zinc-200 tabular-nums">
+              {formatTime(restSecondsLeft)}
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate mt-1">
+              {restExerciseName}
+            </div>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mb-3.5">
+            <div 
+              className="bg-brand h-full transition-all duration-1000 ease-linear"
+              style={{ width: `${(restSecondsLeft / restTotalSeconds) * 100}%` }}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                setRestSecondsLeft((prev) => prev + 30);
+                setRestTotalSeconds((prev) => prev + 30);
+              }}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-[11px] border-border h-8"
+            >
+              +30s
+            </Button>
+            <Button
+              onClick={() => {
+                setRestSecondsLeft((prev) => Math.max(0, prev - 30));
+              }}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-[11px] border-border h-8"
+            >
+              -30s
+            </Button>
+            <Button
+              onClick={() => {
+                setRestActive(false);
+                setRestSecondsLeft(0);
+              }}
+              className="flex-1 text-[11px] bg-brand hover:bg-brand-hover text-zinc-900 font-semibold h-8"
+            >
+              {t("Skip")}
+            </Button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

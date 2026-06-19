@@ -1,15 +1,47 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import confetti from "canvas-confetti";
 
 export function WorkoutHistoryDetail({ session }: { session: any }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const celebrate = searchParams?.get("celebrate") === "true";
+
+  useEffect(() => {
+    if (celebrate) {
+      const duration = 2.5 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 50 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
+
+      // Clean up search param without full reload
+      const newUrl = window.location.pathname;
+      window.history.replaceState({ ...window.history.state }, "", newUrl);
+
+      return () => clearInterval(interval);
+    }
+  }, [celebrate]);
 
   async function handleDelete() {
     if (!confirm(t("Delete this workout?"))) return;
