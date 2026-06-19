@@ -27,8 +27,14 @@ export function DashboardClient({ username }: { username: string }) {
       </header>
       <nav className="flex flex-col gap-3 w-full max-w-xs">
         <a
-          href="/recipes"
+          href="/workouts"
           className="w-full py-3 px-5 bg-brand text-zinc-900 font-display font-black text-xl border-2 border-brand rounded-xl text-center transition-all duration-200 hover:bg-brand-hover hover:scale-[0.97] active:shadow-glow-inner"
+        >
+          {t("Workout Studio")}
+        </a>
+        <a
+          href="/recipes"
+          className="w-full py-3 px-5 bg-amber-500/20 text-amber-300 font-display font-black text-xl border-2 border-amber-500/30 rounded-xl text-center transition-all duration-200 hover:bg-amber-500/30 hover:scale-[0.97] active:shadow-glow-inner"
         >
           {t("Taste tracker")}
         </a>
