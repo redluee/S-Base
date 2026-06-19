@@ -5,8 +5,10 @@ import { ExerciseProgress } from "@/components/exercise-progress";
 
 export default async function ExerciseDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ name: string }>;
+  searchParams: Promise<{ equipment?: string }>;
 }) {
   let user: { id: number; username: string } | null = null;
   try {
@@ -15,8 +17,9 @@ export default async function ExerciseDetailPage({
   if (!user) redirect("/");
 
   const { name } = await params;
+  const { equipment } = await searchParams;
   const decoded = decodeURIComponent(name);
-  const data = await serverApi.workouts.exercises.progress(decoded);
+  const data = await serverApi.workouts.exercises.progress(decoded, equipment);
 
   return (
     <div className="min-h-screen flex flex-col">

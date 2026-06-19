@@ -77,24 +77,48 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
           <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
             <div className="text-xs text-muted-foreground mb-3">Volume (kg) per sessie</div>
             <svg
-              viewBox="0 0 300 120"
+              viewBox="0 0 320 130"
               className="w-full h-auto"
-              preserveAspectRatio="none"
             >
-              <line x1="0" y1="110" x2="300" y2="110" stroke="currentColor" className="text-border" strokeWidth="1" />
+              {/* Axes lines */}
+              <line x1="40" y1="5" x2="40" y2="105" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              <line x1="40" y1="105" x2="310" y2="105" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              
               {(() => {
                 const volumes = sessions.map((s: WorkoutSession) =>
                   s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * set.reps, 0),
                 );
                 const maxVol = Math.max(...volumes, 1);
+                
                 const points = volumes.map((v: number, i: number) => {
-                  const x = sessions.length > 1 ? (i / (sessions.length - 1)) * 290 + 5 : 150;
-                  const y = 110 - (v / maxVol) * 95;
+                  const x = sessions.length > 1 ? 40 + (i / (sessions.length - 1)) * 260 : 175;
+                  const y = 105 - (v / maxVol) * 95;
                   return `${x},${y}`;
                 });
 
+                const firstSession = sessions[0];
+                const lastSession = sessions[sessions.length - 1];
+                const formatDate = (dateStr: string) => {
+                  const d = new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
+                  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+                };
+
                 return (
                   <>
+                    {/* Y Axis Labels */}
+                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{maxVol} kg</text>
+                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{Math.round(maxVol / 2)} kg</text>
+                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">0 kg</text>
+
+                    {/* X Axis Labels */}
+                    {sessions.length > 0 && (
+                      <text x="40" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="start" className="font-mono">{formatDate(firstSession.startedAt)}</text>
+                    )}
+                    {sessions.length > 1 && (
+                      <text x="310" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono">{formatDate(lastSession.startedAt)}</text>
+                    )}
+
+                    {/* Plot Line */}
                     <polyline
                       fill="none"
                       stroke="#00e3a4"
@@ -103,9 +127,10 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                       strokeLinejoin="round"
                       points={points.join(" ")}
                     />
+                    {/* Plot Dots */}
                     {volumes.map((v: number, i: number) => {
-                      const x = sessions.length > 1 ? (i / (sessions.length - 1)) * 290 + 5 : 150;
-                      const y = 110 - (v / maxVol) * 95;
+                      const x = sessions.length > 1 ? 40 + (i / (sessions.length - 1)) * 260 : 175;
+                      const y = 105 - (v / maxVol) * 95;
                       return (
                         <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" className="hover:r-4 transition-all">
                           <title>{v} kg</title>

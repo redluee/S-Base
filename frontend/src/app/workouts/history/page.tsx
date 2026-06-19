@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
+import { Calendar } from "lucide-react";
 
 export default async function WorkoutHistoryPage() {
   let user: { id: number; username: string } | null = null;
@@ -19,8 +20,9 @@ export default async function WorkoutHistoryPage() {
       <NavHeader username={user.username} />
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl sm:text-3xl text-foreground">
-            {t("History")}
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2">
+            <Calendar className="size-6 sm:size-7 text-brand" />
+            <span className="hidden sm:inline">{t("History")}</span>
           </h1>
           <Link href="/workouts">
             <Button variant="outline" size="sm" className="text-xs sm:text-sm">

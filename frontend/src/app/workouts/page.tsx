@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
+import { MotivationalQuote } from "@/components/motivational-quote";
 import { t } from "@/lib/lang";
+import { Dumbbell, Calendar } from "lucide-react";
 
 export default async function WorkoutsPage() {
   let user: { id: number; username: string } | null = null;
@@ -27,13 +29,15 @@ export default async function WorkoutsPage() {
           </h1>
           <div className="flex gap-2">
             <Link href="/workouts/exercises">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
-                {t("Exercises")}
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
+                <Dumbbell className="size-3.5 sm:size-4 text-brand" />
+                <span className="hidden sm:inline">{t("Exercises")}</span>
               </Button>
             </Link>
             <Link href="/workouts/history">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
-                {t("History")}
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
+                <Calendar className="size-3.5 sm:size-4 text-brand" />
+                <span className="hidden sm:inline">{t("History")}</span>
               </Button>
             </Link>
           </div>
@@ -64,9 +68,33 @@ export default async function WorkoutsPage() {
               </>
             )}
           </div>
-          <div className="rounded-xl bg-card p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[130px]">
-            <span className="text-4xl sm:text-5xl font-black text-brand font-display">{stats.totalWorkouts}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium">{t("workouts gedaan")}</span>
+          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[130px]">
+            {(() => {
+              const nextMilestone = Math.floor(stats.totalWorkouts / 50) * 50 + 50;
+              const prevMilestone = nextMilestone - 50;
+              const progressCount = stats.totalWorkouts - prevMilestone;
+              const percentage = Math.min(100, Math.max(0, (progressCount / 50) * 100));
+
+              return (
+                <div className="flex flex-col w-full text-center">
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-3xl sm:text-4xl font-black text-brand font-display">{stats.totalWorkouts}</span>
+                    <span className="text-zinc-500 text-sm font-semibold font-display">/ {nextMilestone}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground mt-1 font-medium">
+                    {50 - progressCount} {t("tot volgende mijlpaal")}
+                  </span>
+                  
+                  {/* Progress bar */}
+                  <div className="w-full bg-zinc-800/80 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
+                    <div 
+                      className="bg-brand h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <div className="rounded-xl bg-card p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[130px]">
             <span className="text-4xl sm:text-5xl font-black text-amber-400 font-display">{stats.totalVolume.toLocaleString()} kg</span>
@@ -74,6 +102,9 @@ export default async function WorkoutsPage() {
           </div>
         </div>
 
+        <div className="flex justify-center mb-8">
+          <MotivationalQuote />
+        </div>
 
         {templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
@@ -151,7 +182,7 @@ export default async function WorkoutsPage() {
                         )}
                       </div>
                     </div>
-                    <svg className="size-4 sm:size-5 text-muted-foreground shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="size-4 sm:size-5 text-muted-foreground shrink-0 self-end" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
                   </div>
