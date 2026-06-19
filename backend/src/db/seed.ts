@@ -1,8 +1,9 @@
 import db from "./client";
-import { users, modules, usermodulepermissions, ingredients, recipes, recipeIngredients, recipeSteps } from "./schema";
+import { users, modules, usermodulepermissions, ingredients, recipes, recipeIngredients, recipeSteps, workoutTemplates, templateExercises } from "./schema";
 
 const seedUserId = 1;
 const recipeModuleId = 1;
+const workoutModuleId = 2;
 const recipeId = 1;
 
 async function seed() {
@@ -34,9 +35,18 @@ async function seed() {
     description: "Module for managing recipes",
   }).run();
 
+  db.insert(modules).values({
+    moduleId: workoutModuleId,
+    moduleName: "workout",
+    moduleAlias: "Workout Studio",
+    description: "Module for managing workout templates and tracking sessions",
+  }).run();
+
   db.insert(usermodulepermissions).values([
     { userId: seedUserId, moduleId: recipeModuleId },
     { userId: 2, moduleId: recipeModuleId },
+    { userId: seedUserId, moduleId: workoutModuleId },
+    { userId: 2, moduleId: workoutModuleId },
   ]).run();
 
   const foodData: { name: string }[] = [
@@ -212,6 +222,20 @@ async function seed() {
     { recipeId, stepNumber: 4, description: "Snijd de tomaten in blokjes en hak de knoflook fijn." },
     { recipeId, stepNumber: 5, description: "Meng de tomaten, knoflook en een scheutje olijfolie tot een salsa." },
     { recipeId, stepNumber: 6, description: "Serveer de gegrilde kip met de verse tomatensalsa." },
+  ]).run();
+
+  db.insert(workoutTemplates).values({
+    templateId: 1,
+    name: "Full Body",
+    description: "Een full-body workout voor beginners.",
+    targetMuscleGroups: "Full Body",
+    estimatedTime: 45,
+  }).run();
+
+  db.insert(templateExercises).values([
+    { templateId: 1, exerciseName: "Bench Press", sortOrder: 0, defaultSets: 3, defaultReps: 10, defaultWeight: 40 },
+    { templateId: 1, exerciseName: "Squat", sortOrder: 1, defaultSets: 3, defaultReps: 10, defaultWeight: 50 },
+    { templateId: 1, exerciseName: "Pull-ups", sortOrder: 2, defaultSets: 3, defaultReps: 8, defaultWeight: null },
   ]).run();
 
   console.log("Seeding complete.");
