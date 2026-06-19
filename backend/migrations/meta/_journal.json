@@ -8,6 +8,20 @@
       "when": 1781785591726,
       "tag": "0000_sour_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781794903968,
+      "tag": "0001_mysterious_trauma",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781824206928,
+      "tag": "0002_charming_cargill",
+      "breakpoints": true
     }
   ]
 }
