@@ -8,10 +8,11 @@ import { kitchens } from "@/lib/kitchens";
 import { t } from "@/lib/lang";
 
 interface Suggestion {
-  type: "recipe" | "ingredient" | "kitchen" | "exercise";
+  type: "recipe" | "ingredient" | "kitchen" | "exercise" | "template" | "history";
   value: string;
   rawValue?: string;
   equipment?: string | null;
+  id?: number;
 }
 
 export function SearchBar() {
@@ -38,20 +39,37 @@ export function SearchBar() {
     }
     try {
       if (isWorkouts) {
-        const remote = await api.workouts.exercises.suggest(q);
-        const mapped = remote.map((r) => ({
-          type: "exercise" as const,
-          value: r.equipment ? `${r.value} (${t(r.equipment)})` : r.value,
-          rawValue: r.value,
-          equipment: r.equipment,
-        }));
+        const remote = await api.workouts.suggest(q);
+        const mapped = remote.map((r) => {
+          if (r.type === "exercise") {
+            return {
+              type: "exercise" as const,
+              value: r.equipment ? `${r.value} (${t(r.equipment)})` : r.value,
+              rawValue: r.value,
+              equipment: r.equipment,
+            };
+          } else if (r.type === "template") {
+            return {
+              type: "template" as const,
+              value: r.value,
+              id: r.id,
+            };
+          } else {
+            return {
+              type: "history" as const,
+              value: r.value,
+              id: r.id,
+            };
+          }
+        });
         setSuggestions(mapped);
         setActiveIndex(-1);
         setOpen(mapped.length > 0);
       } else {
         const remote = await api.recipes.suggest(q);
+        const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
         const localKitchens = kitchens
-          .filter((k) => k.name.toLowerCase().includes(q.toLowerCase()))
+          .filter((k) => k.name.replace(/[\s\-\/]/g, "").toLowerCase().includes(normalizedQ))
           .filter((k) => !remote.some((r) => r.type === "kitchen" && r.value === k.name))
           .map((k) => ({ type: "kitchen" as const, value: k.name }));
         const all = [...remote, ...localKitchens] as Suggestion[];
@@ -115,14 +133,30 @@ export function SearchBar() {
 
     if (isWorkouts) {
       const match = suggestions.find((s) => s.value === value);
-      if (match && match.rawValue) {
-        router.push(
-          `/workouts/exercises/${encodeURIComponent(match.rawValue)}${
-            match.equipment ? `?equipment=${encodeURIComponent(match.equipment)}` : ""
-          }`
-        );
+      if (match) {
+        if (match.type === "exercise" && match.rawValue) {
+          router.push(
+            `/workouts/exercises/${encodeURIComponent(match.rawValue)}${
+              match.equipment ? `?equipment=${encodeURIComponent(match.equipment)}` : ""
+            }`
+          );
+        } else if (match.type === "template" && match.id !== undefined) {
+          router.push(`/workouts/t/${match.id}`);
+        } else if (match.type === "history" && match.id !== undefined) {
+          router.push(`/workouts/history/${match.id}`);
+        } else {
+          if (pathname.startsWith("/workouts/history")) {
+            router.push(`/workouts/history?q=${encodeURIComponent(value.trim())}`);
+          } else {
+            router.push(`/workouts/exercises?q=${encodeURIComponent(value.trim())}`);
+          }
+        }
       } else {
-        router.push(`/workouts/exercises?q=${encodeURIComponent(value.trim())}`);
+        if (pathname.startsWith("/workouts/history")) {
+          router.push(`/workouts/history?q=${encodeURIComponent(value.trim())}`);
+        } else {
+          router.push(`/workouts/exercises?q=${encodeURIComponent(value.trim())}`);
+        }
       }
     } else {
       router.push(`/recipes?q=${encodeURIComponent(value.trim())}`);
@@ -202,7 +236,7 @@ export function SearchBar() {
           onFocus={() => {
             if (suggestions.length > 0) setOpen(true);
           }}
-          placeholder={isWorkouts ? t("Search exercises…") : t("Search recipes…")}
+          placeholder={isWorkouts ? t("Search workouts…") : t("Search recipes…")}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
         />
       </div>
@@ -238,7 +272,11 @@ export function SearchBar() {
                         ? t("Kitchen")
                         : suggestion.type === "exercise"
                           ? t("Exercise")
-                          : ""}
+                          : suggestion.type === "template"
+                            ? t("Template")
+                            : suggestion.type === "history"
+                              ? t("History")
+                              : ""}
                 </span>
               </button>
             ))}

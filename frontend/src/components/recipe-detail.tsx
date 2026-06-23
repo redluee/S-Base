@@ -135,7 +135,7 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 							<button
 								key={val}
 								onClick={() => handleRatingChange(val)}
-								className={`size-8 inline-flex items-center justify-center rounded-lg text-xs font-bold leading-none transition-all active:scale-[0.92] ${
+								className={`size-8 inline-flex items-center justify-center rounded-lg text-xs font-bold leading-none origin-center transition-[transform,background-color,border-color,color,box-shadow] duration-150 ease-out active:scale-[1.03] ${
 									recipe.rating != null && val <= recipe.rating
 										? "bg-brand text-zinc-900"
 										: "bg-zinc-800/60 border border-zinc-700 text-foreground hover:bg-zinc-700/60 hover:border-zinc-600"
@@ -158,7 +158,7 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 							<button
 								key={s}
 								onClick={() => handleStatusChange(s)}
-								className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all active:scale-[0.97] ${
+								className={`px-3 py-1.5 rounded-lg text-sm font-medium origin-center transition-[transform,background-color,border-color,color,box-shadow] duration-150 ease-out active:scale-[1.03] ${
 									recipe.status === s
 										? activeStatusColors[s]
 										: "bg-zinc-800/60 border border-zinc-700 text-foreground hover:bg-zinc-700/60 hover:border-zinc-600"
@@ -172,21 +172,18 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 			</section>
 
 			<section className="mb-8">
-				<h2 className="text-sm font-medium text-muted-foreground mb-3">
-					{t("Ingredients")}
-				</h2>
 				{recipe.ingredients?.length > 0 ? (
 					<div className="rounded-xl border border-border overflow-hidden">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="bg-muted/50 border-b border-border">
-									<th className="text-left p-3 text-muted-foreground font-normal">
-										{t("Ingredient")}
+								<tr className="bg-brand/20 border-b border-brand">
+									<th className="text-left p-3 text-white font-normal">
+										{t("Ingredients")}
 									</th>
-									<th className="text-right p-3 text-muted-foreground font-normal">
+									<th className="text-right p-3 text-white font-normal">
 										{t("Quantity")}
 									</th>
-									<th className="text-right p-3 text-muted-foreground font-normal">
+									<th className="text-right p-3 text-white font-normal">
 										{t("Unit")}
 									</th>
 								</tr>

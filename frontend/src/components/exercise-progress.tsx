@@ -111,11 +111,14 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">0 kg</text>
 
                     {/* X Axis Labels */}
-                    {sessions.length > 0 && (
-                      <text x="40" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="start" className="font-mono">{formatDate(firstSession.startedAt)}</text>
+                    {sessions.length === 1 && (
+                      <text x="175" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" className="font-mono">{formatDate(firstSession.startedAt)}</text>
                     )}
                     {sessions.length > 1 && (
-                      <text x="310" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono">{formatDate(lastSession.startedAt)}</text>
+                      <>
+                        <text x="40" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="start" className="font-mono">{formatDate(firstSession.startedAt)}</text>
+                        <text x="310" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono">{formatDate(lastSession.startedAt)}</text>
+                      </>
                     )}
 
                     {/* Plot Line */}

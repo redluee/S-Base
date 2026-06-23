@@ -9,6 +9,7 @@ async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
@@ -46,8 +47,13 @@ export const serverApi = {
     },
 
     sessions: {
-      list: (status?: string) =>
-        serverFetch<any[]>(`/workouts/sessions${status ? `?status=${status}` : ""}`),
+      list: (status?: string, q?: string) => {
+        const params = new URLSearchParams();
+        if (status) params.set("status", status);
+        if (q) params.set("q", q);
+        const qs = params.toString();
+        return serverFetch<any[]>(`/workouts/sessions${qs ? `?${qs}` : ""}`);
+      },
       get: (id: number) => serverFetch<any>(`/workouts/sessions/${id}`),
     },
 

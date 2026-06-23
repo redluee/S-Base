@@ -14,6 +14,10 @@ interface Suggestion {
   defaultSets: number | null;
   defaultReps: number | null;
   equipment?: string | null;
+  defaultRestTime?: number | null;
+  defaultWeight?: number | null;
+  defaultDistance?: number | null;
+  defaultDuration?: number | null;
 }
 
 export function ExerciseAutocomplete({
@@ -24,7 +28,17 @@ export function ExerciseAutocomplete({
   className,
 }: {
   value: string;
-  onSelect: (name: string, defaultSets?: number, defaultReps?: number, category?: string, equipment?: string) => void;
+  onSelect: (
+    name: string,
+    defaultSets?: number,
+    defaultReps?: number,
+    category?: string,
+    equipment?: string,
+    defaultRestTime?: number,
+    defaultWeight?: number,
+    defaultDistance?: number,
+    defaultDuration?: number,
+  ) => void;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
@@ -102,7 +116,11 @@ export function ExerciseAutocomplete({
       suggestion.defaultSets ?? undefined,
       suggestion.defaultReps ?? undefined,
       suggestion.category ?? undefined,
-      suggestion.equipment ?? undefined
+      suggestion.equipment ?? undefined,
+      suggestion.defaultRestTime ?? undefined,
+      suggestion.defaultWeight ?? undefined,
+      suggestion.defaultDistance ?? undefined,
+      suggestion.defaultDuration ?? undefined,
     );
     setOpen(false);
     inputRef.current?.blur();

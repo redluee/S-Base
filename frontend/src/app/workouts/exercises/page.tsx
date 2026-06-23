@@ -21,12 +21,12 @@ export default async function ExercisesPage({
   let exercises = await serverApi.workouts.exercises.list();
 
   if (q) {
-    const qLower = q.toLowerCase();
-    exercises = exercises.filter(
-      (ex) =>
-        ex.name.toLowerCase().includes(qLower) ||
-        (ex.equipment && t(ex.equipment).toLowerCase().includes(qLower))
-    );
+    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
+    exercises = exercises.filter((ex) => {
+      const nameNorm = ex.name.replace(/[\s\-\/]/g, "").toLowerCase();
+      const eqNorm = ex.equipment ? t(ex.equipment).replace(/[\s\-\/]/g, "").toLowerCase() : "";
+      return nameNorm.includes(normalizedQ) || eqNorm.includes(normalizedQ);
+    });
   }
 
   return (

@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["127.0.0.1", "192.168.0.*"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "192.168.0.*",
+    "100.100.219.10",
+    "100.100.219.10:3000",
+    "100.100.219.10:3002",
+    "*.ts.net",
+  ],
   async rewrites() {
     return [
       {

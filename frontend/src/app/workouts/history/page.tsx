@@ -6,14 +6,19 @@ import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import { Calendar } from "lucide-react";
 
-export default async function WorkoutHistoryPage() {
+export default async function WorkoutHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   let user: { id: number; username: string } | null = null;
   try {
     user = (await serverApi.me()).user;
   } catch {}
   if (!user) redirect("/");
 
-  const sessions = await serverApi.workouts.sessions.list("completed");
+  const { q } = await searchParams;
+  const sessions = await serverApi.workouts.sessions.list("completed", q);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -50,9 +55,32 @@ export default async function WorkoutHistoryPage() {
           </div>
         </Link>
 
+        {q && (
+          <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+            <span>
+              {t('Search results for "{q}"', { q })}
+            </span>
+            <Link
+              href="/workouts/history"
+              className="text-xs text-brand hover:text-brand-hover underline"
+            >
+              {t("Clear")}
+            </Link>
+          </div>
+        )}
+
         {sessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
-            <p className="text-sm text-muted-foreground">{t("No completed sessions yet.")}</p>
+          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center bg-card rounded-xl ring-1 ring-foreground/10 p-6">
+            <p className="text-sm text-muted-foreground mb-4">
+              {q ? t('No sessions found for "{q}".', { q }) : t("No completed sessions yet.")}
+            </p>
+            {q && (
+              <Link href="/workouts/history">
+                <Button size="sm" variant="outline" className="cursor-pointer">
+                  {t("Clear search")}
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2">

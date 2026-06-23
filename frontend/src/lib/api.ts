@@ -95,8 +95,13 @@ export const api = {
     },
 
     sessions: {
-      list: (status?: string) =>
-        request<any[]>(`/workouts/sessions${status ? `?status=${status}` : ""}`),
+      list: (status?: string, q?: string) => {
+        const params = new URLSearchParams();
+        if (status) params.set("status", status);
+        if (q) params.set("q", q);
+        const qs = params.toString();
+        return request<any[]>(`/workouts/sessions${qs ? `?${qs}` : ""}`);
+      },
 
       get: (id: number) => request<any>(`/workouts/sessions/${id}`),
 
@@ -125,7 +130,18 @@ export const api = {
     exercises: {
       list: () => request<{ name: string; equipment: string | null }[]>("/workouts/exercises"),
       suggest: (q: string) =>
-        request<{ type: string; value: string; defaultSets: number | null; defaultReps: number | null; equipment: string | null }[]>(
+        request<{
+          type: string;
+          value: string;
+          category?: string;
+          defaultSets: number | null;
+          defaultReps: number | null;
+          defaultWeight?: number | null;
+          defaultDistance?: number | null;
+          defaultDuration?: number | null;
+          defaultRestTime?: number | null;
+          equipment: string | null;
+        }[]>(
           `/workouts/exercises/suggest?q=${encodeURIComponent(q)}`,
         ),
 
@@ -136,6 +152,16 @@ export const api = {
           }`,
         ),
     },
+    suggest: (q: string) =>
+      request<{
+        type: "exercise" | "template" | "history";
+        value: string;
+        rawValue?: string;
+        equipment?: string | null;
+        id?: number;
+      }[]>(
+        `/workouts/suggest?q=${encodeURIComponent(q)}`,
+      ),
     stats: () =>
       request<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
   },

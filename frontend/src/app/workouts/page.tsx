@@ -106,53 +106,49 @@ export default async function WorkoutsPage() {
           <MotivationalQuote />
         </div>
 
-        {templates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
-            <div className="size-12 sm:size-14 rounded-xl bg-zinc-800 flex items-center justify-center mb-4">
-              <svg className="size-6 sm:size-7 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
+        <div className="flex flex-col gap-3">
+          <Link
+            href="/workouts/session/quick"
+            className="block rounded-xl bg-brand/10 ring-1 ring-brand/30 hover:ring-brand/50 transition-all duration-200 active:scale-[0.99]"
+          >
+            <div className="px-4 sm:px-5 py-3 sm:py-4">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-lg bg-brand/20 flex items-center justify-center">
+                  <svg className="size-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="font-medium text-brand text-sm sm:text-base">{t("Quick start")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("Start blank workout")}</p>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">{t("No templates yet.")}</p>
+          </Link>
+
+          <div className="flex items-center justify-between mt-3 mb-1">
+            <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
             <Link href="/workouts/new">
-              <Button className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm">
-                {t("Create your first template")}
+              <Button size="sm" className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium">
+                <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                {t("New Template")}
               </Button>
             </Link>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <Link
-              href="/workouts/session/quick"
-              className="block rounded-xl bg-brand/10 ring-1 ring-brand/30 hover:ring-brand/50 transition-all duration-200 active:scale-[0.99]"
-            >
-              <div className="px-4 sm:px-5 py-3 sm:py-4">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-lg bg-brand/20 flex items-center justify-center">
-                    <svg className="size-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="font-medium text-brand text-sm sm:text-base">{t("Quick start")}</h2>
-                    <p className="text-xs text-muted-foreground">{t("Start blank workout")}</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
 
-            <div className="flex items-center justify-between mt-3 mb-1">
-              <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
+          {templates.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl bg-card border border-white/5 p-6">
+              <p className="text-sm text-muted-foreground mb-4">{t("No templates yet.")}</p>
               <Link href="/workouts/new">
-                <Button size="sm" className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium">
-                  <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  {t("New Template")}
+                <Button className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm">
+                  {t("Create your first template")}
                 </Button>
               </Link>
             </div>
-            {templates.map((template: any) => (
+          ) : (
+            templates.map((template: any) => (
               <Link
                 key={template.templateId}
                 href={`/workouts/t/${template.templateId}`}
@@ -188,9 +184,9 @@ export default async function WorkoutsPage() {
                   </div>
                 </div>
               </Link>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </main>
     </div>
   );

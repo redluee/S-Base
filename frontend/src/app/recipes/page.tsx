@@ -129,11 +129,14 @@ export default async function RecipesPage({
 
         {recipes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
-            <div className="size-12 sm:size-14 rounded-xl bg-zinc-800 flex items-center justify-center mb-4">
-              <svg className="size-6 sm:size-7 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <Link
+              href="/recipes/new"
+              className="group size-12 sm:size-14 rounded-xl bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center mb-4 transition-all active:scale-[0.95]"
+            >
+              <svg className="size-6 sm:size-7 text-zinc-500 group-hover:text-zinc-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-            </div>
+            </Link>
             <p className="text-sm text-muted-foreground mb-4">
               {q
                 ? t('No recipes found for "{q}".', { q })

@@ -34,6 +34,80 @@ import {
   ChevronDown
 } from "lucide-react";
 
+function BarbellIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M6 5h2v14H6zM16 5h2v14h-2zM2 12h4M18 12h4M6 12h12" />
+      <path d="M3 8h1v8H3zM20 8h1v8h-1z" />
+    </svg>
+  );
+}
+
+function KettlebellIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 3a4.5 4.5 0 0 0-4.5 4.5V10h9V7.5A4.5 4.5 0 0 0 12 3z" />
+      <path d="M6 10h12a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3z" />
+    </svg>
+  );
+}
+
+function CableIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 2v13" />
+      <path d="M8 15h8M8 15v3a4 4 0 0 0 8 0v-3" />
+      <path d="M12 18v4" />
+      <circle cx="12" cy="2" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MachineIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 20V4h16v16M4 8h16M4 12h16M4 16h16" />
+      <circle cx="12" cy="6" r="1.5" />
+    </svg>
+  );
+}
+
+function BandIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <ellipse cx="12" cy="12" rx="7" ry="4" transform="rotate(-15 12 12)" />
+    </svg>
+  );
+}
+
+function NoneIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m4.9 4.9 14.2 14.2" />
+    </svg>
+  );
+}
+
+function EquipmentIcon({ type, className }: { type: string; className?: string }) {
+  switch (type) {
+    case "barbell":
+      return <BarbellIcon className={className} />;
+    case "dumbbell":
+      return <Dumbbell className={className} />;
+    case "kettlebell":
+      return <KettlebellIcon className={className} />;
+    case "cable":
+      return <CableIcon className={className} />;
+    case "machine":
+      return <MachineIcon className={className} />;
+    case "band":
+      return <BandIcon className={className} />;
+    default:
+      return <NoneIcon className={className} />;
+  }
+}
+
 interface SetRow {
   setId?: number;
   setNumber: number;
@@ -109,6 +183,8 @@ export function WorkoutSessionLive({
   const [restActive, setRestActive] = useState(false);
   const [restExerciseName, setRestExerciseName] = useState("");
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [activeRestExerciseIdx, setActiveRestExerciseIdx] = useState<number | null>(null);
+  const [activeRestSetIdx, setActiveRestSetIdx] = useState<number | null>(null);
 
   // Pop Burst satisfaction animation state
   const [lastCompletedSet, setLastCompletedSet] = useState<{ exIdx: number; setIdx: number } | null>(null);
@@ -119,6 +195,7 @@ export function WorkoutSessionLive({
   const [newExerciseName, setNewExerciseName] = useState("");
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [activeMenuExerciseId, setActiveMenuExerciseId] = useState<number | null>(null);
+  const [activeEquipmentMenuExerciseId, setActiveEquipmentMenuExerciseId] = useState<number | null>(null);
   const [replacingExerciseId, setReplacingExerciseId] = useState<number | null>(null);
   const [replaceName, setReplaceName] = useState("");
 
@@ -227,6 +304,8 @@ export function WorkoutSessionLive({
           if (prev <= 1) {
             clearInterval(restIntervalRef.current!);
             setRestActive(false);
+            setActiveRestExerciseIdx(null);
+            setActiveRestSetIdx(null);
             // Audio beep feedback
             try {
               const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -547,11 +626,21 @@ export function WorkoutSessionLive({
         setRestTotalSeconds(restTime);
         setRestExerciseName(ex.exerciseName);
         setRestActive(true);
+        setActiveRestExerciseIdx(exerciseIndex);
+        setActiveRestSetIdx(setIndex);
       }
 
       // Trigger checkbox pop animation
       setLastCompletedSet({ exIdx: exerciseIndex, setIdx: setIndex });
       setTimeout(() => setLastCompletedSet(null), 800);
+    } else {
+      // If uncompleting a set that is currently the active rest timer, cancel the timer
+      if (activeRestExerciseIdx === exerciseIndex && activeRestSetIdx === setIndex) {
+        setRestActive(false);
+        setRestSecondsLeft(0);
+        setActiveRestExerciseIdx(null);
+        setActiveRestSetIdx(null);
+      }
     }
 
     sets[setIndex] = set;
@@ -562,11 +651,12 @@ export function WorkoutSessionLive({
   }
 
   // Add a new exercise to the bottom of the session
-  async function addExercise(nameOverride?: string, categoryOverride?: string, defaultSets?: number, defaultReps?: number) {
+  async function addExercise(nameOverride?: string, categoryOverride?: string, defaultSets?: number, defaultReps?: number, equipmentOverride?: string) {
     const name = nameOverride || newExerciseName.trim();
     if (!session || !name) return;
     const exercises = [...(session.exercises ?? [])];
     const cat = categoryOverride || "resistance";
+    const eq = equipmentOverride || (cat === "resistance" ? "dumbbell" : "none");
     
     const numSets = defaultSets || 1;
     const numReps = defaultReps ?? 10;
@@ -588,6 +678,7 @@ export function WorkoutSessionLive({
       exerciseName: name,
       sortOrder: exercises.length,
       category: cat,
+      equipment: eq,
       sets: initialSets,
     });
     setNewExerciseName("");
@@ -604,11 +695,18 @@ export function WorkoutSessionLive({
   }
 
   // Replace exercise name while keeping sets
-  async function replaceExercise(sessionExerciseId: number, newName: string, categoryOverride?: string) {
+  async function replaceExercise(sessionExerciseId: number, newName: string, categoryOverride?: string, equipmentOverride?: string) {
     if (!session || !newName.trim()) return;
     const exercises = session.exercises.map((e: any) => {
       if (e.sessionExerciseId === sessionExerciseId) {
-        return { ...e, exerciseName: newName.trim(), category: categoryOverride || e.category || "resistance" };
+        const cat = categoryOverride || e.category || "resistance";
+        const eq = equipmentOverride || (cat === "resistance" ? "dumbbell" : "none");
+        return { 
+          ...e, 
+          exerciseName: newName.trim(), 
+          category: cat, 
+          equipment: eq 
+        };
       }
       return e;
     });
@@ -1135,13 +1233,16 @@ export function WorkoutSessionLive({
               <ExerciseAutocomplete
                 value={newExerciseName}
                 onChange={setNewExerciseName}
-                onSelect={(v, sets, reps, category) => {
-                  addExercise(v, category, sets ?? undefined, reps ?? undefined);
+                onSelect={(v, sets, reps, category, equipment) => {
+                  addExercise(v, category, sets ?? undefined, reps ?? undefined, equipment);
                 }}
                 placeholder={t("Exercise") + "..."}
                 className="border-border text-sm"
               />
-              <Button onClick={() => addExercise()} size="sm" className="bg-brand text-zinc-900">
+              <Button
+                onClick={() => addExercise()}
+                className="bg-brand text-zinc-900 h-9 w-9 sm:h-8 sm:w-8 p-0 shrink-0 flex items-center justify-center rounded-lg cursor-pointer"
+              >
                 <Plus className="size-4" />
               </Button>
             </div>
@@ -1175,8 +1276,8 @@ export function WorkoutSessionLive({
                           <ExerciseAutocomplete
                             value={replaceName}
                             onChange={setReplaceName}
-                            onSelect={(v, sets, reps, category) => {
-                              replaceExercise(ex.sessionExerciseId!, v, category);
+                            onSelect={(v, sets, reps, category, equipment) => {
+                              replaceExercise(ex.sessionExerciseId!, v, category, equipment);
                             }}
                             placeholder={t("Search exercise") + "..."}
                             className="w-full h-8 text-sm"
@@ -1247,6 +1348,65 @@ export function WorkoutSessionLive({
                       </button>
                     </div>
                   )}
+
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveEquipmentMenuExerciseId(
+                          activeEquipmentMenuExerciseId === ex.sessionExerciseId ? null : ex.sessionExerciseId
+                        )
+                      }
+                      className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 transition-colors cursor-pointer flex items-center justify-center"
+                      title={t("Equipment")}
+                    >
+                      <EquipmentIcon type={ex.equipment ?? "none"} className="size-5" />
+                    </button>
+
+                    {activeEquipmentMenuExerciseId === ex.sessionExerciseId && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setActiveEquipmentMenuExerciseId(null)}
+                        />
+                        <div className="absolute right-0 mt-1 w-44 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl z-20 py-1 text-sm">
+                          {[
+                            { value: "none", label: t("none") },
+                            { value: "barbell", label: t("barbell") },
+                            { value: "dumbbell", label: t("dumbbell") },
+                            { value: "kettlebell", label: t("kettlebell") },
+                            { value: "cable", label: t("cable") },
+                            { value: "machine", label: t("machine") },
+                            { value: "band", label: t("band") },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={async () => {
+                                const updatedExs = [...session.exercises];
+                                updatedExs[exIdx] = {
+                                  ...ex,
+                                  equipment: opt.value,
+                                };
+                                setSession({ ...session, exercises: updatedExs });
+                                setActiveEquipmentMenuExerciseId(null);
+                                await saveExercises(updatedExs);
+                              }}
+                              className={`flex w-full items-center px-3 py-2 text-left transition-colors hover:bg-zinc-800 ${
+                                (ex.equipment ?? "none") === opt.value
+                                  ? "text-brand font-medium"
+                                  : "text-zinc-300"
+                              }`}
+                            >
+                              <span className="mr-2.5 shrink-0 text-brand">
+                                <EquipmentIcon type={opt.value} className="size-4" />
+                              </span>
+                              <span className="truncate">{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   <div className="relative">
                     <button
@@ -1593,28 +1753,147 @@ export function WorkoutSessionLive({
                                 </div>
                               </td>
                             </tr>
-                            {setIdx < ex.sets.length - 1 && (
-                              <tr className="bg-zinc-950/25 border-b border-border/10">
-                                <td colSpan={(cat === "resistance" || cat === "cardio") ? 6 : 5} className="py-1 px-3">
-                                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                                    <div className="flex items-center gap-1.5">
-                                      <Timer className="size-3 text-zinc-500" />
-                                      <span>{t("Rest Time")}:</span>
-                                      <input
-                                        type="number"
-                                        className="w-12 bg-zinc-900 border border-zinc-800 rounded px-1 py-0.5 text-center text-[11px] text-zinc-300 font-semibold focus:outline-none focus:border-brand/40"
-                                        value={getExerciseRestTime(ex, exIdx)}
-                                        onChange={(e) => updateExerciseRestTime(exIdx, Number(e.target.value))}
+                            {setIdx < ex.sets.length - 1 && (() => {
+                              const isSetAboveCompleted = set.completed === 1;
+                              const isCurrentRestTimer = activeRestExerciseIdx === exIdx && activeRestSetIdx === setIdx;
+                              const hasActiveTimer = isCurrentRestTimer && restSecondsLeft > 0;
+                              const isDone = isSetAboveCompleted && !hasActiveTimer;
+                              const colSpanVal = (cat === "resistance" || cat === "cardio") ? 6 : 5;
+
+                              return (
+                                <tr className={`transition-all duration-300 ${
+                                  isDone 
+                                    ? "h-0 border-none bg-transparent overflow-hidden" 
+                                    : `border-b border-border/10 ${isSetAboveCompleted ? "bg-zinc-950/50" : "bg-zinc-950/25"}`
+                                }`}>
+                                  <td colSpan={colSpanVal} className="p-0 transition-all duration-300 relative overflow-hidden">
+                                    {/* Progress Background */}
+                                    {hasActiveTimer && (
+                                      <div 
+                                        className="absolute inset-0 bg-brand/10 transition-all duration-1000 ease-linear pointer-events-none border-none border-0"
+                                        style={{ width: `${(restSecondsLeft / restTotalSeconds) * 100}%` }}
                                       />
-                                      <span>s</span>
+                                    )}
+
+                                    <div 
+                                      className={`transition-all duration-300 ease-in-out overflow-hidden relative w-full border-none border-0 ${
+                                        isDone 
+                                          ? "max-h-0 opacity-0 py-0 px-3 pointer-events-none" 
+                                          : isSetAboveCompleted 
+                                            ? "max-h-20 opacity-100 py-3 sm:py-3.5 px-3 min-h-[56px]" 
+                                            : "max-h-12 opacity-100 py-1 px-3"
+                                      }`}
+                                    >
+                                      <div className="relative z-10 flex items-center justify-between text-xs text-zinc-400 w-full">
+                                        {isSetAboveCompleted ? (
+                                          <>
+                                            {/* Higher row: Active Timer or Start Timer Controls */}
+                                            <div className="flex items-center gap-2">
+                                              <Timer className={`size-4 ${hasActiveTimer && restActive ? "text-brand animate-pulse" : "text-zinc-500"}`} />
+                                              {hasActiveTimer ? (
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                  <span className="font-mono text-base font-bold text-brand tabular-nums">
+                                                    {formatTime(restSecondsLeft)}
+                                                  </span>
+                                                  {/* Adjust buttons */}
+                                                  <div className="flex items-center gap-1.5">
+                                                    <button
+                                                      onClick={() => {
+                                                        setRestSecondsLeft((prev) => prev + 30);
+                                                        setRestTotalSeconds((prev) => prev + 30);
+                                                      }}
+                                                      className="px-2.5 h-7 rounded border border-border/40 bg-zinc-900/80 text-xs text-zinc-300 hover:text-foreground hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
+                                                    >
+                                                      +30s
+                                                    </button>
+                                                    <button
+                                                      onClick={() => {
+                                                        setRestSecondsLeft((prev) => Math.max(0, prev - 30));
+                                                      }}
+                                                      className="px-2.5 h-7 rounded border border-border/40 bg-zinc-900/80 text-xs text-zinc-300 hover:text-foreground hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
+                                                    >
+                                                      -30s
+                                                    </button>
+                                                    <button
+                                                      onClick={() => {
+                                                        setRestActive(false);
+                                                        setRestSecondsLeft(0);
+                                                        setActiveRestExerciseIdx(null);
+                                                        setActiveRestSetIdx(null);
+                                                      }}
+                                                      className="px-2.5 h-7 rounded border border-brand/30 bg-brand/10 text-xs text-brand hover:bg-brand/20 transition-colors cursor-pointer flex items-center justify-center"
+                                                    >
+                                                      {t("Skip")}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-1.5 text-zinc-400 text-xs">
+                                                  <span>{t("Rest Time")}:</span>
+                                                  <input
+                                                    type="number"
+                                                    className="w-10 h-7 bg-zinc-900 border border-zinc-800 rounded px-1.5 text-center text-xs text-zinc-300 font-semibold focus:outline-none focus:border-brand/40"
+                                                    value={getExerciseRestTime(ex, exIdx)}
+                                                    onChange={(e) => updateExerciseRestTime(exIdx, Number(e.target.value))}
+                                                  />
+                                                  <span>s</span>
+                                                </div>
+                                              )}
+                                            </div>
+
+                                            {/* Pause/Play on the right */}
+                                            <div>
+                                              {hasActiveTimer && restActive ? (
+                                                <button
+                                                  onClick={() => setRestActive(false)}
+                                                  className="h-8 w-8 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-zinc-200 transition-colors flex items-center justify-center cursor-pointer"
+                                                  title={t("Pause")}
+                                                >
+                                                  <Pause className="size-4" />
+                                                </button>
+                                              ) : (
+                                                <button
+                                                  onClick={() => {
+                                                    const restTime = getExerciseRestTime(ex, exIdx);
+                                                    if (restTime > 0) {
+                                                      setRestSecondsLeft(hasActiveTimer ? restSecondsLeft : restTime);
+                                                      if (!hasActiveTimer) {
+                                                        setRestTotalSeconds(restTime);
+                                                        setRestExerciseName(ex.exerciseName);
+                                                      }
+                                                      setRestActive(true);
+                                                      setActiveRestExerciseIdx(exIdx);
+                                                      setActiveRestSetIdx(setIdx);
+                                                    }
+                                                  }}
+                                                  className="h-8 w-8 rounded-lg bg-brand/20 border border-brand/40 hover:bg-brand/35 text-brand transition-colors flex items-center justify-center cursor-pointer"
+                                                  title={t("Play")}
+                                                >
+                                                  <Play className="size-4" />
+                                                </button>
+                                              )}
+                                            </div>
+                                          </>
+                                        ) : (
+                                          /* Normal thin row style when set above is not completed */
+                                          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 w-full py-0.5">
+                                            <Timer className="size-3 text-zinc-500" />
+                                            <span>{t("Rest Time")}:</span>
+                                            <input
+                                              type="number"
+                                              className="w-12 bg-zinc-900 border border-zinc-800 rounded px-1 py-0.5 text-center text-[11px] text-zinc-300 font-semibold focus:outline-none focus:border-brand/40"
+                                              value={getExerciseRestTime(ex, exIdx)}
+                                              onChange={(e) => updateExerciseRestTime(exIdx, Number(e.target.value))}
+                                            />
+                                            <span>s</span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="text-[10px] text-muted-foreground/60 italic">
-                                      {t("Rest after set")} {set.setNumber}
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
+                                  </td>
+                                </tr>
+                              );
+                            })()}
                           </React.Fragment>
                         );
                       })}
@@ -1645,14 +1924,17 @@ export function WorkoutSessionLive({
                   <ExerciseAutocomplete
                     value={newExerciseName}
                     onChange={setNewExerciseName}
-                    onSelect={(v, sets, reps, category) => {
-                      addExercise(v, category, sets ?? undefined, reps ?? undefined);
+                    onSelect={(v, sets, reps, category, equipment) => {
+                      addExercise(v, category, sets ?? undefined, reps ?? undefined, equipment);
                     }}
                     placeholder={t("Search exercise") + "..."}
                     className="w-full h-9 text-sm"
                   />
                 </div>
-                <Button onClick={() => addExercise()} size="sm" className="bg-brand hover:bg-brand-hover text-zinc-900 h-9">
+                <Button
+                  onClick={() => addExercise()}
+                  className="bg-brand hover:bg-brand-hover text-zinc-900 h-9 w-9 p-0 shrink-0 flex items-center justify-center rounded-lg cursor-pointer"
+                >
                   <Plus className="size-4" />
                 </Button>
                 <Button
@@ -1670,7 +1952,7 @@ export function WorkoutSessionLive({
                   setNewExerciseName("");
                   setShowAddExercise(true);
                 }}
-                className="bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 h-10 px-5 text-sm active:scale-[0.98] transition-all rounded-full flex items-center gap-2"
+                className="bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 h-[60px] w-full max-w-md px-5 text-sm active:scale-[0.98] transition-all rounded-xl flex items-center justify-center gap-2"
               >
                 <Plus className="size-4" />
                 {t("Add Exercise")}
@@ -1922,72 +2204,6 @@ export function WorkoutSessionLive({
         </div>
       )}
 
-      {/* Floating Rest Timer Widget */}
-      {restActive && restSecondsLeft > 0 && (
-        <div className="fixed bottom-6 right-6 z-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-2xl w-64 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-brand flex items-center gap-1.5">
-              <Timer className="size-3.5 animate-pulse" />
-              {t("Resting")}...
-            </span>
-            <button
-              onClick={() => setRestActive(false)}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-          <div className="text-center py-2.5">
-            <div className="text-3xl font-mono font-bold text-zinc-200 tabular-nums">
-              {formatTime(restSecondsLeft)}
-            </div>
-            <div className="text-[10px] text-muted-foreground truncate mt-1">
-              {restExerciseName}
-            </div>
-          </div>
-          
-          {/* Progress bar */}
-          <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mb-3.5">
-            <div 
-              className="bg-brand h-full transition-all duration-1000 ease-linear"
-              style={{ width: `${(restSecondsLeft / restTotalSeconds) * 100}%` }}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                setRestSecondsLeft((prev) => prev + 30);
-                setRestTotalSeconds((prev) => prev + 30);
-              }}
-              variant="outline"
-              size="sm"
-              className="flex-1 text-[11px] border-border h-8"
-            >
-              +30s
-            </Button>
-            <Button
-              onClick={() => {
-                setRestSecondsLeft((prev) => Math.max(0, prev - 30));
-              }}
-              variant="outline"
-              size="sm"
-              className="flex-1 text-[11px] border-border h-8"
-            >
-              -30s
-            </Button>
-            <Button
-              onClick={() => {
-                setRestActive(false);
-                setRestSecondsLeft(0);
-              }}
-              className="flex-1 text-[11px] bg-brand hover:bg-brand-hover text-zinc-900 font-semibold h-8"
-            >
-              {t("Skip")}
-            </Button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
