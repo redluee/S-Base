@@ -2,6 +2,11 @@ import { Database } from "bun:sqlite";
 import { join } from "path";
 
 async function reset() {
+  if (process.env.ANTIGRAVITY_AGENT === "1" || process.env.AI === "true" || process.env.AI === "1") {
+    console.log("Database reset is disabled in the AI/Agent context to protect local developer data.");
+    return;
+  }
+
   const dbPath = join(import.meta.dir, "../../..", "sbase.db");
   const sqlite = new Database(dbPath);
 

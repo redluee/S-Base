@@ -31,13 +31,14 @@ export class RecipeService {
     const column = columnMap[sortBy ?? "name"] ?? recipes.name;
     const orderFn = sortOrder === "desc" ? desc : asc;
 
+    const normalizedQ = q.replace(/[\s-]/g, "").toLowerCase();
     const conditions = [
       or(
-        like(recipes.name, `%${q}%`),
-        like(recipes.kitchen, `%${q}%`),
+        sql`replace(replace(${recipes.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        sql`replace(replace(${recipes.kitchen}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
         sql`EXISTS (SELECT 1 FROM recipe_ingredients ri
              INNER JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-             WHERE ri.recipe_id = recipes.recipe_id AND i.name LIKE ${`%${q}%`})`,
+             WHERE ri.recipe_id = recipes.recipe_id AND replace(replace(i.name, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`})`,
       ),
     ];
 
@@ -49,23 +50,28 @@ export class RecipeService {
   }
 
   suggest(q: string) {
+    const normalizedQ = q.replace(/[\s-]/g, "").toLowerCase();
     const recipeNames = db.select({ name: recipes.name })
       .from(recipes)
-      .where(like(recipes.name, `%${q}%`))
+      .where(sql`replace(replace(${recipes.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`)
       .limit(5)
       .all()
       .map((r) => ({ type: "recipe" as const, value: r.name }));
 
     const ingredientNames = db.select({ name: ingredients.name })
       .from(ingredients)
-      .where(like(ingredients.name, `%${q}%`))
+      .where(sql`replace(replace(${ingredients.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`)
       .limit(5)
       .all()
       .map((i) => ({ type: "ingredient" as const, value: i.name }));
 
     const kitchens = db.select({ name: recipes.kitchen })
       .from(recipes)
-      .where(and(like(recipes.kitchen, `%${q}%`), sql`${recipes.kitchen} IS NOT NULL`, sql`${recipes.kitchen} != ''`))
+      .where(and(
+        sql`replace(replace(${recipes.kitchen}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        sql`${recipes.kitchen} IS NOT NULL`,
+        sql`${recipes.kitchen} != ''`
+      ))
       .limit(3)
       .all()
       .map((k) => ({ type: "kitchen" as const, value: k.name! }));
@@ -239,12 +245,13 @@ export class RecipeService {
   }
 
   ingredientSearch(q: string) {
+    const normalizedQ = q.replace(/[\s-]/g, "").toLowerCase();
     return db.select({
       ingredientId: ingredients.ingredientId,
       name: ingredients.name,
     })
       .from(ingredients)
-      .where(like(ingredients.name, `%${q}%`))
+      .where(sql`replace(replace(${ingredients.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`)
       .limit(8)
       .all();
   }

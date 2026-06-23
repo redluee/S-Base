@@ -33,6 +33,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). No tests, no CI, no pre-commit
 - Rating range: 0–10.
 - Backend uses `bun:sqlite` with WAL pragma + foreign keys enabled.
 - Path alias `@/*` → `frontend/src/*` (configured in frontend tsconfig).
+- **Database preservation**: The local development database `sbase.db` contains custom user data and must NEVER be deleted, overwritten, or reset by the AI agent. Avoid running `bun run db:reset` or `bun run db:seed`. If schema migrations are needed, use non-destructive migrations. Dropping tables or wiping data via AI commands is strictly prohibited.
 
 ## Next.js version caveats
 

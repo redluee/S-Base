@@ -65,6 +65,7 @@ function seedWorkouts() {
   for (const t of templates) {
     db.insert(workoutTemplates).values({
       templateId: t.templateId,
+      userId: 1,
       name: t.name,
       description: t.description,
       targetMuscleGroups: t.targetMuscleGroups,

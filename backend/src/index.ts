@@ -112,33 +112,50 @@ const app = new Elysia()
   })
 
   // --- Workout template routes ---
-  .get("/api/workouts/templates", () => {
-    return workout.listTemplates();
+  .get("/api/workouts/templates", ({ cookie: { session_id } }) => {
+    const sid = session_id?.value;
+    if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
+    if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
+    return workout.listTemplates(userId!);
   })
 
-  .get("/api/workouts/templates/:id", ({ params: { id } }) => {
-    return workout.getTemplate(Number(id));
+  .get("/api/workouts/templates/:id", ({ params: { id }, cookie: { session_id } }) => {
+    const sid = session_id?.value;
+    if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
+    if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
+    const t = workout.getTemplate(Number(id), userId!);
+    if (!t) return new Response("Not Found", { status: 404 });
+    return t;
   })
 
   .post("/api/workouts/templates", async ({ body, cookie: { session_id } }) => {
     const sid = session_id?.value;
     if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
-    return workout.createTemplate(body as any);
+    const userId = auth.getUserIdFromSession(sid);
+    return workout.createTemplate(userId!, body as any);
   })
 
   .put("/api/workouts/templates/:id", async ({ params: { id }, body, cookie: { session_id } }) => {
     const sid = session_id?.value;
     if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
-    return workout.updateTemplate(Number(id), body as any);
+    const userId = auth.getUserIdFromSession(sid);
+    const t = workout.updateTemplate(Number(id), userId!, body as any);
+    if (!t) return new Response("Not Found", { status: 404 });
+    return t;
   })
 
   .delete("/api/workouts/templates/:id", async ({ params: { id }, cookie: { session_id } }) => {
     const sid = session_id?.value;
     if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
-    return workout.deleteTemplate(Number(id));
+    const userId = auth.getUserIdFromSession(sid);
+    const res = workout.deleteTemplate(Number(id), userId!);
+    if (!res) return new Response("Not Found", { status: 404 });
+    return res;
   })
 
   // --- Workout session routes ---
@@ -148,11 +165,18 @@ const app = new Elysia()
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
     const userId = auth.getUserIdFromSession(sid);
     const status = query?.status as string | undefined;
-    return workout.listSessions(userId!, status);
+    const q = query?.q as string | undefined;
+    return workout.listSessions(userId!, status, q);
   })
 
-  .get("/api/workouts/sessions/:id", ({ params: { id } }) => {
-    return workout.getSession(Number(id));
+  .get("/api/workouts/sessions/:id", ({ params: { id }, cookie: { session_id } }) => {
+    const sid = session_id?.value;
+    if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
+    if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
+    const s = workout.getSession(Number(id), userId!);
+    if (!s) return new Response("Not Found", { status: 404 });
+    return s;
   })
 
   .post("/api/workouts/sessions", async ({ body, cookie: { session_id } }) => {
@@ -168,22 +192,31 @@ const app = new Elysia()
     const sid = session_id?.value;
     if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
-    return workout.updateSession(Number(id), body as any);
+    const userId = auth.getUserIdFromSession(sid);
+    const s = workout.updateSession(Number(id), userId!, body as any);
+    if (!s) return new Response("Not Found", { status: 404 });
+    return s;
   })
 
   .patch("/api/workouts/sessions/:id/complete", async ({ params: { id }, body, cookie: { session_id } }) => {
     const sid = session_id?.value;
     if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
     const { completedAt } = (body ?? {}) as any;
-    return workout.completeSession(Number(id), completedAt);
+    const s = workout.completeSession(Number(id), userId!, completedAt);
+    if (!s) return new Response("Not Found", { status: 404 });
+    return s;
   })
 
   .delete("/api/workouts/sessions/:id", async ({ params: { id }, cookie: { session_id } }) => {
     const sid = session_id?.value;
     if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
     if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
-    return workout.deleteSession(Number(id));
+    const userId = auth.getUserIdFromSession(sid);
+    const res = workout.deleteSession(Number(id), userId!);
+    if (!res) return new Response("Not Found", { status: 404 });
+    return res;
   })
 
   // --- Exercise progress routes ---
@@ -204,14 +237,32 @@ const app = new Elysia()
   })
 
 
-  .get("/api/workouts/exercises/suggest", ({ query }) => {
+  .get("/api/workouts/exercises/suggest", ({ query, cookie: { session_id } }) => {
+    const sid = session_id?.value;
+    if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
+    if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
     const q = query?.q as string | undefined;
     if (!q || q.length < 1) return [];
-    return workout.suggestExercises(q);
+    return workout.suggestExercises(userId!, q);
   })
 
-  .get("/api/workouts/exercises/:name/progress", ({ params: { name } }) => {
-    return workout.exerciseProgress(decodeURIComponent(name));
+  .get("/api/workouts/suggest", ({ query, cookie: { session_id } }) => {
+    const sid = session_id?.value;
+    if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
+    if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
+    const q = query?.q as string | undefined;
+    if (!q || q.length < 1) return [];
+    return workout.suggestWorkoutSearch(userId!, q);
+  })
+
+  .get("/api/workouts/exercises/:name/progress", ({ params: { name }, query, cookie: { session_id } }) => {
+    const sid = session_id?.value;
+    if (!sid || !auth.verifySession(sid)) return new Response("Unauthorized", { status: 401 });
+    if (!auth.moduleAccessCheck(sid, "workout")) return new Response("Forbidden", { status: 403 });
+    const userId = auth.getUserIdFromSession(sid);
+    return workout.exerciseProgress(userId!, decodeURIComponent(name), query?.equipment as string | undefined);
   })
 
   .listen(PORT);

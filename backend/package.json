@@ -6,6 +6,7 @@
     "db:migrate": "bun run src/db/migrate.ts",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed-workouts": "bun run src/db/seed-workouts.ts",
+    "db:user": "bun run src/db/user-manager.ts",
     "db:reset": "bun run src/db/reset.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate"

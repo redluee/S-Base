@@ -1,0 +1,1 @@
+ALTER TABLE `workout_templates` ADD `user_id` integer DEFAULT 1 NOT NULL REFERENCES users(user_id);

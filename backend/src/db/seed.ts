@@ -226,6 +226,7 @@ async function seed() {
 
   db.insert(workoutTemplates).values({
     templateId: 1,
+    userId: seedUserId,
     name: "Full Body",
     description: "Een full-body workout voor beginners.",
     targetMuscleGroups: "Full Body",

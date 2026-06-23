@@ -8,6 +8,7 @@
     "dev:frontend": "bun run --cwd frontend dev",
     "db:migrate": "bun run --cwd backend db:migrate",
     "db:seed": "bun run --cwd backend db:seed",
+    "db:user": "bun run --cwd backend db:user",
     "db:reset": "bun run --cwd backend db:reset"
   },
   "devDependencies": {

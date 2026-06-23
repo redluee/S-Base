@@ -1,4 +1,4 @@
-import { eq, and, like, desc, asc, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import {
   workoutTemplates,
@@ -9,12 +9,16 @@ import {
 } from "../../db/schema";
 
 export class WorkoutService {
-  listTemplates() {
-    return db.select().from(workoutTemplates).orderBy(desc(workoutTemplates.createdAt)).all();
+  listTemplates(userId: number) {
+    return db.select().from(workoutTemplates).where(eq(workoutTemplates.userId, userId)).orderBy(desc(workoutTemplates.createdAt)).all();
   }
 
-  getTemplate(id: number) {
-    const template = db.select().from(workoutTemplates).where(eq(workoutTemplates.templateId, id)).get();
+  getTemplate(id: number, userId?: number) {
+    const conditions = [eq(workoutTemplates.templateId, id)];
+    if (userId !== undefined) {
+      conditions.push(eq(workoutTemplates.userId, userId));
+    }
+    const template = db.select().from(workoutTemplates).where(and(...conditions)).get();
     if (!template) return null;
 
     const exercises = db.select()
@@ -26,7 +30,7 @@ export class WorkoutService {
     return { ...template, exercises };
   }
 
-  createTemplate(data: {
+  createTemplate(userId: number, data: {
     name: string;
     description?: string;
     targetMuscleGroups?: string;
@@ -46,6 +50,7 @@ export class WorkoutService {
     }[];
   }) {
     const template = db.insert(workoutTemplates).values({
+      userId,
       name: data.name,
       description: data.description,
       targetMuscleGroups: data.targetMuscleGroups,
@@ -73,10 +78,10 @@ export class WorkoutService {
       }
     }
 
-    return this.getTemplate(template.templateId);
+    return this.getTemplate(template.templateId, userId);
   }
 
-  updateTemplate(id: number, data: {
+  updateTemplate(id: number, userId: number, data: {
     name?: string;
     description?: string;
     targetMuscleGroups?: string;
@@ -95,7 +100,7 @@ export class WorkoutService {
       equipment?: string;
     }[];
   }) {
-    const existing = db.select().from(workoutTemplates).where(eq(workoutTemplates.templateId, id)).get();
+    const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
     if (!existing) return null;
 
     db.update(workoutTemplates).set({
@@ -103,7 +108,7 @@ export class WorkoutService {
       description: data.description ?? existing.description,
       targetMuscleGroups: data.targetMuscleGroups !== undefined ? data.targetMuscleGroups : existing.targetMuscleGroups,
       estimatedTime: data.estimatedTime !== undefined ? data.estimatedTime : existing.estimatedTime,
-    }).where(eq(workoutTemplates.templateId, id)).run();
+    }).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).run();
 
     if (data.exercises) {
       db.delete(templateExercises).where(eq(templateExercises.templateId, id)).run();
@@ -128,17 +133,17 @@ export class WorkoutService {
       }
     }
 
-    return this.getTemplate(id);
+    return this.getTemplate(id, userId);
   }
 
-  deleteTemplate(id: number) {
-    const existing = db.select().from(workoutTemplates).where(eq(workoutTemplates.templateId, id)).get();
+  deleteTemplate(id: number, userId: number) {
+    const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
     if (!existing) return null;
-    db.delete(workoutTemplates).where(eq(workoutTemplates.templateId, id)).run();
+    db.delete(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).run();
     return { deleted: true };
   }
 
-  listSessions(userId: number, status?: string) {
+  listSessions(userId: number, status?: string, q?: string) {
     this.cleanupEmptySessions(userId, 300);
     const conditions = [eq(workoutSessions.userId, userId)];
 
@@ -148,14 +153,69 @@ export class WorkoutService {
       conditions.push(sql`completed_at IS NOT NULL`);
     }
 
-    return db.select().from(workoutSessions)
+    const sessions = db.select().from(workoutSessions)
       .where(and(...conditions))
       .orderBy(desc(workoutSessions.startedAt))
       .all();
+
+    if (!q) return sessions;
+
+    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
+    return sessions.filter((session) => {
+      const nameNorm = (session.name || "").replace(/[\s\-\/]/g, "").toLowerCase();
+      const notesNorm = (session.notes || "").replace(/[\s\-\/]/g, "").toLowerCase();
+      
+      const dateObj = new Date(
+        session.startedAt.includes("T")
+          ? session.startedAt
+          : session.startedAt.replace(" ", "T") + "Z"
+      );
+      const formattedDate = dateObj.toLocaleDateString("nl-NL", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      const dateNorm = formattedDate.replace(/[\s\-\/]/g, "").toLowerCase();
+
+      const dateLong = dateObj.toLocaleDateString("nl-NL", {
+        weekday: "short",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      const dateLongNorm = dateLong.replace(/[\s\-\/]/g, "").toLowerCase();
+
+      const dayStr = String(dateObj.getDate()).padStart(2, "0");
+      const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const yearStr = String(dateObj.getFullYear());
+      const dayRaw = String(dateObj.getDate());
+      const monthRaw = String(dateObj.getMonth() + 1);
+
+      const datePadded = `${dayStr}${monthStr}${yearStr}`;
+      const datePaddedShort = `${dayStr}${monthStr}`;
+      const dateUnpadded = `${dayRaw}${monthRaw}${yearStr}`;
+      const dateUnpaddedShort = `${dayRaw}${monthRaw}`;
+
+      return (
+        nameNorm.includes(normalizedQ) ||
+        notesNorm.includes(normalizedQ) ||
+        dateNorm.includes(normalizedQ) ||
+        dateLongNorm.includes(normalizedQ) ||
+        datePadded.includes(normalizedQ) ||
+        datePaddedShort.includes(normalizedQ) ||
+        dateUnpadded.includes(normalizedQ) ||
+        dateUnpaddedShort.includes(normalizedQ)
+      );
+    });
   }
 
-  getSession(id: number) {
-    const session = db.select().from(workoutSessions).where(eq(workoutSessions.sessionId, id)).get();
+  getSession(id: number, userId?: number) {
+    const conditions = [eq(workoutSessions.sessionId, id)];
+    if (userId !== undefined) {
+      conditions.push(eq(workoutSessions.userId, userId));
+    }
+    const session = db.select().from(workoutSessions).where(and(...conditions)).get();
     if (!session) return null;
 
     const exercises = db.select()
@@ -182,11 +242,31 @@ export class WorkoutService {
       let templateEx = templateExs.find((te) => te.exerciseName === ex.exerciseName);
 
       if (!templateEx) {
-        templateEx = db.select()
-          .from(templateExercises)
-          .where(eq(templateExercises.exerciseName, ex.exerciseName))
-          .limit(1)
-          .get();
+        const query = db.select({
+          defaultReps: templateExercises.defaultReps,
+          defaultWeight: templateExercises.defaultWeight,
+          defaultDistance: templateExercises.defaultDistance,
+          defaultDuration: templateExercises.defaultDuration,
+          defaultRpe: templateExercises.defaultRpe,
+          defaultHeartRate: templateExercises.defaultHeartRate,
+          defaultRestTime: templateExercises.defaultRestTime,
+          equipment: templateExercises.equipment,
+        })
+          .from(templateExercises);
+
+        if (userId !== undefined) {
+          templateEx = query
+            .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
+            .where(and(eq(templateExercises.exerciseName, ex.exerciseName), eq(workoutTemplates.userId, userId)))
+            .limit(1)
+            .get();
+        } else {
+          templateEx = db.select()
+            .from(templateExercises)
+            .where(eq(templateExercises.exerciseName, ex.exerciseName))
+            .limit(1)
+            .get();
+        }
       }
 
       return {
@@ -211,22 +291,25 @@ export class WorkoutService {
   createSession(userId: number, templateId?: number) {
     this.cleanupEmptySessions(userId, 0);
     let sessionName = "Vrije training";
+    let validTemplateId = templateId;
     if (templateId) {
-      const template = db.select().from(workoutTemplates).where(eq(workoutTemplates.templateId, templateId)).get();
+      const template = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, templateId), eq(workoutTemplates.userId, userId))).get();
       if (template) {
         sessionName = template.name;
+      } else {
+        validTemplateId = undefined;
       }
     }
 
     const session = db.insert(workoutSessions).values({
       userId,
-      templateId: templateId ?? null,
+      templateId: validTemplateId ?? null,
       name: sessionName,
       startedAt: new Date().toISOString(),
     }).returning().get();
 
-    if (templateId) {
-      const template = this.getTemplate(templateId);
+    if (validTemplateId) {
+      const template = this.getTemplate(validTemplateId, userId);
       if (template?.exercises) {
         for (const tex of template.exercises) {
           const se = db.insert(sessionExercises).values({
@@ -253,10 +336,10 @@ export class WorkoutService {
       }
     }
 
-    return this.getSession(session.sessionId);
+    return this.getSession(session.sessionId, userId);
   }
 
-  updateSession(id: number, data: {
+  updateSession(id: number, userId: number, data: {
     name?: string;
     notes?: string;
     completedAt?: string;
@@ -279,7 +362,7 @@ export class WorkoutService {
       }[];
     }[];
   }) {
-    const existing = db.select().from(workoutSessions).where(eq(workoutSessions.sessionId, id)).get();
+    const existing = db.select().from(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).get();
     if (!existing) return null;
 
     const updateFields: any = {};
@@ -288,7 +371,7 @@ export class WorkoutService {
     if (data.completedAt !== undefined) updateFields.completedAt = data.completedAt;
 
     if (Object.keys(updateFields).length > 0) {
-      db.update(workoutSessions).set(updateFields).where(eq(workoutSessions.sessionId, id)).run();
+      db.update(workoutSessions).set(updateFields).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
     }
 
     if (data.exercises) {
@@ -362,37 +445,46 @@ export class WorkoutService {
       }
     }
 
-    return this.getSession(id);
+    return this.getSession(id, userId);
   }
 
-  completeSession(id: number, completedAt?: string) {
-    const existing = db.select().from(workoutSessions).where(eq(workoutSessions.sessionId, id)).get();
+  completeSession(id: number, userId: number, completedAt?: string) {
+    const existing = db.select().from(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).get();
     if (!existing) return null;
 
     db.update(workoutSessions).set({
       completedAt: completedAt ?? new Date().toISOString(),
-    }).where(eq(workoutSessions.sessionId, id)).run();
+    }).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
 
-    return this.getSession(id);
+    return this.getSession(id, userId);
   }
 
-  deleteSession(id: number) {
-    const existing = db.select().from(workoutSessions).where(eq(workoutSessions.sessionId, id)).get();
+  deleteSession(id: number, userId: number) {
+    const existing = db.select().from(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).get();
     if (!existing) return null;
-    db.delete(workoutSessions).where(eq(workoutSessions.sessionId, id)).run();
+    db.delete(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
     return { deleted: true };
   }
 
-  suggestExercises(q: string) {
+  suggestExercises(userId: number, q: string) {
+    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
     const fromTemplates = db.select({
       name: templateExercises.exerciseName,
       category: templateExercises.category,
       defaultSets: templateExercises.defaultSets,
       defaultReps: templateExercises.defaultReps,
+      defaultWeight: templateExercises.defaultWeight,
+      defaultDistance: templateExercises.defaultDistance,
+      defaultDuration: templateExercises.defaultDuration,
+      defaultRestTime: templateExercises.defaultRestTime,
       equipment: templateExercises.equipment,
     })
       .from(templateExercises)
-      .where(like(templateExercises.exerciseName, `%${q}%`))
+      .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
+      .where(and(
+        sql`replace(replace(${templateExercises.exerciseName}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        eq(workoutTemplates.userId, userId)
+      ))
       .limit(10)
       .all();
 
@@ -402,23 +494,59 @@ export class WorkoutService {
       equipment: sessionExercises.equipment,
     })
       .from(sessionExercises)
-      .where(like(sessionExercises.exerciseName, `%${q}%`))
+      .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
+      .where(and(
+        sql`replace(replace(${sessionExercises.exerciseName}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        eq(workoutSessions.userId, userId)
+      ))
       .limit(10)
       .all();
 
-    const exerciseMap = new Map<string, { category: string; defaultSets: number | null; defaultReps: number | null; equipment: string | null }>();
+    const exerciseMap = new Map<
+      string,
+      {
+        category: string;
+        defaultSets: number | null;
+        defaultReps: number | null;
+        defaultWeight: number | null;
+        defaultDistance: number | null;
+        defaultDuration: number | null;
+        defaultRestTime: number | null;
+        equipment: string | null;
+      }
+    >();
 
     for (const r of fromTemplates) {
-      const key = `${r.name}::${r.equipment ?? ""}`;
+      const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+      const key = `${r.name}::${eqNorm ?? ""}`;
       if (!exerciseMap.has(key)) {
-        exerciseMap.set(key, { category: r.category ?? "resistance", defaultSets: r.defaultSets, defaultReps: r.defaultReps, equipment: r.equipment });
+        exerciseMap.set(key, {
+          category: r.category ?? "resistance",
+          defaultSets: r.defaultSets,
+          defaultReps: r.defaultReps,
+          defaultWeight: r.defaultWeight,
+          defaultDistance: r.defaultDistance,
+          defaultDuration: r.defaultDuration,
+          defaultRestTime: r.defaultRestTime,
+          equipment: eqNorm,
+        });
       }
     }
 
     for (const r of fromSessions) {
-      const key = `${r.name}::${r.equipment ?? ""}`;
+      const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+      const key = `${r.name}::${eqNorm ?? ""}`;
       if (!exerciseMap.has(key)) {
-        exerciseMap.set(key, { category: r.category ?? "resistance", defaultSets: null, defaultReps: null, equipment: r.equipment });
+        exerciseMap.set(key, {
+          category: r.category ?? "resistance",
+          defaultSets: null,
+          defaultReps: null,
+          defaultWeight: null,
+          defaultDistance: null,
+          defaultDuration: null,
+          defaultRestTime: null,
+          equipment: eqNorm,
+        });
       }
     }
 
@@ -430,20 +558,133 @@ export class WorkoutService {
         category: data.category,
         defaultSets: data.defaultSets,
         defaultReps: data.defaultReps,
+        defaultWeight: data.defaultWeight,
+        defaultDistance: data.defaultDistance,
+        defaultDuration: data.defaultDuration,
+        defaultRestTime: data.defaultRestTime,
         equipment: data.equipment,
       };
     });
   }
 
-  exerciseProgress(name: string, equipment?: string) {
+  suggestWorkoutSearch(userId: number, q: string) {
+    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
+
+    const exercises = this.suggestExercises(userId, q).slice(0, 5);
+
+    const templates = db.select({
+      templateId: workoutTemplates.templateId,
+      name: workoutTemplates.name,
+      description: workoutTemplates.description,
+      targetMuscleGroups: workoutTemplates.targetMuscleGroups
+    })
+      .from(workoutTemplates)
+      .where(and(
+        eq(workoutTemplates.userId, userId),
+        or(
+          sql`replace(replace(${workoutTemplates.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+          sql`replace(replace(${workoutTemplates.description}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+          sql`replace(replace(${workoutTemplates.targetMuscleGroups}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`
+        )
+      ))
+      .limit(5)
+      .all();
+
+    const templateSuggestions = templates.map(t => ({
+      type: "template" as const,
+      value: t.name,
+      id: t.templateId
+    }));
+
+    const sessions = db.select({
+      sessionId: workoutSessions.sessionId,
+      name: workoutSessions.name,
+      notes: workoutSessions.notes,
+      startedAt: workoutSessions.startedAt
+    })
+      .from(workoutSessions)
+      .where(and(
+        eq(workoutSessions.userId, userId),
+        sql`completed_at IS NOT NULL`
+      ))
+      .orderBy(desc(workoutSessions.startedAt))
+      .all();
+
+    const historySuggestions = sessions
+      .map(session => {
+        const dateObj = new Date(
+          session.startedAt.includes("T")
+            ? session.startedAt
+            : session.startedAt.replace(" ", "T") + "Z"
+        );
+        const formattedDate = dateObj.toLocaleDateString("nl-NL", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        
+        const nameNorm = (session.name || "").replace(/[\s\-\/]/g, "").toLowerCase();
+        const notesNorm = (session.notes || "").replace(/[\s\-\/]/g, "").toLowerCase();
+        const dateNorm = formattedDate.replace(/[\s\-\/]/g, "").toLowerCase();
+
+        const dateLong = dateObj.toLocaleDateString("nl-NL", {
+          weekday: "short",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+        const dateLongNorm = dateLong.replace(/[\s\-\/]/g, "").toLowerCase();
+
+        const dayStr = String(dateObj.getDate()).padStart(2, "0");
+        const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const yearStr = String(dateObj.getFullYear());
+        const dayRaw = String(dateObj.getDate());
+        const monthRaw = String(dateObj.getMonth() + 1);
+
+        const datePadded = `${dayStr}${monthStr}${yearStr}`;
+        const datePaddedShort = `${dayStr}${monthStr}`;
+        const dateUnpadded = `${dayRaw}${monthRaw}${yearStr}`;
+        const dateUnpaddedShort = `${dayRaw}${monthRaw}`;
+
+        const isMatch =
+          nameNorm.includes(normalizedQ) ||
+          notesNorm.includes(normalizedQ) ||
+          dateNorm.includes(normalizedQ) ||
+          dateLongNorm.includes(normalizedQ) ||
+          datePadded.includes(normalizedQ) ||
+          datePaddedShort.includes(normalizedQ) ||
+          dateUnpadded.includes(normalizedQ) ||
+          dateUnpaddedShort.includes(normalizedQ);
+
+        return {
+          isMatch,
+          type: "history" as const,
+          value: `${session.name || "Training"} - ${formattedDate}`,
+          id: session.sessionId
+        };
+      })
+      .filter(s => s.isMatch)
+      .slice(0, 5)
+      .map(({ type, value, id }) => ({ type, value, id }));
+
+    return [
+      ...exercises,
+      ...templateSuggestions,
+      ...historySuggestions
+    ];
+  }
+
+  exerciseProgress(userId: number, name: string, equipment?: string) {
     const conditions = [
       eq(sessionExercises.exerciseName, name),
       sql`${workoutSessions.completedAt} IS NOT NULL`,
+      eq(workoutSessions.userId, userId),
     ];
-    if (equipment && equipment !== "null" && equipment !== "undefined") {
+    if (equipment && equipment !== "null" && equipment !== "undefined" && equipment !== "none") {
       conditions.push(eq(sessionExercises.equipment, equipment));
     } else {
-      conditions.push(sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '')`);
+      conditions.push(sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '' OR ${sessionExercises.equipment} = 'none')`);
     }
 
     const rows = db.select({
@@ -492,9 +733,13 @@ export class WorkoutService {
     this.cleanupEmptySessions(userId, 300);
     const fromTemplates = db.select({ name: templateExercises.exerciseName, equipment: templateExercises.equipment })
       .from(templateExercises)
+      .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
+      .where(eq(workoutTemplates.userId, userId))
       .all();
     const fromSessions = db.select({ name: sessionExercises.exerciseName, equipment: sessionExercises.equipment })
       .from(sessionExercises)
+      .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
+      .where(eq(workoutSessions.userId, userId))
       .all();
 
     const exerciseSet = new Set<string>();
@@ -502,19 +747,21 @@ export class WorkoutService {
 
     for (const r of fromTemplates) {
       if (r.name) {
-        const key = `${r.name}::${r.equipment ?? ""}`;
+        const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+        const key = `${r.name}::${eqNorm ?? ""}`;
         if (!exerciseSet.has(key)) {
           exerciseSet.add(key);
-          list.push({ name: r.name, equipment: r.equipment });
+          list.push({ name: r.name, equipment: eqNorm });
         }
       }
     }
     for (const r of fromSessions) {
       if (r.name) {
-        const key = `${r.name}::${r.equipment ?? ""}`;
+        const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+        const key = `${r.name}::${eqNorm ?? ""}`;
         if (!exerciseSet.has(key)) {
           exerciseSet.add(key);
-          list.push({ name: r.name, equipment: r.equipment });
+          list.push({ name: r.name, equipment: eqNorm });
         }
       }
     }

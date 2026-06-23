@@ -4,6 +4,7 @@ import { users } from "./auth";
 
 export const workoutTemplates = sqliteTable("workout_templates", {
   templateId: integer("template_id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().default(1).references(() => users.userId, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   targetMuscleGroups: text("target_muscle_groups"),
