@@ -19,12 +19,14 @@ export function IngredientAutocomplete({
   onChange,
   id,
   className,
+  placeholder,
 }: {
   value: string;
   onSelect: (name: string) => void;
   onChange: (value: string) => void;
   id?: string;
   className?: string;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -145,7 +147,7 @@ export function IngredientAutocomplete({
           if (suggestions.length > 0) setOpen(true);
         }}
         onKeyDown={handleKeyDown}
-        placeholder={t("Ingredient")}
+        placeholder={placeholder ?? t("Ingredient")}
         className={cn(
           "bg-white/5 border-border h-9 sm:h-8 text-sm transition-all duration-150 ease-strong focus-visible:border-brand/50",
           className
