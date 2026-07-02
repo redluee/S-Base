@@ -9,6 +9,7 @@ import { Dumbbell, ChefHat, User, LogOut, ChevronDown } from "lucide-react";
 export function DashboardClient({ username }: { username: string }) {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [recipeCount, setRecipeCount] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,6 +20,10 @@ export function DashboardClient({ username }: { username: string }) {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    api.recipes.list().then((recipes) => setRecipeCount(recipes.length)).catch(() => {});
   }, []);
 
   async function handleLogout() {
@@ -118,7 +123,7 @@ export function DashboardClient({ username }: { username: string }) {
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold tracking-wide uppercase mt-8 relative z-10 opacity-70 group-hover:opacity-100 transition-opacity">
-            <span>{t("Taste tracker")}</span>
+            <span>{recipeCount !== null ? `${recipeCount} ${recipeCount === 1 ? "recept" : "recepten"}` : t("Taste tracker")}</span>
             <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
           </div>
         </a>

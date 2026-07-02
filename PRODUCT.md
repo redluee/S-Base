@@ -10,7 +10,7 @@ The developer plus a small trusted circle (friends/family). Each person manages 
 
 ## Product Purpose
 
-S-Base is a personal recipe collection manager. It lets users create, organize, rate, and browse their recipes across statuses (to try, success, needs tweak, failure, archived). The recipes module is called "Taste tracker." Success means the user can quickly find, add, or update a recipe without friction.
+S-Base is a personal recipe collection manager. It lets users create, organize, rate, and browse their recipes across statuses (to try, success, needs tweak, failure, archived). The recipes module is called "Tast tracker." Success means the user can quickly find, add, or update a recipe without friction.
 
 ## Brand Personality
 

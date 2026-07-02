@@ -41,7 +41,7 @@ const nl: Record<string, string> = {
   "Logging in...": "Inloggen...",
   "Login": "Inloggen",
   "Logout": "Uitloggen",
-  "Taste tracker": "Smaakmeter",
+  "Taste tracker": "Tast tracker",
   "New Recipe": "Nieuw Recept",
   "All": "Alle",
   "No recipes yet.": "Nog geen recepten.",

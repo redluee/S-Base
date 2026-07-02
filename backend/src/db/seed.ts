@@ -31,7 +31,7 @@ async function seed() {
   db.insert(modules).values({
     moduleId: recipeModuleId,
     moduleName: "recipes",
-    moduleAlias: "Smaakmeter",
+    moduleAlias: "Tast tracker",
     description: "Module for managing recipes",
   }).run();
 
