@@ -89,6 +89,20 @@ function NoneIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+const rpeColors = [
+  "",
+  "bg-blue-500",
+  "bg-sky-400",
+  "bg-sky-400",
+  "bg-green-500",
+  "bg-green-500",
+  "bg-green-500",
+  "bg-yellow-500",
+  "bg-yellow-500",
+  "bg-orange-500",
+  "bg-red-500",
+];
+
 function EquipmentIcon({ type, className }: { type: string; className?: string }) {
   switch (type) {
     case "barbell":
@@ -188,6 +202,9 @@ export function WorkoutSessionLive({
 
   // Pop Burst satisfaction animation state
   const [lastCompletedSet, setLastCompletedSet] = useState<{ exIdx: number; setIdx: number } | null>(null);
+
+  // RPE picker state
+  const [rpePickerPos, setRpePickerPos] = useState<{ exIdx: number; setIdx: number; top: number; left: number; width: number } | null>(null);
 
   // UI state
   const [sessionName, setSessionName] = useState("");
@@ -1254,14 +1271,14 @@ export function WorkoutSessionLive({
           )}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col gap-6 pb-20">
+        <div className="flex-1 flex flex-col gap-6 pb-20 max-[375px]:-mx-4">
           {exercises.map((ex: any, exIdx: number) => {
             const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: any) => s.completed === 1);
             return (
               <div
                 key={ex.sessionExerciseId ?? exIdx}
                 data-ex-id={ex.sessionExerciseId}
-                className={`rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-all duration-300 ${
+                className={`rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-all duration-300 max-[375px]:border-0 max-[375px]:rounded-none max-[375px]:bg-transparent ${
                   allSetsDone
                     ? "border-brand shadow-[0_0_15px_rgba(0,227,164,0.15)] ring-1 ring-brand/35"
                     : "border-border"
@@ -1472,23 +1489,23 @@ export function WorkoutSessionLive({
 
               {/* Sets Table */}
               {ex.sets?.length > 0 && (
-                <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4">
+                <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60">
                   <table className="w-full text-xs sm:text-sm border-collapse">
                     <thead>
                       <tr className="border-b border-border/40 text-muted-foreground">
-                        <th className="text-left py-2 px-3 font-normal w-12">{t("Set")}</th>
+                        <th className="text-left py-2 px-2 font-normal w-8">{t("Set")}</th>
                         <th className="text-left py-2 px-3 font-normal">{t("Target")}</th>
                         {(ex.category === "resistance" || !ex.category) && (
                           <>
-                            <th className="text-center py-2 px-3 font-normal w-24">kg</th>
-                            <th className="text-center py-2 px-3 font-normal w-24">{t("Reps")}</th>
-                            <th className="text-center py-2 px-3 font-normal w-24">{t("RPE (0-10)")}</th>
+                            <th className="text-center py-2 px-3 font-normal w-28">kg</th>
+                            <th className="text-center py-2 px-3 font-normal w-14">{t("Reps")}</th>
+                            <th className="text-center py-2 px-3 font-normal w-14">{t("RPE")}</th>
                           </>
                         )}
                         {ex.category === "bodyweight" && (
                           <>
                             <th className="text-center py-2 px-3 font-normal w-28">{t("Added/Assisted (kg)")}</th>
-                            <th className="text-center py-2 px-3 font-normal w-24">{t("Reps")}</th>
+                            <th className="text-center py-2 px-3 font-normal w-14">{t("Reps")}</th>
                           </>
                         )}
                         {ex.category === "cardio" && (
@@ -1534,9 +1551,7 @@ export function WorkoutSessionLive({
                           if (cat === "resistance") {
                             const reps = targetSource.reps ?? 10;
                             const weight = targetSource.weight ?? 0;
-                            const rpe = targetSource.rpe;
-                            const rpeStr = rpe ? ` @ RPE ${rpe}` : "";
-                            ghostText = `${reps} x ${weight} KG${rpeStr}`;
+                            ghostText = `${reps} x ${weight} KG`;
                           } else if (cat === "bodyweight") {
                             const reps = targetSource.reps ?? 10;
                             const weight = targetSource.weight;
@@ -1544,14 +1559,12 @@ export function WorkoutSessionLive({
                               const weightSign = weight > 0 ? "+" : "";
                               ghostText = `${weightSign}${weight} KG x ${reps}`;
                             } else {
-                              ghostText = `${reps} herhalingen`;
+                              ghostText = `${reps} reps`;
                             }
                           } else if (cat === "cardio") {
                             const dist = targetSource.distance ?? 0;
                             const dur = targetSource.duration ?? 0;
-                            const hr = targetSource.heartRate;
-                            const hrStr = hr ? ` @ ${hr} bpm` : "";
-                            ghostText = `${dist} km x ${formatSecs(dur) || "0:00"}${hrStr}`;
+                            ghostText = `${dist} km x ${formatSecs(dur) || "0:00"}`;
                           } else if (cat === "isometric") {
                             const dur = targetSource.duration ?? 0;
                             const weight = targetSource.weight;
@@ -1590,36 +1603,74 @@ export function WorkoutSessionLive({
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       step="any"
                                       inputMode="decimal"
                                       placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
                                       value={set.weight ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       inputMode="numeric"
                                       placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
                                       value={set.reps ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Number(e.target.value) : 0)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Math.max(0, Number(e.target.value)) : 0)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
                                   <td className="py-2 px-2 align-middle">
-                                    <Input
-                                      type="number"
-                                      step="0.5"
-                                      placeholder={prevSet?.rpe != null ? String(prevSet.rpe) : "—"}
-                                      value={set.rpe ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "rpe", e.target.value ? Number(e.target.value) : null)}
-                                      className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                                    />
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setRpePickerPos(
+                                          rpePickerPos?.exIdx === exIdx && rpePickerPos?.setIdx === setIdx
+                                            ? null
+                                            : { exIdx, setIdx, top: rect.top, left: rect.left, width: rect.width }
+                                        );
+                                      }}
+                                      className={`h-8 w-full rounded-md text-center text-sm font-semibold transition-all border ${
+                                        set.rpe != null
+                                          ? `${rpeColors[set.rpe as number]} text-white border-transparent`
+                                          : "bg-white/5 border-border/80 text-muted-foreground hover:border-brand/40"
+                                      }`}
+                                    >
+                                      {set.rpe ?? "—"}
+                                    </button>
+
+                                    {rpePickerPos?.exIdx === exIdx && rpePickerPos?.setIdx === setIdx && (
+                                      <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setRpePickerPos(null)} />
+                                        <div
+                                          className="fixed z-50 flex gap-0.5 rounded-lg bg-zinc-900 border border-zinc-700 p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+                                          style={{
+                                            top: rpePickerPos.top - 50,
+                                            left: rpePickerPos.left + rpePickerPos.width / 2 - 110,
+                                          }}
+                                        >
+                                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => (
+                                            <button
+                                              key={val}
+                                              type="button"
+                                              onClick={() => {
+                                                updateSet(exIdx, setIdx, "rpe", val);
+                                                setRpePickerPos(null);
+                                              }}
+                                              className={`h-8 w-8 rounded-md text-xs font-bold text-white transition-all duration-100 active:scale-90 ${
+                                                rpeColors[val]
+                                              } ${set.rpe === val ? "ring-2 ring-white scale-110" : "hover:scale-110 hover:brightness-110"}`}
+                                            >
+                                              {val}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </>
+                                    )}
                                   </td>
                                 </>
                               )}
@@ -1629,22 +1680,22 @@ export function WorkoutSessionLive({
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       step="any"
                                       placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
                                       value={set.weight ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       inputMode="numeric"
                                       placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
                                       value={set.reps ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Number(e.target.value) : 0)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Math.max(0, Number(e.target.value)) : 0)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
@@ -1656,11 +1707,11 @@ export function WorkoutSessionLive({
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       step="any"
                                       placeholder={prevSet?.distance != null ? String(prevSet.distance) : "0.0"}
                                       value={set.distance ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "distance", e.target.value ? Number(e.target.value) : null)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "distance", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
@@ -1669,7 +1720,6 @@ export function WorkoutSessionLive({
                                       type="text"
                                       placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
                                       value={set.duration != null ? formatSecs(set.duration) : ""}
-                                      disabled={set.completed === 1}
                                       onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
@@ -1677,10 +1727,10 @@ export function WorkoutSessionLive({
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       placeholder={prevSet?.heartRate != null ? String(prevSet.heartRate) : "140"}
                                       value={set.heartRate ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "heartRate", e.target.value ? Number(e.target.value) : null)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "heartRate", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
@@ -1692,11 +1742,11 @@ export function WorkoutSessionLive({
                                   <td className="py-2 px-2 align-middle">
                                     <Input
                                       type="number"
+                                      min="0"
                                       step="any"
                                       placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
                                       value={set.weight ?? ""}
-                                      disabled={set.completed === 1}
-                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Number(e.target.value) : null)}
+                                      onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
                                   </td>
@@ -1705,7 +1755,6 @@ export function WorkoutSessionLive({
                                       type="text"
                                       placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
                                       value={set.duration != null ? formatSecs(set.duration) : ""}
-                                      disabled={set.completed === 1}
                                       onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
                                       className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                                     />
@@ -1832,9 +1881,10 @@ export function WorkoutSessionLive({
                                                   <span>{t("Rest Time")}:</span>
                                                   <input
                                                     type="number"
+                                                    min="0"
                                                     className="w-10 h-7 bg-zinc-900 border border-zinc-800 rounded px-1.5 text-center text-xs text-zinc-300 font-semibold focus:outline-none focus:border-brand/40"
                                                     value={getExerciseRestTime(ex, exIdx)}
-                                                    onChange={(e) => updateExerciseRestTime(exIdx, Number(e.target.value))}
+                                                    onChange={(e) => updateExerciseRestTime(exIdx, Math.max(0, Number(e.target.value)))}
                                                   />
                                                   <span>s</span>
                                                 </div>
@@ -1881,9 +1931,10 @@ export function WorkoutSessionLive({
                                             <span>{t("Rest Time")}:</span>
                                             <input
                                               type="number"
+                                              min="0"
                                               className="w-12 bg-zinc-900 border border-zinc-800 rounded px-1 py-0.5 text-center text-[11px] text-zinc-300 font-semibold focus:outline-none focus:border-brand/40"
                                               value={getExerciseRestTime(ex, exIdx)}
-                                              onChange={(e) => updateExerciseRestTime(exIdx, Number(e.target.value))}
+                                              onChange={(e) => updateExerciseRestTime(exIdx, Math.max(0, Number(e.target.value)))}
                                             />
                                             <span>s</span>
                                           </div>
@@ -1952,7 +2003,8 @@ export function WorkoutSessionLive({
                   setNewExerciseName("");
                   setShowAddExercise(true);
                 }}
-                className="bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 h-[60px] w-full max-w-md px-5 text-sm active:scale-[0.98] transition-all rounded-xl flex items-center justify-center gap-2"
+                variant="outline"
+                className="w-full max-w-md h-12 text-sm rounded-xl border-dashed active:scale-[0.98] transition-all"
               >
                 <Plus className="size-4" />
                 {t("Add Exercise")}
@@ -1971,7 +2023,7 @@ export function WorkoutSessionLive({
               </div>
               <Button
                 onClick={handleFinishClick}
-                className="w-full max-w-sm bg-brand hover:bg-brand-hover text-zinc-900 font-semibold h-11 text-xs sm:text-sm shadow-glow active:scale-[0.98] transition-all cursor-pointer"
+                className="w-full max-w-sm bg-brand hover:bg-brand-hover text-zinc-900 font-semibold h-11 text-xs sm:text-sm shadow-glow active:scale-[0.98] transition-all cursor-pointer border-0"
               >
                 {t("Complete workout")}
               </Button>
