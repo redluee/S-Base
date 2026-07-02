@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { parseDateString } from "@/lib/utils";
 
 export function WorkoutHistoryDetail({ session }: { session: any }) {
   const router = useRouter();
@@ -50,8 +51,8 @@ export function WorkoutHistoryDetail({ session }: { session: any }) {
     router.refresh();
   }
 
-  const started = new Date(session.startedAt.includes("T") ? session.startedAt : session.startedAt.replace(" ", "T") + "Z");
-  const completed = session.completedAt ? new Date(session.completedAt.includes("T") ? session.completedAt : session.completedAt.replace(" ", "T") + "Z") : null;
+  const started = parseDateString(session.startedAt);
+  const completed = session.completedAt ? parseDateString(session.completedAt) : null;
   const duration = completed ? Math.round((completed.getTime() - started.getTime()) / 60000) : null;
 
   return (

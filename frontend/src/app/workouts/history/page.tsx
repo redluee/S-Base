@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import { Calendar } from "lucide-react";
+import { parseDateString } from "@/lib/utils";
 
 export default async function WorkoutHistoryPage({
   searchParams,
@@ -94,7 +95,7 @@ export default async function WorkoutHistoryPage({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <span className="text-sm text-foreground">
-                        {new Date(session.startedAt.includes("T") ? session.startedAt : session.startedAt.replace(" ", "T") + "Z").toLocaleDateString("nl-NL", {
+                        {parseDateString(session.startedAt).toLocaleDateString("nl-NL", {
                           weekday: "short",
                           day: "numeric",
                           month: "short",
@@ -104,7 +105,7 @@ export default async function WorkoutHistoryPage({
                       {session.completedAt && (
                         <span className="text-xs text-muted-foreground ml-2">
                           {Math.round(
-                            (new Date(session.completedAt.includes("T") ? session.completedAt : session.completedAt.replace(" ", "T") + "Z").getTime() - new Date(session.startedAt.includes("T") ? session.startedAt : session.startedAt.replace(" ", "T") + "Z").getTime()) / 60000
+                            (parseDateString(session.completedAt).getTime() - parseDateString(session.startedAt).getTime()) / 60000
                           )}{" "}
                           min
                         </span>

@@ -3,10 +3,11 @@
 import { t } from "@/lib/lang";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { parseDateString } from "@/lib/utils";
 
 interface SetItem {
   setNumber: number;
-  reps: number;
+  reps: number | null;
   weight: number | null;
   completed: number;
 }
@@ -27,7 +28,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
   const allSets = sessions.flatMap((s: WorkoutSession) => s.sets);
 
-  const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * set.reps, 0);
+  const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
   const maxWeight = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.weight ?? 0), 0);
 
   return (
@@ -86,7 +87,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
               
               {(() => {
                 const volumes = sessions.map((s: WorkoutSession) =>
-                  s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * set.reps, 0),
+                  s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0),
                 );
                 const maxVol = Math.max(...volumes, 1);
                 
@@ -99,7 +100,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 const firstSession = sessions[0];
                 const lastSession = sessions[sessions.length - 1];
                 const formatDate = (dateStr: string) => {
-                  const d = new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
+                  const d = parseDateString(dateStr);
                   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
                 };
 
@@ -148,8 +149,8 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
           {/* Session list */}
           {[...sessions].reverse().map((session: WorkoutSession) => {
-            const vol = session.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * set.reps, 0);
-            const date = new Date(session.startedAt.includes("T") ? session.startedAt : session.startedAt.replace(" ", "T") + "Z");
+            const vol = session.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
+            const date = parseDateString(session.startedAt);
             return (
               <Link
                 key={session.sessionId}
