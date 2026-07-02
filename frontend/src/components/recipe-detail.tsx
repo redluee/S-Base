@@ -1,13 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialogRoot,
+  AlertDialogTrigger,
+  AlertDialogPopup,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogActions,
+  AlertDialogClose,
+} from "@/components/ui/alert-dialog";
 import { getFlag } from "@/lib/kitchens";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CircleDashed } from "lucide-react";
 
 const statusColors: Record<string, string> = {
 	"to try": "bg-muted text-black",
@@ -38,9 +48,9 @@ const unitLabels: Record<string, string> = {
 
 export function RecipeDetail({ recipe }: { recipe: any }) {
 	const router = useRouter();
+	const [open, setOpen] = useState(false);
 
 	async function handleDelete() {
-		if (!confirm(t("Delete this recipe?"))) return;
 		await api.recipes.delete(recipe.recipeId);
 		router.push("/recipes");
 		router.refresh();
@@ -66,7 +76,7 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 				{t("Taste tracker")}
 			</Link>
 
-			<div className="flex items-start justify-between gap-4 mb-6">
+			<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
 				<div>
 					<h1 className="font-display text-3xl text-foreground mb-2">
 						{recipe.name}
@@ -107,14 +117,44 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 							{t("Edit")}
 						</Button>
 					</Link>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={handleDelete}
-						className="border-destructive text-destructive hover:bg-destructive/10"
-					>
-						{t("Delete")}
-					</Button>
+				<AlertDialogRoot open={open} onOpenChange={setOpen}>
+					<AlertDialogTrigger
+						render={
+							<Button
+								variant="outline"
+								size="sm"
+								className="border-destructive text-destructive hover:bg-destructive/10"
+							>
+								{t("Delete")}
+							</Button>
+						}
+					/>
+					<AlertDialogPopup>
+						<AlertDialogTitle>{t("Delete this recipe?")}</AlertDialogTitle>
+						<AlertDialogDescription>
+							{t("This action cannot be undone.")}
+						</AlertDialogDescription>
+						<AlertDialogActions>
+							<AlertDialogClose
+								render={
+									<Button variant="outline" size="sm">
+										{t("Cancel")}
+									</Button>
+								}
+							/>
+							<Button
+								variant="destructive"
+								size="sm"
+								onClick={() => {
+									setOpen(false);
+									handleDelete();
+								}}
+							>
+								{t("Delete")}
+							</Button>
+						</AlertDialogActions>
+					</AlertDialogPopup>
+				</AlertDialogRoot>
 				</div>
 			</div>
 
@@ -192,9 +232,22 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 								{recipe.ingredients.map((ing: any, i: number) => (
 									<tr
 										key={i}
-										className="border-b border-border/50 last:border-0"
+										className={`border-b border-border/50 last:border-0 transition-colors ${
+											ing.isOptional ? "opacity-60" : ""
+										}`}
 									>
-										<td className="p-3 text-foreground">{ing.name}</td>
+										<td className="p-3 text-foreground">
+											<span className="inline-flex items-center gap-1.5">
+												{ing.name}
+												{ing.isOptional && (
+													<span title={t("Optional")}>
+														<CircleDashed
+															className="size-3.5 text-muted-foreground shrink-0 cursor-help"
+														/>
+													</span>
+												)}
+											</span>
+										</td>
 										<td className="p-3 text-right text-foreground">
 											{ing.quantity}
 										</td>
