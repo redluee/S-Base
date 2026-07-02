@@ -1,0 +1,1 @@
+ALTER TABLE `recipe_ingredients` ADD `is_optional` integer DEFAULT false NOT NULL;

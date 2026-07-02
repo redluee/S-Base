@@ -32,8 +32,10 @@ export const recipeIngredients = sqliteTable(
     quantity: real("quantity").notNull(),
     unit: text("unit"),
     sortOrder: integer("sort_order").notNull().default(0),
+    isOptional: integer("is_optional", { mode: "boolean" }).notNull().default(false),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.recipeId, table.ingredientId] }),
   }),
 );
+
