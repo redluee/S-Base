@@ -97,11 +97,14 @@ export function SearchBar() {
     function updatePosition() {
       if (!inputRef.current) return;
       const rect = inputRef.current.getBoundingClientRect();
+      const menuWidth = Math.max(rect.width, 240);
+      const maxLeft = window.innerWidth - menuWidth - 8;
+      const left = Math.min(rect.left, Math.max(8, maxLeft));
       setMenuStyle({
         position: "fixed",
-        left: rect.left,
+        left,
         top: rect.bottom + 4,
-        width: Math.max(rect.width, 240),
+        width: menuWidth,
       });
     }
     updatePosition();

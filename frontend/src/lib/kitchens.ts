@@ -14,6 +14,7 @@ export const kitchens: Kitchen[] = [
   { name: "Frans", flag: "🇫🇷" },
   { name: "Duits", flag: "🇩🇪" },
   { name: "Grieks", flag: "🇬🇷" },
+  { name: "Hawaïaans", flag: "🌺" },
   { name: "Indiaas", flag: "🇮🇳" },
   { name: "Indonesisch", flag: "🇮🇩" },
   { name: "Italiaans", flag: "🇮🇹" },

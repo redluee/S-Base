@@ -43,7 +43,7 @@ export function DashboardClient({ username }: { username: string }) {
           <div className="size-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
             <User className="size-4" />
           </div>
-          <span className="text-xs font-semibold text-zinc-300 hidden sm:inline">{username}</span>
+          <span className="text-xs font-semibold text-zinc-300 inline">{username}</span>
           <ChevronDown className={`size-3.5 text-zinc-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
         </button>
 

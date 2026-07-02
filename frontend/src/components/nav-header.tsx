@@ -36,7 +36,7 @@ export function NavHeader({ username }: { username: string }) {
   return (
     <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40">
       <div className="flex items-center gap-3">
-        <Link href="/dashboard" className="font-display text-xl text-brand hover:opacity-85 transition-opacity">
+        <Link href="/dashboard" className="font-display text-xl text-brand hover:opacity-85 transition-opacity whitespace-nowrap">
           S-Base
         </Link>
         {isWorkouts && (
@@ -64,13 +64,12 @@ export function NavHeader({ username }: { username: string }) {
 
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-1.5 p-1 px-2.5 rounded-full bg-zinc-900 border border-border hover:border-brand/30 hover:bg-zinc-800 transition-all duration-150 focus:outline-none cursor-pointer"
+          className="flex items-center gap-1.5 p-1 px-2.5 rounded-full sm:bg-zinc-900 sm:border sm:border-border sm:hover:border-brand/30 sm:hover:bg-zinc-800 transition-all duration-150 focus:outline-none cursor-pointer"
         >
           <div className="size-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
             <User className="size-3.5" />
           </div>
-          <span className="text-xs font-semibold text-zinc-300 hidden sm:inline">{username}</span>
-          <ChevronDown className={`size-3 text-zinc-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`size-3 text-zinc-500 transition-transform duration-200 hidden sm:block ${dropdownOpen ? "rotate-180" : ""}`} />
         </button>
 
         {dropdownOpen && (
