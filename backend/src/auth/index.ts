@@ -19,7 +19,7 @@ export class AuthService {
 
   createSession(userId: number): string {
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 86400000).toISOString();
+    const expiresAt = new Date(Date.now() + 604800000).toISOString();
 
     db.insert(sessions).values({ sessionId, userId, expiresAt }).run();
     return sessionId;
@@ -32,6 +32,14 @@ export class AuthService {
     return !!result;
   }
 
+  validateSession(sessionId: string): { userId: number; username: string } | null {
+    const result = db.select({ userId: users.userId, username: users.username }).from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.userId))
+      .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
+      .get();
+    return result ?? null;
+  }
+
   getUsernameFromSession(sessionId: string): string | null {
     const result = db.select({ username: users.username }).from(sessions)
       .innerJoin(users, eq(sessions.userId, users.userId))
@@ -40,14 +48,12 @@ export class AuthService {
     return result?.username ?? null;
   }
 
-  moduleAccessCheck(sessionId: string, moduleName: string): boolean {
-    const result = db.select({ hasAccess: sql`1` }).from(sessions)
-      .innerJoin(usermodulepermissions, eq(sessions.userId, usermodulepermissions.userId))
+  moduleAccessCheck(userId: number, moduleName: string): boolean {
+    const result = db.select({ hasAccess: sql`1` }).from(usermodulepermissions)
       .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
       .where(and(
-        eq(sessions.sessionId, sessionId),
+        eq(usermodulepermissions.userId, userId),
         eq(modules.moduleName, moduleName),
-        gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`),
       ))
       .get();
     return !!result;
