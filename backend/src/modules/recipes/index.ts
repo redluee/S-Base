@@ -88,11 +88,12 @@ export class RecipeService {
       name: ingredients.name,
       quantity: recipeIngredients.quantity,
       unit: recipeIngredients.unit,
+      isOptional: recipeIngredients.isOptional,
     })
       .from(recipeIngredients)
       .innerJoin(ingredients, eq(recipeIngredients.ingredientId, ingredients.ingredientId))
       .where(eq(recipeIngredients.recipeId, id))
-      .orderBy(recipeIngredients.sortOrder)
+      .orderBy(ingredients.name)
       .all();
 
     const steps = db.select({
@@ -115,9 +116,12 @@ export class RecipeService {
     status?: string;
     description?: string;
     rating?: number;
-    ingredients?: { name: string; quantity: number; unit?: string; sortOrder?: number }[];
+    ingredients?: { name: string; quantity: number; unit?: string; sortOrder?: number; isOptional?: boolean }[];
     steps?: { description: string }[];
   }) {
+    if (data.cookingTime !== undefined && data.cookingTime < 0) {
+      throw new Error("Cooking time cannot be negative");
+    }
     const recipe = db.insert(recipes).values({
       name: data.name,
       cookingTime: data.cookingTime,
@@ -146,6 +150,7 @@ export class RecipeService {
           quantity: ing.quantity,
           unit: ing.unit,
           sortOrder: ing.sortOrder ?? i,
+          isOptional: ing.isOptional ?? false,
         }).run();
       }
     }
@@ -170,11 +175,14 @@ export class RecipeService {
     status?: string;
     description?: string;
     rating?: number;
-    ingredients?: { name: string; quantity: number; unit?: string; sortOrder?: number }[];
+    ingredients?: { name: string; quantity: number; unit?: string; sortOrder?: number; isOptional?: boolean }[];
     steps?: { description: string }[];
   }) {
     const existing = db.select().from(recipes).where(eq(recipes.recipeId, id)).get();
     if (!existing) return null;
+    if (data.cookingTime !== undefined && data.cookingTime < 0) {
+      throw new Error("Cooking time cannot be negative");
+    }
 
     db.update(recipes).set({
       name: data.name ?? existing.name,
@@ -206,6 +214,7 @@ export class RecipeService {
           quantity: ing.quantity,
           unit: ing.unit,
           sortOrder: ing.sortOrder ?? i,
+          isOptional: ing.isOptional ?? false,
         }).run();
       }
     }

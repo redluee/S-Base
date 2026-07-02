@@ -49,6 +49,22 @@ export class WorkoutService {
       equipment?: string;
     }[];
   }) {
+    if (data.estimatedTime !== undefined && data.estimatedTime < 0) {
+      throw new Error("Estimated time cannot be negative");
+    }
+    if (data.exercises?.length) {
+      for (let i = 0; i < data.exercises.length; i++) {
+        const ex = data.exercises[i];
+        if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
+        if (ex.reps < 0) throw new Error(`Exercise "${ex.exerciseName}" reps cannot be negative`);
+        if (ex.weight !== undefined && ex.weight < 0) throw new Error(`Exercise "${ex.exerciseName}" weight cannot be negative`);
+        if (ex.distance !== undefined && ex.distance < 0) throw new Error(`Exercise "${ex.exerciseName}" distance cannot be negative`);
+        if (ex.duration !== undefined && ex.duration < 0) throw new Error(`Exercise "${ex.exerciseName}" duration cannot be negative`);
+        if (ex.rpe !== undefined && (ex.rpe < 0 || ex.rpe > 10)) throw new Error(`Exercise "${ex.exerciseName}" RPE must be 0-10`);
+        if (ex.heartRate !== undefined && ex.heartRate < 0) throw new Error(`Exercise "${ex.exerciseName}" heart rate cannot be negative`);
+        if (ex.defaultRestTime !== undefined && ex.defaultRestTime < 0) throw new Error(`Exercise "${ex.exerciseName}" rest time cannot be negative`);
+      }
+    }
     const template = db.insert(workoutTemplates).values({
       userId,
       name: data.name,
@@ -102,6 +118,23 @@ export class WorkoutService {
   }) {
     const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
     if (!existing) return null;
+
+    if (data.estimatedTime !== undefined && data.estimatedTime < 0) {
+      throw new Error("Estimated time cannot be negative");
+    }
+    if (data.exercises?.length) {
+      for (let i = 0; i < data.exercises.length; i++) {
+        const ex = data.exercises[i];
+        if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
+        if (ex.reps < 0) throw new Error(`Exercise "${ex.exerciseName}" reps cannot be negative`);
+        if (ex.weight !== undefined && ex.weight < 0) throw new Error(`Exercise "${ex.exerciseName}" weight cannot be negative`);
+        if (ex.distance !== undefined && ex.distance < 0) throw new Error(`Exercise "${ex.exerciseName}" distance cannot be negative`);
+        if (ex.duration !== undefined && ex.duration < 0) throw new Error(`Exercise "${ex.exerciseName}" duration cannot be negative`);
+        if (ex.rpe !== undefined && (ex.rpe < 0 || ex.rpe > 10)) throw new Error(`Exercise "${ex.exerciseName}" RPE must be 0-10`);
+        if (ex.heartRate !== undefined && ex.heartRate < 0) throw new Error(`Exercise "${ex.exerciseName}" heart rate cannot be negative`);
+        if (ex.defaultRestTime !== undefined && ex.defaultRestTime < 0) throw new Error(`Exercise "${ex.exerciseName}" rest time cannot be negative`);
+      }
+    }
 
     db.update(workoutTemplates).set({
       name: data.name ?? existing.name,
@@ -364,6 +397,23 @@ export class WorkoutService {
   }) {
     const existing = db.select().from(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).get();
     if (!existing) return null;
+
+    if (data.exercises?.length) {
+      for (let i = 0; i < data.exercises.length; i++) {
+        const ex = data.exercises[i];
+        if (ex.sets?.length) {
+          for (let j = 0; j < ex.sets.length; j++) {
+            const s = ex.sets[j];
+            if (s.reps !== undefined && s.reps < 0) throw new Error(`Reps cannot be negative`);
+            if (s.weight !== undefined && s.weight < 0) throw new Error(`Weight cannot be negative`);
+            if (s.distance !== undefined && s.distance < 0) throw new Error(`Distance cannot be negative`);
+            if (s.duration !== undefined && s.duration < 0) throw new Error(`Duration cannot be negative`);
+            if (s.rpe !== undefined && (s.rpe < 0 || s.rpe > 10)) throw new Error(`RPE must be 0-10`);
+            if (s.heartRate !== undefined && s.heartRate < 0) throw new Error(`Heart rate cannot be negative`);
+          }
+        }
+      }
+    }
 
     const updateFields: any = {};
     if (data.name !== undefined) updateFields.name = data.name;
