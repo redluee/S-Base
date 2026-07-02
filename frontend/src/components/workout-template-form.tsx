@@ -284,8 +284,11 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
             <Input
               id="estimatedTime"
               type="number"
+              min="0"
               value={estimatedTime}
-              onChange={(e) => setEstimatedTime(e.target.value)}
+              onChange={(e) => {
+                if (!e.target.value.startsWith("-")) setEstimatedTime(e.target.value);
+              }}
               placeholder="45"
               className="bg-white/5 h-9 sm:h-8 transition-all duration-150 focus-visible:border-brand/50 border-border"
             />
@@ -411,8 +414,11 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <div className="flex-1 min-w-0">
                         <Input
                           type="number"
+                          min="0"
                           value={ex.sets}
-                          onChange={(e) => updateExercise(ex.id, "sets", e.target.value)}
+                          onChange={(e) => {
+                            if (!e.target.value.startsWith("-")) updateExercise(ex.id, "sets", e.target.value);
+                          }}
                           placeholder="3"
                           className={`bg-white/5 h-9 border-border text-sm ${
                             errors[`${ex.id}-sets`] ? "border-red-500/50" : ""
@@ -427,8 +433,11 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <div className="flex-1 min-w-0">
                         <Input
                           type="number"
+                          min="0"
                           value={ex.reps}
-                          onChange={(e) => updateExercise(ex.id, "reps", e.target.value)}
+                          onChange={(e) => {
+                            if (!e.target.value.startsWith("-")) updateExercise(ex.id, "reps", e.target.value);
+                          }}
                           placeholder="10"
                           className={`bg-white/5 h-9 border-border text-sm ${
                             errors[`${ex.id}-reps`] ? "border-red-500/50" : ""
@@ -452,9 +461,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                     <Label className="text-xs font-medium text-muted-foreground">{t("Weight")}</Label>
                     <Input
                       type="number"
+                      min="0"
                       step="any"
                       value={ex.weight}
-                      onChange={(e) => updateExercise(ex.id, "weight", e.target.value)}
+                      onChange={(e) => {
+                        if (!e.target.value.startsWith("-")) updateExercise(ex.id, "weight", e.target.value);
+                      }}
                       placeholder="kg"
                       className="bg-white/5 h-9 border-border text-sm"
                     />
@@ -467,9 +479,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                     <Label className="text-xs font-medium text-muted-foreground">{t("Added/Assisted (kg)")}</Label>
                     <Input
                       type="number"
+                      min="0"
                       step="any"
                       value={ex.weight}
-                      onChange={(e) => updateExercise(ex.id, "weight", e.target.value)}
+                      onChange={(e) => {
+                        if (!e.target.value.startsWith("-")) updateExercise(ex.id, "weight", e.target.value);
+                      }}
                       placeholder="+/- kg"
                       className="bg-white/5 h-9 border-border text-sm"
                     />
@@ -483,8 +498,11 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <Label className="text-xs font-medium text-muted-foreground">{t("Sets")}</Label>
                       <Input
                         type="number"
+                        min="0"
                         value={ex.sets}
-                        onChange={(e) => updateExercise(ex.id, "sets", e.target.value)}
+                        onChange={(e) => {
+                          if (!e.target.value.startsWith("-")) updateExercise(ex.id, "sets", e.target.value);
+                        }}
                         className={`bg-white/5 h-9 border-border text-sm ${
                           errors[`${ex.id}-sets`] ? "border-red-500/50" : ""
                         }`}
@@ -495,9 +513,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <Label className="text-xs font-medium text-muted-foreground">{t("Distance (km)")}</Label>
                       <Input
                         type="number"
+                        min="0"
                         step="any"
                         value={ex.distance}
-                        onChange={(e) => updateExercise(ex.id, "distance", e.target.value)}
+                        onChange={(e) => {
+                          if (!e.target.value.startsWith("-")) updateExercise(ex.id, "distance", e.target.value);
+                        }}
                         placeholder="0.0"
                         className="bg-white/5 h-9 border-border text-sm"
                       />
@@ -522,8 +543,11 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <Label className="text-xs font-medium text-muted-foreground">{t("Sets")}</Label>
                       <Input
                         type="number"
+                        min="0"
                         value={ex.sets}
-                        onChange={(e) => updateExercise(ex.id, "sets", e.target.value)}
+                        onChange={(e) => {
+                          if (!e.target.value.startsWith("-")) updateExercise(ex.id, "sets", e.target.value);
+                        }}
                         className={`bg-white/5 h-9 border-border text-sm ${
                           errors[`${ex.id}-sets`] ? "border-red-500/50" : ""
                         }`}
@@ -544,9 +568,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <Label className="text-xs font-medium text-muted-foreground">{t("Added weight (kg)")}</Label>
                       <Input
                         type="number"
+                        min="0"
                         step="any"
                         value={ex.weight}
-                        onChange={(e) => updateExercise(ex.id, "weight", e.target.value)}
+                        onChange={(e) => {
+                          if (!e.target.value.startsWith("-")) updateExercise(ex.id, "weight", e.target.value);
+                        }}
                         placeholder="kg"
                         className="bg-white/5 h-9 border-border text-sm"
                       />
@@ -559,8 +586,11 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                   <Label className="text-xs font-medium text-muted-foreground">{t("Rest Time")}</Label>
                   <Input
                     type="number"
+                    min="0"
                     value={ex.defaultRestTime}
-                    onChange={(e) => updateExercise(ex.id, "defaultRestTime", e.target.value)}
+                    onChange={(e) => {
+                      if (!e.target.value.startsWith("-")) updateExercise(ex.id, "defaultRestTime", e.target.value);
+                    }}
                     placeholder="90s"
                     className="bg-white/5 h-9 border-border text-sm"
                   />
