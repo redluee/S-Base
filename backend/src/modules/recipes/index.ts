@@ -1,6 +1,7 @@
 import { eq, asc, desc, like, and, or, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { recipes, ingredients, recipeIngredients, recipeSteps } from "../../db/schema";
+import { normalizeSearchString, sqlNormalize } from "../../utils/search";
 
 const STATUSES = ["to try", "success", "needs tweak", "failure", "archived"] as const;
 
@@ -31,11 +32,11 @@ export class RecipeService {
     const column = columnMap[sortBy ?? "name"] ?? recipes.name;
     const orderFn = sortOrder === "desc" ? desc : asc;
 
-    const normalizedQ = q.replace(/[\s-]/g, "").toLowerCase();
+    const normalizedQ = normalizeSearchString(q);
     const conditions = [
       or(
-        sql`replace(replace(${recipes.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
-        sql`replace(replace(${recipes.kitchen}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        like(sqlNormalize(recipes.name), `%${normalizedQ}%`),
+        like(sqlNormalize(recipes.kitchen), `%${normalizedQ}%`),
         sql`EXISTS (SELECT 1 FROM recipe_ingredients ri
              INNER JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
              WHERE ri.recipe_id = recipes.recipe_id AND replace(replace(i.name, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`})`,
@@ -50,17 +51,17 @@ export class RecipeService {
   }
 
   suggest(q: string) {
-    const normalizedQ = q.replace(/[\s-]/g, "").toLowerCase();
+    const normalizedQ = normalizeSearchString(q);
     const recipeNames = db.select({ name: recipes.name })
       .from(recipes)
-      .where(sql`replace(replace(${recipes.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`)
+      .where(like(sqlNormalize(recipes.name), `%${normalizedQ}%`))
       .limit(5)
       .all()
       .map((r) => ({ type: "recipe" as const, value: r.name }));
 
     const ingredientNames = db.select({ name: ingredients.name })
       .from(ingredients)
-      .where(sql`replace(replace(${ingredients.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`)
+      .where(like(sqlNormalize(ingredients.name), `%${normalizedQ}%`))
       .limit(5)
       .all()
       .map((i) => ({ type: "ingredient" as const, value: i.name }));
@@ -68,7 +69,7 @@ export class RecipeService {
     const kitchens = db.select({ name: recipes.kitchen })
       .from(recipes)
       .where(and(
-        sql`replace(replace(${recipes.kitchen}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        like(sqlNormalize(recipes.kitchen), `%${normalizedQ}%`),
         sql`${recipes.kitchen} IS NOT NULL`,
         sql`${recipes.kitchen} != ''`
       ))
@@ -254,13 +255,13 @@ export class RecipeService {
   }
 
   ingredientSearch(q: string) {
-    const normalizedQ = q.replace(/[\s-]/g, "").toLowerCase();
+    const normalizedQ = normalizeSearchString(q);
     return db.select({
       ingredientId: ingredients.ingredientId,
       name: ingredients.name,
     })
       .from(ingredients)
-      .where(sql`replace(replace(${ingredients.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`)
+      .where(like(sqlNormalize(ingredients.name), `%${normalizedQ}%`))
       .limit(8)
       .all();
   }

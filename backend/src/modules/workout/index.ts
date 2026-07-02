@@ -7,6 +7,41 @@ import {
   sessionExercises,
   sessionSets,
 } from "../../db/schema";
+import { normalizeSearchString, sqlNormalize } from "../../utils/search";
+
+function validateSetParams(params: {
+  reps?: number;
+  weight?: number;
+  distance?: number;
+  duration?: number;
+  rpe?: number;
+  heartRate?: number;
+  defaultRestTime?: number;
+}, prefix: string = "") {
+  const getMsg = (field: string, suffix: string) => {
+    if (prefix) {
+      return `${prefix} ${field} ${suffix}`;
+    }
+    return `${field.charAt(0).toUpperCase() + field.slice(1)} ${suffix}`;
+  };
+
+  if (params.reps !== undefined && params.reps < 0) throw new Error(getMsg("reps", "cannot be negative"));
+  if (params.weight !== undefined && params.weight < 0) throw new Error(getMsg("weight", "cannot be negative"));
+  if (params.distance !== undefined && params.distance < 0) throw new Error(getMsg("distance", "cannot be negative"));
+  if (params.duration !== undefined && params.duration < 0) throw new Error(getMsg("duration", "cannot be negative"));
+  if (params.rpe !== undefined && (params.rpe < 0 || params.rpe > 10)) throw new Error(getMsg("RPE", "must be 0-10"));
+  if (params.heartRate !== undefined && params.heartRate < 0) throw new Error(getMsg("heart rate", "cannot be negative"));
+  if (params.defaultRestTime !== undefined && params.defaultRestTime < 0) throw new Error(getMsg("rest time", "cannot be negative"));
+}
+
+function parseDateString(dateStr: string): Date {
+  return new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
+}
+
+function formatDutchDate(date: Date, options: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleDateString("nl-NL", options);
+}
+
 
 export class WorkoutService {
   listTemplates(userId: number) {
@@ -56,13 +91,7 @@ export class WorkoutService {
       for (let i = 0; i < data.exercises.length; i++) {
         const ex = data.exercises[i];
         if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-        if (ex.reps < 0) throw new Error(`Exercise "${ex.exerciseName}" reps cannot be negative`);
-        if (ex.weight !== undefined && ex.weight < 0) throw new Error(`Exercise "${ex.exerciseName}" weight cannot be negative`);
-        if (ex.distance !== undefined && ex.distance < 0) throw new Error(`Exercise "${ex.exerciseName}" distance cannot be negative`);
-        if (ex.duration !== undefined && ex.duration < 0) throw new Error(`Exercise "${ex.exerciseName}" duration cannot be negative`);
-        if (ex.rpe !== undefined && (ex.rpe < 0 || ex.rpe > 10)) throw new Error(`Exercise "${ex.exerciseName}" RPE must be 0-10`);
-        if (ex.heartRate !== undefined && ex.heartRate < 0) throw new Error(`Exercise "${ex.exerciseName}" heart rate cannot be negative`);
-        if (ex.defaultRestTime !== undefined && ex.defaultRestTime < 0) throw new Error(`Exercise "${ex.exerciseName}" rest time cannot be negative`);
+        validateSetParams(ex, `Exercise "${ex.exerciseName}"`);
       }
     }
     const template = db.insert(workoutTemplates).values({
@@ -126,13 +155,7 @@ export class WorkoutService {
       for (let i = 0; i < data.exercises.length; i++) {
         const ex = data.exercises[i];
         if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-        if (ex.reps < 0) throw new Error(`Exercise "${ex.exerciseName}" reps cannot be negative`);
-        if (ex.weight !== undefined && ex.weight < 0) throw new Error(`Exercise "${ex.exerciseName}" weight cannot be negative`);
-        if (ex.distance !== undefined && ex.distance < 0) throw new Error(`Exercise "${ex.exerciseName}" distance cannot be negative`);
-        if (ex.duration !== undefined && ex.duration < 0) throw new Error(`Exercise "${ex.exerciseName}" duration cannot be negative`);
-        if (ex.rpe !== undefined && (ex.rpe < 0 || ex.rpe > 10)) throw new Error(`Exercise "${ex.exerciseName}" RPE must be 0-10`);
-        if (ex.heartRate !== undefined && ex.heartRate < 0) throw new Error(`Exercise "${ex.exerciseName}" heart rate cannot be negative`);
-        if (ex.defaultRestTime !== undefined && ex.defaultRestTime < 0) throw new Error(`Exercise "${ex.exerciseName}" rest time cannot be negative`);
+        validateSetParams(ex, `Exercise "${ex.exerciseName}"`);
       }
     }
 
@@ -193,31 +216,27 @@ export class WorkoutService {
 
     if (!q) return sessions;
 
-    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
+    const normalizedQ = normalizeSearchString(q);
     return sessions.filter((session) => {
-      const nameNorm = (session.name || "").replace(/[\s\-\/]/g, "").toLowerCase();
-      const notesNorm = (session.notes || "").replace(/[\s\-\/]/g, "").toLowerCase();
+      const nameNorm = normalizeSearchString(session.name || "");
+      const notesNorm = normalizeSearchString(session.notes || "");
       
-      const dateObj = new Date(
-        session.startedAt.includes("T")
-          ? session.startedAt
-          : session.startedAt.replace(" ", "T") + "Z"
-      );
-      const formattedDate = dateObj.toLocaleDateString("nl-NL", {
+      const dateObj = parseDateString(session.startedAt);
+      const formattedDate = formatDutchDate(dateObj, {
         weekday: "short",
         day: "numeric",
         month: "short",
         year: "numeric",
       });
-      const dateNorm = formattedDate.replace(/[\s\-\/]/g, "").toLowerCase();
+      const dateNorm = normalizeSearchString(formattedDate);
 
-      const dateLong = dateObj.toLocaleDateString("nl-NL", {
+      const dateLong = formatDutchDate(dateObj, {
         weekday: "short",
         day: "numeric",
         month: "long",
         year: "numeric",
       });
-      const dateLongNorm = dateLong.replace(/[\s\-\/]/g, "").toLowerCase();
+      const dateLongNorm = normalizeSearchString(dateLong);
 
       const dayStr = String(dateObj.getDate()).padStart(2, "0");
       const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -403,13 +422,7 @@ export class WorkoutService {
         const ex = data.exercises[i];
         if (ex.sets?.length) {
           for (let j = 0; j < ex.sets.length; j++) {
-            const s = ex.sets[j];
-            if (s.reps !== undefined && s.reps < 0) throw new Error(`Reps cannot be negative`);
-            if (s.weight !== undefined && s.weight < 0) throw new Error(`Weight cannot be negative`);
-            if (s.distance !== undefined && s.distance < 0) throw new Error(`Distance cannot be negative`);
-            if (s.duration !== undefined && s.duration < 0) throw new Error(`Duration cannot be negative`);
-            if (s.rpe !== undefined && (s.rpe < 0 || s.rpe > 10)) throw new Error(`RPE must be 0-10`);
-            if (s.heartRate !== undefined && s.heartRate < 0) throw new Error(`Heart rate cannot be negative`);
+            validateSetParams(ex.sets[j]);
           }
         }
       }
@@ -517,7 +530,7 @@ export class WorkoutService {
   }
 
   suggestExercises(userId: number, q: string) {
-    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
+    const normalizedQ = normalizeSearchString(q);
     const fromTemplates = db.select({
       name: templateExercises.exerciseName,
       category: templateExercises.category,
@@ -532,7 +545,7 @@ export class WorkoutService {
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
       .where(and(
-        sql`replace(replace(${templateExercises.exerciseName}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        like(sqlNormalize(templateExercises.exerciseName), `%${normalizedQ}%`),
         eq(workoutTemplates.userId, userId)
       ))
       .limit(10)
@@ -546,7 +559,7 @@ export class WorkoutService {
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
       .where(and(
-        sql`replace(replace(${sessionExercises.exerciseName}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
+        like(sqlNormalize(sessionExercises.exerciseName), `%${normalizedQ}%`),
         eq(workoutSessions.userId, userId)
       ))
       .limit(10)
@@ -618,7 +631,7 @@ export class WorkoutService {
   }
 
   suggestWorkoutSearch(userId: number, q: string) {
-    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
+    const normalizedQ = normalizeSearchString(q);
 
     const exercises = this.suggestExercises(userId, q).slice(0, 5);
 
@@ -632,9 +645,9 @@ export class WorkoutService {
       .where(and(
         eq(workoutTemplates.userId, userId),
         or(
-          sql`replace(replace(${workoutTemplates.name}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
-          sql`replace(replace(${workoutTemplates.description}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`,
-          sql`replace(replace(${workoutTemplates.targetMuscleGroups}, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`}`
+          like(sqlNormalize(workoutTemplates.name), `%${normalizedQ}%`),
+          like(sqlNormalize(workoutTemplates.description), `%${normalizedQ}%`),
+          like(sqlNormalize(workoutTemplates.targetMuscleGroups), `%${normalizedQ}%`)
         )
       ))
       .limit(5)
@@ -662,29 +675,25 @@ export class WorkoutService {
 
     const historySuggestions = sessions
       .map(session => {
-        const dateObj = new Date(
-          session.startedAt.includes("T")
-            ? session.startedAt
-            : session.startedAt.replace(" ", "T") + "Z"
-        );
-        const formattedDate = dateObj.toLocaleDateString("nl-NL", {
+        const dateObj = parseDateString(session.startedAt);
+        const formattedDate = formatDutchDate(dateObj, {
           weekday: "short",
           day: "numeric",
           month: "short",
           year: "numeric",
         });
         
-        const nameNorm = (session.name || "").replace(/[\s\-\/]/g, "").toLowerCase();
-        const notesNorm = (session.notes || "").replace(/[\s\-\/]/g, "").toLowerCase();
-        const dateNorm = formattedDate.replace(/[\s\-\/]/g, "").toLowerCase();
+        const nameNorm = normalizeSearchString(session.name || "");
+        const notesNorm = normalizeSearchString(session.notes || "");
+        const dateNorm = normalizeSearchString(formattedDate);
 
-        const dateLong = dateObj.toLocaleDateString("nl-NL", {
+        const dateLong = formatDutchDate(dateObj, {
           weekday: "short",
           day: "numeric",
           month: "long",
           year: "numeric",
         });
-        const dateLongNorm = dateLong.replace(/[\s\-\/]/g, "").toLowerCase();
+        const dateLongNorm = normalizeSearchString(dateLong);
 
         const dayStr = String(dateObj.getDate()).padStart(2, "0");
         const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -829,7 +838,7 @@ export class WorkoutService {
 
     let daysAgo: number | null = null;
     if (lastSession && lastSession.completedAt) {
-      const completedDate = new Date(lastSession.completedAt.includes("T") ? lastSession.completedAt : lastSession.completedAt.replace(" ", "T") + "Z");
+      const completedDate = parseDateString(lastSession.completedAt);
       const today = new Date();
       const date1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
       const date2 = Date.UTC(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate());
@@ -884,7 +893,7 @@ export class WorkoutService {
 
     for (const s of activeSessions) {
       if (minAgeSeconds > 0) {
-        const startedTime = new Date(s.startedAt.includes("T") ? s.startedAt : s.startedAt.replace(" ", "T") + "Z").getTime();
+        const startedTime = parseDateString(s.startedAt).getTime();
         const ageSeconds = (Date.now() - startedTime) / 1000;
         if (ageSeconds < minAgeSeconds) {
           continue;
