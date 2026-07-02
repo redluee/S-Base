@@ -1,4 +1,12 @@
 import { cookies } from "next/headers";
+import type {
+  Recipe,
+  FullRecipe,
+  WorkoutTemplate,
+  FullWorkoutTemplate,
+  WorkoutSession,
+  FullWorkoutSession,
+} from "@backend/types/shared";
 
 const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
 
@@ -35,15 +43,15 @@ export const serverApi = {
       if (sortOrder) params.set("sortOrder", sortOrder);
       if (q) params.set("q", q);
       const qs = params.toString();
-      return serverFetch<any[]>(`/recipes${qs ? `?${qs}` : ""}`);
+      return serverFetch<Recipe[]>(`/recipes${qs ? `?${qs}` : ""}`);
     },
-    get: (id: number) => serverFetch<any>(`/recipes/${id}`),
+    get: (id: number) => serverFetch<FullRecipe>(`/recipes/${id}`),
   },
 
   workouts: {
     templates: {
-      list: () => serverFetch<any[]>("/workouts/templates"),
-      get: (id: number) => serverFetch<any>(`/workouts/templates/${id}`),
+      list: () => serverFetch<WorkoutTemplate[]>("/workouts/templates"),
+      get: (id: number) => serverFetch<FullWorkoutTemplate>(`/workouts/templates/${id}`),
     },
 
     sessions: {
@@ -52,15 +60,33 @@ export const serverApi = {
         if (status) params.set("status", status);
         if (q) params.set("q", q);
         const qs = params.toString();
-        return serverFetch<any[]>(`/workouts/sessions${qs ? `?${qs}` : ""}`);
+        return serverFetch<WorkoutSession[]>(`/workouts/sessions${qs ? `?${qs}` : ""}`);
       },
-      get: (id: number) => serverFetch<any>(`/workouts/sessions/${id}`),
+      get: (id: number) => serverFetch<FullWorkoutSession>(`/workouts/sessions/${id}`),
     },
 
     exercises: {
       list: () => serverFetch<{ name: string; equipment: string | null }[]>("/workouts/exercises"),
       progress: (name: string, equipment?: string) =>
-        serverFetch<any>(
+        serverFetch<{
+          exerciseName: string;
+          category: string;
+          equipment: string | null;
+          sessions: {
+            sessionId: number;
+            startedAt: string;
+            sets: {
+              setNumber: number;
+              reps: number | null;
+              weight: number | null;
+              distance: number | null;
+              duration: number | null;
+              rpe: number | null;
+              heartRate: number | null;
+              completed: number;
+            }[];
+          }[];
+        }>(
           `/workouts/exercises/${encodeURIComponent(name)}/progress${
             equipment ? `?equipment=${encodeURIComponent(equipment)}` : ""
           }`,

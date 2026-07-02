@@ -1,3 +1,12 @@
+import type {
+  Recipe,
+  FullRecipe,
+  WorkoutTemplate,
+  FullWorkoutTemplate,
+  WorkoutSession,
+  FullWorkoutSession,
+} from "@backend/types/shared";
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     credentials: "include",
@@ -47,32 +56,32 @@ export const api = {
       if (sortOrder) params.set("sortOrder", sortOrder);
       if (q) params.set("q", q);
       const qs = params.toString();
-      return request<any[]>(`/recipes${qs ? `?${qs}` : ""}`);
+      return request<Recipe[]>(`/recipes${qs ? `?${qs}` : ""}`);
     },
     suggest: (q: string) =>
       request<{ type: "recipe" | "ingredient" | "kitchen"; value: string }[]>(
         `/recipes/suggest?q=${encodeURIComponent(q)}`,
       ),
 
-    get: (id: number) => request<any>(`/recipes/${id}`),
+    get: (id: number) => request<FullRecipe>(`/recipes/${id}`),
 
-    create: (data: any) =>
-      request<any>("/recipes", { method: "POST", body: JSON.stringify(data) }),
+    create: (data: unknown) =>
+      request<FullRecipe>("/recipes", { method: "POST", body: JSON.stringify(data) }),
 
-    update: (id: number, data: any) =>
-      request<any>(`/recipes/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    update: (id: number, data: unknown) =>
+      request<FullRecipe>(`/recipes/${id}`, { method: "PUT", body: JSON.stringify(data) }),
 
     delete: (id: number) =>
-      request<any>(`/recipes/${id}`, { method: "DELETE" }),
+      request<{ deleted: boolean }>(`/recipes/${id}`, { method: "DELETE" }),
 
     updateStatus: (id: number, status: string) =>
-      request<any>(`/recipes/${id}/status`, {
+      request<FullRecipe>(`/recipes/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
 
     updateRating: (id: number, rating: number) =>
-      request<any>(`/recipes/${id}/rating`, {
+      request<FullRecipe>(`/recipes/${id}/rating`, {
         method: "PATCH",
         body: JSON.stringify({ rating }),
       }),
@@ -80,18 +89,18 @@ export const api = {
 
   workouts: {
     templates: {
-      list: () => request<any[]>("/workouts/templates"),
+      list: () => request<WorkoutTemplate[]>("/workouts/templates"),
 
-      get: (id: number) => request<any>(`/workouts/templates/${id}`),
+      get: (id: number) => request<FullWorkoutTemplate>(`/workouts/templates/${id}`),
 
-      create: (data: any) =>
-        request<any>("/workouts/templates", { method: "POST", body: JSON.stringify(data) }),
+      create: (data: unknown) =>
+        request<FullWorkoutTemplate>("/workouts/templates", { method: "POST", body: JSON.stringify(data) }),
 
-      update: (id: number, data: any) =>
-        request<any>(`/workouts/templates/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      update: (id: number, data: unknown) =>
+        request<FullWorkoutTemplate>(`/workouts/templates/${id}`, { method: "PUT", body: JSON.stringify(data) }),
 
       delete: (id: number) =>
-        request<any>(`/workouts/templates/${id}`, { method: "DELETE" }),
+        request<{ deleted: boolean }>(`/workouts/templates/${id}`, { method: "DELETE" }),
     },
 
     sessions: {
@@ -100,31 +109,31 @@ export const api = {
         if (status) params.set("status", status);
         if (q) params.set("q", q);
         const qs = params.toString();
-        return request<any[]>(`/workouts/sessions${qs ? `?${qs}` : ""}`);
+        return request<WorkoutSession[]>(`/workouts/sessions${qs ? `?${qs}` : ""}`);
       },
 
-      get: (id: number) => request<any>(`/workouts/sessions/${id}`),
+      get: (id: number) => request<FullWorkoutSession>(`/workouts/sessions/${id}`),
 
       create: (templateId?: number) =>
-        request<any>("/workouts/sessions", {
+        request<FullWorkoutSession>("/workouts/sessions", {
           method: "POST",
           body: JSON.stringify({ templateId }),
         }),
 
-      update: (id: number, data: any) =>
-        request<any>(`/workouts/sessions/${id}`, {
+      update: (id: number, data: unknown) =>
+        request<FullWorkoutSession>(`/workouts/sessions/${id}`, {
           method: "PATCH",
           body: JSON.stringify(data),
         }),
 
       complete: (id: number, completedAt?: string) =>
-        request<any>(`/workouts/sessions/${id}/complete`, {
+        request<FullWorkoutSession>(`/workouts/sessions/${id}/complete`, {
           method: "PATCH",
           body: completedAt ? JSON.stringify({ completedAt }) : undefined,
         }),
 
       delete: (id: number) =>
-        request<any>(`/workouts/sessions/${id}`, { method: "DELETE" }),
+        request<{ deleted: boolean }>(`/workouts/sessions/${id}`, { method: "DELETE" }),
     },
 
     exercises: {
@@ -146,7 +155,25 @@ export const api = {
         ),
 
       progress: (name: string, equipment?: string) =>
-        request<any>(
+        request<{
+          exerciseName: string;
+          category: string;
+          equipment: string | null;
+          sessions: {
+            sessionId: number;
+            startedAt: string;
+            sets: {
+              setNumber: number;
+              reps: number | null;
+              weight: number | null;
+              distance: number | null;
+              duration: number | null;
+              rpe: number | null;
+              heartRate: number | null;
+              completed: number;
+            }[];
+          }[];
+        }>(
           `/workouts/exercises/${encodeURIComponent(name)}/progress${
             equipment ? `?equipment=${encodeURIComponent(equipment)}` : ""
           }`,
