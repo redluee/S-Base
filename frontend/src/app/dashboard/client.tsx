@@ -4,13 +4,18 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { useState, useEffect, useRef } from "react";
-import { Dumbbell, ChefHat, User, LogOut, ChevronDown } from "lucide-react";
+import { Dumbbell, ChefHat, User, LogOut, ChevronDown, Music, Heart } from "lucide-react";
 
 export function DashboardClient({ username }: { username: string }) {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [recipeCount, setRecipeCount] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isSpecialUser =
+    username.toLowerCase() === "dèmi" ||
+    username.toLowerCase() === "demi" ||
+    username.toLowerCase() === "admin";
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -127,6 +132,58 @@ export function DashboardClient({ username }: { username: string }) {
             <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
           </div>
         </a>
+
+        {isSpecialUser && (
+          <>
+            {/* Lyric Quotes Card */}
+            <a
+              href="https://stevenheijn.nl/lyric_quotes/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-violet-950/15 via-zinc-900/60 to-purple-950/10 border border-white/5 hover:border-violet-500/40 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(139,92,246,0.15)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl" />
+              <div className="flex flex-col gap-6 relative z-10">
+                <div className="size-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.3)] group-hover:scale-110 transition-transform duration-300">
+                  <Music className="size-7" />
+                </div>
+                <div>
+                  <h2 className="font-display font-black text-2xl text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors">
+                    {t("Lyric Quotes")}
+                  </h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-violet-400 font-semibold tracking-wide uppercase mt-8 relative z-10 opacity-70 group-hover:opacity-100 transition-opacity">
+                <span>{t("Bekijk quotes")}</span>
+                <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+              </div>
+            </a>
+
+            {/* Voor Jou Card */}
+            <a
+              href="https://stevenheijn.nl/you"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-rose-950/15 via-zinc-900/60 to-pink-950/10 border border-white/5 hover:border-rose-500/40 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(244,63,94,0.15)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl" />
+              <div className="flex flex-col gap-6 relative z-10">
+                <div className="size-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.3)] group-hover:scale-110 transition-transform duration-300">
+                  <Heart className="size-7" />
+                </div>
+                <div>
+                  <h2 className="font-display font-black text-2xl text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors">
+                    {t("Voor jou")}
+                  </h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-rose-400 font-semibold tracking-wide uppercase mt-8 relative z-10 opacity-70 group-hover:opacity-100 transition-opacity">
+                <span>{t("Speciaal voor jou")}</span>
+                <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+              </div>
+            </a>
+          </>
+        )}
       </nav>
     </main>
   );

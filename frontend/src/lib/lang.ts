@@ -231,6 +231,10 @@ const nl: Record<string, string> = {
   "Oefening": "Oefening",
   "All exercises completed!": "Alle oefeningen voltooid!",
   "Good job! Finish your workout to save your results.": "Goed gedaan! Rond je training af om de resultaten op te slaan.",
+  "Lyric Quotes": "Lyric Quotes",
+  "Voor jou": "Voor jou",
+  "Bekijk quotes": "Bekijk quotes",
+  "Speciaal voor jou": "Speciaal voor jou",
 };
 
 
