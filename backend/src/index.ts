@@ -17,7 +17,7 @@ function createAuthPlugin(moduleName: string) {
       const sessionInfo = auth.validateSession(sid);
       return { user: sessionInfo };
     })
-    .beforeHandle(({ user }) => {
+    .onBeforeHandle(({ user }) => {
       if (!user) return new Response("Unauthorized", { status: 401 });
       if (!auth.moduleAccessCheck(user.userId, moduleName)) {
         return new Response("Forbidden", { status: 403 });

@@ -119,18 +119,48 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     if (from === null || to === null || !stepsContainerRef.current) return;
 
     const children = stepsContainerRef.current.children;
-    const offset = getStepDragOffset();
 
     for (let i = 0; i < children.length; i++) {
       const el = children[i] as HTMLElement;
       el.style.transition = 'transform 150ms ease-out';
 
       if (i === from) {
-        el.style.transform = `translateY(${(to - from) * offset}px)`;
+        // The dragged element moves to the 'to' position.
+        // We calculate the sum of heights between 'from' and 'to'.
+        let translation = 0;
+        const cs = getComputedStyle(stepsContainerRef.current);
+        const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
+        
+        if (to > from) {
+          for (let j = from + 1; j <= to; j++) {
+            translation += (children[j] as HTMLElement).getBoundingClientRect().height + gap;
+          }
+        } else if (to < from) {
+          for (let j = to; j < from; j++) {
+            translation -= (children[j] as HTMLElement).getBoundingClientRect().height + gap;
+          }
+        }
+        el.style.transform = `translateY(${translation}px)`;
       } else if (i < from) {
-        el.style.transform = to <= i ? `translateY(${offset}px)` : '';
+        // Elements before the original drag position
+        if (to <= i) {
+          const cs = getComputedStyle(stepsContainerRef.current);
+          const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
+          const fromHeight = (children[from] as HTMLElement).getBoundingClientRect().height + gap;
+          el.style.transform = `translateY(${fromHeight}px)`;
+        } else {
+          el.style.transform = '';
+        }
       } else if (i > from) {
-        el.style.transform = to >= i ? `translateY(-${offset}px)` : '';
+        // Elements after the original drag position
+        if (to >= i) {
+          const cs = getComputedStyle(stepsContainerRef.current);
+          const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
+          const fromHeight = (children[from] as HTMLElement).getBoundingClientRect().height + gap;
+          el.style.transform = `translateY(-${fromHeight}px)`;
+        } else {
+          el.style.transform = '';
+        }
       }
     }
   }
@@ -166,12 +196,12 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     e.dataTransfer.setDragImage(img, 0, 0);
 
     if (stepsContainerRef.current) {
-      const positions: number[] = [];
+      const positions: { top: number; bottom: number; height: number }[] = [];
       for (let i = 0; i < stepsContainerRef.current.children.length; i++) {
         const rect = stepsContainerRef.current.children[i].getBoundingClientRect();
-        positions.push(rect.top + rect.height / 2);
+        positions.push({ top: rect.top, bottom: rect.bottom, height: rect.height });
       }
-      stepNaturalPositionsRef.current = positions;
+      (stepsContainerRef as any).positions = positions;
     }
   }
 
@@ -180,15 +210,22 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     e.dataTransfer.dropEffect = "move";
 
     const from = stepDragIndexRef.current;
-    if (from === null || stepNaturalPositionsRef.current.length === 0) return;
+    const positions = (stepsContainerRef as any).positions;
+    if (from === null || !positions || positions.length === 0) return;
 
     const mouseY = e.clientY;
-    let targetIndex = 0;
+    let targetIndex = from;
 
-    for (let i = 0; i < stepNaturalPositionsRef.current.length; i++) {
-      if (i === from) continue;
-      if (mouseY >= stepNaturalPositionsRef.current[i]) {
-        targetIndex++;
+    // Determine target index by checking which slot the mouse cursor is closest to/within
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      const middle = p.top + p.height / 2;
+      if (mouseY < middle) {
+        targetIndex = i;
+        break;
+      }
+      if (i === positions.length - 1) {
+        targetIndex = positions.length - 1;
       }
     }
 

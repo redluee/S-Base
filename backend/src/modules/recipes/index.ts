@@ -94,7 +94,7 @@ export class RecipeService {
       .from(recipeIngredients)
       .innerJoin(ingredients, eq(recipeIngredients.ingredientId, ingredients.ingredientId))
       .where(eq(recipeIngredients.recipeId, id))
-      .orderBy(ingredients.name)
+      .orderBy(recipeIngredients.sortOrder)
       .all();
 
     const steps = db.select({
