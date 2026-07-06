@@ -173,12 +173,12 @@ export function DashboardClient({ username }: { username: string }) {
                 </div>
                 <div>
                   <h2 className="font-display font-black text-2xl text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors">
-                    {t("Voor jou")}
+                    {t("You")}
                   </h2>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-rose-400 font-semibold tracking-wide uppercase mt-8 relative z-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                <span>{t("Speciaal voor jou")}</span>
+                <span>{t("Poems for each other")}</span>
                 <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
               </div>
             </a>
