@@ -1,4 +1,4 @@
-import { eq, and, or, like, desc, asc, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, sql, ne } from "drizzle-orm";
 import db from "../../db/client";
 import {
   workoutTemplates,
@@ -915,6 +915,225 @@ export class WorkoutService {
         db.delete(workoutSessions).where(eq(workoutSessions.sessionId, s.sessionId)).run();
       }
     }
+  }
+
+  getSessionPRs(sessionId: number, userId: number, currentDurationSeconds?: number): any[] {
+    const currentSession = db.select()
+      .from(workoutSessions)
+      .where(and(eq(workoutSessions.sessionId, sessionId), eq(workoutSessions.userId, userId)))
+      .get();
+    if (!currentSession) return [];
+
+    const currentSets = db.select({
+      exerciseName: sessionExercises.exerciseName,
+      reps: sessionSets.reps,
+      weight: sessionSets.weight,
+      distance: sessionSets.distance,
+      duration: sessionSets.duration,
+      completed: sessionSets.completed,
+    })
+      .from(sessionSets)
+      .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
+      .where(and(
+        eq(sessionExercises.sessionId, sessionId),
+        eq(sessionSets.completed, 1)
+      ))
+      .all();
+
+    const previousSessions = db.select({
+      sessionId: workoutSessions.sessionId,
+      startedAt: workoutSessions.startedAt,
+      completedAt: workoutSessions.completedAt,
+    })
+      .from(workoutSessions)
+      .where(and(
+        eq(workoutSessions.userId, userId),
+        sql`${workoutSessions.completedAt} IS NOT NULL`,
+        ne(workoutSessions.sessionId, sessionId)
+      ))
+      .all();
+
+    const previousSets = db.select({
+      exerciseName: sessionExercises.exerciseName,
+      sessionId: sessionExercises.sessionId,
+      reps: sessionSets.reps,
+      weight: sessionSets.weight,
+      distance: sessionSets.distance,
+      duration: sessionSets.duration,
+    })
+      .from(sessionSets)
+      .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
+      .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
+      .where(and(
+        eq(workoutSessions.userId, userId),
+        sql`${workoutSessions.completedAt} IS NOT NULL`,
+        ne(workoutSessions.sessionId, sessionId),
+        eq(sessionSets.completed, 1)
+      ))
+      .all();
+
+    const prs: any[] = [];
+
+    const currentSetsByExercise: { [name: string]: typeof currentSets } = {};
+    for (const s of currentSets) {
+      if (!currentSetsByExercise[s.exerciseName]) {
+        currentSetsByExercise[s.exerciseName] = [];
+      }
+      currentSetsByExercise[s.exerciseName].push(s);
+    }
+
+    const previousSetsByExercise: { [name: string]: typeof previousSets } = {};
+    for (const s of previousSets) {
+      if (!previousSetsByExercise[s.exerciseName]) {
+        previousSetsByExercise[s.exerciseName] = [];
+      }
+      previousSetsByExercise[s.exerciseName].push(s);
+    }
+
+    for (const exerciseName of Object.keys(currentSetsByExercise)) {
+      const cSets = currentSetsByExercise[exerciseName];
+      const pSets = previousSetsByExercise[exerciseName] ?? [];
+
+      const cMaxWeight = Math.max(...cSets.map(s => s.weight ?? 0), 0);
+      const pMaxWeight = pSets.length > 0 ? Math.max(...pSets.map(s => s.weight ?? 0), 0) : 0;
+      if (cMaxWeight > pMaxWeight && cMaxWeight > 0) {
+        prs.push({
+          type: "weight",
+          exerciseName,
+          prevValue: pMaxWeight,
+          newValue: cMaxWeight,
+          unit: "kg",
+        });
+      }
+
+      const cMaxReps = Math.max(...cSets.map(s => s.reps ?? 0), 0);
+      const pMaxReps = pSets.length > 0 ? Math.max(...pSets.map(s => s.reps ?? 0), 0) : 0;
+      if (cMaxReps > pMaxReps && cMaxReps > 0) {
+        prs.push({
+          type: "reps",
+          exerciseName,
+          prevValue: pMaxReps,
+          newValue: cMaxReps,
+          unit: "reps",
+        });
+      }
+
+      const cSetsCount = cSets.length;
+      const pSetsCountBySession: { [id: number]: number } = {};
+      for (const s of pSets) {
+        pSetsCountBySession[s.sessionId] = (pSetsCountBySession[s.sessionId] ?? 0) + 1;
+      }
+      const pMaxSetsCount = Object.keys(pSetsCountBySession).length > 0 ? Math.max(...Object.values(pSetsCountBySession)) : 0;
+      if (cSetsCount > pMaxSetsCount && cSetsCount > 0) {
+        prs.push({
+          type: "sets",
+          exerciseName,
+          prevValue: pMaxSetsCount,
+          newValue: cSetsCount,
+          unit: "sets",
+        });
+      }
+
+      const cVolume = cSets.reduce((sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+      const pVolumeBySession: { [id: number]: number } = {};
+      for (const s of pSets) {
+        pVolumeBySession[s.sessionId] = (pVolumeBySession[s.sessionId] ?? 0) + (s.weight ?? 0) * (s.reps ?? 0);
+      }
+      const pMaxVolume = Object.keys(pVolumeBySession).length > 0 ? Math.max(...Object.values(pVolumeBySession)) : 0;
+      if (cVolume > pMaxVolume && cVolume > 0) {
+        prs.push({
+          type: "volume",
+          exerciseName,
+          prevValue: pMaxVolume,
+          newValue: cVolume,
+          unit: "kg",
+        });
+      }
+
+      const cMaxDistance = Math.max(...cSets.map(s => s.distance ?? 0), 0);
+      const pMaxDistance = pSets.length > 0 ? Math.max(...pSets.map(s => s.distance ?? 0), 0) : 0;
+      if (cMaxDistance > pMaxDistance && cMaxDistance > 0) {
+        prs.push({
+          type: "distance",
+          exerciseName,
+          prevValue: pMaxDistance,
+          newValue: cMaxDistance,
+          unit: "km",
+        });
+      }
+
+      const cMaxDuration = Math.max(...cSets.map(s => s.duration ?? 0), 0);
+      const pMaxDuration = pSets.length > 0 ? Math.max(...pSets.map(s => s.duration ?? 0), 0) : 0;
+      if (cMaxDuration > pMaxDuration && cMaxDuration > 0) {
+        prs.push({
+          type: "duration",
+          exerciseName,
+          prevValue: pMaxDuration,
+          newValue: cMaxDuration,
+          unit: "sec",
+        });
+      }
+    }
+
+    const cSessionVolume = currentSets.reduce((sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+    const pVolumeBySessionId: { [id: number]: number } = {};
+    for (const s of previousSets) {
+      pVolumeBySessionId[s.sessionId] = (pVolumeBySessionId[s.sessionId] ?? 0) + (s.weight ?? 0) * (s.reps ?? 0);
+    }
+    const pMaxSessionVolume = Object.keys(pVolumeBySessionId).length > 0 ? Math.max(...Object.values(pVolumeBySessionId)) : 0;
+    if (cSessionVolume > pMaxSessionVolume && cSessionVolume > 0) {
+      prs.push({
+        type: "session_volume",
+        prevValue: pMaxSessionVolume,
+        newValue: cSessionVolume,
+        unit: "kg",
+      });
+    }
+
+    let cSessionDuration = 0;
+    if (currentDurationSeconds !== undefined) {
+      cSessionDuration = currentDurationSeconds;
+    } else if (currentSession.completedAt) {
+      cSessionDuration = (parseDateString(currentSession.completedAt).getTime() - parseDateString(currentSession.startedAt).getTime()) / 1000;
+    } else {
+      cSessionDuration = (Date.now() - parseDateString(currentSession.startedAt).getTime()) / 1000;
+    }
+
+    const pSessionsDurations = previousSessions.map(s => {
+      if (!s.completedAt) return 0;
+      return (parseDateString(s.completedAt).getTime() - parseDateString(s.startedAt).getTime()) / 1000;
+    });
+    const pMaxSessionDuration = pSessionsDurations.length > 0 ? Math.max(...pSessionsDurations) : 0;
+    if (cSessionDuration > pMaxSessionDuration && cSessionDuration > 0) {
+      prs.push({
+        type: "session_duration",
+        prevValue: pMaxSessionDuration,
+        newValue: Math.round(cSessionDuration),
+        unit: "sec",
+      });
+    }
+
+    const cSessionExerciseCount = Object.keys(currentSetsByExercise).length;
+    const pExercisesBySession: { [id: number]: Set<string> } = {};
+    for (const s of previousSets) {
+      if (!pExercisesBySession[s.sessionId]) {
+        pExercisesBySession[s.sessionId] = new Set();
+      }
+      pExercisesBySession[s.sessionId].add(s.exerciseName);
+    }
+    const pMaxSessionExercisesCount = Object.keys(pExercisesBySession).length > 0
+      ? Math.max(...Object.values(pExercisesBySession).map(set => set.size))
+      : 0;
+    if (cSessionExerciseCount > pMaxSessionExercisesCount && cSessionExerciseCount > 0) {
+      prs.push({
+        type: "session_exercises",
+        prevValue: pMaxSessionExercisesCount,
+        newValue: cSessionExerciseCount,
+        unit: "exercises",
+      });
+    }
+
+    return prs;
   }
 }
 

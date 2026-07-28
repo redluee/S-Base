@@ -105,3 +105,12 @@ export interface SessionExercise {
 export interface FullWorkoutSession extends WorkoutSession {
   exercises: SessionExercise[];
 }
+
+export interface PersonalRecord {
+  type: 'weight' | 'reps' | 'sets' | 'volume' | 'distance' | 'duration' | 'session_volume' | 'session_duration' | 'session_exercises';
+  exerciseName?: string;
+  prevValue: number;
+  newValue: number;
+  unit: string;
+}
+

@@ -146,6 +146,10 @@ const app = new Elysia()
         if (!s) return new Response("Not Found", { status: 404 });
         return s;
       })
+      .get("/sessions/:id/prs", ({ params: { id }, query, userId }) => {
+        const duration = query?.duration ? Number(query.duration) : undefined;
+        return workout.getSessionPRs(Number(id), userId, duration);
+      })
       .post("/sessions", async ({ body, userId }) => {
         const { templateId } = (body ?? {}) as any;
         return workout.createSession(userId, templateId ? Number(templateId) : undefined);
