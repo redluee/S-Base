@@ -20,14 +20,8 @@ import { parseDateString } from "@/lib/utils";
 import { WorkoutExerciseCard } from "@/components/workout-exercise-card";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { WorkoutCompletionSummary } from "@/components/workout-completion-summary";
-import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
+import type { FullWorkoutSession, SessionExercise, SessionSet, PersonalRecord } from "@backend/types/shared";
 
-interface PersonalRecord {
-  exerciseName: string;
-  prevWeight: number;
-  newWeight: number;
-  isDistance: boolean;
-}
 
 export function WorkoutSessionLive({
   session: initialSession,
@@ -113,7 +107,8 @@ export function WorkoutSessionLive({
       setSummaryNotes(session.notes || "");
       
       const started = parseDateString(session.startedAt);
-      const diffMs = Date.now() - started.getTime();
+      const completed = session.completedAt ? parseDateString(session.completedAt) : null;
+      const diffMs = completed ? completed.getTime() - started.getTime() : Date.now() - started.getTime();
       const diffSecs = Math.max(0, Math.floor(diffMs / 1000));
       setElapsed(diffSecs);
     }
@@ -146,14 +141,14 @@ export function WorkoutSessionLive({
 
   // Main timer tick
   useEffect(() => {
-    if (!session?.sessionId || isPaused || isSummaryView) return;
+    if (!session?.sessionId || isPaused || isSummaryView || session?.completedAt) return;
 
     const interval = setInterval(() => {
       setElapsed((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [session?.sessionId, isPaused, isSummaryView]);
+  }, [session?.sessionId, isPaused, isSummaryView, session?.completedAt]);
 
   // Rest Timer countdown
   useEffect(() => {
@@ -315,26 +310,31 @@ export function WorkoutSessionLive({
     setSession({ ...session, exercises });
 
     // Instantly sync to backend
-    await api.workouts.sessions.update(session.sessionId, {
-      exercises: exercises.map((ex2) => ({
-        sessionExerciseId: ex2.sessionExerciseId,
-        exerciseName: ex2.exerciseName,
-        sortOrder: ex2.sortOrder,
-        category: ex2.category ?? "resistance",
-        equipment: ex2.equipment ?? "none",
-        sets: ex2.sets?.map((s: SessionSet) => ({
-          setId: s.setId,
-          setNumber: s.setNumber,
-          reps: s.reps ?? 0,
-          weight: s.weight,
-          distance: s.distance,
-          duration: s.duration,
-          rpe: s.rpe,
-          heartRate: s.heartRate,
-          completed: s.completed,
+    try {
+      const s = await api.workouts.sessions.update(session.sessionId, {
+        exercises: exercises.map((ex2) => ({
+          sessionExerciseId: ex2.sessionExerciseId,
+          exerciseName: ex2.exerciseName,
+          sortOrder: ex2.sortOrder,
+          category: ex2.category ?? "resistance",
+          equipment: ex2.equipment ?? "none",
+          sets: ex2.sets?.map((s: SessionSet) => ({
+            setId: s.setId,
+            setNumber: s.setNumber,
+            reps: s.reps ?? 0,
+            weight: s.weight,
+            distance: s.distance,
+            duration: s.duration,
+            rpe: s.rpe,
+            heartRate: s.heartRate,
+            completed: s.completed,
+          })),
         })),
-      })),
-    });
+      });
+      setSession(s);
+    } catch (err) {
+      console.error("Failed to sync sets", err);
+    }
   }
 
   async function toggleSetCompleted(exerciseIndex: number, setIndex: number) {
@@ -388,6 +388,33 @@ export function WorkoutSessionLive({
     }
 
     sets[setIndex] = set;
+    ex.sets = sets;
+    exercises[exerciseIndex] = ex;
+    setSession({ ...session, exercises });
+    await saveExercises(exercises);
+  }
+
+  async function addSet(exerciseIndex: number) {
+    if (!session) return;
+    const exercises = [...(session.exercises ?? [])];
+    const ex = { ...exercises[exerciseIndex] };
+    const sets = [...(ex.sets ?? [])];
+    const lastSet = sets[sets.length - 1];
+    const newSetNum = sets.length + 1;
+
+    const newSet: SessionSet = {
+      setId: undefined as any,
+      setNumber: newSetNum,
+      reps: lastSet?.reps ?? 10,
+      weight: lastSet?.weight ?? null,
+      distance: lastSet?.distance ?? null,
+      duration: lastSet?.duration ?? null,
+      rpe: lastSet?.rpe ?? null,
+      heartRate: lastSet?.heartRate ?? null,
+      completed: 0,
+    };
+
+    sets.push(newSet);
     ex.sets = sets;
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });
@@ -511,10 +538,21 @@ export function WorkoutSessionLive({
     setShowFinishedWarning(false);
     
     // Load PRs details
-    setPersonalRecords([]);
-    api.workouts.stats().then(() => {
-      // Find new records logic could run here
-    });
+    const h = parseInt(summaryHours, 10) || 0;
+    const m = Math.min(59, parseInt(summaryMinutes, 10) || 0);
+    const s = Math.min(59, parseInt(summarySeconds, 10) || 0);
+    const finalSecs = h * 3600 + m * 60 + s;
+
+    if (session) {
+      api.workouts.sessions.getPRs(session.sessionId, finalSecs).then((prs) => {
+        setPersonalRecords(prs);
+      }).catch(err => {
+        console.error("Failed to load PRs", err);
+        setPersonalRecords([]);
+      });
+    } else {
+      setPersonalRecords([]);
+    }
 
     setIsSummaryView(true);
   }
@@ -740,6 +778,7 @@ export function WorkoutSessionLive({
               moveExerciseUpDirect={moveExerciseUpDirect}
               moveExerciseDownDirect={moveExerciseDownDirect}
               updateSet={updateSet}
+              addSet={addSet}
               toggleSetCompleted={toggleSetCompleted}
               removeSet={removeSet}
               previousSetsMap={previousSetsMap}

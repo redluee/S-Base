@@ -24,6 +24,7 @@ export interface WorkoutExerciseCardProps {
   moveExerciseUpDirect: (idx: number) => void;
   moveExerciseDownDirect: (idx: number) => void;
   updateSet: (exIdx: number, setIdx: number, field: keyof SessionSet, value: number | string | null | undefined) => void;
+  addSet: (exIdx: number) => void;
   toggleSetCompleted: (exIdx: number, setIdx: number) => void;
   removeSet: (exIdx: number, setIdx: number) => void;
   previousSetsMap: Record<string, SessionSet[]>;
@@ -166,6 +167,7 @@ export function WorkoutExerciseCard({
   moveExerciseUpDirect,
   moveExerciseDownDirect,
   updateSet,
+  addSet,
   toggleSetCompleted,
   removeSet,
   previousSetsMap,
@@ -813,22 +815,7 @@ export function WorkoutExerciseCard({
       {/* Add Set Button */}
       <Button
         variant="ghost"
-        onClick={() => {
-          const updatedExs = [...ex.sets];
-          const newSetNum = updatedExs.length + 1;
-          const lastSet = updatedExs[updatedExs.length - 1];
-
-          // Add set locally, call parent callback
-          updateSet(exIdx, updatedExs.length, "setId", undefined); // trigger creation
-          updateSet(exIdx, updatedExs.length, "setNumber", newSetNum);
-          updateSet(exIdx, updatedExs.length, "reps", lastSet?.reps ?? 10);
-          updateSet(exIdx, updatedExs.length, "weight", lastSet?.weight ?? null);
-          updateSet(exIdx, updatedExs.length, "distance", lastSet?.distance ?? null);
-          updateSet(exIdx, updatedExs.length, "duration", lastSet?.duration ?? null);
-          updateSet(exIdx, updatedExs.length, "rpe", lastSet?.rpe ?? null);
-          updateSet(exIdx, updatedExs.length, "heartRate", lastSet?.heartRate ?? null);
-          updateSet(exIdx, updatedExs.length, "completed", 0);
-        }}
+        onClick={() => addSet(exIdx)}
         className="w-full border border-dashed border-border/60 text-muted-foreground hover:text-foreground text-xs h-8 rounded-lg transition-colors hover:bg-white/[0.01]"
       >
         <Plus className="size-3.5 mr-1" />

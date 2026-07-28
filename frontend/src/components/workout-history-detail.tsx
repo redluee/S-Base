@@ -7,7 +7,7 @@ import { t } from "@/lib/lang";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil } from "lucide-react";
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 
@@ -84,14 +84,26 @@ export function WorkoutHistoryDetail({ session }: { session: any }) {
             {duration && <span>{duration} min</span>}
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDelete}
-          className="border-destructive text-destructive hover:bg-destructive/10 shrink-0"
-        >
-          <Trash2 className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href={`/workouts/session/${session.sessionId}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-brand/40 text-brand hover:bg-brand/10 hover:text-brand"
+            >
+              <Pencil className="size-4 mr-1.5" />
+              {t("Edit")}
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            className="border-destructive text-destructive hover:bg-destructive/10 shrink-0"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </div>
 
       {session.notes && (

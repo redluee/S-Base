@@ -6,12 +6,83 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { t } from "@/lib/lang";
 
-interface PersonalRecord {
-  exerciseName: string;
-  prevWeight: number;
-  newWeight: number;
-  isDistance: boolean;
+import type { PersonalRecord } from "@backend/types/shared";
+
+function formatPRValue(value: number, unit: string): string {
+  if (unit === "sec") {
+    const hrs = Math.floor(value / 3600);
+    const mins = Math.floor((value % 3600) / 60);
+    const secs = Math.floor(value % 60);
+    if (hrs > 0) {
+      return `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  }
+  if (unit === "exercises" || unit === "sets" || unit === "reps") {
+    return `${value}`;
+  }
+  return `${value} ${unit}`;
 }
+
+function getPRText(pr: PersonalRecord) {
+  const formattedNew = formatPRValue(pr.newValue, pr.unit);
+  const formattedPrev = formatPRValue(pr.prevValue, pr.unit);
+  const prevText = pr.prevValue > 0 ? ` (${t("was")} ${formattedPrev})` : "";
+
+  switch (pr.type) {
+    case "weight":
+      return {
+        label: `${pr.exerciseName}: ${t("Max weight")}`,
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "reps":
+      return {
+        label: `${pr.exerciseName}: ${t("Max reps")}`,
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "sets":
+      return {
+        label: `${pr.exerciseName}: ${t("Max sets")}`,
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "volume":
+      return {
+        label: `${pr.exerciseName}: ${t("Max volume")}`,
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "distance":
+      return {
+        label: `${pr.exerciseName}: ${t("Max distance")}`,
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "duration":
+      return {
+        label: `${pr.exerciseName}: ${t("Max duration")}`,
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "session_volume":
+      return {
+        label: t("Total workout volume"),
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "session_duration":
+      return {
+        label: t("Workout duration"),
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    case "session_exercises":
+      return {
+        label: t("Exercises completed"),
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+    default:
+      return {
+        label: pr.exerciseName || "Record",
+        value: `🏆 ${formattedNew}${prevText}`
+      };
+  }
+}
+
 
 interface WorkoutCompletionSummaryProps {
   sessionName: string;
@@ -153,17 +224,20 @@ export function WorkoutCompletionSummary({
               {t("New PRs Set!")}
             </h3>
             <div className="flex flex-col gap-1.5">
-              {personalRecords.map((pr, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/20 text-xs sm:text-sm text-amber-200"
-                >
-                  <span className="font-medium">{pr.exerciseName}</span>
-                  <span className="font-semibold text-amber-400">
-                    🏆 {pr.newWeight} {pr.isDistance ? "km" : "kg"} (Beat {pr.prevWeight} {pr.isDistance ? "km" : "kg"}!)
-                  </span>
-                </div>
-              ))}
+              {personalRecords.map((pr, idx) => {
+                const { label, value } = getPRText(pr);
+                return (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/20 text-xs sm:text-sm text-amber-200"
+                  >
+                    <span className="font-medium text-left mr-2">{label}</span>
+                    <span className="font-semibold text-amber-400 whitespace-nowrap text-right">
+                      {value}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

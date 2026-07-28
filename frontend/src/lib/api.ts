@@ -5,6 +5,7 @@ import type {
   FullWorkoutTemplate,
   WorkoutSession,
   FullWorkoutSession,
+  PersonalRecord,
 } from "@backend/types/shared";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -136,6 +137,9 @@ export const api = {
           method: "PATCH",
           body: completedAt ? JSON.stringify({ completedAt }) : undefined,
         }),
+
+      getPRs: (id: number, duration?: number) =>
+        request<PersonalRecord[]>(`/workouts/sessions/${id}/prs${duration !== undefined ? `?duration=${duration}` : ""}`),
 
       delete: (id: number) =>
         request<{ deleted: boolean }>(`/workouts/sessions/${id}`, { method: "DELETE" }),
