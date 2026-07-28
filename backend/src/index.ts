@@ -11,19 +11,19 @@ const workout = new WorkoutService();
 
 function createAuthPlugin(moduleName: string) {
   return new Elysia({ name: `auth-${moduleName}` })
-    .derive(({ cookie: { session_id } }) => {
+    .derive({ as: "scoped" }, ({ cookie: { session_id } }) => {
       const sid = session_id?.value;
       if (!sid) return { user: null };
       const sessionInfo = auth.validateSession(sid);
       return { user: sessionInfo };
     })
-    .onBeforeHandle(({ user }) => {
+    .onBeforeHandle({ as: "scoped" }, ({ user }) => {
       if (!user) return new Response("Unauthorized", { status: 401 });
       if (!auth.moduleAccessCheck(user.userId, moduleName)) {
         return new Response("Forbidden", { status: 403 });
       }
     })
-    .derive(({ user }) => {
+    .derive({ as: "scoped" }, ({ user }) => {
       return { userId: user!.userId, username: user!.username };
     });
 }

@@ -19,10 +19,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     let message = res.statusText;
     try {
-      const json = await res.json();
-      message = json.error || message;
+      const text = await res.clone().text();
+      try {
+        const json = JSON.parse(text);
+        message = json.error || message;
+      } catch {
+        message = text || message;
+      }
     } catch {
-      message = await res.text() || message;
+      // fallback if cloning/text reading fails
     }
     throw new Error(message);
   }
