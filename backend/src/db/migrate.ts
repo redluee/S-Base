@@ -25,8 +25,9 @@ async function migrate() {
     }
 
     console.log("Migration complete.");
-  } catch {
+  } catch (error) {
     // If directory doesn't exist, use drizzle-kit push
+    console.error("Migration error:", error);
     console.log("No SQL migrations found. Use 'drizzle-kit push' for schema sync.");
   }
 }

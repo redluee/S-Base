@@ -3,11 +3,52 @@ import { cors } from "@elysiajs/cors";
 import { AuthService } from "./auth";
 import { RecipeService } from "./modules/recipes";
 import { WorkoutService } from "./modules/workout";
+import { MeasurementService } from "./modules/measurements";
+import db from "./db/client";
+import { modules, usermodulepermissions, users } from "./db/schema";
+import { eq, and } from "drizzle-orm";
+import { join } from "path";
+import { mkdir } from "fs/promises";
 
 const PORT = 3001;
 const auth = new AuthService();
 const recipes = new RecipeService();
 const workout = new WorkoutService();
+const measurements = new MeasurementService();
+
+// Auto-register measurements module and grant access to existing users
+try {
+  const hasModule = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
+  if (!hasModule) {
+    db.insert(modules).values({
+      moduleName: "measurements",
+      moduleAlias: "Metingen",
+      description: "Module for body measurements",
+    }).run();
+    console.log("Registered 'measurements' module in DB.");
+  }
+  
+  const m = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
+  if (m) {
+    const allUsers = db.select().from(users).all();
+    for (const u of allUsers) {
+      const hasPermission = db.select()
+        .from(usermodulepermissions)
+        .where(and(eq(usermodulepermissions.userId, u.userId), eq(usermodulepermissions.moduleId, m.moduleId)))
+        .get();
+      if (!hasPermission) {
+        db.insert(usermodulepermissions).values({
+          userId: u.userId,
+          moduleId: m.moduleId,
+        }).run();
+        console.log(`Granted 'measurements' permission to user: ${u.username}`);
+      }
+    }
+  }
+} catch (e) {
+  console.error("Failed to auto-register measurements module:", e);
+}
+
 
 function createAuthPlugin(moduleName: string) {
   return new Elysia({ name: `auth-${moduleName}` })
@@ -30,6 +71,7 @@ function createAuthPlugin(moduleName: string) {
 
 const recipeAuth = createAuthPlugin("recipes");
 const workoutAuth = createAuthPlugin("workout");
+const measurementsAuth = createAuthPlugin("measurements");
 
 const app = new Elysia()
   .use(cors({ origin: "http://localhost:3000", credentials: true }))
@@ -190,6 +232,60 @@ const app = new Elysia()
         return workout.exerciseProgress(userId, decodeURIComponent(name), query?.equipment as string | undefined);
       })
   )
+  
+  // --- Measurements routes ---
+  .group("/api/measurements", (app) =>
+    app
+      .use(workoutAuth)
+      .get("/", ({ userId }) => {
+        return measurements.list(userId);
+      })
+      .get("/latest", ({ userId }) => {
+        return measurements.getLatest(userId);
+      })
+      .post("/", async ({ body, userId }) => {
+        return measurements.save(userId, body as any);
+      })
+      .delete("/:id", async ({ params: { id }, userId }) => {
+        const success = await measurements.deleteMeasurement(Number(id), userId);
+        if (!success) return new Response("Not Found", { status: 404 });
+        return { success: true };
+      })
+      .post("/:id/photos", async ({ params: { id }, body }) => {
+        const { filePath } = body as { filePath: string };
+        return measurements.addPhoto(Number(id), filePath);
+      })
+      .post("/upload", async ({ body }) => {
+        const { file } = (body ?? {}) as any;
+        if (!file) {
+          return new Response("No file uploaded", { status: 400 });
+        }
+        const uploadsDir = join(import.meta.dir, "../uploads");
+        await mkdir(uploadsDir, { recursive: true });
+        
+        const ext = file.name ? file.name.split(".").pop() : "jpg";
+        const filename = `${crypto.randomUUID()}.${ext}`;
+        const filePath = join(uploadsDir, filename);
+        
+        await Bun.write(filePath, file);
+        return { filePath: `/api/uploads/${filename}` };
+      })
+      .delete("/photos/:photoId", async ({ params: { photoId }, userId }) => {
+        const success = await measurements.deletePhoto(Number(photoId), userId);
+        if (!success) return new Response("Not Found or Forbidden", { status: 404 });
+        return { success: true };
+      })
+  )
+
+  // Serve uploads
+  .get("/api/uploads/:filename", async ({ params: { filename } }) => {
+    const filePath = join(import.meta.dir, "../uploads", filename);
+    const file = Bun.file(filePath);
+    if (await file.exists()) {
+      return new Response(file);
+    }
+    return new Response("Not Found", { status: 404 });
+  })
 
   .listen(PORT);
 
