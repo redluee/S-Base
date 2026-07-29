@@ -295,7 +295,7 @@ export default function MeasurementsPage() {
 
     const width = 600;
     const height = 240;
-    const padding = 40;
+    const padding = 50;
 
     let getVal1: (m: Measurement) => number = () => 0;
     let getVal2: (m: Measurement) => number = () => 0; 
@@ -358,7 +358,7 @@ export default function MeasurementsPage() {
               </span>
             )}
           </div>
-          <span className="text-[10px] text-zinc-500 font-medium">
+          <span className="text-xs text-zinc-500 font-semibold">
             {chartData[0].date} t/m {chartData[chartData.length - 1].date}
           </span>
         </div>
@@ -370,9 +370,9 @@ export default function MeasurementsPage() {
           <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#3f3f46" strokeWidth={1} />
 
           {/* Y Axis labels */}
-          <text x={padding - 10} y={padding + 4} fill="#71717a" fontSize={10} textAnchor="end">{maxVal.toFixed(1)}</text>
-          <text x={padding - 10} y={height / 2 + 4} fill="#71717a" fontSize={10} textAnchor="end">{((maxVal + minVal) / 2).toFixed(1)}</text>
-          <text x={padding - 10} y={height - padding + 4} fill="#71717a" fontSize={10} textAnchor="end">{minVal.toFixed(1)}</text>
+          <text x={padding - 12} y={padding + 5} fill="#a1a1aa" fontSize={14} fontWeight="bold" textAnchor="end">{maxVal.toFixed(1)}</text>
+          <text x={padding - 12} y={height / 2 + 5} fill="#a1a1aa" fontSize={14} fontWeight="bold" textAnchor="end">{((maxVal + minVal) / 2).toFixed(1)}</text>
+          <text x={padding - 12} y={height - padding + 5} fill="#a1a1aa" fontSize={14} fontWeight="bold" textAnchor="end">{minVal.toFixed(1)}</text>
 
           {/* Area Fill for line 1 */}
           {areaD1 && (
@@ -390,10 +390,10 @@ export default function MeasurementsPage() {
           {/* Dots and Tooltips for Line 1 */}
           {points1.map((p, idx) => (
             <g key={`d1-${idx}`} className="group/dot cursor-pointer">
-              <circle cx={p.x} cy={p.y} r={4} fill="#00e3a4" stroke="#09090b" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
+              <circle cx={p.x} cy={p.y} r={4.5} fill="#00e3a4" stroke="#09090b" strokeWidth={1.5} className="transition-all group-hover/dot:r-7" />
               <g className="opacity-0 group-hover/dot:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <rect x={p.x - 45} y={p.y - 36} width={90} height={26} rx={6} fill="#18181b" stroke="#27272a" strokeWidth={1} />
-                <text x={p.x} y={p.y - 20} fill="#ffffff" fontSize={10} fontWeight="bold" textAnchor="middle">
+                <rect x={p.x - 55} y={p.y - 42} width={110} height={30} rx={6} fill="#18181b" stroke="#27272a" strokeWidth={1.5} />
+                <text x={p.x} y={p.y - 22} fill="#ffffff" fontSize={13} fontWeight="bold" textAnchor="middle">
                   {p.val.toFixed(1)} ({p.date.split("-").slice(1).join("-")})
                 </text>
               </g>
@@ -403,10 +403,10 @@ export default function MeasurementsPage() {
           {/* Dots and Tooltips for Line 2 */}
           {points2.map((p, idx) => (
             <g key={`d2-${idx}`} className="group/dot cursor-pointer">
-              <circle cx={p.x} cy={p.y} r={4} fill="#f59e0b" stroke="#09090b" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
+              <circle cx={p.x} cy={p.y} r={4.5} fill="#f59e0b" stroke="#09090b" strokeWidth={1.5} className="transition-all group-hover/dot:r-7" />
               <g className="opacity-0 group-hover/dot:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <rect x={p.x - 45} y={p.y - 36} width={90} height={26} rx={6} fill="#18181b" stroke="#27272a" strokeWidth={1} />
-                <text x={p.x} y={p.y - 20} fill="#ffffff" fontSize={10} fontWeight="bold" textAnchor="middle">
+                <rect x={p.x - 55} y={p.y - 42} width={110} height={30} rx={6} fill="#18181b" stroke="#27272a" strokeWidth={1.5} />
+                <text x={p.x} y={p.y - 22} fill="#ffffff" fontSize={13} fontWeight="bold" textAnchor="middle">
                   {p.val.toFixed(1)} ({p.date.split("-").slice(1).join("-")})
                 </text>
               </g>
