@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { useState, useEffect, useRef } from "react";
@@ -90,7 +91,7 @@ export function DashboardClient({ username }: { username: string }) {
       {/* Cards Grid */}
       <nav className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-16 z-10">
         {/* Workout Studio Card */}
-        <a
+        <Link
           href="/workouts"
           className="group relative flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-teal-950/15 via-zinc-900/60 to-emerald-950/10 border border-white/5 hover:border-brand/40 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(0,227,164,0.15)]"
         >
@@ -109,10 +110,10 @@ export function DashboardClient({ username }: { username: string }) {
             <span>{t("Start training")}</span>
             <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
           </div>
-        </a>
+        </Link>
 
         {/* Taste Tracker Card */}
-        <a
+        <Link
           href="/recipes"
           className="group relative flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-950/15 via-zinc-900/60 to-orange-950/10 border border-white/5 hover:border-amber-500/40 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(245,158,11,0.15)]"
         >
@@ -131,7 +132,7 @@ export function DashboardClient({ username }: { username: string }) {
             <span>{recipeCount !== null ? `${recipeCount} ${recipeCount === 1 ? "recept" : "recepten"}` : t("Taste tracker")}</span>
             <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
           </div>
-        </a>
+        </Link>
 
         {isSpecialUser && (
           <>

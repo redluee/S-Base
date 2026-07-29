@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
 import { MotivationalQuote } from "@/components/motivational-quote";
 import { t } from "@/lib/lang";
-import { Dumbbell, Calendar } from "lucide-react";
+import { Dumbbell, Calendar, Scale } from "lucide-react";
 
 export default async function WorkoutsPage() {
   let user: { id: number; username: string } | null = null;
@@ -38,6 +38,12 @@ export default async function WorkoutsPage() {
               <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
                 <Calendar className="size-3.5 sm:size-4 text-brand" />
                 <span className="hidden sm:inline">{t("History")}</span>
+              </Button>
+            </Link>
+            <Link href="/workouts/measurements">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
+                <Scale className="size-3.5 sm:size-4 text-brand" />
+                <span className="hidden sm:inline">{t("Weight & Measurements")}</span>
               </Button>
             </Link>
           </div>
