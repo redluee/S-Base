@@ -8,6 +8,26 @@ import type {
   PersonalRecord,
 } from "@backend/types/shared";
 
+export interface MeasurementPhoto {
+  photoId: number;
+  measurementId: number;
+  filePath: string;
+  createdAt: string;
+}
+
+export interface Measurement {
+  measurementId: number;
+  userId: number;
+  date: string;
+  height: number | null;
+  weight: number | null;
+  bodyFat: number | null;
+  skeletalMuscle: number | null;
+  fatMass: number | null;
+  createdAt: string;
+  photos: MeasurementPhoto[];
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     credentials: "include",
@@ -200,6 +220,39 @@ export const api = {
       ),
     stats: () =>
       request<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
+  },
+
+  measurements: {
+    list: () =>
+      request<Measurement[]>("/measurements"),
+    latest: () =>
+      request<Measurement | null>("/measurements/latest"),
+    save: (data: Partial<Measurement>) =>
+      request<Measurement>("/measurements", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<{ success: boolean }>(`/measurements/${id}`, {
+        method: "DELETE",
+      }),
+    uploadPhoto: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/measurements/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(res.statusText);
+      }
+      return res.json() as Promise<{ filePath: string }>;
+    },
+    deletePhoto: (photoId: number) =>
+      request<{ success: boolean }>(`/measurements/photos/${photoId}`, {
+        method: "DELETE",
+      }),
   },
 };
 

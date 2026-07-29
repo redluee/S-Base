@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { Measurement } from "./api";
 import type {
   Recipe,
   FullRecipe,
@@ -94,6 +95,11 @@ export const serverApi = {
     },
     stats: () =>
       serverFetch<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
+  },
+
+  measurements: {
+    list: () => serverFetch<Measurement[]>("/measurements"),
+    latest: () => serverFetch<Measurement | null>("/measurements/latest"),
   },
 };
 
