@@ -43,6 +43,13 @@
       "when": 1783015601102,
       "tag": "0005_gorgeous_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785327293763,
+      "tag": "0006_new_jamie_braddock",
+      "breakpoints": true
     }
   ]
 }
