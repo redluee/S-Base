@@ -107,6 +107,7 @@ const nl: Record<string, string> = {
   "Exercises": "Oefeningen",
   "No exercises yet. Click \"Add\" to get started.": "Nog geen oefeningen. Klik op \"Toevoegen\" om te beginnen.",
   "Add exercise": "Oefening toevoegen",
+  'Add "{name}"': 'Voeg "{name}" toe',
   "Start workout": "Start training",
   "Quick start": "Snelle start",
   "No templates yet.": "Nog geen sjablonen.",

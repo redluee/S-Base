@@ -110,6 +110,10 @@ export function ExerciseAutocomplete({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const showCustomOption = value.trim().length > 0 && !suggestions.some(
+    (s) => s.value.toLowerCase() === value.trim().toLowerCase()
+  );
+
   function select(suggestion: Suggestion) {
     onSelect(
       suggestion.value,
@@ -127,8 +131,10 @@ export function ExerciseAutocomplete({
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    const totalLength = suggestions.length + (showCustomOption ? 1 : 0);
+
     if (!open) {
-      if (e.key === "ArrowDown" && suggestions.length > 0) {
+      if (e.key === "ArrowDown" && totalLength > 0) {
         setOpen(true);
         setActiveIndex(0);
         e.preventDefault();
@@ -139,16 +145,27 @@ export function ExerciseAutocomplete({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setActiveIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+        setActiveIndex((prev) => (prev < totalLength - 1 ? prev + 1 : 0));
         break;
       case "ArrowUp":
         e.preventDefault();
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : totalLength - 1));
         break;
       case "Enter":
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < suggestions.length) {
           select(suggestions[activeIndex]);
+        } else if (activeIndex === suggestions.length && showCustomOption) {
+          select({ value: value.trim(), defaultSets: 1, defaultReps: 10 });
+        } else if (activeIndex === -1 && value.trim().length > 0) {
+          const exactMatch = suggestions.find(
+            (s) => s.value.toLowerCase() === value.trim().toLowerCase()
+          );
+          if (exactMatch) {
+            select(exactMatch);
+          } else {
+            select({ value: value.trim(), defaultSets: 1, defaultReps: 10 });
+          }
         }
         break;
       case "Escape":
@@ -168,7 +185,9 @@ export function ExerciseAutocomplete({
           setOpen(true);
         }}
         onFocus={() => {
-          if (suggestions.length > 0) setOpen(true);
+          if (suggestions.length > 0 || (value.trim().length > 0 && !suggestions.some(s => s.value.toLowerCase() === value.trim().toLowerCase()))) {
+            setOpen(true);
+          }
         }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder ?? t("Exercise")}
@@ -178,7 +197,7 @@ export function ExerciseAutocomplete({
         )}
       />
       {open &&
-        suggestions.length > 0 &&
+        (suggestions.length > 0 || showCustomOption) &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -201,6 +220,20 @@ export function ExerciseAutocomplete({
                 <span className="flex-1">{suggestion.value}</span>
               </button>
             ))}
+            {showCustomOption && (
+              <button
+                type="button"
+                onClick={() => select({ value: value.trim(), defaultSets: 1, defaultReps: 10 })}
+                onMouseEnter={() => setActiveIndex(suggestions.length)}
+                className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 ${
+                  suggestions.length === activeIndex
+                    ? "bg-accent text-accent-foreground"
+                    : "text-brand hover:bg-accent/50 font-medium"
+                }`}
+              >
+                <span className="flex-1">{t('Add "{name}"', { name: value.trim() })}</span>
+              </button>
+            )}
           </div>,
           document.body,
         )}
