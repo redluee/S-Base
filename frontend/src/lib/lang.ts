@@ -269,6 +269,8 @@ const nl: Record<string, string> = {
   "Skeletal Muscle": "Skeletspier",
   "Fat Mass": "Vetmassa",
   "Height": "Lengte",
+  "Sets with 0 reps": "Sets met 0 herhalingen",
+  "You have completed sets with 0 reps. Do you want to finish anyway?": "Je hebt voltooide sets met 0 herhalingen. Wil je toch afronden?",
 };
 
 

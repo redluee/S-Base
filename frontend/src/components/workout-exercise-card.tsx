@@ -79,6 +79,7 @@ export interface WorkoutExerciseCardProps {
   startRestTimer: (exIdx: number, setIdx: number, customTime?: number) => void;
   stopRestTimer: () => void;
   adjustRestTimer: (seconds: number) => void;
+  highlightZeroReps?: boolean;
 }
 
 function BarbellIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -222,6 +223,7 @@ export function WorkoutExerciseCard({
   startRestTimer,
   stopRestTimer,
   adjustRestTimer,
+  highlightZeroReps,
 }: WorkoutExerciseCardProps) {
   const [rpePickerPos, setRpePickerPos] = useState<{ exIdx: number; setIdx: number; top: number; left: number; width: number } | null>(null);
   const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: SessionSet) => s.completed === 1);
@@ -560,7 +562,11 @@ export function WorkoutExerciseCard({
                               placeholder={prevSet?.reps != null ? String(prevSet.reps) : "0"}
                               value={set.reps}
                               onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                highlightZeroReps && set.completed === 1 && (set.reps === 0 || set.reps === null)
+                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                  : "border-border/80 focus-visible:border-brand/40"
+                              }`}
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
@@ -636,7 +642,11 @@ export function WorkoutExerciseCard({
                               placeholder={prevSet?.reps != null ? String(prevSet.reps) : "0"}
                               value={set.reps}
                               onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                highlightZeroReps && set.completed === 1 && (set.reps === 0 || set.reps === null)
+                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                  : "border-border/80 focus-visible:border-brand/40"
+                              }`}
                             />
                           </td>
                         </>

@@ -69,6 +69,8 @@ export function WorkoutSessionLive({
   // Finished / Summary View state
   const [isSummaryView, setIsSummaryView] = useState(false);
   const [showFinishedWarning, setShowFinishedWarning] = useState(false);
+  const [showZeroRepsWarning, setShowZeroRepsWarning] = useState(false);
+  const [highlightZeroReps, setHighlightZeroReps] = useState(false);
   const [summaryNotes, setSummaryNotes] = useState("");
   const [summaryHours, setSummaryHours] = useState("0");
   const [summaryMinutes, setSummaryMinutes] = useState("0");
@@ -520,6 +522,40 @@ export function WorkoutSessionLive({
 
   // Handle final completion
   function handleFinishClick() {
+    // Set duration fields first
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    setSummaryHours(String(h));
+    setSummaryMinutes(String(m));
+    setSummarySeconds(String(s));
+
+    // Check if there are any completed sets with 0/null reps
+    let hasZeroSets = false;
+    if (session?.exercises) {
+      for (const ex of session.exercises) {
+        if (ex.sets?.some((s) => s.completed === 1 && (s.reps === 0 || s.reps === null))) {
+          hasZeroSets = true;
+          break;
+        }
+      }
+    }
+
+    if (hasZeroSets) {
+      setHighlightZeroReps(true);
+      setShowZeroRepsWarning(true);
+    } else {
+      setHighlightZeroReps(false);
+      checkIncompleteAndProceed();
+    }
+  }
+
+  function handleZeroRepsConfirm() {
+    setShowZeroRepsWarning(false);
+    checkIncompleteAndProceed();
+  }
+
+  function checkIncompleteAndProceed() {
     // Check if there are any incomplete sets
     let hasIncomplete = false;
     if (session?.exercises) {
@@ -530,14 +566,6 @@ export function WorkoutSessionLive({
         }
       }
     }
-
-    // Set duration fields
-    const h = Math.floor(elapsed / 3600);
-    const m = Math.floor((elapsed % 3600) / 60);
-    const s = elapsed % 60;
-    setSummaryHours(String(h));
-    setSummaryMinutes(String(m));
-    setSummarySeconds(String(s));
 
     if (hasIncomplete) {
       setShowFinishedWarning(true);
@@ -860,7 +888,8 @@ export function WorkoutSessionLive({
               startRestTimer={startRestTimer}
               stopRestTimer={stopRestTimer}
               adjustRestTimer={adjustRestTimer}
-                          />
+              highlightZeroReps={highlightZeroReps}
+            />
           ))}
 
           <div className="mt-4 flex flex-col items-center justify-center">
@@ -936,7 +965,25 @@ export function WorkoutSessionLive({
         </div>
       )}
 
-
+      {/* Zero reps warning modal */}
+      {showZeroRepsWarning && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 w-full max-w-sm flex flex-col gap-4 text-center">
+            <h3 className="font-bold text-lg text-foreground">{t("Sets with 0 reps")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("You have completed sets with 0 reps. Do you want to finish anyway?")}
+            </p>
+            <div className="flex gap-2 justify-center mt-2">
+              <Button onClick={() => setShowZeroRepsWarning(false)} className="bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 w-24">
+                {t("Cancel")}
+              </Button>
+              <Button onClick={handleZeroRepsConfirm} className="bg-brand text-zinc-950 font-bold hover:bg-brand-hover w-24">
+                {t("Finish")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Exercise History View Modal Overlay */}
       {historyExerciseName && (
