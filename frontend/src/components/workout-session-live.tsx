@@ -91,12 +91,13 @@ export function WorkoutSessionLive({
     try {
       const s = await api.workouts.sessions.create();
       setSession(s);
+      router.replace(`/workouts/session/${s.sessionId}`);
     } catch (err) {
       console.error("Failed to create session", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!session) {
