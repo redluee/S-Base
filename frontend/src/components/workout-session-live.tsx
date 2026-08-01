@@ -79,6 +79,10 @@ export function WorkoutSessionLive({
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
   const bypassWarningRef = useRef(false);
 
+  // Synchronization queue and version tracking to avoid concurrent API race conditions
+  const syncVersionRef = useRef(0);
+  const syncPromiseChain = useRef<Promise<unknown>>(Promise.resolve());
+
   // Fetch initial session if not provided
   const createSession = useCallback(async () => {
     setLoading(true);
@@ -175,7 +179,7 @@ export function WorkoutSessionLive({
   // Alert on window leave
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (bypassWarningRef.current || !session || isSummaryView) return;
+      if (bypassWarningRef.current || !session || isSummaryView || session.completedAt) return;
       e.preventDefault();
       e.returnValue = t("You have an active workout. Leaving will lose unsaved progress.");
       return e.returnValue;
@@ -217,37 +221,70 @@ export function WorkoutSessionLive({
     setRestTotalSeconds((prev) => Math.max(0, prev + seconds));
   }
 
+  async function updateElapsedSeconds(newSeconds: number) {
+    setElapsed(newSeconds);
+    const h = Math.floor(newSeconds / 3600);
+    const m = Math.floor((newSeconds % 3600) / 60);
+    const s = newSeconds % 60;
+    setSummaryHours(String(h));
+    setSummaryMinutes(String(m));
+    setSummarySeconds(String(s));
+
+    if (!session) return;
+    try {
+      const startedTime = parseDateString(session.startedAt).getTime();
+      const finalCompletedAt = new Date(startedTime + newSeconds * 1000).toISOString();
+      const sRes = await api.workouts.sessions.update(session.sessionId, {
+        completedAt: finalCompletedAt,
+      });
+      setSession(sRes);
+    } catch (err) {
+      console.error("Failed to update elapsed time", err);
+    }
+  }
+
   // API operations
   async function saveExercises(exercises: SessionExercise[]) {
     if (!session) return;
     setSaving(true);
-    try {
-      const s = await api.workouts.sessions.update(session.sessionId, {
-        exercises: exercises.map((ex) => ({
-          sessionExerciseId: ex.sessionExerciseId,
-          exerciseName: ex.exerciseName,
-          sortOrder: ex.sortOrder,
-          category: ex.category ?? "resistance",
-          equipment: ex.equipment ?? "none",
-          sets: ex.sets?.map((s: SessionSet) => ({
-            setId: s.setId,
-            setNumber: s.setNumber,
-            reps: s.reps ?? 0,
-            weight: s.weight,
-            distance: s.distance,
-            duration: s.duration,
-            rpe: s.rpe,
-            heartRate: s.heartRate,
-            completed: s.completed,
+    const currentVersion = ++syncVersionRef.current;
+
+    syncPromiseChain.current = syncPromiseChain.current.then(async () => {
+      try {
+        const s = await api.workouts.sessions.update(session.sessionId, {
+          exercises: exercises.map((ex) => ({
+            sessionExerciseId: ex.sessionExerciseId,
+            exerciseName: ex.exerciseName,
+            sortOrder: ex.sortOrder,
+            category: ex.category ?? "resistance",
+            equipment: ex.equipment ?? "none",
+            sets: ex.sets?.map((s: SessionSet) => ({
+              setId: s.setId,
+              setNumber: s.setNumber,
+              reps: s.reps ?? null,
+              weight: s.weight,
+              distance: s.distance,
+              duration: s.duration,
+              rpe: s.rpe,
+              heartRate: s.heartRate,
+              completed: s.completed,
+            })),
           })),
-        })),
-      });
-      setSession(s);
-    } catch (err) {
-      console.error("Failed to sync exercises", err);
-    } finally {
-      setSaving(false);
-    }
+        });
+
+        if (currentVersion === syncVersionRef.current) {
+          setSession(s);
+        }
+      } catch (err) {
+        console.error("Failed to sync exercises", err);
+      } finally {
+        if (currentVersion === syncVersionRef.current) {
+          setSaving(false);
+        }
+      }
+    });
+
+    await syncPromiseChain.current;
   }
 
   async function saveWorkoutTitle() {
@@ -309,32 +346,7 @@ export function WorkoutSessionLive({
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });
 
-    // Instantly sync to backend
-    try {
-      const s = await api.workouts.sessions.update(session.sessionId, {
-        exercises: exercises.map((ex2) => ({
-          sessionExerciseId: ex2.sessionExerciseId,
-          exerciseName: ex2.exerciseName,
-          sortOrder: ex2.sortOrder,
-          category: ex2.category ?? "resistance",
-          equipment: ex2.equipment ?? "none",
-          sets: ex2.sets?.map((s: SessionSet) => ({
-            setId: s.setId,
-            setNumber: s.setNumber,
-            reps: s.reps ?? 0,
-            weight: s.weight,
-            distance: s.distance,
-            duration: s.duration,
-            rpe: s.rpe,
-            heartRate: s.heartRate,
-            completed: s.completed,
-          })),
-        })),
-      });
-      setSession(s);
-    } catch (err) {
-      console.error("Failed to sync sets", err);
-    }
+    await saveExercises(exercises);
   }
 
   async function toggleSetCompleted(exerciseIndex: number, setIndex: number) {
@@ -602,7 +614,12 @@ export function WorkoutSessionLive({
 
   function handleBackClick(e: React.MouseEvent) {
     e.preventDefault();
-    setShowLeaveWarning(true);
+    if (session?.completedAt) {
+      bypassWarningRef.current = true;
+      router.push(`/workouts/history/${session.sessionId}`);
+    } else {
+      setShowLeaveWarning(true);
+    }
   }
 
   function confirmLeave() {
@@ -701,15 +718,62 @@ export function WorkoutSessionLive({
           <div className="flex items-center gap-3 justify-between sm:justify-end shrink-0">
             <div className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-lg">
               <Timer className="size-4 text-brand" />
-              <span className="font-mono text-base tabular-nums font-semibold text-zinc-200">
-                {formatTime(elapsed)}
-              </span>
-              <button
-                onClick={togglePause}
-                className="ml-1 p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {isPaused ? <Play className="size-3.5 text-brand" /> : <Pause className="size-3.5" />}
-              </button>
+              {session.completedAt ? (
+                <div className="flex items-center gap-1 font-mono text-base font-semibold text-zinc-200">
+                  <input
+                    type="number"
+                    value={Math.floor(elapsed / 3600)}
+                    onChange={(e) => {
+                      const h = Math.max(0, parseInt(e.target.value) || 0);
+                      const m = Math.floor((elapsed % 3600) / 60);
+                      const s = elapsed % 60;
+                      updateElapsedSeconds(h * 3600 + m * 60 + s);
+                    }}
+                    className="w-7 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    min="0"
+                  />
+                  <span className="text-zinc-500">:</span>
+                  <input
+                    type="number"
+                    value={Math.floor((elapsed % 3600) / 60)}
+                    onChange={(e) => {
+                      const h = Math.floor(elapsed / 3600);
+                      const m = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
+                      const s = elapsed % 60;
+                      updateElapsedSeconds(h * 3600 + m * 60 + s);
+                    }}
+                    className="w-7 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    min="0"
+                    max="59"
+                  />
+                  <span className="text-zinc-500">:</span>
+                  <input
+                    type="number"
+                    value={elapsed % 60}
+                    onChange={(e) => {
+                      const h = Math.floor(elapsed / 3600);
+                      const m = Math.floor((elapsed % 3600) / 60);
+                      const s = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
+                      updateElapsedSeconds(h * 3600 + m * 60 + s);
+                    }}
+                    className="w-7 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    min="0"
+                    max="59"
+                  />
+                </div>
+              ) : (
+                <>
+                  <span className="font-mono text-base tabular-nums font-semibold text-zinc-200">
+                    {formatTime(elapsed)}
+                  </span>
+                  <button
+                    onClick={togglePause}
+                    className="ml-1 p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isPaused ? <Play className="size-3.5 text-brand" /> : <Pause className="size-3.5" />}
+                  </button>
+                </>
+              )}
             </div>
 
             <Button
@@ -796,7 +860,7 @@ export function WorkoutSessionLive({
               startRestTimer={startRestTimer}
               stopRestTimer={stopRestTimer}
               adjustRestTimer={adjustRestTimer}
-            />
+                          />
           ))}
 
           <div className="mt-4 flex flex-col items-center justify-center">
@@ -871,6 +935,8 @@ export function WorkoutSessionLive({
           </div>
         </div>
       )}
+
+
 
       {/* Exercise History View Modal Overlay */}
       {historyExerciseName && (

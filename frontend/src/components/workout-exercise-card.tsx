@@ -1,12 +1,49 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Dumbbell, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
 import { t } from "@/lib/lang";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
+
+interface AutoSaveInputProps extends Omit<React.ComponentProps<typeof Input>, "value" | "onChange"> {
+  value: number | string | null | undefined;
+  onSave: (val: string) => void;
+}
+
+function AutoSaveInput({ value, onSave, ...props }: AutoSaveInputProps) {
+  const [localValue, setLocalValue] = useState<string>("");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalValue(value != null ? String(value) : "");
+  }, [value]);
+
+  const handleBlur = () => {
+    const canonicalProp = value != null ? String(value) : "";
+    if (localValue !== canonicalProp) {
+      onSave(localValue);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <Input
+      {...props}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+    />
+  );
+}
 
 export interface WorkoutExerciseCardProps {
   ex: SessionExercise;
@@ -504,25 +541,25 @@ export function WorkoutExerciseCard({
                       {(cat === "resistance") && (
                         <>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               step="any"
                               inputMode="decimal"
                               placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                              value={set.weight ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
+                              value={set.weight}
+                              onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               inputMode="numeric"
-                              placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
-                              value={set.reps ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Math.max(0, Number(e.target.value)) : 0)}
+                              placeholder={prevSet?.reps != null ? String(prevSet.reps) : "0"}
+                              value={set.reps}
+                              onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
@@ -581,24 +618,24 @@ export function WorkoutExerciseCard({
                       {cat === "bodyweight" && (
                         <>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               step="any"
                               placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                              value={set.weight ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
+                              value={set.weight}
+                              onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               inputMode="numeric"
-                              placeholder={prevSet?.reps != null ? String(prevSet.reps) : "10"}
-                              value={set.reps ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "reps", e.target.value ? Math.max(0, Number(e.target.value)) : 0)}
+                              placeholder={prevSet?.reps != null ? String(prevSet.reps) : "0"}
+                              value={set.reps}
+                              onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
@@ -608,32 +645,32 @@ export function WorkoutExerciseCard({
                       {cat === "cardio" && (
                         <>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               step="any"
                               placeholder={prevSet?.distance != null ? String(prevSet.distance) : "0.0"}
-                              value={set.distance ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "distance", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
+                              value={set.distance}
+                              onSave={(val) => updateSet(exIdx, setIdx, "distance", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="text"
                               placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
                               value={set.duration != null ? formatSecs(set.duration) : ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
+                              onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               placeholder={prevSet?.heartRate != null ? String(prevSet.heartRate) : "140"}
-                              value={set.heartRate ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "heartRate", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
+                              value={set.heartRate}
+                              onSave={(val) => updateSet(exIdx, setIdx, "heartRate", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
@@ -643,22 +680,22 @@ export function WorkoutExerciseCard({
                       {cat === "isometric" && (
                         <>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="number"
                               min="0"
                               step="any"
                               placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                              value={set.weight ?? ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "weight", e.target.value ? Math.max(0, Number(e.target.value)) : null)}
+                              value={set.weight}
+                              onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <Input
+                            <AutoSaveInput
                               type="text"
                               placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
                               value={set.duration != null ? formatSecs(set.duration) : ""}
-                              onChange={(e) => updateSet(exIdx, setIdx, "duration", parseSecs(e.target.value))}
+                              onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
                           </td>
