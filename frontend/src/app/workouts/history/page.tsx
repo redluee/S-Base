@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -93,23 +94,38 @@ export default async function WorkoutHistoryPage({
               >
                 <div className="px-4 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <span className="text-sm text-foreground">
-                        {parseDateString(session.startedAt).toLocaleDateString("nl-NL", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </span>
-                      {session.completedAt && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {Math.round(
-                            (parseDateString(session.completedAt).getTime() - parseDateString(session.startedAt).getTime()) / 60000
-                          )}{" "}
-                          min
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">
+                          {session.name}
                         </span>
-                      )}
+                        {session.exerciseCount !== undefined && (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            • {session.exerciseCount} {session.exerciseCount === 1 ? t("exercise") : t("exercises")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <span>
+                          {parseDateString(session.startedAt).toLocaleDateString("nl-NL", {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                        {session.completedAt && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              {Math.round(
+                                (parseDateString(session.completedAt).getTime() - parseDateString(session.startedAt).getTime()) / 60000
+                              )}{" "}
+                              min
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <svg className="size-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />

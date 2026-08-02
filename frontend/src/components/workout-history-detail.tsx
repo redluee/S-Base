@@ -75,13 +75,23 @@ export function WorkoutHistoryDetail({ session }: { session: any }) {
               year: "numeric",
             })}
           </h1>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
             {session.completedAt ? (
               <Badge className="bg-brand/20 text-brand">{t("Completed")}</Badge>
             ) : (
               <Badge className="bg-amber-900/30 text-amber-400">{t("in progress")}</Badge>
             )}
-            {duration && <span>{duration} min</span>}
+            {session.exercises?.length !== undefined && (
+              <span>
+                {session.exercises.length} {session.exercises.length === 1 ? t("exercise") : t("exercises")}
+              </span>
+            )}
+            {duration && (
+              <>
+                <span>•</span>
+                <span>{duration} min</span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">

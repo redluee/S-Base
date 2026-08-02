@@ -309,7 +309,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       </div>
 
       <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-4 sm:p-6">
-        <h2 className="text-sm font-medium text-muted-foreground mb-4">{t("Exercises")}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Exercises")}</h2>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-brand/10 text-brand">
+            {exercises.length} {exercises.length === 1 ? t("exercise") : t("exercises")}
+          </span>
+        </div>
 
         <div className="flex flex-col gap-2">
           {exercises.length === 0 && (

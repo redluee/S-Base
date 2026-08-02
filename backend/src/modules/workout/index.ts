@@ -45,7 +45,20 @@ function formatDutchDate(date: Date, options: Intl.DateTimeFormatOptions): strin
 
 export class WorkoutService {
   listTemplates(userId: number) {
-    return db.select().from(workoutTemplates).where(eq(workoutTemplates.userId, userId)).orderBy(desc(workoutTemplates.createdAt)).all();
+    return db.select({
+      templateId: workoutTemplates.templateId,
+      userId: workoutTemplates.userId,
+      name: workoutTemplates.name,
+      description: workoutTemplates.description,
+      targetMuscleGroups: workoutTemplates.targetMuscleGroups,
+      estimatedTime: workoutTemplates.estimatedTime,
+      createdAt: workoutTemplates.createdAt,
+      exerciseCount: sql<number>`(SELECT COUNT(*) FROM template_exercises WHERE template_exercises.template_id = workout_templates.template_id)`
+    })
+    .from(workoutTemplates)
+    .where(eq(workoutTemplates.userId, userId))
+    .orderBy(desc(workoutTemplates.createdAt))
+    .all();
   }
 
   getTemplate(id: number, userId?: number) {
@@ -209,10 +222,20 @@ export class WorkoutService {
       conditions.push(sql`completed_at IS NOT NULL`);
     }
 
-    const sessions = db.select().from(workoutSessions)
-      .where(and(...conditions))
-      .orderBy(desc(workoutSessions.startedAt))
-      .all();
+    const sessions = db.select({
+      sessionId: workoutSessions.sessionId,
+      templateId: workoutSessions.templateId,
+      userId: workoutSessions.userId,
+      startedAt: workoutSessions.startedAt,
+      completedAt: workoutSessions.completedAt,
+      notes: workoutSessions.notes,
+      name: workoutSessions.name,
+      exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`
+    })
+    .from(workoutSessions)
+    .where(and(...conditions))
+    .orderBy(desc(workoutSessions.startedAt))
+    .all();
 
     if (!q) return sessions;
 

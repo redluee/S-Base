@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -172,6 +173,11 @@ export default async function WorkoutsPage() {
                         </p>
                       )}
                       <div className="flex flex-wrap gap-2 mt-2 text-[10px] sm:text-xs">
+                        {template.exerciseCount !== undefined && (
+                          <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
+                            🏋️‍♂️ {template.exerciseCount} {template.exerciseCount === 1 ? t("exercise") : t("exercises")}
+                          </span>
+                        )}
                         {template.targetMuscleGroups && (
                           <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
                             💪 {template.targetMuscleGroups}

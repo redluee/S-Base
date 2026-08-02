@@ -853,6 +853,12 @@ export function WorkoutSessionLive({
         </div>
       ) : (
         <div className="flex-1 flex flex-col gap-6 pb-20 max-[375px]:-mx-4">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <h2 className="text-sm font-medium text-muted-foreground">{t("Exercises")}</h2>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-brand/10 text-brand">
+              {exercises.length} {exercises.length === 1 ? t("exercise") : t("exercises")}
+            </span>
+          </div>
           {exercises.map((ex: SessionExercise, exIdx: number) => (
             <WorkoutExerciseCard
               key={ex.sessionExerciseId ?? exIdx}
