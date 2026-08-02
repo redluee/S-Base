@@ -128,6 +128,16 @@ function BandIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function BallIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
+      <path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10" />
+    </svg>
+  );
+}
+
 function NoneIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -165,6 +175,8 @@ function EquipmentIcon({ type, className }: { type: string; className?: string }
       return <MachineIcon className={className} />;
     case "band":
       return <BandIcon className={className} />;
+    case "ball":
+      return <BallIcon className={className} />;
     default:
       return <NoneIcon className={className} />;
   }
@@ -344,6 +356,7 @@ export function WorkoutExerciseCard({
                     { value: "cable", label: t("cable") },
                     { value: "machine", label: t("machine") },
                     { value: "band", label: t("band") },
+                    { value: "ball", label: t("ball") },
                   ].map((opt) => (
                     <button
                       key={opt.value}

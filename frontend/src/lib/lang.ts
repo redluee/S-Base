@@ -221,6 +221,7 @@ const nl: Record<string, string> = {
   "cable": "Kabel",
   "machine": "Machine",
   "band": "Weerstandsband",
+  "ball": "Bal",
   "none": "Geen",
   "Rest time (sec)": "Rusttijd (sec)",
   "Next milestone": "Volgende mijlpaal",

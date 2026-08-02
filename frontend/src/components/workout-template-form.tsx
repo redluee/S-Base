@@ -58,6 +58,16 @@ function BandIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function BallIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
+      <path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10" />
+    </svg>
+  );
+}
+
 function NoneIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -81,6 +91,8 @@ function EquipmentIcon({ type, className }: { type: string; className?: string }
       return <MachineIcon className={className} />;
     case "band":
       return <BandIcon className={className} />;
+    case "ball":
+      return <BallIcon className={className} />;
     default:
       return <NoneIcon className={className} />;
   }
@@ -398,6 +410,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
                       <option value="cable" className="bg-zinc-900">{t("cable")}</option>
                       <option value="machine" className="bg-zinc-900">{t("machine")}</option>
                       <option value="band" className="bg-zinc-900">{t("band")}</option>
+                      <option value="ball" className="bg-zinc-900">{t("ball")}</option>
                     </select>
                     <div className="shrink-0 w-9 h-9 rounded-md bg-white/5 border border-border/80 flex items-center justify-center text-brand">
                       <EquipmentIcon type={ex.equipment} className="size-4" />
