@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Dumbbell, Plus } from "lucide-react";
+import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
@@ -82,83 +82,7 @@ export interface WorkoutExerciseCardProps {
   highlightZeroReps?: boolean;
 }
 
-function BarbellIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M6 5h2v14H6zM16 5h2v14h-2zM2 12h4M18 12h4M6 12h12" />
-      <path d="M3 8h1v8H3zM20 8h1v8h-1z" />
-    </svg>
-  );
-}
 
-function KettlebellIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 3a4.5 4.5 0 0 0-4.5 4.5V10h9V7.5A4.5 4.5 0 0 0 12 3z" />
-      <path d="M6 10h12a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3z" />
-    </svg>
-  );
-}
-
-function CableIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 2v13" />
-      <path d="M8 15h8M8 15v3a4 4 0 0 0 8 0v-3" />
-      <path d="M12 18v4" />
-      <circle cx="12" cy="2" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function MachineIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 20V4h16v16M4 8h16M4 12h16M4 16h16" />
-      <circle cx="12" cy="6" r="1.5" />
-    </svg>
-  );
-}
-
-function BandIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <ellipse cx="12" cy="12" rx="7" ry="4" transform="rotate(-15 12 12)" />
-    </svg>
-  );
-}
-
-function BallIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
-      <path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10" />
-    </svg>
-  );
-}
-
-function NoneIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="m4.9 4.9 14.2 14.2" />
-    </svg>
-  );
-}
-
-function getEquipmentIconType(eq: string | null | undefined): string {
-  if (!eq) return "none";
-  const lower = eq.toLowerCase();
-  if (lower.includes("barbell") || lower.includes("hex bar")) return "barbell";
-  if (lower.includes("dumbbell")) return "dumbbell";
-  if (lower.includes("kettlebell")) return "kettlebell";
-  if (lower.includes("cable")) return "cable";
-  if (lower.includes("machine") || lower.includes("smith")) return "machine";
-  if (lower.includes("band")) return "band";
-  if (lower.includes("ball") || lower.includes("bal")) return "ball";
-  return "none";
-}
 
 export function normalizeCategory(cat: string | null | undefined): "resistance" | "bodyweight" | "cardio" | "isometric" {
   if (!cat) return "resistance";
@@ -207,29 +131,6 @@ export function isSetZero(ex: SessionExercise, set: SessionSet, previousSetsMap?
   return !hasReps && !hasDuration;
 }
 
-
-function EquipmentIcon({ type, className }: { type: string; className?: string }) {
-  const normType = getEquipmentIconType(type);
-  switch (normType) {
-    case "barbell":
-      return <BarbellIcon className={className} />;
-    case "dumbbell":
-      return <Dumbbell className={className} />;
-    case "kettlebell":
-      return <KettlebellIcon className={className} />;
-    case "cable":
-      return <CableIcon className={className} />;
-    case "machine":
-      return <MachineIcon className={className} />;
-    case "band":
-      return <BandIcon className={className} />;
-    case "ball":
-      return <BallIcon className={className} />;
-    default:
-      return <NoneIcon className={className} />;
-  }
-}
-
 function formatSecs(secVal: number | null | undefined): string {
   if (secVal === null || secVal === undefined || isNaN(secVal)) return "";
   const min = Math.floor(secVal / 60);
@@ -248,19 +149,15 @@ function parseSecs(val: string): number | null {
   const parsed = parseInt(val, 10);
   return isNaN(parsed) ? null : parsed;
 }
-
 export function WorkoutExerciseCard({
   ex,
   exIdx,
   totalExercises,
-  saving: _saving,
   replacingExerciseId,
   setReplacingExerciseId,
   replaceName,
   setReplaceName,
   replaceExercise,
-  updateCategory: _updateCategory,
-  updateEquipment: _updateEquipment,
   removeExercise,
   moveExerciseUpDirect,
   moveExerciseDownDirect,
@@ -277,10 +174,7 @@ export function WorkoutExerciseCard({
   lastCompletedSet,
   activeMenuExerciseId,
   setActiveMenuExerciseId,
-  activeEquipmentMenuExerciseId: _activeEquipmentMenuExerciseId,
-  setActiveEquipmentMenuExerciseId: _setActiveEquipmentMenuExerciseId,
   setHistoryExerciseName,
-  startRestTimer,
   stopRestTimer,
   adjustRestTimer,
   highlightZeroReps,

@@ -26,7 +26,6 @@ import type { FullWorkoutSession, SessionExercise, SessionSet, PersonalRecord } 
 
 export function WorkoutSessionLive({
   session: initialSession,
-  userId: _userId,
 }: {
   session?: FullWorkoutSession | null;
   userId?: number;

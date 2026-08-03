@@ -97,13 +97,6 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     moveStep(i, i + 1);
   }
 
-  function getStepDragOffset(): number {
-    if (!stepsContainerRef.current || stepDragIndexRef.current === null) return 60;
-    const cs = getComputedStyle(stepsContainerRef.current);
-    const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
-    const el = stepsContainerRef.current.children[stepDragIndexRef.current] as HTMLElement;
-    return el?.getBoundingClientRect().height + gap;
-  }
 
   function moveStepDirect(from: number, to: number) {
     if (to < 0 || to > steps.length) return;
@@ -185,6 +178,8 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     }
   }
 
+  const stepPositionsRef = useRef<{ top: number; bottom: number; height: number }[]>([]);
+
   function handleStepDragStart(e: React.DragEvent, idx: number) {
     setStepDragIndex(idx);
     stepDragIndexRef.current = idx;
@@ -201,7 +196,7 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
         const rect = stepsContainerRef.current.children[i].getBoundingClientRect();
         positions.push({ top: rect.top, bottom: rect.bottom, height: rect.height });
       }
-      (stepsContainerRef as any).positions = positions;
+      stepPositionsRef.current = positions;
     }
   }
 
@@ -210,7 +205,7 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     e.dataTransfer.dropEffect = "move";
 
     const from = stepDragIndexRef.current;
-    const positions = (stepsContainerRef as any).positions;
+    const positions = stepPositionsRef.current;
     if (from === null || !positions || positions.length === 0) return;
 
     const mouseY = e.clientY;

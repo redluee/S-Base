@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getFlag } from "@/lib/kitchens";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
+import type { Recipe } from "@backend/types/shared";
 
 const statusColors: Record<string, string> = {
   "to try": "bg-muted text-black",
@@ -117,7 +118,7 @@ export default async function RecipesPage({
             <a
               href={`/recipes?${new URLSearchParams(
                 Object.fromEntries(
-                  Object.entries({ status, sortBy, sortOrder }).filter(([_, v]) => v !== undefined),
+                  Object.entries({ status, sortBy, sortOrder }).filter(([, v]) => v !== undefined),
                 ) as Record<string, string>,
               ).toString()}`}
               className="text-xs text-brand hover:text-brand-hover underline"
@@ -148,7 +149,7 @@ export default async function RecipesPage({
               <a
                 href={`/recipes?${new URLSearchParams(
                   Object.fromEntries(
-                    Object.entries({ status, sortBy, sortOrder }).filter(([_, v]) => v !== undefined),
+                    Object.entries({ status, sortBy, sortOrder }).filter(([, v]) => v !== undefined),
                   ) as Record<string, string>,
                 ).toString()}`}
                 className="text-sm text-brand hover:text-brand-hover underline"
@@ -165,7 +166,7 @@ export default async function RecipesPage({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {recipes.map((recipe: any) => (
+            {recipes.map((recipe: Recipe) => (
               <Link
                 key={recipe.recipeId}
                 href={`/recipes/${recipe.recipeId}`}
@@ -185,7 +186,7 @@ export default async function RecipesPage({
                     </div>
                     <Badge
                       variant="outline"
-                      className={`shrink-0 text-[10px] sm:text-xs ${statusColors[recipe.status] ?? "border-border text-muted-foreground"}`}
+                      className={`shrink-0 text-[10px] sm:text-xs ${(recipe.status && statusColors[recipe.status]) ?? "border-border text-muted-foreground"}`}
                     >
                       {t(recipe.status)}
                     </Badge>

@@ -10,8 +10,9 @@ import Link from "next/link";
 import { ArrowLeft, Trash2, Pencil } from "lucide-react";
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
+import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
 
-export function WorkoutHistoryDetail({ session }: { session: any }) {
+export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const celebrate = searchParams?.get("celebrate") === "true";
@@ -121,7 +122,7 @@ export function WorkoutHistoryDetail({ session }: { session: any }) {
       )}
 
       <div className="flex flex-col gap-4">
-        {session.exercises?.map((ex: any, i: number) => (
+        {session.exercises?.map((ex, i: number) => (
           <div
             key={ex.sessionExerciseId ?? i}
             className="rounded-xl bg-card ring-1 ring-foreground/10 p-4"
@@ -180,7 +181,7 @@ export function WorkoutHistoryDetail({ session }: { session: any }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {ex.sets.map((set: any, si: number) => (
+                        {ex.sets.map((set: SessionSet, si: number) => (
                           <tr key={si} className="border-b border-border/30 last:border-0">
                             <td className="p-2 text-foreground font-medium">{set.setNumber}</td>
                             {cat === "resistance" && (

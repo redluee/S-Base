@@ -18,6 +18,7 @@ import {
 import { getFlag } from "@/lib/kitchens";
 import Link from "next/link";
 import { ArrowLeft, CircleDashed } from "lucide-react";
+import type { FullRecipe } from "@backend/types/shared";
 
 const statusColors: Record<string, string> = {
 	"to try": "bg-muted text-black",
@@ -46,7 +47,7 @@ const unitLabels: Record<string, string> = {
 	pinch: t("pinch"),
 };
 
-export function RecipeDetail({ recipe }: { recipe: any }) {
+export function RecipeDetail({ recipe }: { recipe: FullRecipe }) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 
@@ -229,7 +230,7 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 								</tr>
 							</thead>
 							<tbody>
-								{recipe.ingredients.map((ing: any, i: number) => (
+								{recipe.ingredients.map((ing, i: number) => (
 									<tr
 										key={i}
 										className={`border-b border-border/50 last:border-0 transition-colors ${
@@ -252,7 +253,7 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 											{ing.quantity}
 										</td>
 										<td className="p-3 text-right text-muted-foreground">
-											{unitLabels[ing.unit] ?? ing.unit}
+											{(ing.unit && unitLabels[ing.unit]) ?? ing.unit}
 										</td>
 									</tr>
 								))}
@@ -272,7 +273,7 @@ export function RecipeDetail({ recipe }: { recipe: any }) {
 						{t("Steps")}
 					</h2>
 					<div className="flex flex-col gap-3">
-						{recipe.steps.map((step: any) => (
+						{recipe.steps.map((step) => (
 							<div key={step.stepId} className="flex items-start gap-3">
 								<div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-brand text-brand text-sm font-bold shrink-0">
 									{step.stepNumber}
