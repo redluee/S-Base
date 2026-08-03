@@ -17,7 +17,7 @@ export const templateExercises = sqliteTable("template_exercises", {
   templateId: integer("template_id").notNull().references(() => workoutTemplates.templateId, { onDelete: "cascade" }),
   exerciseName: text("exercise_name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
-  category: text("category").notNull().default("resistance"),
+  category: text("category").notNull().default("Free Weights"),
   defaultSets: integer("default_sets").notNull().default(3),
   defaultReps: integer("default_reps").notNull().default(10),
   defaultWeight: real("default_weight"),
@@ -44,7 +44,7 @@ export const sessionExercises = sqliteTable("session_exercises", {
   sessionId: integer("session_id").notNull().references(() => workoutSessions.sessionId, { onDelete: "cascade" }),
   exerciseName: text("exercise_name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
-  category: text("category").notNull().default("resistance"),
+  category: text("category").notNull().default("Free Weights"),
   equipment: text("equipment"),
 });
 

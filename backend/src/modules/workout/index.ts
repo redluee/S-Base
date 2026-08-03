@@ -122,7 +122,7 @@ export class WorkoutService {
           templateId: template.templateId,
           exerciseName: ex.exerciseName,
           sortOrder: i,
-          category: ex.category ?? "resistance",
+          category: ex.category ?? "Free Weights",
           defaultSets: ex.sets,
           defaultReps: ex.reps,
           defaultWeight: ex.weight,
@@ -188,7 +188,7 @@ export class WorkoutService {
           templateId: id,
           exerciseName: ex.exerciseName,
           sortOrder: i,
-          category: ex.category ?? "resistance",
+          category: ex.category ?? "Free Weights",
           defaultSets: ex.sets,
           defaultReps: ex.reps,
           defaultWeight: ex.weight,
@@ -314,7 +314,7 @@ export class WorkoutService {
         .orderBy(sessionSets.setNumber)
         .all();
 
-      let templateEx = templateExs.find((te) => te.exerciseName === ex.exerciseName);
+      let templateEx = templateExs.find((te) => te.sortOrder === ex.sortOrder) || templateExs.find((te) => te.exerciseName === ex.exerciseName);
 
       if (!templateEx) {
         const query = db.select({
@@ -391,7 +391,7 @@ export class WorkoutService {
             sessionId: session.sessionId,
             exerciseName: tex.exerciseName,
             sortOrder: tex.sortOrder,
-            category: tex.category ?? "resistance",
+            category: tex.category ?? "Free Weights",
             equipment: tex.equipment,
           }).returning().get();
 
@@ -399,12 +399,12 @@ export class WorkoutService {
             db.insert(sessionSets).values({
               sessionExerciseId: se.sessionExerciseId,
               setNumber: s,
-              reps: tex.defaultReps,
-              weight: tex.defaultWeight,
-              distance: tex.defaultDistance,
-              duration: tex.defaultDuration,
-              rpe: tex.defaultRpe,
-              heartRate: tex.defaultHeartRate,
+              reps: null,
+              weight: null,
+              distance: null,
+              duration: null,
+              rpe: null,
+              heartRate: null,
             }).run();
           }
         }
@@ -482,7 +482,7 @@ export class WorkoutService {
           db.update(sessionExercises).set({
             exerciseName: ex.exerciseName,
             sortOrder: ex.sortOrder,
-            category: ex.category ?? "resistance",
+            category: ex.category ?? "Free Weights",
             equipment: ex.equipment,
           }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
 
@@ -508,7 +508,7 @@ export class WorkoutService {
             sessionId: id,
             exerciseName: ex.exerciseName,
             sortOrder: ex.sortOrder,
-            category: ex.category ?? "resistance",
+            category: ex.category ?? "Free Weights",
             equipment: ex.equipment,
           }).returning().get();
 
@@ -607,7 +607,7 @@ export class WorkoutService {
       const key = `${r.name}::${eqNorm ?? ""}`;
       if (!exerciseMap.has(key)) {
         exerciseMap.set(key, {
-          category: r.category ?? "resistance",
+          category: r.category ?? "Free Weights",
           defaultSets: r.defaultSets,
           defaultReps: r.defaultReps,
           defaultWeight: r.defaultWeight,
@@ -624,7 +624,7 @@ export class WorkoutService {
       const key = `${r.name}::${eqNorm ?? ""}`;
       if (!exerciseMap.has(key)) {
         exerciseMap.set(key, {
-          category: r.category ?? "resistance",
+          category: r.category ?? "Free Weights",
           defaultSets: null,
           defaultReps: null,
           defaultWeight: null,
@@ -758,15 +758,35 @@ export class WorkoutService {
   }
 
   exerciseProgress(userId: number, name: string, equipment?: string) {
+    const availableEqRows = db.select({ equipment: sessionExercises.equipment })
+      .from(sessionExercises)
+      .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
+      .where(and(
+        eq(sessionExercises.exerciseName, name),
+        eq(workoutSessions.userId, userId),
+        sql`${workoutSessions.completedAt} IS NOT NULL`
+      ))
+      .all();
+
+    const availableEquipmentsSet = new Set<string>();
+    for (const row of availableEqRows) {
+      if (row.equipment && row.equipment !== "none" && row.equipment !== "null" && row.equipment !== "undefined") {
+        availableEquipmentsSet.add(row.equipment);
+      }
+    }
+    const availableEquipments = Array.from(availableEquipmentsSet).sort();
+
     const conditions = [
       eq(sessionExercises.exerciseName, name),
       sql`${workoutSessions.completedAt} IS NOT NULL`,
       eq(workoutSessions.userId, userId),
     ];
-    if (equipment && equipment !== "null" && equipment !== "undefined" && equipment !== "none") {
-      conditions.push(eq(sessionExercises.equipment, equipment));
-    } else {
-      conditions.push(sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '' OR ${sessionExercises.equipment} = 'none')`);
+    if (equipment && equipment !== "all" && equipment !== "null" && equipment !== "undefined") {
+      if (equipment === "none") {
+        conditions.push(sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '' OR ${sessionExercises.equipment} = 'none')`);
+      } else {
+        conditions.push(eq(sessionExercises.equipment, equipment));
+      }
     }
 
     const rows = db.select({
@@ -791,21 +811,23 @@ export class WorkoutService {
       .orderBy(workoutSessions.startedAt, sessionExercises.sortOrder, sessionSets.setNumber)
       .all();
 
-    const sessions: Record<number, { startedAt: string; sets: typeof rows }> = {};
+    const sessions: Record<number, { startedAt: string; equipment: string | null; sets: typeof rows }> = {};
     for (const row of rows) {
       if (!sessions[row.sessionId]) {
-        sessions[row.sessionId] = { startedAt: row.startedAt, sets: [] };
+        sessions[row.sessionId] = { startedAt: row.startedAt, equipment: row.equipment ?? null, sets: [] };
       }
       sessions[row.sessionId].sets.push(row);
     }
 
     return {
       exerciseName: name,
-      category: rows[0]?.category ?? "resistance",
-      equipment: equipment ?? null,
+      category: rows[0]?.category ?? "Free Weights",
+      equipment: equipment && equipment !== "all" ? equipment : null,
+      availableEquipments,
       sessions: Object.entries(sessions).map(([id, s]) => ({
         sessionId: Number(id),
         startedAt: s.startedAt,
+        equipment: s.equipment,
         sets: s.sets,
       })),
     };
@@ -824,30 +846,30 @@ export class WorkoutService {
       .where(eq(workoutSessions.userId, userId))
       .all();
 
-    const exerciseSet = new Set<string>();
-    const list: { name: string; equipment: string | null }[] = [];
+    const map = new Map<string, Set<string>>();
 
-    for (const r of fromTemplates) {
+    for (const r of [...fromTemplates, ...fromSessions]) {
       if (r.name) {
-        const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
-        const key = `${r.name}::${eqNorm ?? ""}`;
-        if (!exerciseSet.has(key)) {
-          exerciseSet.add(key);
-          list.push({ name: r.name, equipment: eqNorm });
+        if (!map.has(r.name)) {
+          map.set(r.name, new Set());
+        }
+        if (r.equipment && r.equipment !== "none" && r.equipment !== "null" && r.equipment !== "undefined") {
+          map.get(r.name)!.add(r.equipment);
         }
       }
     }
-    for (const r of fromSessions) {
-      if (r.name) {
-        const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
-        const key = `${r.name}::${eqNorm ?? ""}`;
-        if (!exerciseSet.has(key)) {
-          exerciseSet.add(key);
-          list.push({ name: r.name, equipment: eqNorm });
-        }
-      }
+
+    const list: { name: string; equipment: string | null; equipments: string[] }[] = [];
+    for (const [name, eqSet] of map.entries()) {
+      const eqArray = Array.from(eqSet).sort();
+      list.push({
+        name,
+        equipment: eqArray[0] ?? null,
+        equipments: eqArray,
+      });
     }
-    return list.sort((a, b) => a.name.localeCompare(b.name) || (a.equipment ?? "").localeCompare(b.equipment ?? ""));
+
+    return list.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   getStats(userId: number) {

@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "db:migrate": "bun run src/db/migrate.ts",
+    "db:migrate-categories": "bun run src/db/migrate-categories.ts",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed-workouts": "bun run src/db/seed-workouts.ts",
     "db:user": "bun run src/db/user-manager.ts",

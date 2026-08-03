@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 import { readdir } from "fs/promises";
+import { runCategoryMigration } from "./migrate-categories";
 
 const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
@@ -13,23 +14,27 @@ async function migrate() {
     const files = await readdir(MIGRATIONS_DIR);
     const sqlFiles = files.filter((f) => f.endsWith(".sql")).sort();
 
-    if (sqlFiles.length === 0) {
-      console.log("No migration files found.");
-      return;
+    if (sqlFiles.length > 0) {
+      for (const file of sqlFiles) {
+        try {
+          const sql = await Bun.file(join(MIGRATIONS_DIR, file)).text();
+          sqlite.run(sql);
+          console.log(`MIGRATED: ${file}`);
+        } catch (fileErr: any) {
+          if (fileErr?.message?.includes("already exists")) {
+            console.log(`SKIPPED (already exists): ${file}`);
+          } else {
+            console.warn(`Migration notice for ${file}:`, fileErr?.message || fileErr);
+          }
+        }
+      }
     }
-
-    for (const file of sqlFiles) {
-      const sql = await Bun.file(join(MIGRATIONS_DIR, file)).text();
-      sqlite.run(sql);
-      console.log(`MIGRATED: ${file}`);
-    }
-
-    console.log("Migration complete.");
-  } catch (error) {
-    // If directory doesn't exist, use drizzle-kit push
-    console.error("Migration error:", error);
-    console.log("No SQL migrations found. Use 'drizzle-kit push' for schema sync.");
+  } catch (err: any) {
+    console.warn("SQL migrations directory read notice:", err?.message || err);
   }
+
+  await runCategoryMigration();
+  console.log("Database migration complete.");
 }
 
 migrate();
