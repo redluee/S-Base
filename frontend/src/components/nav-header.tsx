@@ -14,15 +14,6 @@ export function NavHeader({ username }: { username: string }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isWorkouts = pathname.includes("/workouts");
-  const isRecipes = pathname.includes("/recipes");
-
-  async function handleLogout() {
-    await api.logout();
-    router.push("/");
-    router.refresh();
-  }
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -32,6 +23,19 @@ export function NavHeader({ username }: { username: string }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  if (pathname.includes("/workouts/session")) {
+    return null;
+  }
+
+  const isWorkouts = pathname.includes("/workouts");
+  const isRecipes = pathname.includes("/recipes");
+
+  async function handleLogout() {
+    await api.logout();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40">

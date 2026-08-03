@@ -28,7 +28,7 @@ export function ExerciseAutocomplete({
   className,
 }: {
   value: string;
-  onSelect: (
+  onSelect?: (
     name: string,
     defaultSets?: number,
     defaultReps?: number,
@@ -59,7 +59,7 @@ export function ExerciseAutocomplete({
     }
     try {
       const results = await api.workouts.exercises.suggest(q);
-      setSuggestions(results as any);
+      setSuggestions(results as unknown as Suggestion[]);
       setActiveIndex(-1);
     } catch {
       setSuggestions([]);
@@ -110,12 +110,9 @@ export function ExerciseAutocomplete({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const showCustomOption = value.trim().length > 0 && !suggestions.some(
-    (s) => s.value.toLowerCase() === value.trim().toLowerCase()
-  );
-
   function select(suggestion: Suggestion) {
-    onSelect(
+    onChange(suggestion.value);
+    onSelect?.(
       suggestion.value,
       suggestion.defaultSets ?? undefined,
       suggestion.defaultReps ?? undefined,
@@ -131,7 +128,7 @@ export function ExerciseAutocomplete({
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    const totalLength = suggestions.length + (showCustomOption ? 1 : 0);
+    const totalLength = suggestions.length;
 
     if (!open) {
       if (e.key === "ArrowDown" && totalLength > 0) {
@@ -155,8 +152,6 @@ export function ExerciseAutocomplete({
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < suggestions.length) {
           select(suggestions[activeIndex]);
-        } else if (activeIndex === suggestions.length && showCustomOption) {
-          select({ value: value.trim(), defaultSets: 1, defaultReps: 10 });
         } else if (activeIndex === -1 && value.trim().length > 0) {
           const exactMatch = suggestions.find(
             (s) => s.value.toLowerCase() === value.trim().toLowerCase()
@@ -185,7 +180,7 @@ export function ExerciseAutocomplete({
           setOpen(true);
         }}
         onFocus={() => {
-          if (suggestions.length > 0 || (value.trim().length > 0 && !suggestions.some(s => s.value.toLowerCase() === value.trim().toLowerCase()))) {
+          if (suggestions.length > 0) {
             setOpen(true);
           }
         }}
@@ -197,7 +192,7 @@ export function ExerciseAutocomplete({
         )}
       />
       {open &&
-        (suggestions.length > 0 || showCustomOption) &&
+        suggestions.length > 0 &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -207,7 +202,7 @@ export function ExerciseAutocomplete({
           >
             {suggestions.map((suggestion, i) => (
               <button
-                key={suggestion.value}
+                key={`${suggestion.value}-${i}`}
                 type="button"
                 onClick={() => select(suggestion)}
                 onMouseEnter={() => setActiveIndex(i)}
@@ -220,20 +215,6 @@ export function ExerciseAutocomplete({
                 <span className="flex-1">{suggestion.value}</span>
               </button>
             ))}
-            {showCustomOption && (
-              <button
-                type="button"
-                onClick={() => select({ value: value.trim(), defaultSets: 1, defaultReps: 10 })}
-                onMouseEnter={() => setActiveIndex(suggestions.length)}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 ${
-                  suggestions.length === activeIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "text-brand hover:bg-accent/50 font-medium"
-                }`}
-              >
-                <span className="flex-1">{t('Add "{name}"', { name: value.trim() })}</span>
-              </button>
-            )}
           </div>,
           document.body,
         )}
