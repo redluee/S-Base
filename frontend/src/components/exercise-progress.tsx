@@ -11,6 +11,8 @@ interface SetItem {
   setNumber: number;
   reps: number | null;
   weight: number | null;
+  duration?: number | null;
+  distance?: number | null;
   completed: number;
 }
 
@@ -266,21 +268,40 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {session.sets.map((set: SetItem) => (
-                    <div
-                      key={set.setNumber}
-                      className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border font-mono ${
-                        set.completed
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-zinc-800/50 text-muted-foreground border-zinc-700/30"
-                      }`}
-                    >
-                      <span className="text-[10px] text-muted-foreground mr-0.5">S{set.setNumber}</span>
-                      <span className="font-bold">{set.reps}</span>
-                      <span className="text-muted-foreground">×</span>
-                      <span>{set.weight ?? 0} kg</span>
-                    </div>
-                  ))}
+                  {session.sets.map((set: SetItem) => {
+                    const hasReps = set.reps != null && set.reps > 0;
+                    const hasWeight = set.weight != null && set.weight > 0;
+                    const hasDuration = set.duration != null && set.duration > 0;
+                    const hasDistance = set.distance != null && set.distance > 0;
+
+                    let label = `${set.reps ?? 0} × ${set.weight ?? 0} kg`;
+                    if (set.duration && set.duration > 0 && !hasReps) {
+                      const dur = set.duration;
+                      const min = Math.floor(dur / 60);
+                      const sec = dur % 60;
+                      label = `${min}:${String(sec).padStart(2, "0")}${hasWeight ? ` (${set.weight} kg)` : ""}`;
+                    } else if (set.distance && set.distance > 0 && !hasReps) {
+                      label = `${set.distance} km`;
+                    } else if (hasReps && !hasWeight) {
+                      label = `${set.reps} reps`;
+                    } else if (hasReps && hasWeight) {
+                      label = `${set.reps} × ${set.weight} kg`;
+                    }
+
+                    return (
+                      <div
+                        key={set.setNumber}
+                        className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border font-mono ${
+                          set.completed
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-zinc-800/50 text-muted-foreground border-zinc-700/30"
+                        }`}
+                      >
+                        <span className="text-[10px] text-muted-foreground mr-0.5">S{set.setNumber}</span>
+                        <span className="font-bold">{label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </Link>
             );

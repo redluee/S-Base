@@ -11,6 +11,7 @@ import { ArrowLeft, Trash2, Pencil } from "lucide-react";
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
+import { normalizeCategory } from "@/components/workout-exercise-card";
 
 export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession }) {
   const router = useRouter();
@@ -127,18 +128,34 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
             key={ex.sessionExerciseId ?? i}
             className="rounded-xl bg-card ring-1 ring-foreground/10 p-4"
           >
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand/20 text-brand text-xs font-bold shrink-0">
                 {i + 1}
               </div>
               <h3 className="font-medium text-foreground text-sm sm:text-base">
                 {ex.exerciseName}
               </h3>
+              {ex.equipment && ex.equipment !== "none" && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {ex.equipment
+                    .split(",")
+                    .map((item: string) => item.trim())
+                    .filter((item: string) => item && item !== "none")
+                    .map((item: string) => (
+                      <span
+                        key={item}
+                        className="inline-flex items-center text-[10px] font-medium text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full"
+                      >
+                        {t(item)}
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
             {ex.sets?.length > 0 && (
               <div className="overflow-x-auto -mx-4 sm:mx-0">
                 {(() => {
-                  const cat = ex.category ?? "resistance";
+                  const cat = normalizeCategory(ex.category);
                   const formatSecs = (secVal: number | null | undefined) => {
                     if (secVal === null || secVal === undefined || isNaN(secVal)) return "—";
                     const min = Math.floor(secVal / 60);
@@ -186,14 +203,18 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
                             <td className="p-2 text-foreground font-medium">{set.setNumber}</td>
                             {cat === "resistance" && (
                               <>
-                                <td className="p-2 text-right text-foreground">{set.reps}</td>
+                                <td className="p-2 text-right text-foreground">
+                                  {set.duration != null && set.duration > 0 && (!set.reps || set.reps === 0)
+                                    ? formatSecs(set.duration)
+                                    : (set.reps ?? "—")}
+                                </td>
                                 <td className="p-2 text-right text-foreground">{set.weight ?? "—"}</td>
                                 <td className="p-2 text-right text-foreground">{set.rpe ?? "—"}</td>
                               </>
                             )}
                             {cat === "bodyweight" && (
                               <>
-                                <td className="p-2 text-right text-foreground">{set.reps}</td>
+                                <td className="p-2 text-right text-foreground">{set.reps ?? "—"}</td>
                                 <td className="p-2 text-right text-foreground">
                                   {set.weight != null ? (set.weight > 0 ? `+${set.weight}` : set.weight === 0 ? "BW" : set.weight) : "—"}
                                 </td>

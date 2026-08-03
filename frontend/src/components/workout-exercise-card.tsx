@@ -5,6 +5,7 @@ import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Tr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
+import { ExerciseCategorySelector } from "@/components/exercise-category-selector";
 import { t } from "@/lib/lang";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
@@ -158,6 +159,8 @@ export function WorkoutExerciseCard({
   replaceName,
   setReplaceName,
   replaceExercise,
+  updateCategory,
+  updateEquipment,
   removeExercise,
   moveExerciseUpDirect,
   moveExerciseDownDirect,
@@ -229,22 +232,18 @@ export function WorkoutExerciseCard({
                   </span>
                 )}
               </h3>
-              {ex.equipment && ex.equipment !== "none" && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {ex.equipment
-                    .split(",")
-                    .map((item) => item.trim())
-                    .filter((item) => item && item !== "none")
-                    .map((item) => (
-                      <span
-                        key={item}
-                        className="inline-flex items-center text-[11px] font-medium text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full"
-                      >
-                        {t(item)}
-                      </span>
-                    ))}
-                </div>
-              )}
+              <div className="mt-1">
+                <ExerciseCategorySelector
+                  category={ex.category ?? "Free Weights"}
+                  equipment={ex.equipment ?? ""}
+                  onChange={(cat, eq) => {
+                    if (cat !== ex.category) {
+                      updateCategory(exIdx, cat);
+                    }
+                    updateEquipment(exIdx, eq);
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>

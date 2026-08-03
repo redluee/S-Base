@@ -7,6 +7,7 @@ import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Play } from "lucide-react";
+import { normalizeCategory } from "@/components/workout-exercise-card";
 
 export function WorkoutTemplateDetail({ template }: { template: any }) {
   const router = useRouter();
@@ -103,14 +104,14 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
               };
 
               const categoryLabels: Record<string, string> = {
-                resistance: t("Resistance"),
+                resistance: t("Free Weights"),
                 bodyweight: t("Bodyweight"),
                 cardio: t("Cardio"),
-                isometric: t("Isometric"),
+                isometric: t("Functional"),
               };
 
-              const cat = ex.category ?? "resistance";
-              const categoryLabel = categoryLabels[cat] || cat;
+              const cat = normalizeCategory(ex.category);
+              const categoryLabel = categoryLabels[cat] || ex.category || cat;
 
               const equipmentList = ex.equipment
                 ? ex.equipment
