@@ -47,3 +47,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 node_modules/
 .next/
 *.tsbuildinfo
+
+# uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+

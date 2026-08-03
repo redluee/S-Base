@@ -4,6 +4,7 @@ import { AuthService } from "./auth";
 import { RecipeService } from "./modules/recipes";
 import { WorkoutService } from "./modules/workout";
 import { MeasurementService } from "./modules/measurements";
+import { WineService } from "./modules/wines";
 import db from "./db/client";
 import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
@@ -15,6 +16,7 @@ const auth = new AuthService();
 const recipes = new RecipeService();
 const workout = new WorkoutService();
 const measurements = new MeasurementService();
+const wineService = new WineService();
 
 // Auto-register measurements module and grant access to existing users
 try {
@@ -150,6 +152,51 @@ const app = new Elysia()
       .patch("/:id/rating", ({ params: { id }, body }) => {
         const { rating } = body as any;
         return recipes.updateRating(Number(id), rating);
+      })
+  )
+  // --- Wine routes ---
+  .group("/api/wines", (app) =>
+    app
+      .use(recipeAuth)
+      .get("/", ({ userId, query }) => {
+        const type = query?.type as string | undefined;
+        const q = query?.q as string | undefined;
+        const sortBy = query?.sortBy as string | undefined;
+        const sortOrder = query?.sortOrder as string | undefined;
+        return wineService.list(userId, type, q, sortBy, sortOrder);
+      })
+      .get("/:id", ({ params: { id } }) => {
+        const item = wineService.getById(Number(id));
+        if (!item) return new Response("Not Found", { status: 404 });
+        return item;
+      })
+      .post("/", async ({ userId, body }) => {
+        return wineService.create(userId, body as any);
+      })
+      .put("/:id", async ({ params: { id }, body }) => {
+        const item = wineService.update(Number(id), body as any);
+        if (!item) return new Response("Not Found", { status: 404 });
+        return item;
+      })
+      .delete("/:id", ({ params: { id } }) => {
+        const success = wineService.remove(Number(id));
+        if (!success) return new Response("Not Found", { status: 404 });
+        return { success: true };
+      })
+      .post("/upload", async ({ body }) => {
+        const { file } = (body ?? {}) as any;
+        if (!file) {
+          return new Response("No file uploaded", { status: 400 });
+        }
+        const uploadsDir = join(import.meta.dir, "../uploads");
+        await mkdir(uploadsDir, { recursive: true });
+
+        const ext = file.name ? file.name.split(".").pop() : "jpg";
+        const filename = `wine_${crypto.randomUUID()}.${ext}`;
+        const filePath = join(uploadsDir, filename);
+
+        await Bun.write(filePath, file);
+        return { filePath: `/api/uploads/${filename}` };
       })
   )
 
