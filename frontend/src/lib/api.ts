@@ -256,5 +256,51 @@ export const api = {
         method: "DELETE",
       }),
   },
+
+  wines: {
+    list: (type?: string, q?: string, sortBy?: string, sortOrder?: string) => {
+      const params = new URLSearchParams();
+      if (type) params.set("type", type);
+      if (q) params.set("q", q);
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
+      const qs = params.toString();
+      return request<Wine[]>(`/wines${qs ? `?${qs}` : ""}`);
+    },
+    get: (id: number) => request<Wine>(`/wines/${id}`),
+    create: (data: unknown) =>
+      request<Wine>("/wines", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: unknown) =>
+      request<Wine>(`/wines/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      request<{ success: boolean }>(`/wines/${id}`, { method: "DELETE" }),
+    uploadPhoto: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/wines/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(res.statusText);
+      }
+      return res.json() as Promise<{ filePath: string }>;
+    },
+  },
 };
+
+export interface Wine {
+  wineId: number;
+  userId: number;
+  brand: string;
+  type: "red" | "white" | "rose" | "sparkling" | "dessert";
+  variety: string;
+  vintage: number | null;
+  countryRegion: string | null;
+  rating: number | null;
+  notes: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+}
 

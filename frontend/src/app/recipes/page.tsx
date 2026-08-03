@@ -46,14 +46,24 @@ export default async function RecipesPage({
           <h1 className="font-display text-2xl sm:text-3xl text-foreground">
             {t("Taste tracker")}
           </h1>
-          <Link href="/recipes/new">
-            <Button className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4">
-              <svg className="size-4 sm:size-5 mr-1 sm:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              {t("New Recipe")}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/recipes/wines">
+              <Button variant="outline" className="border-border text-foreground hover:bg-muted active:scale-[0.97] transition-all text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4">
+                <svg className="size-4 sm:size-5 mr-1 sm:mr-1.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.037-.501.087-.75.15m.75-.15h4.5m0 0c.25.037.5.087.75.15m-.75-.15v5.714a2.25 2.25 0 0 0 .659 1.591L19 14.5M5 14.5c0 3.038 3.134 5.5 7 5.5s7-2.462 7-5.5M5 14.5h14" />
+                </svg>
+                {t("Wines")}
+              </Button>
+            </Link>
+            <Link href="/recipes/new">
+              <Button className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4">
+                <svg className="size-4 sm:size-5 mr-1 sm:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                {t("New Recipe")}
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="flex gap-1.5 overflow-x-auto flex-nowrap sm:flex-wrap -mx-4 sm:mx-0 px-4 sm:px-0 mb-4 [&::-webkit-scrollbar]:hidden">

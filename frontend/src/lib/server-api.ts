@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Measurement } from "./api";
+import { Measurement, Wine } from "./api";
 import type {
   Recipe,
   FullRecipe,
@@ -102,6 +102,19 @@ export const serverApi = {
   measurements: {
     list: () => serverFetch<Measurement[]>("/measurements"),
     latest: () => serverFetch<Measurement | null>("/measurements/latest"),
+  },
+
+  wines: {
+    list: (type?: string, q?: string, sortBy?: string, sortOrder?: string) => {
+      const params = new URLSearchParams();
+      if (type) params.set("type", type);
+      if (q) params.set("q", q);
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
+      const qs = params.toString();
+      return serverFetch<Wine[]>(`/wines${qs ? `?${qs}` : ""}`);
+    },
+    get: (id: number) => serverFetch<Wine>(`/wines/${id}`),
   },
 };
 
