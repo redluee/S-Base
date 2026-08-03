@@ -24,8 +24,8 @@ export default async function ExercisesPage({
     const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
     exercises = exercises.filter((ex) => {
       const nameNorm = ex.name.replace(/[\s\-\/]/g, "").toLowerCase();
-      const eqNorm = ex.equipment ? t(ex.equipment).replace(/[\s\-\/]/g, "").toLowerCase() : "";
-      return nameNorm.includes(normalizedQ) || eqNorm.includes(normalizedQ);
+      const eqNorms = (ex.equipments || []).map((eq) => t(eq).replace(/[\s\-\/]/g, "").toLowerCase());
+      return nameNorm.includes(normalizedQ) || eqNorms.some((eq) => eq.includes(normalizedQ));
     });
   }
 
@@ -61,18 +61,30 @@ export default async function ExercisesPage({
         ) : (
           <div className="flex flex-col gap-2">
             {exercises.map((ex) => {
-              const displayName = ex.equipment ? `${ex.name} (${t(ex.equipment)})` : ex.name;
+              const equipments = ex.equipments && ex.equipments.length > 0 ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
               return (
                 <Link
-                  key={`${ex.name}-${ex.equipment}`}
-                  href={`/workouts/exercises/${encodeURIComponent(ex.name)}${
-                    ex.equipment ? `?equipment=${encodeURIComponent(ex.equipment)}` : ""
-                  }`}
+                  key={ex.name}
+                  href={`/workouts/exercises/${encodeURIComponent(ex.name)}`}
                   className="block rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/35 transition-all duration-200 active:scale-[0.99] hover:-translate-y-[1px]"
                 >
                   <div className="px-4 sm:px-5 py-3 sm:py-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm sm:text-base font-medium text-foreground">{displayName}</span>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 min-w-0">
+                        <span className="text-sm sm:text-base font-medium text-foreground truncate">{ex.name}</span>
+                        {equipments.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {equipments.map((eq) => (
+                              <span
+                                key={eq}
+                                className="text-[11px] px-2 py-0.5 rounded-full bg-foreground/5 text-muted-foreground font-medium ring-1 ring-foreground/10"
+                              >
+                                {t(eq)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <svg className="size-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                       </svg>

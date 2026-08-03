@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 
 interface ExerciseHistoryModalProps {
   exerciseName: string;
+  equipment?: string;
   onClose: () => void;
 }
 
@@ -35,7 +35,7 @@ interface ProgressData {
   sessions: ProgressSession[];
 }
 
-export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryModalProps) {
+export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: ExerciseHistoryModalProps) {
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState<ProgressData | null>(null);
 
@@ -44,7 +44,7 @@ export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryM
     async function loadHistory() {
       setLoading(true);
       try {
-        const data = await api.workouts.exercises.progress(exerciseName);
+        const data = await api.workouts.exercises.progress(exerciseName, equipment);
         if (active) setHistoryData(data);
       } catch (err) {
         console.error("Failed to load history for exercise", err);
@@ -56,7 +56,7 @@ export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryM
     return () => {
       active = false;
     };
-  }, [exerciseName]);
+  }, [exerciseName, equipment]);
 
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -141,18 +141,18 @@ export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryM
             )}
 
             {/* List */}
-            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-1">
               {[...historyData.sessions].reverse().map((sessionItem: ProgressSession, idx: number) => {
                 const date = new Date(sessionItem.startedAt);
                 const vol = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
                 return (
                   <div
                     key={idx}
-                    className="bg-white/[0.01] border border-white/5 p-3 rounded-xl flex flex-col gap-2.5 transition-colors text-sm"
+                    className="border-b border-white/5 pb-2.5 last:border-0 last:pb-0 flex flex-col gap-1.5"
                   >
-                    <div className="flex justify-between items-center w-full">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-zinc-200">
+                    <div className="flex justify-between items-center w-full text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-zinc-300">
                           {date.toLocaleDateString("nl-NL", {
                             day: "numeric",
                             month: "short",
@@ -160,19 +160,16 @@ export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryM
                           })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                          {sessionItem.sets.length} sets
+                          ({sessionItem.sets.length} sets)
                         </span>
                       </div>
                       {vol > 0 && (
-                        <div className="text-right flex flex-col gap-0.5">
-                          <span className="font-semibold text-brand tabular-nums text-xs">{vol} kg</span>
-                          <span className="text-[10px] text-muted-foreground">{t("Volume")}</span>
-                        </div>
+                        <span className="font-medium text-brand/90 tabular-nums text-[11px]">{vol} kg volume</span>
                       )}
                     </div>
                     
                     {/* Sets breakdown */}
-                    <div className="pt-2 border-t border-white/5 grid grid-cols-2 xs:grid-cols-3 gap-1.5">
+                    <div className="flex flex-wrap gap-1">
                       {sessionItem.sets.map((s: ProgressSet, sIdx: number) => {
                         let detail = "";
                         if (s.reps && s.weight) {
@@ -195,10 +192,12 @@ export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryM
                           }
                         }
                         return (
-                          <div key={sIdx} className="bg-white/5 border border-white/5 rounded px-2 py-1 text-[10px] font-mono text-zinc-300 flex justify-between">
-                            <span className="text-muted-foreground font-semibold mr-1">S{s.setNumber}:</span>
-                            <span className="truncate">{detail || "—"}</span>
-                          </div>
+                          <span
+                            key={sIdx}
+                            className="bg-white/[0.04] border border-white/5 rounded px-1.5 py-0.5 text-[10px] font-mono text-zinc-300"
+                          >
+                            {detail || "—"}
+                          </span>
                         );
                       })}
                     </div>
@@ -213,12 +212,6 @@ export function ExerciseHistoryModal({ exerciseName, onClose }: ExerciseHistoryM
           </div>
         )}
 
-        <Button
-          onClick={onClose}
-          className="w-full bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-zinc-200 h-10 font-semibold"
-        >
-          {t("Clear")}
-        </Button>
       </div>
     </div>
   );

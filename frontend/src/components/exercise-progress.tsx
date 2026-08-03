@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { t } from "@/lib/lang";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface SetItem {
   setNumber: number;
@@ -15,19 +17,60 @@ interface SetItem {
 interface WorkoutSession {
   sessionId: number;
   startedAt: string;
+  equipment?: string | null;
   sets: SetItem[];
 }
 
 interface ExerciseProgressData {
   exerciseName: string;
+  category?: string;
+  equipment?: string | null;
+  availableEquipments?: string[];
   sessions: WorkoutSession[];
 }
 
 export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   const { exerciseName, sessions } = data;
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const allSets = sessions.flatMap((s: WorkoutSession) => s.sets);
+  const initialEquipment = searchParams.get("equipment") || "all";
+  const [selectedEquipment, setSelectedEquipment] = useState<string>(initialEquipment);
 
+  // Extract all unique equipment options present in availableEquipments or sessions
+  const availableEquipments = Array.from(
+    new Set([
+      ...(data.availableEquipments || []),
+      ...sessions.map((s) => s.equipment).filter((eq): eq is string => Boolean(eq && eq !== "none")),
+    ])
+  ).sort();
+
+  const hasNoneEquipment = sessions.some((s) => !s.equipment || s.equipment === "none");
+  const totalVariations = availableEquipments.length + (hasNoneEquipment ? 1 : 0);
+  const showMaterialTabs = totalVariations > 1;
+
+  function handleSelectEquipment(eqKey: string) {
+    setSelectedEquipment(eqKey);
+    const params = new URLSearchParams(searchParams.toString());
+    if (eqKey === "all") {
+      params.delete("equipment");
+    } else {
+      params.set("equipment", eqKey);
+    }
+    const queryString = params.toString();
+    router.replace(`/workouts/exercises/${encodeURIComponent(exerciseName)}${queryString ? `?${queryString}` : ""}`, {
+      scroll: false,
+    });
+  }
+
+  // Filter sessions according to selected equipment tab
+  const filteredSessions = sessions.filter((session) => {
+    if (selectedEquipment === "all") return true;
+    if (selectedEquipment === "none") return !session.equipment || session.equipment === "none";
+    return session.equipment === selectedEquipment;
+  });
+
+  const allSets = filteredSessions.flatMap((s: WorkoutSession) => s.sets);
   const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
   const maxWeight = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.weight ?? 0), 0);
 
@@ -41,9 +84,55 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
         {t("Exercises")}
       </Link>
 
-      <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-6">
-        {exerciseName}
-      </h1>
+      <div className="flex flex-col gap-4 mb-6">
+        <h1 className="font-display text-2xl sm:text-3xl text-foreground">
+          {exerciseName}
+        </h1>
+
+        {/* Material / Equipment Filter Tabs */}
+        {showMaterialTabs && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleSelectEquipment("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                selectedEquipment === "all"
+                  ? "bg-brand text-brand-foreground shadow-xs font-semibold"
+                  : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent ring-1 ring-foreground/10"
+              }`}
+            >
+              {t("All")}
+            </button>
+            {availableEquipments.map((eq) => (
+              <button
+                key={eq}
+                type="button"
+                onClick={() => handleSelectEquipment(eq)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  selectedEquipment === eq
+                    ? "bg-brand text-brand-foreground shadow-xs font-semibold"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent ring-1 ring-foreground/10"
+                }`}
+              >
+                {t(eq)}
+              </button>
+            ))}
+            {hasNoneEquipment && availableEquipments.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleSelectEquipment("none")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  selectedEquipment === "none"
+                    ? "bg-brand text-brand-foreground shadow-xs font-semibold"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent ring-1 ring-foreground/10"
+                }`}
+              >
+                {t("none")}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-3 gap-3 mb-8">
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
@@ -60,13 +149,13 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
         </div>
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
           <div className="text-lg sm:text-2xl font-bold text-blue-400">
-            {sessions.length}
+            {filteredSessions.length}
           </div>
           <div className="text-xs text-muted-foreground mt-1">{t("Sessions")}</div>
         </div>
       </div>
 
-      {sessions.length === 0 ? (
+      {filteredSessions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-sm text-muted-foreground">{t("No data yet for this exercise.")}</p>
         </div>
@@ -86,19 +175,19 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
               <line x1="40" y1="105" x2="310" y2="105" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
               
               {(() => {
-                const volumes = sessions.map((s: WorkoutSession) =>
+                const volumes = filteredSessions.map((s: WorkoutSession) =>
                   s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0),
                 );
                 const maxVol = Math.max(...volumes, 1);
                 
                 const points = volumes.map((v: number, i: number) => {
-                  const x = sessions.length > 1 ? 40 + (i / (sessions.length - 1)) * 260 : 175;
+                  const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
                   const y = 105 - (v / maxVol) * 95;
                   return `${x},${y}`;
                 });
 
-                const firstSession = sessions[0];
-                const lastSession = sessions[sessions.length - 1];
+                const firstSession = filteredSessions[0];
+                const lastSession = filteredSessions[filteredSessions.length - 1];
                 const formatDate = (dateStr: string) => {
                   const d = parseDateString(dateStr);
                   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
@@ -112,10 +201,10 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">0 kg</text>
 
                     {/* X Axis Labels */}
-                    {sessions.length === 1 && (
+                    {filteredSessions.length === 1 && (
                       <text x="175" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" className="font-mono">{formatDate(firstSession.startedAt)}</text>
                     )}
-                    {sessions.length > 1 && (
+                    {filteredSessions.length > 1 && (
                       <>
                         <text x="40" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="start" className="font-mono">{formatDate(firstSession.startedAt)}</text>
                         <text x="310" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono">{formatDate(lastSession.startedAt)}</text>
@@ -133,7 +222,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     />
                     {/* Plot Dots */}
                     {volumes.map((v: number, i: number) => {
-                      const x = sessions.length > 1 ? 40 + (i / (sessions.length - 1)) * 260 : 175;
+                      const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
                       const y = 105 - (v / maxVol) * 95;
                       return (
                         <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" className="hover:r-4 transition-all">
@@ -148,7 +237,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
           </div>
 
           {/* Session list */}
-          {[...sessions].reverse().map((session: WorkoutSession) => {
+          {[...filteredSessions].reverse().map((session: WorkoutSession) => {
             const vol = session.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
             const date = parseDateString(session.startedAt);
             return (
@@ -158,13 +247,20 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 className="block rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/30 transition-all p-4 duration-200 hover:-translate-y-[2px]"
               >
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/20">
-                  <span className="text-sm font-medium text-foreground">
-                    {date.toLocaleDateString("nl-NL", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {date.toLocaleDateString("nl-NL", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                    {selectedEquipment === "all" && session.equipment && session.equipment !== "none" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-foreground/5 text-muted-foreground font-medium border border-foreground/10">
+                        {t(session.equipment)}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs sm:text-sm font-bold text-brand tabular-nums bg-brand/5 px-2 py-0.5 rounded border border-brand/20">
                     {vol} kg
                   </span>

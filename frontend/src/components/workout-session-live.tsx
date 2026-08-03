@@ -17,9 +17,10 @@ import {
   Dumbbell
 } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
-import { WorkoutExerciseCard } from "@/components/workout-exercise-card";
+import { WorkoutExerciseCard, normalizeCategory, isSetZero, isTimedExercise } from "@/components/workout-exercise-card";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { WorkoutCompletionSummary } from "@/components/workout-completion-summary";
+import { ExerciseEditBlock, type ExerciseRowData, unmapCategory, formatDuration } from "@/components/exercise-edit-block";
 import type { FullWorkoutSession, SessionExercise, SessionSet, PersonalRecord } from "@backend/types/shared";
 
 
@@ -55,6 +56,7 @@ export function WorkoutSessionLive({
   const [isEditingName, setIsEditingName] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState("");
   const [showAddExercise, setShowAddExercise] = useState(false);
+  const [unknownExerciseDraft, setUnknownExerciseDraft] = useState<ExerciseRowData | null>(null);
   const [activeMenuExerciseId, setActiveMenuExerciseId] = useState<number | null>(null);
   const [activeEquipmentMenuExerciseId, setActiveEquipmentMenuExerciseId] = useState<number | null>(null);
   const [replacingExerciseId, setReplacingExerciseId] = useState<number | null>(null);
@@ -62,6 +64,12 @@ export function WorkoutSessionLive({
 
   // Exercise history modal state
   const [historyExerciseName, setHistoryExerciseName] = useState<string | null>(null);
+  const [historyExerciseEquipment, setHistoryExerciseEquipment] = useState<string | null>(null);
+
+  const handleSetHistoryExercise = (name: string | null, equipment?: string | null) => {
+    setHistoryExerciseName(name);
+    setHistoryExerciseEquipment(equipment || null);
+  };
 
   // Previous sets mapping (for ghost text/placeholders)
   const [previousSetsMap, setPreviousSetsMap] = useState<Record<string, SessionSet[]>>({});
@@ -365,25 +373,34 @@ export function WorkoutSessionLive({
     if (nextCompleted === 1) {
       const prevSets = previousSetsMap[ex.exerciseName];
       const prevSet = prevSets?.[setIndex] ?? prevSets?.[prevSets.length - 1];
+      const templateEx = ex.templateExercise;
 
-      if (ex.category === "resistance") {
-        set.weight = set.weight ?? prevSet?.weight ?? 0;
-        set.reps = set.reps ?? prevSet?.reps ?? 10;
-        set.rpe = set.rpe ?? prevSet?.rpe ?? null;
-      } else if (ex.category === "bodyweight") {
-        set.weight = set.weight ?? prevSet?.weight ?? 0;
-        set.reps = set.reps ?? prevSet?.reps ?? 10;
-      } else if (ex.category === "cardio") {
-        set.distance = set.distance ?? prevSet?.distance ?? 0;
-        set.duration = set.duration ?? prevSet?.duration ?? 0;
-        set.heartRate = set.heartRate ?? prevSet?.heartRate ?? null;
-      } else if (ex.category === "isometric") {
-        set.duration = set.duration ?? prevSet?.duration ?? 0;
-        set.weight = set.weight ?? prevSet?.weight ?? 0;
+      const defaultWeight = prevSet?.weight ?? templateEx?.defaultWeight ?? 0;
+      const defaultReps = prevSet?.reps ?? templateEx?.defaultReps ?? 10;
+      const defaultDistance = prevSet?.distance ?? templateEx?.defaultDistance ?? 0;
+      const defaultDuration = prevSet?.duration ?? templateEx?.defaultDuration ?? 0;
+      const defaultRpe = prevSet?.rpe ?? templateEx?.defaultRpe ?? null;
+      const defaultHeartRate = prevSet?.heartRate ?? templateEx?.defaultHeartRate ?? null;
+
+      const cat = normalizeCategory(ex.category);
+      const isTimed = isTimedExercise(ex, previousSetsMap);
+
+      if (cat === "cardio") {
+        set.distance = set.distance ?? defaultDistance;
+        set.duration = set.duration ?? defaultDuration;
+        set.heartRate = set.heartRate ?? defaultHeartRate;
+      } else if (isTimed || cat === "isometric") {
+        set.duration = set.duration ?? (defaultDuration > 0 ? defaultDuration : null);
+        set.weight = set.weight ?? defaultWeight;
+      } else {
+        set.weight = set.weight ?? defaultWeight;
+        set.reps = set.reps ?? defaultReps;
+        set.rpe = set.rpe ?? defaultRpe;
       }
 
+      const hasSubsequentCompletedSet = sets.slice(setIndex + 1).some((s) => s.completed === 1);
       const restTime = getExerciseRestTime(ex);
-      if (restTime > 0) {
+      if (restTime > 0 && !hasSubsequentCompletedSet) {
         setRestSecondsLeft(restTime);
         setRestTotalSeconds(restTime);
         setRestActive(true);
@@ -417,10 +434,12 @@ export function WorkoutSessionLive({
     const lastSet = sets[sets.length - 1];
     const newSetNum = sets.length + 1;
 
+    const isTimed = isTimedExercise(ex, previousSetsMap);
+
     const newSet: SessionSet = {
-      setId: undefined as any,
+      setId: undefined as unknown as number,
       setNumber: newSetNum,
-      reps: lastSet?.reps ?? 10,
+      reps: isTimed ? (lastSet?.reps ?? null) : (lastSet?.reps ?? 10),
       weight: lastSet?.weight ?? null,
       distance: lastSet?.distance ?? null,
       duration: lastSet?.duration ?? null,
@@ -467,6 +486,50 @@ export function WorkoutSessionLive({
       sets: initialSets,
     });
 
+    setNewExerciseName("");
+    setShowAddExercise(false);
+    setSession({ ...session, exercises });
+    await saveExercises(exercises);
+  }
+
+  async function addExerciseFromDraft(draft: ExerciseRowData) {
+    if (!session || !draft.name.trim()) return;
+    const exercises = [...(session.exercises ?? [])];
+    const cat = unmapCategory(draft.category);
+    const eq = draft.equipment || "none";
+
+    const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
+    const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
+    const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
+    const weightVal = (draft.trackingFields.weight && draft.weight) ? parseFloat(draft.weight) : null;
+    let distVal = (draft.trackingFields.distance && draft.distance) ? parseFloat(draft.distance) : null;
+    if (distVal !== null && draft.distanceUnit === "m") {
+      distVal = distVal / 1000;
+    }
+
+    const initialSets = [];
+    for (let i = 1; i <= numSets; i++) {
+      initialSets.push({
+        setNumber: i,
+        reps: numReps,
+        weight: weightVal,
+        distance: distVal,
+        duration: durationSecs,
+        rpe: null,
+        heartRate: null,
+        completed: 0,
+      });
+    }
+
+    exercises.push({
+      exerciseName: draft.name.trim(),
+      sortOrder: exercises.length,
+      category: cat,
+      equipment: eq,
+      sets: initialSets,
+    });
+
+    setUnknownExerciseDraft(null);
     setNewExerciseName("");
     setShowAddExercise(false);
     setSession({ ...session, exercises });
@@ -531,11 +594,11 @@ export function WorkoutSessionLive({
     setSummaryMinutes(String(m));
     setSummarySeconds(String(s));
 
-    // Check if there are any completed sets with 0/null reps
+    // Check if there are any completed sets with 0/null values
     let hasZeroSets = false;
     if (session?.exercises) {
       for (const ex of session.exercises) {
-        if (ex.sets?.some((s) => s.completed === 1 && (s.reps === 0 || s.reps === null))) {
+        if (ex.sets?.some((s) => isSetZero(ex, s, previousSetsMap))) {
           hasZeroSets = true;
           break;
         }
@@ -817,38 +880,97 @@ export function WorkoutSessionLive({
       </div>
 
       {exercises.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
-          <Dumbbell className="size-12 text-zinc-600 mb-3" />
-          <p className="text-sm text-muted-foreground mb-4">
-            {t("No exercises yet. Add one to start.")}
-          </p>
-          {showAddExercise ? (
-            <div className="flex gap-2 w-full max-w-xs px-4">
-              <ExerciseAutocomplete
-                value={newExerciseName}
-                onChange={setNewExerciseName}
-                onSelect={(name, sets, reps, category, equipment) => {
-                  addExercise(name, category, sets, reps, equipment);
-                }}
-                placeholder={t("Search exercise") + "..."}
-                className="flex-1 h-9 text-sm"
+        <div className="flex-1 flex flex-col gap-6 pb-20 max-[375px]:-mx-4">
+          {unknownExerciseDraft ? (
+            <div className="flex-1 flex flex-col gap-6 px-1 sm:px-0">
+              <div className="flex items-center justify-between px-1 mb-2">
+                <h2 className="text-sm font-medium text-muted-foreground">{t("Add New Exercise")}</h2>
+              </div>
+              <ExerciseEditBlock
+                exercise={unknownExerciseDraft}
+                index={0}
+                onChange={(fields) => setUnknownExerciseDraft((prev) => prev ? { ...prev, ...fields } : null)}
+                onSave={() => addExerciseFromDraft(unknownExerciseDraft)}
+                onCancel={() => setUnknownExerciseDraft(null)}
+                saveButtonLabel={t("Voeg toe aan training")}
               />
-              <Button
-                variant="ghost"
-                onClick={() => setShowAddExercise(false)}
-                className="h-9 text-xs text-muted-foreground hover:bg-white/5"
-              >
-                {t("Cancel")}
-              </Button>
             </div>
           ) : (
-            <Button
-              onClick={() => setShowAddExercise(true)}
-              className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold"
-            >
-              <Plus className="size-4 mr-1.5" />
-              {t("Add Exercise")}
-            </Button>
+            <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
+              <Dumbbell className="size-12 text-zinc-600 mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">
+                {t("No exercises yet. Add one to start.")}
+              </p>
+              {showAddExercise ? (
+                <div className="flex flex-col gap-3 w-full max-w-sm px-4">
+                  <div className="flex gap-2 w-full">
+                    <ExerciseAutocomplete
+                      value={newExerciseName}
+                      onChange={setNewExerciseName}
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration) => {
+                        if (category) {
+                          addExercise(name, category, sets, reps, equipment);
+                        } else {
+                          setUnknownExerciseDraft({
+                            name,
+                            category: "Free Weights",
+                            sets: (sets ?? 3).toString(),
+                            reps: (reps ?? 8).toString(),
+                            weight: defaultWeight?.toString() ?? "",
+                            distance: defaultDistance?.toString() ?? "",
+                            distanceUnit: "km",
+                            duration: defaultDuration ? formatDuration(defaultDuration) : "",
+                            defaultRestTime: formatDuration(defaultRestTime ?? 90),
+                            equipment: equipment || "",
+                            perSide: false,
+                            trackingFields: { reps: true, time: false, weight: true, distance: false }
+                          });
+                        }
+                      }}
+                      placeholder={t("Search exercise") + "..."}
+                      className="flex-1 h-10 text-sm"
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowAddExercise(false)}
+                      className="h-10 text-xs text-muted-foreground hover:bg-white/5"
+                    >
+                      {t("Cancel")}
+                    </Button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnknownExerciseDraft({
+                        name: newExerciseName,
+                        category: "Free Weights",
+                        sets: "3",
+                        reps: "8",
+                        weight: "",
+                        distance: "",
+                        distanceUnit: "km",
+                        duration: "",
+                        defaultRestTime: "01:30",
+                        equipment: "",
+                        perSide: false,
+                        trackingFields: { reps: true, time: false, weight: true, distance: false }
+                      });
+                    }}
+                    className="text-xs text-brand hover:underline font-medium text-center"
+                  >
+                    + {t("Nieuwe oefening instellen")}
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => setShowAddExercise(true)}
+                  className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold"
+                >
+                  <Plus className="size-4 mr-1.5" />
+                  {t("Add Exercise")}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       ) : (
@@ -891,7 +1013,7 @@ export function WorkoutSessionLive({
               setActiveMenuExerciseId={setActiveMenuExerciseId}
               activeEquipmentMenuExerciseId={activeEquipmentMenuExerciseId}
               setActiveEquipmentMenuExerciseId={setActiveEquipmentMenuExerciseId}
-              setHistoryExerciseName={setHistoryExerciseName}
+              setHistoryExerciseName={handleSetHistoryExercise}
               startRestTimer={startRestTimer}
               stopRestTimer={stopRestTimer}
               adjustRestTimer={adjustRestTimer}
@@ -899,36 +1021,94 @@ export function WorkoutSessionLive({
             />
           ))}
 
-          <div className="mt-4 flex flex-col items-center justify-center">
-            {showAddExercise ? (
-              <div className="flex gap-2 w-full max-w-sm px-4">
-                <ExerciseAutocomplete
-                  value={newExerciseName}
-                  onChange={setNewExerciseName}
-                  onSelect={(name, sets, reps, category, equipment) => {
-                    addExercise(name, category, sets, reps, equipment);
-                  }}
-                  placeholder={t("Search exercise") + "..."}
-                  className="flex-1 h-10 text-sm"
-                />
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowAddExercise(false)}
-                  className="h-10 text-xs text-zinc-400 hover:bg-white/5"
-                >
-                  {t("Cancel")}
-                </Button>
+          {/* Underneath other exercises: render ExerciseEditBlock if unknownExerciseDraft exists */}
+          {unknownExerciseDraft ? (
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-medium text-muted-foreground">{t("Add New Exercise")}</h3>
               </div>
-            ) : (
-              <Button
-                onClick={() => setShowAddExercise(true)}
-                className="bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand font-semibold w-full sm:w-64 h-10"
-              >
-                <Plus className="size-4 mr-1.5" />
-                {t("Add Exercise")}
-              </Button>
-            )}
-          </div>
+              <ExerciseEditBlock
+                exercise={unknownExerciseDraft}
+                index={exercises.length}
+                onChange={(fields) => setUnknownExerciseDraft((prev) => prev ? { ...prev, ...fields } : null)}
+                onSave={() => addExerciseFromDraft(unknownExerciseDraft)}
+                onCancel={() => setUnknownExerciseDraft(null)}
+                saveButtonLabel={t("Voeg toe aan training")}
+              />
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-col items-center justify-center">
+              {showAddExercise ? (
+                <div className="flex flex-col gap-3 w-full max-w-sm px-4">
+                  <div className="flex gap-2 w-full">
+                    <ExerciseAutocomplete
+                      value={newExerciseName}
+                      onChange={setNewExerciseName}
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration) => {
+                        if (category) {
+                          addExercise(name, category, sets, reps, equipment);
+                        } else {
+                          setUnknownExerciseDraft({
+                            name,
+                            category: "Free Weights",
+                            sets: (sets ?? 3).toString(),
+                            reps: (reps ?? 8).toString(),
+                            weight: defaultWeight?.toString() ?? "",
+                            distance: defaultDistance?.toString() ?? "",
+                            distanceUnit: "km",
+                            duration: defaultDuration ? formatDuration(defaultDuration) : "",
+                            defaultRestTime: formatDuration(defaultRestTime ?? 90),
+                            equipment: equipment || "",
+                            perSide: false,
+                            trackingFields: { reps: true, time: false, weight: true, distance: false }
+                          });
+                        }
+                      }}
+                      placeholder={t("Search exercise") + "..."}
+                      className="flex-1 h-10 text-sm"
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowAddExercise(false)}
+                      className="h-10 text-xs text-zinc-400 hover:bg-white/5"
+                    >
+                      {t("Cancel")}
+                    </Button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnknownExerciseDraft({
+                        name: newExerciseName,
+                        category: "Free Weights",
+                        sets: "3",
+                        reps: "8",
+                        weight: "",
+                        distance: "",
+                        distanceUnit: "km",
+                        duration: "",
+                        defaultRestTime: "01:30",
+                        equipment: "",
+                        perSide: false,
+                        trackingFields: { reps: true, time: false, weight: true, distance: false }
+                      });
+                    }}
+                    className="text-xs text-brand hover:underline font-medium text-center"
+                  >
+                    + {t("Nieuwe oefening instellen")}
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => setShowAddExercise(true)}
+                  className="bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand font-semibold w-full sm:w-64 h-10"
+                >
+                  <Plus className="size-4 mr-1.5" />
+                  {t("Add Exercise")}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -996,7 +1176,8 @@ export function WorkoutSessionLive({
       {historyExerciseName && (
         <ExerciseHistoryModal
           exerciseName={historyExerciseName}
-          onClose={() => setHistoryExerciseName(null)}
+          equipment={historyExerciseEquipment ?? undefined}
+          onClose={() => handleSetHistoryExercise(null, null)}
         />
       )}
     </div>
@@ -1023,4 +1204,16 @@ function formatTime(totalSeconds: number): string {
     return `${hours}:${paddedMinutes}:${paddedSeconds}`;
   }
   return `${minutes}:${paddedSeconds}`;
+}
+
+function parseDurationHelper(val: string): number | null {
+  if (!val || !val.trim()) return null;
+  if (val.includes(":")) {
+    const parts = val.split(":");
+    const min = parseInt(parts[0], 10) || 0;
+    const sec = parseInt(parts[1], 10) || 0;
+    return min * 60 + sec;
+  }
+  const parsed = parseInt(val, 10);
+  return isNaN(parsed) ? null : parsed;
 }

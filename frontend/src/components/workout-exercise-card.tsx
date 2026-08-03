@@ -75,7 +75,7 @@ export interface WorkoutExerciseCardProps {
   setActiveMenuExerciseId: (id: number | null) => void;
   activeEquipmentMenuExerciseId: number | null;
   setActiveEquipmentMenuExerciseId: (id: number | null) => void;
-  setHistoryExerciseName: (name: string | null) => void;
+  setHistoryExerciseName: (name: string | null, equipment?: string | null) => void;
   startRestTimer: (exIdx: number, setIdx: number, customTime?: number) => void;
   stopRestTimer: () => void;
   adjustRestTimer: (seconds: number) => void;
@@ -147,22 +147,70 @@ function NoneIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-const rpeColors = [
-  "",
-  "bg-blue-500",
-  "bg-sky-400",
-  "bg-sky-400",
-  "bg-green-500",
-  "bg-green-500",
-  "bg-green-500",
-  "bg-yellow-500",
-  "bg-yellow-500",
-  "bg-orange-500",
-  "bg-red-500",
-];
+function getEquipmentIconType(eq: string | null | undefined): string {
+  if (!eq) return "none";
+  const lower = eq.toLowerCase();
+  if (lower.includes("barbell") || lower.includes("hex bar")) return "barbell";
+  if (lower.includes("dumbbell")) return "dumbbell";
+  if (lower.includes("kettlebell")) return "kettlebell";
+  if (lower.includes("cable")) return "cable";
+  if (lower.includes("machine") || lower.includes("smith")) return "machine";
+  if (lower.includes("band")) return "band";
+  if (lower.includes("ball") || lower.includes("bal")) return "ball";
+  return "none";
+}
+
+export function normalizeCategory(cat: string | null | undefined): "resistance" | "bodyweight" | "cardio" | "isometric" {
+  if (!cat) return "resistance";
+  const c = cat.toLowerCase().trim();
+  if (c === "free weights" || c === "freeweights" || c === "machines" || c === "resistance") return "resistance";
+  if (c === "bodyweight") return "bodyweight";
+  if (c === "cardio") return "cardio";
+  if (c === "functional" || c === "isometric") return "isometric";
+  return "resistance";
+}
+
+export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
+  const cat = normalizeCategory(ex.category);
+  if (cat === "isometric" || cat === "cardio") return true;
+  const firstPrevSet = previousSetsMap?.[ex.exerciseName]?.[0];
+  if (ex.templateExercise?.defaultDuration != null && ex.templateExercise.defaultDuration > 0) {
+    return true;
+  }
+  if (firstPrevSet?.duration != null && firstPrevSet.duration > 0) {
+    return true;
+  }
+  if (ex.sets?.some((s) => s.duration != null && s.duration > 0)) {
+    return true;
+  }
+  return false;
+}
+
+export function isSetZero(ex: SessionExercise, set: SessionSet, previousSetsMap?: Record<string, SessionSet[]>): boolean {
+  if (set.completed !== 1) return false;
+
+  const cat = normalizeCategory(ex.category);
+  if (cat === "cardio") {
+    const hasDuration = set.duration != null && set.duration > 0;
+    const hasDistance = set.distance != null && set.distance > 0;
+    return !hasDuration && !hasDistance;
+  }
+
+  const timed = isTimedExercise(ex, previousSetsMap);
+  if (timed) {
+    const hasDuration = set.duration != null && set.duration > 0;
+    return !hasDuration;
+  }
+
+  const hasReps = set.reps != null && set.reps > 0;
+  const hasDuration = set.duration != null && set.duration > 0;
+  return !hasReps && !hasDuration;
+}
+
 
 function EquipmentIcon({ type, className }: { type: string; className?: string }) {
-  switch (type) {
+  const normType = getEquipmentIconType(type);
+  switch (normType) {
     case "barbell":
       return <BarbellIcon className={className} />;
     case "dumbbell":
@@ -205,14 +253,14 @@ export function WorkoutExerciseCard({
   ex,
   exIdx,
   totalExercises,
-  saving,
+  saving: _saving,
   replacingExerciseId,
   setReplacingExerciseId,
   replaceName,
   setReplaceName,
   replaceExercise,
-  updateCategory,
-  updateEquipment,
+  updateCategory: _updateCategory,
+  updateEquipment: _updateEquipment,
   removeExercise,
   moveExerciseUpDirect,
   moveExerciseDownDirect,
@@ -229,17 +277,16 @@ export function WorkoutExerciseCard({
   lastCompletedSet,
   activeMenuExerciseId,
   setActiveMenuExerciseId,
-  activeEquipmentMenuExerciseId,
-  setActiveEquipmentMenuExerciseId,
+  activeEquipmentMenuExerciseId: _activeEquipmentMenuExerciseId,
+  setActiveEquipmentMenuExerciseId: _setActiveEquipmentMenuExerciseId,
   setHistoryExerciseName,
   startRestTimer,
   stopRestTimer,
   adjustRestTimer,
   highlightZeroReps,
 }: WorkoutExerciseCardProps) {
-  const [rpePickerPos, setRpePickerPos] = useState<{ exIdx: number; setIdx: number; top: number; left: number; width: number } | null>(null);
   const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: SessionSet) => s.completed === 1);
-  const cat = ex.category ?? "resistance";
+  const cat = normalizeCategory(ex.category);
 
   return (
     <div
@@ -288,16 +335,22 @@ export function WorkoutExerciseCard({
                   </span>
                 )}
               </h3>
-              <select
-                value={ex.category ?? "resistance"}
-                onChange={(e) => updateCategory(exIdx, e.target.value)}
-                className="bg-transparent text-xs text-muted-foreground border-0 hover:text-foreground cursor-pointer focus:outline-none w-fit"
-              >
-                <option value="resistance" className="bg-zinc-900">{t("Resistance")}</option>
-                <option value="bodyweight" className="bg-zinc-900">{t("Bodyweight")}</option>
-                <option value="cardio" className="bg-zinc-900">{t("Cardio")}</option>
-                <option value="isometric" className="bg-zinc-900">{t("Isometric")}</option>
-              </select>
+              {ex.equipment && ex.equipment !== "none" && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {ex.equipment
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter((item) => item && item !== "none")
+                    .map((item) => (
+                      <span
+                        key={item}
+                        className="inline-flex items-center text-[11px] font-medium text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full"
+                      >
+                        {t(item)}
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -308,7 +361,7 @@ export function WorkoutExerciseCard({
             <div className="flex items-center gap-0.5 mr-0.5">
               <button
                 type="button"
-                disabled={exIdx === 0 || saving}
+                disabled={exIdx === 0}
                 onClick={() => moveExerciseUpDirect(exIdx)}
                 className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
                 title={t("Move Up")}
@@ -317,7 +370,7 @@ export function WorkoutExerciseCard({
               </button>
               <button
                 type="button"
-                disabled={exIdx === totalExercises - 1 || saving}
+                disabled={exIdx === totalExercises - 1}
                 onClick={() => moveExerciseDownDirect(exIdx)}
                 className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
                 title={t("Move Down")}
@@ -326,60 +379,6 @@ export function WorkoutExerciseCard({
               </button>
             </div>
           )}
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() =>
-                setActiveEquipmentMenuExerciseId(
-                  activeEquipmentMenuExerciseId === ex.sessionExerciseId ? null : (ex.sessionExerciseId ?? null)
-                )
-              }
-              className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 transition-colors cursor-pointer flex items-center justify-center"
-              title={t("Equipment")}
-            >
-              <EquipmentIcon type={ex.equipment ?? "none"} className="size-5" />
-            </button>
-
-            {activeEquipmentMenuExerciseId === ex.sessionExerciseId && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setActiveEquipmentMenuExerciseId(null)}
-                />
-                <div className="absolute right-0 mt-1 w-44 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl z-20 py-1 text-sm">
-                  {[
-                    { value: "none", label: t("none") },
-                    { value: "barbell", label: t("barbell") },
-                    { value: "dumbbell", label: t("dumbbell") },
-                    { value: "kettlebell", label: t("kettlebell") },
-                    { value: "cable", label: t("cable") },
-                    { value: "machine", label: t("machine") },
-                    { value: "band", label: t("band") },
-                    { value: "ball", label: t("ball") },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        updateEquipment(exIdx, opt.value);
-                        setActiveEquipmentMenuExerciseId(null);
-                      }}
-                      className={`flex w-full items-center px-3 py-2 text-left transition-colors hover:bg-zinc-800 ${
-                        (ex.equipment ?? "none") === opt.value
-                          ? "text-brand font-medium"
-                          : "text-zinc-300"
-                      }`}
-                    >
-                      <span className="mr-2.5 shrink-0 text-brand">
-                        <EquipmentIcon type={opt.value} className="size-4" />
-                      </span>
-                      <span className="truncate">{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
 
           <div className="relative">
             <button
@@ -414,7 +413,7 @@ export function WorkoutExerciseCard({
                   </button>
                   <button
                     onClick={() => {
-                      setHistoryExerciseName(ex.exerciseName);
+                      setHistoryExerciseName(ex.exerciseName, ex.equipment);
                       setActiveMenuExerciseId(null);
                     }}
                     className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
@@ -443,227 +442,238 @@ export function WorkoutExerciseCard({
       </div>
 
       {/* Sets Table */}
-      {ex.sets?.length > 0 && (
-        <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60">
-          <table className="w-full text-xs sm:text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-border/40 text-muted-foreground">
-                <th className="text-left py-2 px-2 font-normal w-8">{t("Set")}</th>
-                <th className="text-left py-2 px-3 font-normal">{t("Target")}</th>
-                {(cat === "resistance") && (
-                  <>
-                    <th className="text-center py-2 px-3 font-normal w-28">kg</th>
-                    <th className="text-center py-2 px-3 font-normal w-14">{t("Reps")}</th>
-                    <th className="text-center py-2 px-3 font-normal w-14">{t("RPE")}</th>
-                  </>
-                )}
-                {cat === "bodyweight" && (
-                  <>
-                    <th className="text-center py-2 px-3 font-normal w-28">{t("Added/Assisted (kg)")}</th>
-                    <th className="text-center py-2 px-3 font-normal w-14">{t("Reps")}</th>
-                  </>
-                )}
-                {cat === "cardio" && (
-                  <>
-                    <th className="text-center py-2 px-3 font-normal w-24">{t("Distance (km)")}</th>
-                    <th className="text-center py-2 px-3 font-normal w-24">{t("Time (MM:SS)")}</th>
-                    <th className="text-center py-2 px-3 font-normal w-24">{t("Avg HR (bpm)")}</th>
-                  </>
-                )}
-                {cat === "isometric" && (
-                  <>
-                    <th className="text-center py-2 px-3 font-normal w-24">{t("Added weight (kg)")}</th>
-                    <th className="text-center py-2 px-3 font-normal w-24">{t("Time (MM:SS)")}</th>
-                  </>
-                )}
-                <th className="text-center py-2 px-3 font-normal w-16">{t("Done")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ex.sets.map((set: SessionSet, setIdx: number) => {
-                const prevSets = previousSetsMap[ex.exerciseName];
-                const prevSet = prevSets?.[setIdx] ?? prevSets?.[prevSets.length - 1];
-                
-                let ghostText = "—";
-                let targetSource: Partial<SessionSet> | null = null;
-                if (ex.templateExercise) {
-                  targetSource = {
-                    reps: ex.templateExercise.defaultReps,
-                    weight: ex.templateExercise.defaultWeight,
-                    distance: ex.templateExercise.defaultDistance,
-                    duration: ex.templateExercise.defaultDuration,
-                    rpe: ex.templateExercise.defaultRpe,
-                    heartRate: ex.templateExercise.defaultHeartRate,
-                  };
-                } else if (prevSet) {
-                  targetSource = prevSet;
-                } else {
-                  targetSource = set;
-                }
-                if (targetSource) {
-                  if (cat === "resistance") {
-                    const reps = targetSource.reps ?? 10;
-                    const weight = targetSource.weight ?? 0;
-                    ghostText = `${reps} x ${weight} KG`;
-                  } else if (cat === "bodyweight") {
-                    const reps = targetSource.reps ?? 10;
-                    const weight = targetSource.weight;
-                    if (weight != null && weight !== 0) {
-                      const weightSign = weight > 0 ? "+" : "";
-                      ghostText = `${weightSign}${weight} KG x ${reps}`;
-                    } else {
-                      ghostText = `${reps} reps`;
-                    }
-                  } else if (cat === "cardio") {
-                    const dist = targetSource.distance ?? 0;
-                    const dur = targetSource.duration ?? 0;
-                    ghostText = `${dist} km x ${formatSecs(dur) || "0:00"}`;
-                  } else if (cat === "isometric") {
-                    const dur = targetSource.duration ?? 0;
-                    const weight = targetSource.weight;
-                    const durStr = `${dur} sec`;
-                    
-                    if (weight != null && weight !== 0) {
-                      ghostText = `${weight} x ${durStr}`;
-                    } else {
-                      ghostText = durStr;
+      {ex.sets?.length > 0 && (() => {
+        const isTimed = isTimedExercise(ex, previousSetsMap);
+
+        return (
+          <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60">
+            <table className="w-full text-xs sm:text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-border/40 text-muted-foreground">
+                  <th className="text-left py-2 px-2 font-normal w-8">{t("Set")}</th>
+                  <th className="text-left py-2 px-3 font-normal">{t("Target")}</th>
+                  {(cat === "resistance") && (
+                    <>
+                      <th className="text-center py-2 px-3 font-normal w-28">kg</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">
+                        {isTimed ? t("Time (MM:SS)") : t("Reps")}
+                      </th>
+                    </>
+                  )}
+                  {cat === "bodyweight" && (
+                    <>
+                      <th className="text-center py-2 px-3 font-normal w-28">{t("Added/Assisted (kg)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">
+                        {isTimed ? t("Time (MM:SS)") : t("Reps")}
+                      </th>
+                    </>
+                  )}
+                  {cat === "cardio" && (
+                    <>
+                      <th className="text-center py-2 px-3 font-normal w-24">{t("Distance (km)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">{t("Time (MM:SS)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">{t("Avg HR (bpm)")}</th>
+                    </>
+                  )}
+                  {cat === "isometric" && (
+                    <>
+                      <th className="text-center py-2 px-3 font-normal w-24">{t("Added weight (kg)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">{t("Time (MM:SS)")}</th>
+                    </>
+                  )}
+                  <th className="text-center py-2 px-3 font-normal w-16">{t("Done")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ex.sets.map((set: SessionSet, setIdx: number) => {
+                  const prevSets = previousSetsMap[ex.exerciseName];
+                  const prevSet = prevSets?.[setIdx] ?? prevSets?.[prevSets.length - 1];
+                  
+                  let ghostText = "—";
+                  let targetSource: Partial<SessionSet> | null = null;
+
+                  const hasPrevData = prevSet && (
+                    prevSet.reps != null ||
+                    prevSet.weight != null ||
+                    prevSet.distance != null ||
+                    prevSet.duration != null ||
+                    prevSet.heartRate != null
+                  );
+
+                  if (hasPrevData) {
+                    targetSource = prevSet;
+                  } else if (ex.templateExercise) {
+                    targetSource = {
+                      reps: ex.templateExercise.defaultReps,
+                      weight: ex.templateExercise.defaultWeight,
+                      distance: ex.templateExercise.defaultDistance,
+                      duration: ex.templateExercise.defaultDuration,
+                      rpe: ex.templateExercise.defaultRpe,
+                      heartRate: ex.templateExercise.defaultHeartRate,
+                    };
+                  } else {
+                    targetSource = set;
+                  }
+
+                  if (targetSource) {
+                    const hasTimeTarget =
+                      targetSource.duration != null &&
+                      targetSource.duration > 0 &&
+                      (targetSource.reps == null || targetSource.reps === 0 || cat === "isometric");
+
+                    if (hasTimeTarget) {
+                      const durStr = formatSecs(targetSource.duration) || `${targetSource.duration}s`;
+                      if (targetSource.weight != null && targetSource.weight !== 0) {
+                        const weightSign = (cat === "bodyweight" && targetSource.weight > 0) ? "+" : "";
+                        ghostText = `${weightSign}${targetSource.weight} KG x ${durStr}`;
+                      } else if (targetSource.distance != null && targetSource.distance > 0) {
+                        ghostText = `${targetSource.distance} km x ${durStr}`;
+                      } else {
+                        ghostText = durStr;
+                      }
+                    } else if (cat === "resistance") {
+                      const reps = targetSource.reps ?? 10;
+                      const weight = targetSource.weight ?? 0;
+                      ghostText = `${reps} x ${weight} KG`;
+                    } else if (cat === "bodyweight") {
+                      const reps = targetSource.reps ?? 10;
+                      const weight = targetSource.weight;
+                      if (weight != null && weight !== 0) {
+                        const weightSign = weight > 0 ? "+" : "";
+                        ghostText = `${weightSign}${weight} KG x ${reps}`;
+                      } else {
+                        ghostText = `${reps} reps`;
+                      }
+                    } else if (cat === "cardio") {
+                      const dist = targetSource.distance ?? 0;
+                      const dur = targetSource.duration ?? 0;
+                      ghostText = `${dist} km x ${formatSecs(dur) || "0:00"}`;
+                    } else if (cat === "isometric") {
+                      const dur = targetSource.duration ?? 0;
+                      const weight = targetSource.weight;
+                      const durStr = formatSecs(dur) || `${dur}s`;
+                      
+                      if (weight != null && weight !== 0) {
+                        ghostText = `${weight} KG x ${durStr}`;
+                      } else {
+                        ghostText = durStr;
+                      }
                     }
                   }
-                }
 
-                const colSpanVal = (cat === "resistance" || cat === "cardio") ? 6 : 5;
+                  const colSpanVal = cat === "cardio" ? 6 : 5;
+                  const isZero = highlightZeroReps && isSetZero(ex, set, previousSetsMap);
 
-                return (
-                  <React.Fragment key={setIdx}>
-                    <tr
-                      className={`border-b border-border/20 last:border-0 transition-colors duration-150 ${
-                        set.completed
-                          ? "bg-brand/5 opacity-70"
-                          : "hover:bg-white/[0.01]"
-                      }`}
-                    >
-                      {/* Set # */}
-                      <td className="py-2.5 px-3 font-medium text-zinc-400 align-middle">
-                        {set.setNumber}
-                      </td>
+                  return (
+                    <React.Fragment key={setIdx}>
+                      <tr
+                        className={`border-b border-border/20 last:border-0 transition-colors duration-150 ${
+                          set.completed
+                            ? "bg-brand/5 opacity-70"
+                            : "hover:bg-white/[0.01]"
+                        }`}
+                      >
+                        {/* Set # */}
+                        <td className="py-2.5 px-3 font-medium text-zinc-400 align-middle">
+                          {set.setNumber}
+                        </td>
 
-                      {/* Ghost/Target text */}
-                      <td className="py-2.5 px-3 text-muted-foreground align-middle italic text-xs">
-                        {ghostText}
-                      </td>
+                        {/* Ghost/Target text */}
+                        <td className="py-2.5 px-3 text-muted-foreground align-middle italic text-xs">
+                          {ghostText}
+                        </td>
 
-                      {/* Dynamic Inputs based on Category */}
-                      {(cat === "resistance") && (
-                        <>
-                          <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="number"
-                              min="0"
-                              step="any"
-                              inputMode="decimal"
-                              placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                              value={set.weight}
-                              onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                            />
-                          </td>
-                          <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              placeholder={prevSet?.reps != null ? String(prevSet.reps) : "0"}
-                              value={set.reps}
-                              onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                highlightZeroReps && set.completed === 1 && (set.reps === 0 || set.reps === null)
-                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                  : "border-border/80 focus-visible:border-brand/40"
-                              }`}
-                            />
-                          </td>
-                          <td className="py-2 px-2 align-middle">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                setRpePickerPos(
-                                  rpePickerPos?.exIdx === exIdx && rpePickerPos?.setIdx === setIdx
-                                    ? null
-                                    : { exIdx, setIdx, top: rect.top, left: rect.left, width: rect.width }
-                                );
-                              }}
-                              className={`h-8 w-full rounded-md text-center text-sm font-semibold transition-all border ${
-                                set.rpe != null
-                                  ? `${rpeColors[set.rpe as number]} text-white border-transparent`
-                                  : "bg-white/5 border-border/80 text-muted-foreground hover:border-brand/40"
-                              }`}
-                            >
-                              {set.rpe ?? "—"}
-                            </button>
+                        {/* Dynamic Inputs based on Category */}
+                        {(cat === "resistance") && (
+                          <>
+                            <td className="py-2 px-2 align-middle">
+                              <AutoSaveInput
+                                type="number"
+                                min="0"
+                                step="any"
+                                inputMode="decimal"
+                                placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
+                                value={set.weight}
+                                onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
+                                className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              />
+                            </td>
+                            <td className="py-2 px-2 align-middle">
+                              {isTimed ? (
+                                <AutoSaveInput
+                                  type="text"
+                                  placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
+                                  value={set.duration != null ? formatSecs(set.duration) : ""}
+                                  onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                    isZero
+                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                      : "border-border/80 focus-visible:border-brand/40"
+                                  }`}
+                                />
+                              ) : (
+                                <AutoSaveInput
+                                  type="number"
+                                  min="0"
+                                  inputMode="numeric"
+                                  placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
+                                  value={set.reps}
+                                  onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
+                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                    isZero
+                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                      : "border-border/80 focus-visible:border-brand/40"
+                                  }`}
+                                />
+                              )}
+                            </td>
+                          </>
+                        )}
 
-                            {rpePickerPos?.exIdx === exIdx && rpePickerPos?.setIdx === setIdx && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setRpePickerPos(null)} />
-                                <div
-                                  className="fixed z-50 flex gap-0.5 rounded-lg bg-zinc-900 border border-zinc-700 p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-                                  style={{
-                                    top: rpePickerPos.top - 50,
-                                    left: rpePickerPos.left + rpePickerPos.width / 2 - 110,
-                                  }}
-                                >
-                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => (
-                                    <button
-                                      key={val}
-                                      type="button"
-                                      onClick={() => {
-                                        updateSet(exIdx, setIdx, "rpe", val);
-                                        setRpePickerPos(null);
-                                      }}
-                                      className={`h-8 w-8 rounded-md text-xs font-bold text-white transition-all duration-100 active:scale-90 ${
-                                        rpeColors[val]
-                                      } ${set.rpe === val ? "ring-2 ring-white scale-110" : "hover:scale-110 hover:brightness-110"}`}
-                                    >
-                                      {val}
-                                    </button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </td>
-                        </>
-                      )}
-
-                      {cat === "bodyweight" && (
-                        <>
-                          <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="number"
-                              min="0"
-                              step="any"
-                              placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
-                              value={set.weight}
-                              onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                            />
-                          </td>
-                          <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              placeholder={prevSet?.reps != null ? String(prevSet.reps) : "0"}
-                              value={set.reps}
-                              onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                highlightZeroReps && set.completed === 1 && (set.reps === 0 || set.reps === null)
-                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                  : "border-border/80 focus-visible:border-brand/40"
-                              }`}
-                            />
-                          </td>
-                        </>
-                      )}
+                        {cat === "bodyweight" && (
+                          <>
+                            <td className="py-2 px-2 align-middle">
+                              <AutoSaveInput
+                                type="number"
+                                min="0"
+                                step="any"
+                                placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
+                                value={set.weight}
+                                onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
+                                className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              />
+                            </td>
+                            <td className="py-2 px-2 align-middle">
+                              {isTimed ? (
+                                <AutoSaveInput
+                                  type="text"
+                                  placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
+                                  value={set.duration != null ? formatSecs(set.duration) : ""}
+                                  onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                    isZero
+                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                      : "border-border/80 focus-visible:border-brand/40"
+                                  }`}
+                                />
+                              ) : (
+                                <AutoSaveInput
+                                  type="number"
+                                  min="0"
+                                  inputMode="numeric"
+                                  placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
+                                  value={set.reps}
+                                  onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
+                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                    isZero
+                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                      : "border-border/80 focus-visible:border-brand/40"
+                                  }`}
+                                />
+                              )}
+                            </td>
+                          </>
+                        )}
 
                       {cat === "cardio" && (
                         <>
@@ -672,26 +682,34 @@ export function WorkoutExerciseCard({
                               type="number"
                               min="0"
                               step="any"
-                              placeholder={prevSet?.distance != null ? String(prevSet.distance) : "0.0"}
+                              placeholder={targetSource?.distance != null ? String(targetSource.distance) : "0.0"}
                               value={set.distance}
                               onSave={(val) => updateSet(exIdx, setIdx, "distance", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                isZero
+                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                  : "border-border/80 focus-visible:border-brand/40"
+                              }`}
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
                             <AutoSaveInput
                               type="text"
-                              placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
+                              placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
                               value={set.duration != null ? formatSecs(set.duration) : ""}
                               onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                isZero
+                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                  : "border-border/80 focus-visible:border-brand/40"
+                              }`}
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
                             <AutoSaveInput
                               type="number"
                               min="0"
-                              placeholder={prevSet?.heartRate != null ? String(prevSet.heartRate) : "140"}
+                              placeholder={targetSource?.heartRate != null ? String(targetSource.heartRate) : "140"}
                               value={set.heartRate}
                               onSave={(val) => updateSet(exIdx, setIdx, "heartRate", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
@@ -707,7 +725,7 @@ export function WorkoutExerciseCard({
                               type="number"
                               min="0"
                               step="any"
-                              placeholder={prevSet?.weight != null ? String(prevSet.weight) : "0"}
+                              placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
                               value={set.weight}
                               onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
@@ -716,10 +734,14 @@ export function WorkoutExerciseCard({
                           <td className="py-2 px-2 align-middle">
                             <AutoSaveInput
                               type="text"
-                              placeholder={prevSet?.duration != null ? formatSecs(prevSet.duration) : "MM:SS"}
+                              placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
                               value={set.duration != null ? formatSecs(set.duration) : ""}
                               onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
+                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                isZero
+                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                  : "border-border/80 focus-visible:border-brand/40"
+                              }`}
                             />
                           </td>
                         </>
@@ -769,7 +791,7 @@ export function WorkoutExerciseCard({
                       const isSetAboveCompleted = set.completed === 1;
                       const isCurrentRestTimer = activeRestExerciseIdx === exIdx && activeRestSetIdx === setIdx;
                       const hasActiveTimer = isCurrentRestTimer && restSecondsLeft > 0;
-                      const isDone = isSetAboveCompleted && !hasActiveTimer;
+                      const isDone = !hasActiveTimer;
 
                       return (
                         <tr className={`transition-all duration-300 ${
@@ -800,7 +822,7 @@ export function WorkoutExerciseCard({
                                   <>
                                     <div className="flex items-center gap-2">
                                       <Timer className={`size-4 ${hasActiveTimer && restActive ? "text-brand animate-pulse" : "text-zinc-500"}`} />
-                                      {hasActiveTimer ? (
+                                      {hasActiveTimer && (
                                         <div className="flex flex-wrap items-center gap-3">
                                           <span className="font-mono text-base font-bold text-brand tabular-nums">
                                             {formatTime(restSecondsLeft)}
@@ -828,30 +850,6 @@ export function WorkoutExerciseCard({
                                             </button>
                                           </div>
                                         </div>
-                                      ) : (
-                                        <div className="flex items-center gap-3">
-                                          <span className="text-zinc-400 font-medium">Rusttimer suggestie:</span>
-                                          <button
-                                            onClick={() => startRestTimer(exIdx, setIdx)}
-                                            className="px-3 py-1 rounded bg-brand text-zinc-950 font-bold hover:bg-brand-hover active:scale-95 transition-all text-xs"
-                                          >
-                                            {ex.templateExercise?.defaultRestTime != null 
-                                              ? `${formatTime(ex.templateExercise.defaultRestTime)} Start`
-                                              : "90s Start"
-                                            }
-                                          </button>
-                                          <div className="flex items-center gap-1">
-                                            {[60, 120, 180].map((tVal) => (
-                                              <button
-                                                key={tVal}
-                                                onClick={() => startRestTimer(exIdx, setIdx, tVal)}
-                                                className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-400 hover:bg-zinc-700"
-                                              >
-                                                {formatTime(tVal)}
-                                              </button>
-                                            ))}
-                                          </div>
-                                        </div>
                                       )}
                                     </div>
                                   </>
@@ -870,7 +868,8 @@ export function WorkoutExerciseCard({
             </tbody>
           </table>
         </div>
-      )}
+      );
+    })()}
 
       {/* Add Set Button */}
       <Button

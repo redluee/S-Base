@@ -93,61 +93,128 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
           </span>
         </div>
         {template.exercises?.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {template.exercises.map((ex: any, i: number) => (
-              <div
-                key={ex.templateExerciseId ?? i}
-                className="rounded-xl bg-card ring-1 ring-foreground/10 p-4"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-foreground text-sm sm:text-base">
-                    {ex.exerciseName}
-                  </span>
+          <div className="flex flex-col gap-3">
+            {template.exercises.map((ex: any, i: number) => {
+              const formatSecs = (secVal: number | null | undefined) => {
+                if (secVal === null || secVal === undefined) return "";
+                const min = Math.floor(secVal / 60);
+                const sec = secVal % 60;
+                return `${min}:${String(sec).padStart(2, "0")}`;
+              };
+
+              const categoryLabels: Record<string, string> = {
+                resistance: t("Resistance"),
+                bodyweight: t("Bodyweight"),
+                cardio: t("Cardio"),
+                isometric: t("Isometric"),
+              };
+
+              const cat = ex.category ?? "resistance";
+              const categoryLabel = categoryLabels[cat] || cat;
+
+              const equipmentList = ex.equipment
+                ? ex.equipment
+                    .split(",")
+                    .map((item: string) => item.trim())
+                    .filter(Boolean)
+                : [];
+
+              return (
+                <div
+                  key={ex.templateExerciseId ?? i}
+                  className="rounded-xl bg-card ring-1 ring-foreground/10 p-4 space-y-2.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-foreground text-base sm:text-lg">
+                          {ex.exerciseName}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-brand/20 text-brand border border-brand/40">
+                          {categoryLabel}
+                        </span>
+                        {equipmentList.map((eqItem: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded text-xs font-medium bg-zinc-800 text-zinc-200 border border-zinc-700"
+                          >
+                            {t(eqItem) || eqItem}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {ex.defaultRestTime != null && (
+                      <span className="text-xs font-medium text-zinc-200 bg-zinc-800/90 px-2.5 py-1 rounded-md border border-zinc-700 shrink-0">
+                        ⏱️ {t("Rest")}: {formatSecs(ex.defaultRestTime)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-zinc-800 text-xs sm:text-sm text-zinc-300 flex flex-wrap gap-y-1 gap-x-3 items-center">
+                    <span className="font-semibold text-foreground">
+                      {ex.defaultSets} {ex.defaultSets === 1 ? t("Set") : t("Sets")}
+                    </span>
+
+                    {cat === "resistance" && (
+                      <>
+                        {ex.defaultReps != null && (
+                          <span>• {ex.defaultReps} {t("Reps")}</span>
+                        )}
+                        {ex.defaultWeight != null && (
+                          <span>• {ex.defaultWeight} kg</span>
+                        )}
+                        {ex.defaultRpe != null && (
+                          <span>• RPE {ex.defaultRpe}</span>
+                        )}
+                      </>
+                    )}
+
+                    {cat === "bodyweight" && (
+                      <>
+                        {ex.defaultReps != null && (
+                          <span>• {ex.defaultReps} {t("Reps")}</span>
+                        )}
+                        {ex.defaultWeight != null && ex.defaultWeight !== 0 && (
+                          <span>
+                            • {ex.defaultWeight > 0 ? `+${ex.defaultWeight}` : ex.defaultWeight} kg
+                          </span>
+                        )}
+                      </>
+                    )}
+
+                    {cat === "cardio" && (
+                      <>
+                        {ex.defaultDistance != null && (
+                          <span>• {ex.defaultDistance} km</span>
+                        )}
+                        {ex.defaultDuration != null && (
+                          <span>• {formatSecs(ex.defaultDuration)}</span>
+                        )}
+                        {ex.defaultHeartRate != null && (
+                          <span>• {ex.defaultHeartRate} bpm</span>
+                        )}
+                      </>
+                    )}
+
+                    {cat === "isometric" && (
+                      <>
+                        {ex.defaultDuration != null && (
+                          <span>• {formatSecs(ex.defaultDuration)}</span>
+                        )}
+                        {ex.defaultWeight != null && ex.defaultWeight !== 0 && (
+                          <span>
+                            • {ex.defaultWeight > 0 ? `+${ex.defaultWeight}` : ex.defaultWeight} kg
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-4 mt-2 text-xs sm:text-sm text-muted-foreground">
-                  {(() => {
-                    const cat = ex.category ?? "resistance";
-                    const setsStr = `${ex.defaultSets} ${t("Sets")}`;
-                    const formatSecs = (secVal: number | null | undefined) => {
-                      if (secVal === null || secVal === undefined) return "";
-                      const min = Math.floor(secVal / 60);
-                      const sec = secVal % 60;
-                      return `${min}:${String(sec).padStart(2, "0")}`;
-                    };
-                    switch (cat) {
-                      case "resistance": {
-                        const parts = [setsStr, `${ex.defaultReps} ${t("Reps")}`];
-                        if (ex.defaultWeight != null) parts.push(`${ex.defaultWeight} kg`);
-                        if (ex.defaultRpe != null) parts.push(`RPE ${ex.defaultRpe}`);
-                        return parts.join(" • ");
-                      }
-                      case "bodyweight": {
-                        const parts = [setsStr, `${ex.defaultReps} ${t("Reps")}`];
-                        if (ex.defaultWeight != null && ex.defaultWeight !== 0) {
-                          parts.push(ex.defaultWeight > 0 ? `+${ex.defaultWeight} kg` : `${ex.defaultWeight} kg`);
-                        }
-                        return parts.join(" • ");
-                      }
-                      case "cardio": {
-                        const parts = [setsStr];
-                        if (ex.defaultDistance != null) parts.push(`${ex.defaultDistance} km`);
-                        if (ex.defaultDuration != null) parts.push(formatSecs(ex.defaultDuration));
-                        if (ex.defaultHeartRate != null) parts.push(`${ex.defaultHeartRate} bpm`);
-                        return parts.join(" • ");
-                      }
-                      case "isometric": {
-                        const parts = [setsStr];
-                        if (ex.defaultDuration != null) parts.push(formatSecs(ex.defaultDuration));
-                        if (ex.defaultWeight != null && ex.defaultWeight !== 0) parts.push(`+${ex.defaultWeight} kg`);
-                        return parts.join(" • ");
-                      }
-                      default:
-                        return setsStr;
-                    }
-                  })()}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">{t("No exercises yet.")}</p>

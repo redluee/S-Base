@@ -67,15 +67,17 @@ export const serverApi = {
     },
 
     exercises: {
-      list: () => serverFetch<{ name: string; equipment: string | null }[]>("/workouts/exercises"),
+      list: () => serverFetch<{ name: string; equipment: string | null; equipments?: string[] }[]>("/workouts/exercises"),
       progress: (name: string, equipment?: string) =>
         serverFetch<{
           exerciseName: string;
           category: string;
           equipment: string | null;
+          availableEquipments?: string[];
           sessions: {
             sessionId: number;
             startedAt: string;
+            equipment?: string | null;
             sets: {
               setNumber: number;
               reps: number | null;

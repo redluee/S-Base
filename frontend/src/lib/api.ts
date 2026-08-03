@@ -166,7 +166,7 @@ export const api = {
     },
 
     exercises: {
-      list: () => request<{ name: string; equipment: string | null }[]>("/workouts/exercises"),
+      list: () => request<{ name: string; equipment: string | null; equipments?: string[] }[]>("/workouts/exercises"),
       suggest: (q: string) =>
         request<{
           type: string;
@@ -188,9 +188,11 @@ export const api = {
           exerciseName: string;
           category: string;
           equipment: string | null;
+          availableEquipments?: string[];
           sessions: {
             sessionId: number;
             startedAt: string;
+            equipment?: string | null;
             sets: {
               setNumber: number;
               reps: number | null;

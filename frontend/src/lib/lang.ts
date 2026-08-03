@@ -95,6 +95,7 @@ const nl: Record<string, string> = {
   "Templates": "Sjablonen",
   "New Template": "Nieuw Sjabloon",
   "Template name is required.": "Sjabloonnaam is verplicht.",
+  "Exercise Name": "Naam oefening",
   "Exercise name is required.": "Oefeningsnaam is verplicht.",
   "Edit Template": "Sjabloon Bewerken",
   "Create Template": "Sjabloon Aanmaken",
