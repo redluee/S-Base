@@ -213,7 +213,7 @@ export class WorkoutService {
   }
 
   listSessions(userId: number, status?: string, q?: string) {
-    this.cleanupEmptySessions(userId, 300);
+    this.cleanupEmptySessions(userId, 0);
     const conditions = [eq(workoutSessions.userId, userId)];
 
     if (status === "active") {
@@ -583,7 +583,8 @@ export class WorkoutService {
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
       .where(and(
         like(sqlNormalize(sessionExercises.exerciseName), `%${normalizedQ}%`),
-        eq(workoutSessions.userId, userId)
+        eq(workoutSessions.userId, userId),
+        sql`${workoutSessions.completedAt} IS NOT NULL`
       ))
       .limit(10)
       .all();
@@ -834,7 +835,7 @@ export class WorkoutService {
   }
 
   listUniqueExercises(userId: number) {
-    this.cleanupEmptySessions(userId, 300);
+    this.cleanupEmptySessions(userId, 0);
     const fromTemplates = db.select({ name: templateExercises.exerciseName, equipment: templateExercises.equipment })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
@@ -843,7 +844,10 @@ export class WorkoutService {
     const fromSessions = db.select({ name: sessionExercises.exerciseName, equipment: sessionExercises.equipment })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(eq(workoutSessions.userId, userId))
+      .where(and(
+        eq(workoutSessions.userId, userId),
+        sql`${workoutSessions.completedAt} IS NOT NULL`
+      ))
       .all();
 
     const map = new Map<string, Set<string>>();
@@ -873,7 +877,7 @@ export class WorkoutService {
   }
 
   getStats(userId: number) {
-    this.cleanupEmptySessions(userId, 300);
+    this.cleanupEmptySessions(userId, 0);
     const lastSession = db.select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.userId, userId), sql`${workoutSessions.completedAt} IS NOT NULL`))

@@ -224,21 +224,6 @@ async function seed() {
     { recipeId, stepNumber: 6, description: "Serveer de gegrilde kip met de verse tomatensalsa." },
   ]).run();
 
-  db.insert(workoutTemplates).values({
-    templateId: 1,
-    userId: seedUserId,
-    name: "Full Body",
-    description: "Een full-body workout voor beginners.",
-    targetMuscleGroups: "Full Body",
-    estimatedTime: 45,
-  }).run();
-
-  db.insert(templateExercises).values([
-    { templateId: 1, exerciseName: "Bench Press", sortOrder: 0, defaultSets: 3, defaultReps: 10, defaultWeight: 40 },
-    { templateId: 1, exerciseName: "Squat", sortOrder: 1, defaultSets: 3, defaultReps: 10, defaultWeight: 50 },
-    { templateId: 1, exerciseName: "Pull-ups", sortOrder: 2, defaultSets: 3, defaultReps: 8, defaultWeight: null },
-  ]).run();
-
   console.log("Seeding complete.");
 }
 

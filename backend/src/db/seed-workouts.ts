@@ -6,8 +6,8 @@ import {
 
 function seedWorkouts() {
   const existingCount = db.select().from(workoutTemplates).all().length;
-  if (existingCount > 1) {
-    console.log("Workout templates already seeded, skipping.");
+  if (existingCount > 0) {
+    console.log("Workout templates already exist, skipping seed.");
     return;
   }
 
