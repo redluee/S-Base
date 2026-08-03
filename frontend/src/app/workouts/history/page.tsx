@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
+import { WorkoutSubnav } from "@/components/workout-subnav";
 import { t } from "@/lib/lang";
 import { Calendar } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
@@ -26,16 +27,12 @@ export default async function WorkoutHistoryPage({
     <div className="min-h-screen flex flex-col">
       <NavHeader username={user.username} />
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2">
             <Calendar className="size-6 sm:size-7 text-brand" />
-            <span className="hidden sm:inline">{t("History")}</span>
+            <span>{t("History")}</span>
           </h1>
-          <Link href="/workouts">
-            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-              {t("Back to overview")}
-            </Button>
-          </Link>
+          <WorkoutSubnav current="history" />
         </div>
 
         <Link

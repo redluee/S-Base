@@ -5,8 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
 import { MotivationalQuote } from "@/components/motivational-quote";
+import { WorkoutSubnav } from "@/components/workout-subnav";
 import { t } from "@/lib/lang";
-import { Dumbbell, Calendar, Scale } from "lucide-react";
 
 export default async function WorkoutsPage() {
   let user: { id: number; username: string } | null = null;
@@ -24,30 +24,11 @@ export default async function WorkoutsPage() {
     <div className="min-h-screen flex flex-col">
       <NavHeader username={user.username} />
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground">
             {t("Workout Studio")}
           </h1>
-          <div className="flex gap-2">
-            <Link href="/workouts/exercises">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
-                <Dumbbell className="size-3.5 sm:size-4 text-brand" />
-                <span className="hidden sm:inline">{t("Exercises")}</span>
-              </Button>
-            </Link>
-            <Link href="/workouts/history">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
-                <Calendar className="size-3.5 sm:size-4 text-brand" />
-                <span className="hidden sm:inline">{t("History")}</span>
-              </Button>
-            </Link>
-            <Link href="/workouts/measurements">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer">
-                <Scale className="size-3.5 sm:size-4 text-brand" />
-                <span className="hidden sm:inline">{t("Weight & Measurements")}</span>
-              </Button>
-            </Link>
-          </div>
+          <WorkoutSubnav current="workouts" />
         </div>
 
         {/* Stats Dashboard */}
