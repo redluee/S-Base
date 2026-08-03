@@ -14,7 +14,8 @@ import {
   Timer,
   Pause,
   Play,
-  Dumbbell
+  Dumbbell,
+  Save
 } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
 import { WorkoutExerciseCard, normalizeCategory, isSetZero, isTimedExercise } from "@/components/workout-exercise-card";
@@ -583,6 +584,26 @@ export function WorkoutSessionLive({
     await saveExercises(reindexed);
   }
 
+  async function handleSaveHistoryEdit() {
+    if (!session) return;
+    setSaving(true);
+    try {
+      if (isEditingName && sessionName.trim()) {
+        await api.workouts.sessions.update(session.sessionId, {
+          name: sessionName.trim(),
+        });
+      }
+      await syncPromiseChain.current;
+      bypassWarningRef.current = true;
+      router.push(`/workouts/history/${session.sessionId}`);
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to save session edit", err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // Handle final completion
   function handleFinishClick() {
     // Set duration fields first
@@ -867,13 +888,24 @@ export function WorkoutSessionLive({
               )}
             </div>
 
-            <Button
-              onClick={handleFinishClick}
-              className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 h-9 shadow-glow-sm"
-            >
-              <Trophy className="size-4 mr-1.5" />
-              {t("Finish")}
-            </Button>
+            {session.completedAt ? (
+              <Button
+                onClick={handleSaveHistoryEdit}
+                disabled={saving}
+                className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 h-9 shadow-glow-sm"
+              >
+                <Save className="size-4 mr-1.5" />
+                {t("Save")}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleFinishClick}
+                className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 h-9 shadow-glow-sm"
+              >
+                <Trophy className="size-4 mr-1.5" />
+                {t("Finish")}
+              </Button>
+            )}
           </div>
         </div>
       </div>
