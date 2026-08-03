@@ -9,7 +9,7 @@ import type {
   FullWorkoutSession,
 } from "@backend/types/shared";
 
-const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
+const API_URL = process.env.API_URL ?? "http://127.0.0.1:3001/api";
 
 async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const cookieStore = await cookies();

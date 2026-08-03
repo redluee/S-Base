@@ -74,7 +74,7 @@ const workoutAuth = createAuthPlugin("workout");
 const measurementsAuth = createAuthPlugin("measurements");
 
 const app = new Elysia()
-  .use(cors({ origin: "http://localhost:3000", credentials: true }))
+  .use(cors({ origin: true, credentials: true }))
   .onError(({ code, error }) => {
     console.error(`Error ${code}:`, error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
