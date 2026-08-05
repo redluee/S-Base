@@ -399,12 +399,12 @@ export class WorkoutService {
             db.insert(sessionSets).values({
               sessionExerciseId: se.sessionExerciseId,
               setNumber: s,
-              reps: null,
-              weight: null,
-              distance: null,
-              duration: null,
-              rpe: null,
-              heartRate: null,
+              reps: tex.defaultReps ?? null,
+              weight: tex.defaultWeight ?? null,
+              distance: tex.defaultDistance ?? null,
+              duration: tex.defaultDuration ?? null,
+              rpe: tex.defaultRpe ?? null,
+              heartRate: tex.defaultHeartRate ?? null,
             }).run();
           }
         }

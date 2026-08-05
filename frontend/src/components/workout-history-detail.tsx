@@ -7,7 +7,7 @@ import { t } from "@/lib/lang";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, FileText } from "lucide-react";
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
@@ -119,7 +119,13 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
       </div>
 
       {session.notes && (
-        <p className="text-foreground mb-6 leading-relaxed text-sm">{session.notes}</p>
+        <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            <FileText className="size-3.5 text-brand" />
+            <span>{t("Notes")}</span>
+          </div>
+          <p className="text-foreground leading-relaxed text-sm whitespace-pre-wrap">{session.notes}</p>
+        </div>
       )}
 
       <div className="flex flex-col gap-4">

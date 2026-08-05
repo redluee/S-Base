@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
 import {
   ArrowLeft,
@@ -15,7 +16,8 @@ import {
   Pause,
   Play,
   Dumbbell,
-  Save
+  Save,
+  FileText
 } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
 import { WorkoutExerciseCard, normalizeCategory, isSetZero, isTimedExercise } from "@/components/workout-exercise-card";
@@ -588,11 +590,12 @@ export function WorkoutSessionLive({
     if (!session) return;
     setSaving(true);
     try {
-      if (isEditingName && sessionName.trim()) {
-        await api.workouts.sessions.update(session.sessionId, {
-          name: sessionName.trim(),
-        });
+      const updatePayload: { name?: string; notes?: string } = {};
+      if (sessionName.trim()) {
+        updatePayload.name = sessionName.trim();
       }
+      updatePayload.notes = summaryNotes.trim();
+      await api.workouts.sessions.update(session.sessionId, updatePayload);
       await syncPromiseChain.current;
       bypassWarningRef.current = true;
       router.push(`/workouts/history/${session.sessionId}`);
@@ -908,6 +911,20 @@ export function WorkoutSessionLive({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Workout Notes Card */}
+      <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-3.5 mb-6">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          <FileText className="size-3.5 text-brand" />
+          <span>{t("Notes")}</span>
+        </div>
+        <Textarea
+          value={summaryNotes}
+          onChange={(e) => setSummaryNotes(e.target.value)}
+          placeholder={t("Write session feedback, how you felt, details...")}
+          className="bg-white/5 border-border min-h-[60px] text-xs text-foreground focus-visible:ring-brand"
+        />
       </div>
 
       {exercises.length === 0 ? (
