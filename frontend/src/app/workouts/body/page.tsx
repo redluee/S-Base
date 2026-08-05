@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { compressImage } from "@/lib/image";
+
 interface Photo {
   photoId: number;
   measurementId: number;
@@ -45,6 +47,12 @@ export default function BodyPage() {
   const [user, setUser] = useState<{ id: number; username: string } | null>(null);
   const [logs, setLogs] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Photo upload progress state
+  const [uploadingLogId, setUploadingLogId] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadStage, setUploadStage] = useState<"idle" | "optimizing" | "uploading">("idle");
+  const [optimisticPhotoUrl, setOptimisticPhotoUrl] = useState<string | null>(null);
   
   // Form State (used for both inline edit and new prepended entry)
   const [editingId, setEditingId] = useState<number | null>(null); // null, 0 for new, or measurementId for editing
@@ -212,9 +220,27 @@ export default function BodyPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    let tempUrl: string | null = null;
     try {
-      const { filePath } = await api.measurements.uploadPhoto(file);
-      
+      setUploadingLogId(targetLog.measurementId);
+      setUploadStage("optimizing");
+      setUploadProgress(0);
+
+      // Create instant visual preview
+      tempUrl = URL.createObjectURL(file);
+      setOptimisticPhotoUrl(tempUrl);
+
+      // Compress client side
+      const compressedBlob = await compressImage(file);
+
+      // Upload compressed image
+      setUploadStage("uploading");
+      const { filePath } = await api.measurements.uploadPhoto(
+        compressedBlob,
+        file.name,
+        (pct) => setUploadProgress(pct)
+      );
+
       await fetch(`/api/measurements/${targetLog.measurementId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,6 +250,14 @@ export default function BodyPage() {
       fetchLogs();
     } catch (err) {
       console.error("Failed to upload photo:", err);
+    } finally {
+      if (tempUrl) {
+        URL.revokeObjectURL(tempUrl);
+      }
+      setOptimisticPhotoUrl(null);
+      setUploadingLogId(null);
+      setUploadStage("idle");
+      setUploadProgress(0);
     }
   };
 
@@ -733,11 +767,31 @@ export default function BodyPage() {
                             </div>
                           ))}
 
-                          <label className="shrink-0 size-11 rounded-lg border border-dashed border-border hover:border-brand/50 flex flex-col items-center justify-center text-muted-foreground hover:text-brand bg-muted/10 hover:bg-brand/5 transition-all cursor-pointer">
+                          {/* Uploading optimistic thumbnail */}
+                          {uploadingLogId === log.measurementId && (
+                            <div className="relative shrink-0 size-11 rounded-lg border border-brand/60 overflow-hidden bg-background flex flex-col items-center justify-center animate-in fade-in duration-200">
+                              {optimisticPhotoUrl ? (
+                                <img src={optimisticPhotoUrl} alt="Preview" className="w-full h-full object-cover opacity-35" />
+                              ) : null}
+                              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-0.5">
+                                <Loader2 className="size-3.5 text-brand animate-spin" />
+                                <span className="text-[9px] font-extrabold text-foreground tracking-tighter">
+                                  {uploadStage === "optimizing" ? "..." : `${uploadProgress}%`}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <label className={`shrink-0 size-11 rounded-lg border border-dashed border-border flex flex-col items-center justify-center transition-all ${
+                            uploadingLogId !== null
+                              ? "opacity-50 cursor-not-allowed bg-muted/5 text-muted-foreground"
+                              : "hover:border-brand/50 text-muted-foreground hover:text-brand bg-muted/10 hover:bg-brand/5 cursor-pointer"
+                          }`}>
                             <Camera className="size-4" />
                             <input 
                               type="file" 
                               accept="image/*"
+                              disabled={uploadingLogId !== null}
                               onChange={(e) => handlePhotoUpload(e, log)}
                               className="hidden"
                             />
