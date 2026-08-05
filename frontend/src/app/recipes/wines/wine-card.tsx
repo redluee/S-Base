@@ -45,6 +45,16 @@ const wineTypeStyles: Record<
   },
 };
 
+const purchaseLocationIcons: Record<string, string> = {
+  supermarket: "🛒",
+  wine_shop: "🍷",
+  winery: "🏰",
+  online: "🌐",
+  restaurant: "🍽️",
+  gift: "🎁",
+  other: "🛍️",
+};
+
 export function WineCard({ wine }: { wine: Wine }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -154,7 +164,7 @@ export function WineCard({ wine }: { wine: Wine }) {
           {wine.variety}
         </p>
 
-        {/* Metadata row: Vintage, Region & Rating */}
+        {/* Metadata row: Vintage, Region, Purchase Location & Rating */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/70 mb-3">
           {wine.vintage && (
             <span className="inline-flex items-center gap-1 font-medium bg-black/20 px-2 py-0.5 rounded-md border border-white/10">
@@ -164,6 +174,11 @@ export function WineCard({ wine }: { wine: Wine }) {
           {wine.countryRegion && (
             <span className="inline-flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-md border border-white/10">
               📍 {wine.countryRegion}
+            </span>
+          )}
+          {wine.purchaseLocation && (
+            <span className="inline-flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-md border border-white/10">
+              {purchaseLocationIcons[wine.purchaseLocation] ?? "🛍️"} {t(wine.purchaseLocation)}
             </span>
           )}
           {wine.rating != null && (

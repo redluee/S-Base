@@ -10,6 +10,7 @@ export const wines = sqliteTable("wines", {
   variety: text("variety").notNull(),
   vintage: integer("vintage"),
   countryRegion: text("country_region"),
+  purchaseLocation: text("purchase_location"),
   rating: integer("rating"),
   notes: text("notes"),
   imageUrl: text("image_url"),

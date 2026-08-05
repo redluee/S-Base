@@ -6,6 +6,17 @@ import { normalizeSearchString, sqlNormalize } from "../../utils/search";
 export const WINE_TYPES = ["red", "white", "rose", "sparkling", "dessert"] as const;
 export type WineType = (typeof WINE_TYPES)[number];
 
+export const PURCHASE_LOCATIONS = [
+  "supermarket",
+  "wine_shop",
+  "winery",
+  "online",
+  "restaurant",
+  "gift",
+  "other",
+] as const;
+export type PurchaseLocation = (typeof PURCHASE_LOCATIONS)[number];
+
 export class WineService {
   list(_userId?: number, type?: string, q?: string, sortBy?: string, sortOrder?: string) {
     const columnMap: Record<string, any> = {
@@ -13,6 +24,7 @@ export class WineService {
       rating: wines.rating,
       vintage: wines.vintage,
       createdAt: wines.createdAt,
+      purchaseLocation: wines.purchaseLocation,
     };
 
     const column = columnMap[sortBy ?? "brand"] ?? wines.brand;
@@ -31,6 +43,7 @@ export class WineService {
           like(sqlNormalize(wines.brand), `%${normalizedQ}%`),
           like(sqlNormalize(wines.variety), `%${normalizedQ}%`),
           like(sqlNormalize(wines.countryRegion), `%${normalizedQ}%`),
+          like(sqlNormalize(wines.purchaseLocation), `%${normalizedQ}%`),
           like(sqlNormalize(wines.notes), `%${normalizedQ}%`),
         )!,
       );
@@ -59,6 +72,7 @@ export class WineService {
       variety: string;
       vintage?: number;
       countryRegion?: string;
+      purchaseLocation?: string;
       rating?: number;
       notes?: string;
       imageUrl?: string;
@@ -73,6 +87,9 @@ export class WineService {
     if (!WINE_TYPES.includes(data.type as WineType)) {
       throw new Error("Invalid wine type");
     }
+    if (data.purchaseLocation && !PURCHASE_LOCATIONS.includes(data.purchaseLocation as PurchaseLocation)) {
+      throw new Error("Invalid purchase location");
+    }
 
     return db
       .insert(wines)
@@ -83,6 +100,7 @@ export class WineService {
         variety: data.variety.trim(),
         vintage: data.vintage ? Number(data.vintage) : null,
         countryRegion: data.countryRegion?.trim() || null,
+        purchaseLocation: data.purchaseLocation?.trim() || null,
         rating: data.rating !== undefined && data.rating !== null ? Number(data.rating) : null,
         notes: data.notes?.trim() || null,
         imageUrl: data.imageUrl || null,
@@ -99,6 +117,7 @@ export class WineService {
       variety?: string;
       vintage?: number | null;
       countryRegion?: string | null;
+      purchaseLocation?: string | null;
       rating?: number | null;
       notes?: string | null;
       imageUrl?: string | null;
@@ -110,6 +129,9 @@ export class WineService {
     if (data.type && !WINE_TYPES.includes(data.type as WineType)) {
       throw new Error("Invalid wine type");
     }
+    if (data.purchaseLocation && !PURCHASE_LOCATIONS.includes(data.purchaseLocation as PurchaseLocation)) {
+      throw new Error("Invalid purchase location");
+    }
 
     return db
       .update(wines)
@@ -119,6 +141,7 @@ export class WineService {
         variety: data.variety !== undefined ? data.variety.trim() : existing.variety,
         vintage: data.vintage !== undefined ? (data.vintage ? Number(data.vintage) : null) : existing.vintage,
         countryRegion: data.countryRegion !== undefined ? (data.countryRegion?.trim() || null) : existing.countryRegion,
+        purchaseLocation: data.purchaseLocation !== undefined ? (data.purchaseLocation?.trim() || null) : existing.purchaseLocation,
         rating: data.rating !== undefined ? (data.rating !== null ? Number(data.rating) : null) : existing.rating,
         notes: data.notes !== undefined ? (data.notes?.trim() || null) : existing.notes,
         imageUrl: data.imageUrl !== undefined ? data.imageUrl : existing.imageUrl,

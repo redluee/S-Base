@@ -10,12 +10,25 @@ import { Label } from "@/components/ui/label";
 import { t } from "@/lib/lang";
 import { api, type Wine } from "@/lib/api";
 
+import { compressImage } from "@/lib/image";
+import { Loader2 } from "lucide-react";
+
 const WINE_TYPES = [
   { value: "red", label: "Rood (Red)" },
   { value: "white", label: "Wit (White)" },
   { value: "rose", label: "Rosé" },
   { value: "sparkling", label: "Mousserend (Sparkling)" },
   { value: "dessert", label: "Dessertwijn" },
+];
+
+const PURCHASE_LOCATIONS = [
+  { value: "supermarket", label: "Supermarkt" },
+  { value: "wine_shop", label: "Wijnwinkel" },
+  { value: "winery", label: "Wijnhuis" },
+  { value: "online", label: "Webshop / Online" },
+  { value: "restaurant", label: "Horeca / Restaurant" },
+  { value: "gift", label: "Cadeau gekregen" },
+  { value: "other", label: "Overig" },
 ];
 
 export function WineForm({ wine }: { wine?: Wine }) {
@@ -26,11 +39,16 @@ export function WineForm({ wine }: { wine?: Wine }) {
   const [variety, setVariety] = useState(wine?.variety ?? "");
   const [vintage, setVintage] = useState<string>(wine?.vintage ? String(wine.vintage) : "");
   const [countryRegion, setCountryRegion] = useState(wine?.countryRegion ?? "");
+  const [purchaseLocation, setPurchaseLocation] = useState<string>(wine?.purchaseLocation ?? "");
   const [rating, setRating] = useState<string>(wine?.rating != null ? String(wine.rating) : "");
   const [notes, setNotes] = useState(wine?.notes ?? "");
   const [imageUrl, setImageUrl] = useState<string | null>(wine?.imageUrl ?? null);
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<"idle" | "optimizing" | "uploading">("idle");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,16 +56,38 @@ export function WineForm({ wine }: { wine?: Wine }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    let tempUrl: string | null = null;
     try {
       setIsUploading(true);
       setError(null);
-      const res = await api.wines.uploadPhoto(file);
+      setUploadStage("optimizing");
+      setUploadProgress(0);
+
+      // Create instant visual preview
+      tempUrl = URL.createObjectURL(file);
+      setPreviewUrl(tempUrl);
+
+      // Compress image client side
+      const compressedBlob = await compressImage(file);
+
+      // Upload compressed image
+      setUploadStage("uploading");
+      const res = await api.wines.uploadPhoto(compressedBlob, file.name, (pct) => {
+        setUploadProgress(pct);
+      });
+
       setImageUrl(res.filePath);
     } catch (err: unknown) {
       console.error("Failed to upload photo:", err);
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : t("Failed to upload photo"));
     } finally {
+      if (tempUrl) {
+        URL.revokeObjectURL(tempUrl);
+      }
+      setPreviewUrl(null);
       setIsUploading(false);
+      setUploadStage("idle");
+      setUploadProgress(0);
     }
   };
 
@@ -73,6 +113,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
         variety: variety.trim(),
         vintage: vintage ? parseInt(vintage, 10) : null,
         countryRegion: countryRegion.trim() || null,
+        purchaseLocation: purchaseLocation || null,
         rating: rating !== "" ? parseInt(rating, 10) : null,
         notes: notes.trim() || null,
         imageUrl,
@@ -184,6 +225,26 @@ export function WineForm({ wine }: { wine?: Wine }) {
         </div>
       </div>
 
+      {/* Where bought (Purchase location) */}
+      <div className="space-y-2">
+        <Label htmlFor="purchaseLocation" className="text-foreground font-medium">
+          {t("Where bought")} <span className="text-muted-foreground font-normal">({t("optional")})</span>
+        </Label>
+        <select
+          id="purchaseLocation"
+          value={purchaseLocation}
+          onChange={(e) => setPurchaseLocation(e.target.value)}
+          className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="">-- {t("Select location")} --</option>
+          {PURCHASE_LOCATIONS.map((loc) => (
+            <option key={loc.value} value={loc.value}>
+              {t(loc.value)}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Rating Slider/Input */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -225,19 +286,49 @@ export function WineForm({ wine }: { wine?: Wine }) {
           {t("Label photo")} <span className="text-muted-foreground font-normal">({t("optional")})</span>
         </Label>
 
-        {imageUrl ? (
+        {previewUrl || imageUrl ? (
           <div className="relative w-full h-48 rounded-xl overflow-hidden bg-black/40 border border-border group">
-            <Image src={imageUrl} alt="Wine label" fill className="object-contain p-2" />
-            <button
-              type="button"
-              onClick={() => setImageUrl(null)}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black transition-colors"
-              title={t("Remove")}
-            >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {/* Display Image (previewUrl or saved imageUrl) */}
+            <Image
+              src={previewUrl || imageUrl!}
+              alt="Wine label"
+              fill
+              unoptimized={!!previewUrl}
+              className="object-contain p-2"
+            />
+
+            {/* Overlay during uploading */}
+            {isUploading ? (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 gap-3 z-20 animate-in fade-in duration-200">
+                <Loader2 className="size-7 text-brand animate-spin" />
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-foreground">
+                    {uploadStage === "optimizing"
+                      ? t("Optimizing photo...")
+                      : `${t("Uploading photo...")} ${uploadProgress}%`}
+                  </p>
+                </div>
+                <div className="w-44 sm:w-56 h-2 bg-muted rounded-full overflow-hidden ring-1 ring-foreground/10">
+                  <div
+                    className="h-full bg-brand transition-all duration-200 ease-out"
+                    style={{
+                      width: `${uploadStage === "optimizing" ? 15 : uploadProgress}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setImageUrl(null)}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black transition-colors z-10"
+                title={t("Remove")}
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
         ) : (
           <label className="flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed border-border hover:border-brand/50 bg-background/50 hover:bg-muted/50 cursor-pointer transition-all">
@@ -247,7 +338,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
               </svg>
               <p className="text-xs text-muted-foreground">
-                {isUploading ? t("Uploading...") : t("Upload photo")}
+                {t("Upload photo")}
               </p>
             </div>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={isUploading} className="hidden" />

@@ -55,6 +55,50 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+async function uploadFormDataWithProgress<T>(
+  url: string,
+  file: File | Blob,
+  fileName?: string,
+  onProgress?: (progress: number) => void
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.withCredentials = true;
+
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          resolve(res);
+        } catch {
+          reject(new Error("Invalid server response"));
+        }
+      } else {
+        reject(new Error(xhr.statusText || `Upload failed with status ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network error during upload"));
+    };
+
+    const formData = new FormData();
+    const name = fileName || (file as File).name || "upload.jpg";
+    formData.append("file", file, name);
+    xhr.send(formData);
+  });
+}
+
 export const api = {
   login: (username: string, password: string) =>
     request<{ user: { id: number; username: string } }>("/auth/login", {
@@ -238,18 +282,13 @@ export const api = {
       request<{ success: boolean }>(`/measurements/${id}`, {
         method: "DELETE",
       }),
-    uploadPhoto: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/measurements/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(res.statusText);
-      }
-      return res.json() as Promise<{ filePath: string }>;
+    uploadPhoto: async (file: File | Blob, fileName?: string, onProgress?: (progress: number) => void) => {
+      return uploadFormDataWithProgress<{ filePath: string }>(
+        "/api/measurements/upload",
+        file,
+        fileName,
+        onProgress
+      );
     },
     deletePhoto: (photoId: number) =>
       request<{ success: boolean }>(`/measurements/photos/${photoId}`, {
@@ -274,18 +313,13 @@ export const api = {
       request<Wine>(`/wines/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<{ success: boolean }>(`/wines/${id}`, { method: "DELETE" }),
-    uploadPhoto: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/wines/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(res.statusText);
-      }
-      return res.json() as Promise<{ filePath: string }>;
+    uploadPhoto: async (file: File | Blob, fileName?: string, onProgress?: (progress: number) => void) => {
+      return uploadFormDataWithProgress<{ filePath: string }>(
+        "/api/wines/upload",
+        file,
+        fileName,
+        onProgress
+      );
     },
   },
 };
@@ -298,6 +332,7 @@ export interface Wine {
   variety: string;
   vintage: number | null;
   countryRegion: string | null;
+  purchaseLocation: string | null;
   rating: number | null;
   notes: string | null;
   imageUrl: string | null;
