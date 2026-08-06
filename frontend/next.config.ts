@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     "100.100.219.10:3002",
     "100.64.29.110",
     "*.ts.net",
+    "base.stevenheijn.nl",
   ],
   async rewrites() {
     return [
