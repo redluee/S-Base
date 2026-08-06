@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 const DEFAULT_BG = "/karp-350.jpg";
-const DEFAULT_BLUR = 15;
-const DEFAULT_BRIGHTNESS = 30;
+const DEFAULT_BLUR = 5;
+const DEFAULT_BRIGHTNESS = 80;
 
 export function DashboardClient({ username }: { username: string }) {
   const [blur, setBlur] = useState<number>(DEFAULT_BLUR);
