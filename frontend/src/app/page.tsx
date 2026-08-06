@@ -1,7 +1,17 @@
+import { serverApi } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 import { t } from "@/lib/lang";
 import { LoginForm } from "@/components/login-form";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  try {
+    const { user } = await serverApi.me();
+    if (user) {
+      redirect("/dashboard");
+    }
+  } catch {
+    // Not authenticated, render login page
+  }
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,227,164,0.06)_0%,transparent_70%)] pointer-events-none" />

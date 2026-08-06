@@ -101,7 +101,7 @@ async function uploadFormDataWithProgress<T>(
 
 export const api = {
   login: (username: string, password: string) =>
-    request<{ user: { id: number; username: string } }>("/auth/login", {
+    request<{ user: { id: number; username: string; email: string | null } }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
@@ -109,7 +109,7 @@ export const api = {
   logout: () => request<{ ok: boolean }>("/auth/logout"),
 
   me: () =>
-    request<{ user: { id: number; username: string } }>("/auth/me"),
+    request<{ user: { id: number; username: string; email: string | null } }>("/auth/me"),
 
   ingredients: {
     search: (q: string) =>

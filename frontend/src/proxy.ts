@@ -5,18 +5,41 @@ const protectedPaths = ["/dashboard", "/recipes", "/workouts"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
-  if (isProtected) {
-    const sessionId = request.cookies.get("session_id")?.value;
-    if (!sessionId) {
-      return NextResponse.redirect(new URL("/", request.url));
+  const sessionId = request.cookies.get("session_id")?.value;
+  const cfEmail = request.headers.get("cf-access-authenticated-user-email");
+
+  // If user arrives at root '/' or any protected route
+  if (pathname === "/") {
+    if (sessionId) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
+    if (cfEmail) {
+      const exchangeUrl = new URL("/api/auth/cf-exchange", request.url);
+      exchangeUrl.searchParams.set("redirect", "/dashboard");
+      return NextResponse.redirect(exchangeUrl);
+    }
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+  if (!isProtected) {
+    return NextResponse.next();
+  }
+
+  if (sessionId) {
+    return NextResponse.next();
+  }
+
+  if (cfEmail) {
+    const exchangeUrl = new URL("/api/auth/cf-exchange", request.url);
+    exchangeUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(exchangeUrl);
+  }
+
+  return NextResponse.redirect(new URL("/", request.url));
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/recipes/:path*", "/workouts/:path*"],
+  matcher: ["/", "/dashboard/:path*", "/recipes/:path*", "/workouts/:path*"],
 };

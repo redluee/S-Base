@@ -34,7 +34,7 @@ async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const serverApi = {
-  me: () => serverFetch<{ user: { id: number; username: string } }>("/auth/me"),
+  me: () => serverFetch<{ user: { id: number; username: string; email: string | null } }>("/auth/me"),
 
   recipes: {
     list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {

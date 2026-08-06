@@ -92,14 +92,42 @@ const app = new Elysia()
     }
 
     const sessionId = auth.createSession(result.userId);
-    session_id?.set({ value: sessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400 });
+    const isSecure = process.env.NODE_ENV === "production";
+    session_id?.set({ value: sessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
 
-    return { user: { id: result.userId, username } };
+    return { user: { id: result.userId, username, email: result.email } };
+  })
+
+  .post("/api/auth/cf-login", ({ body, request }) => {
+    const cfEmail = request.headers.get("x-cf-email");
+    if (!cfEmail) {
+      return new Response(JSON.stringify({ error: "missing_cf_header" }), { status: 400 });
+    }
+    const { email } = (body ?? {}) as { email?: string };
+    if (!email || email !== cfEmail) {
+      return new Response(JSON.stringify({ error: "email_mismatch" }), { status: 400 });
+    }
+
+    const user = auth.findUserByEmail(email);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "no_account", email }), { status: 403 });
+    }
+
+    const sessionId = auth.createSession(user.userId);
+    const isSecure = process.env.NODE_ENV === "production";
+    const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
+    return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email } }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Set-Cookie": cookieValue,
+      },
+    });
   })
 
   .get("/api/auth/logout", ({ cookie: { session_id } }) => {
     if (session_id?.value) auth.deleteSession(session_id.value);
-    session_id?.set({ value: "", maxAge: 0 });
+    session_id?.set({ value: "", maxAge: 0, path: "/", secure: process.env.NODE_ENV === "production" });
     return { ok: true };
   })
 
@@ -108,7 +136,7 @@ const app = new Elysia()
     if (!sid) return new Response("Unauthorized", { status: 401 });
     const user = auth.validateSession(sid);
     if (!user) return new Response("Unauthorized", { status: 401 });
-    return { user: { id: user.userId, username: user.username } };
+    return { user: { id: user.userId, username: user.username, email: user.email } };
   })
 
   // --- Ingredient routes ---
@@ -334,7 +362,7 @@ const app = new Elysia()
     return new Response("Not Found", { status: 404 });
   })
 
-  .listen(PORT);
+  .listen({ port: PORT, hostname: "0.0.0.0" });
 
 console.log(`Backend running on http://localhost:${PORT}`);
 

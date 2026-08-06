@@ -4,7 +4,7 @@ import { users, sessions, usermodulepermissions, modules } from "../db/schema";
 
 export class AuthService {
   async verifyCredentials(username: string, password: string): Promise<
-    { ok: true; userId: number } | { ok: false; reason: "not_found" | "wrong_password" | "invalid_input" }
+    { ok: true; userId: number; email: string | null } | { ok: false; reason: "not_found" | "wrong_password" | "invalid_input" }
   > {
     if (!username || !password) return { ok: false, reason: "invalid_input" };
 
@@ -14,7 +14,7 @@ export class AuthService {
     const isMatch = await Bun.password.verify(password, user.pswdHash);
     if (!isMatch) return { ok: false, reason: "wrong_password" };
 
-    return { ok: true, userId: user.userId };
+    return { ok: true, userId: user.userId, email: user.email ?? null };
   }
 
   createSession(userId: number): string {
@@ -32,12 +32,13 @@ export class AuthService {
     return !!result;
   }
 
-  validateSession(sessionId: string): { userId: number; username: string } | null {
-    const result = db.select({ userId: users.userId, username: users.username }).from(sessions)
+  validateSession(sessionId: string): { userId: number; username: string; email: string | null } | null {
+    const result = db.select({ userId: users.userId, username: users.username, email: users.email }).from(sessions)
       .innerJoin(users, eq(sessions.userId, users.userId))
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
       .get();
-    return result ?? null;
+    if (!result) return null;
+    return { userId: result.userId, username: result.username, email: result.email ?? null };
   }
 
   getUsernameFromSession(sessionId: string): string | null {
@@ -68,5 +69,14 @@ export class AuthService {
 
   deleteSession(sessionId: string): void {
     db.delete(sessions).where(eq(sessions.sessionId, sessionId)).run();
+  }
+
+  findUserByEmail(email: string): { userId: number; username: string; email: string | null } | null {
+    const user = db.select({ userId: users.userId, username: users.username, email: users.email })
+      .from(users)
+      .where(eq(users.email, email))
+      .get();
+    if (!user) return null;
+    return { userId: user.userId, username: user.username, email: user.email ?? null };
   }
 }
