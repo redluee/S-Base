@@ -12,8 +12,7 @@
     "start:frontend": "bun run --cwd frontend start",
     "db:migrate": "bun run --cwd backend db:migrate",
     "db:seed": "bun run --cwd backend db:seed",
-    "db:user": "bun run --cwd backend db:user",
-    "db:reset": "bun run --cwd backend db:reset"
+    "db:user": "bun run --cwd backend db:user"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

@@ -11,7 +11,6 @@ Bun workspace monorepo (`backend/`, `frontend/`). No tests, no CI, no pre-commit
 | `bun run dev:frontend` | Frontend only on `:3000` |
 | `bun run db:migrate` | Run Drizzle SQLite migrations |
 | `bun run db:seed` | Seed sample data (admin/admin, tester/tester) |
-| `bun run db:reset` | Drop all tables |
 | `bun run --cwd backend db:push` | Push schema directly (drizzle-kit push) |
 | `bun run --cwd backend db:generate` | Generate migration files (drizzle-kit generate) |
 | `bun run --cwd frontend lint` | ESLint (frontend only) |
@@ -33,6 +32,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). No tests, no CI, no pre-commit
 - Rating range: 0–10.
 - Backend uses `bun:sqlite` with WAL pragma + foreign keys enabled.
 - Path alias `@/*` → `frontend/src/*` (configured in frontend tsconfig).
+- **Privacy**: Personal data must never be written into the codebase. Never commit real user data, names, emails, addresses, or other personal information in code, comments, seed data, migrations, or documentation. Use placeholder or anonymized values instead.
 - **Database preservation**: The local development database `sbase.db` contains custom user data and must NEVER be deleted, overwritten, or reset by the AI agent. Avoid running `bun run db:reset` or `bun run db:seed`. If schema migrations are needed, use non-destructive migrations. Dropping tables or wiping data via AI commands is strictly prohibited. When fields or tables are added or edited write a migration file for a production database to migrate to the new version.
 
 ## Next.js version caveats

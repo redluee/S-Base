@@ -50,9 +50,6 @@ bun run db:migrate
 
 # Seed sample data
 bun run db:seed
-
-# Reset database (drops all tables)
-bun run db:reset
 ```
 
 ## Users

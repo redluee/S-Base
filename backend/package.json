@@ -5,12 +5,8 @@
     "dev": "bun run --hot src/index.ts",
     "start": "NODE_ENV=production bun run src/index.ts",
     "db:migrate": "bun run src/db/migrate.ts",
-    "db:migrate-categories": "bun run src/db/migrate-categories.ts",
     "db:seed": "bun run src/db/seed.ts",
-    "db:seed-workouts": "bun run src/db/seed-workouts.ts",
     "db:user": "bun run src/db/user-manager.ts",
-    "db:set-emails": "bun run src/db/set-emails.ts",
-    "db:reset": "bun run src/db/reset.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate"
   },
@@ -20,7 +16,6 @@
     "@elysiajs/cors": "^1.2.0"
   },
   "devDependencies": {
-    "@libsql/client": "^0.17.3",
     "bun-types": "latest",
     "drizzle-kit": "^0.30.6"
   }

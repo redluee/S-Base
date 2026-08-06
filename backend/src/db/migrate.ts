@@ -1,7 +1,6 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 import { readdir } from "fs/promises";
-import { runCategoryMigration } from "./migrate-categories";
 
 const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
@@ -33,7 +32,6 @@ async function migrate() {
     console.warn("SQL migrations directory read notice:", err?.message || err);
   }
 
-  await runCategoryMigration();
   console.log("Database migration complete.");
 }
 
