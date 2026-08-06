@@ -333,6 +333,15 @@ const nl: Record<string, string> = {
   "Saving wine...": "Wijn opslaan...",
   "Brand is required.": "Merk / Wijnhuis is verplicht.",
   "Variety is required.": "Druif / Stijl is verplicht.",
+  "Background Settings": "Achtergrond instellingen",
+  "Blur": "Vervaging",
+  "Brightness": "Helderheid",
+  "Background Image": "Achtergrond afbeelding",
+  "Custom URL": "Aangepaste URL",
+  "Upload Image": "Foto uploaden",
+  "Reset to Default": "Herstel standaard",
+  "Dark": "Donker",
+  "Enter image URL...": "Voer afbeelding URL in...",
 };
 
 
