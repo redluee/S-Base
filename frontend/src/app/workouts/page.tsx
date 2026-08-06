@@ -29,31 +29,31 @@ export default async function WorkoutsPage() {
         </div>
 
         {/* Stats Dashboard */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="rounded-xl bg-card p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[130px]">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
+          <div className="rounded-xl bg-card p-2.5 sm:p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[90px] sm:min-h-[130px]">
             {stats.daysAgo === null ? (
               <>
-                <span className="text-4xl sm:text-5xl font-black text-foreground font-display">Geen</span>
-                <span className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium">{t("trainingen voltooid")}</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">Geen</span>
+                <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("trainingen voltooid")}</span>
               </>
             ) : stats.daysAgo === 0 ? (
               <>
-                <span className="text-4xl sm:text-5xl font-black text-foreground font-display">Vandaag</span>
-                <span className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium">{t("was je laatste training")}</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">Vandaag</span>
+                <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("was je laatste training")}</span>
               </>
             ) : stats.daysAgo === 1 ? (
               <>
-                <span className="text-4xl sm:text-5xl font-black text-foreground font-display">1 dag</span>
-                <span className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium">{t("geleden was je laatste training")}</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">1 dag</span>
+                <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("geleden was je laatste training")}</span>
               </>
             ) : (
               <>
-                <span className="text-4xl sm:text-5xl font-black text-foreground font-display">{stats.daysAgo} dagen</span>
-                <span className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium">{t("geleden was je laatste training")}</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">{stats.daysAgo} d</span>
+                <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("geleden was je laatste training")}</span>
               </>
             )}
           </div>
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[130px]">
+          <div className="rounded-xl bg-card p-2.5 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[90px] sm:min-h-[130px]">
             {(() => {
               const nextMilestone = Math.floor(stats.totalWorkouts / 50) * 50 + 50;
               const prevMilestone = nextMilestone - 50;
@@ -61,17 +61,17 @@ export default async function WorkoutsPage() {
               const percentage = Math.min(100, Math.max(0, (progressCount / 50) * 100));
 
               return (
-                <div className="flex flex-col w-full text-center">
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-3xl sm:text-4xl font-black text-brand font-display">{stats.totalWorkouts}</span>
-                    <span className="text-zinc-500 text-sm font-semibold font-display">/ {nextMilestone}</span>
+                <div className="flex flex-col w-full text-center items-center justify-center">
+                  <div className="flex items-baseline justify-center gap-0.5 sm:gap-1">
+                    <span className="text-xl sm:text-4xl font-black text-brand font-display">{stats.totalWorkouts}</span>
+                    <span className="text-zinc-500 text-xs sm:text-sm font-semibold font-display">/ {nextMilestone}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground mt-1 font-medium">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 font-medium leading-tight">
                     {50 - progressCount} {t("tot volgende mijlpaal")}
                   </span>
                   
                   {/* Progress bar */}
-                  <div className="w-full bg-zinc-800/80 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
+                  <div className="w-full bg-zinc-800/80 h-1.5 sm:h-2 rounded-full mt-1.5 sm:mt-3 overflow-hidden border border-white/5">
                     <div 
                       className="bg-brand h-full rounded-full transition-all duration-500" 
                       style={{ width: `${percentage}%` }}
@@ -81,9 +81,9 @@ export default async function WorkoutsPage() {
               );
             })()}
           </div>
-          <div className="rounded-xl bg-card p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[130px]">
-            <span className="text-4xl sm:text-5xl font-black text-amber-400 font-display">{stats.totalVolume.toLocaleString()} kg</span>
-            <span className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium">{t("volume verplaatst")}</span>
+          <div className="rounded-xl bg-card p-2.5 sm:p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[90px] sm:min-h-[130px]">
+            <span className="text-lg sm:text-4xl md:text-5xl font-black text-amber-400 font-display truncate max-w-full">{stats.totalVolume.toLocaleString()} kg</span>
+            <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("volume verplaatst")}</span>
           </div>
         </div>
 
