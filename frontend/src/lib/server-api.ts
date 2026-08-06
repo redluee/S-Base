@@ -38,8 +38,6 @@ export async function getCurrentUser() {
     const { user } = await serverApi.me();
     return user;
   } catch {
-    const cookieStore = await cookies();
-    cookieStore.delete("session_id");
     return null;
   }
 }

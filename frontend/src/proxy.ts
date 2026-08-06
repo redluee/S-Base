@@ -7,7 +7,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const sessionId = request.cookies.get("session_id")?.value;
-  const cfEmail = request.headers.get("cf-access-authenticated-user-email");
+  const cfEmail =
+    request.headers.get("cf-access-authenticated-user-email") ??
+    (process.env.NODE_ENV === "development" ? process.env.CF_DEV_EMAIL : undefined);
 
   // If user arrives at root '/'
   if (pathname === "/") {
