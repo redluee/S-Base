@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { t } from "@/lib/lang";
+import { compressImage } from "@/lib/image";
 import {
   Dumbbell,
   ChefHat,
@@ -36,20 +37,30 @@ export function DashboardClient({ username }: { username: string }) {
     username.toLowerCase() === "admin";
   // Load saved background settings from localStorage per user
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
+    const saved = localStorage.getItem(storageKey);
+    let nextBlur: number | undefined;
+    let nextBrightness: number | undefined;
+    let nextBgImage: string | undefined;
+
+    if (saved) {
+      try {
         const parsed = JSON.parse(saved);
-        if (typeof parsed.blur === "number") setBlur(parsed.blur);
-        if (typeof parsed.brightness === "number") setBrightness(parsed.brightness);
+        if (typeof parsed.blur === "number") nextBlur = parsed.blur;
+        if (typeof parsed.brightness === "number") nextBrightness = parsed.brightness;
         if (typeof parsed.bgImage === "string") {
-          setBgImage(parsed.bgImage === "" ? DEFAULT_BG : parsed.bgImage);
+          nextBgImage = parsed.bgImage === "" ? DEFAULT_BG : parsed.bgImage;
         }
+      } catch {
+        // Ignore JSON parse error
       }
-    } catch {
-      // Ignore JSON parse error
     }
-    setIsLoaded(true);
+
+    requestAnimationFrame(() => {
+      if (nextBlur !== undefined) setBlur(nextBlur);
+      if (nextBrightness !== undefined) setBrightness(nextBrightness);
+      if (nextBgImage !== undefined) setBgImage(nextBgImage);
+      setIsLoaded(true);
+    });
   }, [storageKey]);
 
   // Save background settings to localStorage per user
@@ -71,16 +82,17 @@ export function DashboardClient({ username }: { username: string }) {
     setBgImage(DEFAULT_BG);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const compressed = await compressImage(file);
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
         setBgImage(event.target.result as string);
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
   };
 
   return (

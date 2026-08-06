@@ -7,6 +7,7 @@ import type {
   FullWorkoutSession,
   PersonalRecord,
 } from "@backend/types/shared";
+import { compressImage } from "./image";
 
 export interface MeasurementPhoto {
   photoId: number;
@@ -61,6 +62,7 @@ async function uploadFormDataWithProgress<T>(
   fileName?: string,
   onProgress?: (progress: number) => void
 ): Promise<T> {
+  const compressedFile = await compressImage(file);
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
@@ -93,8 +95,8 @@ async function uploadFormDataWithProgress<T>(
     };
 
     const formData = new FormData();
-    const name = fileName || (file as File).name || "upload.jpg";
-    formData.append("file", file, name);
+    const name = fileName || (compressedFile as File).name || (file as File).name || "upload.jpg";
+    formData.append("file", compressedFile, name);
     xhr.send(formData);
   });
 }

@@ -3,14 +3,14 @@
  * Downscales photos to maxDimension (default 1600px) and converts to optimized JPEG.
  */
 export async function compressImage(
-  file: File,
+  file: File | Blob,
   options: { maxDimension?: number; quality?: number } = {}
 ): Promise<Blob | File> {
   const maxDimension = options.maxDimension ?? 1600;
   const quality = options.quality ?? 0.82;
 
   // Don't attempt to compress non-image files or SVG
-  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+  if (!file.type || !file.type.startsWith("image/") || file.type === "image/svg+xml") {
     return file;
   }
 
