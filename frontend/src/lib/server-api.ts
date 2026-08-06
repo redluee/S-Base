@@ -33,6 +33,17 @@ async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export async function getCurrentUser() {
+  try {
+    const { user } = await serverApi.me();
+    return user;
+  } catch {
+    const cookieStore = await cookies();
+    cookieStore.delete("session_id");
+    return null;
+  }
+}
+
 export const serverApi = {
   me: () => serverFetch<{ user: { id: number; username: string; email: string | null } }>("/auth/me"),
 

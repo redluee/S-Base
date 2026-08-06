@@ -275,12 +275,12 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     const hasDistance = set.distance != null && set.distance > 0;
 
                     let label = `${set.reps ?? 0} × ${set.weight ?? 0} kg`;
-                    if (set.duration && set.duration > 0 && !hasReps) {
-                      const dur = set.duration;
+                    if (hasDuration && !hasReps) {
+                      const dur = set.duration!;
                       const min = Math.floor(dur / 60);
                       const sec = dur % 60;
                       label = `${min}:${String(sec).padStart(2, "0")}${hasWeight ? ` (${set.weight} kg)` : ""}`;
-                    } else if (set.distance && set.distance > 0 && !hasReps) {
+                    } else if (hasDistance && !hasReps) {
                       label = `${set.distance} km`;
                     } else if (hasReps && !hasWeight) {
                       label = `${set.reps} reps`;

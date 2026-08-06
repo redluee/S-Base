@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { serverApi } from "@/lib/server-api";
+import { serverApi, getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,7 @@ import { WorkoutSubnav } from "@/components/workout-subnav";
 import { t } from "@/lib/lang";
 
 export default async function WorkoutsPage() {
-  let user: { id: number; username: string } | null = null;
-  try {
-    user = (await serverApi.me()).user;
-  } catch {}
+  const user = await getCurrentUser();
   if (!user) redirect("/");
 
   const [templates, stats] = await Promise.all([

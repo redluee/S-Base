@@ -1,4 +1,4 @@
-import { serverApi } from "@/lib/server-api";
+import { serverApi, getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +27,7 @@ export default async function RecipesPage({
 }: {
   searchParams: Promise<{ status?: string; sortBy?: string; sortOrder?: string; q?: string }>;
 }) {
-  let user: { id: number; username: string } | null = null;
-  try {
-    user = (await serverApi.me()).user;
-  } catch {
-    // Not authenticated
-  }
+  const user = await getCurrentUser();
   if (!user) redirect("/");
 
   const { status, sortBy, sortOrder, q } = await searchParams;

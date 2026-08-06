@@ -9,12 +9,9 @@ export function proxy(request: NextRequest) {
   const sessionId = request.cookies.get("session_id")?.value;
   const cfEmail = request.headers.get("cf-access-authenticated-user-email");
 
-  // If user arrives at root '/' or any protected route
+  // If user arrives at root '/'
   if (pathname === "/") {
-    if (sessionId) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-    if (cfEmail) {
+    if (cfEmail && !sessionId) {
       const exchangeUrl = new URL("/api/auth/cf-exchange", request.url);
       exchangeUrl.searchParams.set("redirect", "/dashboard");
       return NextResponse.redirect(exchangeUrl);

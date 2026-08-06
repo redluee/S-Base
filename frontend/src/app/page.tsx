@@ -1,16 +1,12 @@
-import { serverApi } from "@/lib/server-api";
+import { getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { t } from "@/lib/lang";
 import { LoginForm } from "@/components/login-form";
 
 export default async function LoginPage() {
-  try {
-    const { user } = await serverApi.me();
-    if (user) {
-      redirect("/dashboard");
-    }
-  } catch {
-    // Not authenticated, render login page
+  const user = await getCurrentUser();
+  if (user) {
+    redirect("/dashboard");
   }
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 relative overflow-hidden">
