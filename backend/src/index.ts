@@ -18,52 +18,26 @@ const workout = new WorkoutService();
 const measurements = new MeasurementService();
 const wineService = new WineService();
 
-// Auto-register measurements module and grant access to existing users
-try {
-  const hasModule = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
-  if (!hasModule) {
-    db.insert(modules).values({
-      moduleName: "measurements",
-      moduleAlias: "Metingen",
-      description: "Module for body measurements",
-    }).run();
-    console.log("Registered 'measurements' module in DB.");
-  }
-  
-  const m = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
-  if (m) {
-    const allUsers = db.select().from(users).all();
-    for (const u of allUsers) {
-      const hasPermission = db.select()
-        .from(usermodulepermissions)
-        .where(and(eq(usermodulepermissions.userId, u.userId), eq(usermodulepermissions.moduleId, m.moduleId)))
-        .get();
-      if (!hasPermission) {
-        db.insert(usermodulepermissions).values({
-          userId: u.userId,
-          moduleId: m.moduleId,
-        }).run();
-        console.log(`Granted 'measurements' permission to user: ${u.username}`);
-      }
-    }
-  }
-} catch (e) {
-  console.error("Failed to auto-register measurements module:", e);
-}
-
-
 function createAuthPlugin(moduleName: string) {
   return new Elysia({ name: `auth-${moduleName}` })
     .derive({ as: "scoped" }, ({ cookie: { session_id } }) => {
-      const sid = session_id?.value;
+      const sid = typeof session_id?.value === "string" ? session_id.value : "";
       if (!sid) return { user: null };
       const sessionInfo = auth.validateSession(sid);
       return { user: sessionInfo };
     })
     .onBeforeHandle({ as: "scoped" }, ({ user }) => {
-      if (!user) return new Response("Unauthorized", { status: 401 });
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
       if (!auth.moduleAccessCheck(user.userId, moduleName)) {
-        return new Response("Forbidden", { status: 403 });
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
       }
     })
     .derive({ as: "scoped" }, ({ user }) => {
@@ -73,22 +47,35 @@ function createAuthPlugin(moduleName: string) {
 
 const recipeAuth = createAuthPlugin("recipes");
 const workoutAuth = createAuthPlugin("workout");
-const measurementsAuth = createAuthPlugin("measurements");
+const measurementsAuth = workoutAuth;
 
 const app = new Elysia()
   .use(cors({ origin: true, credentials: true }))
   .onError(({ code, error }) => {
     console.error(`Error ${code}:`, error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    const message = error && typeof error === "object" && "message" in error ? (error as { message: string }).message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   })
 
   // --- Auth routes ---
   .post("/api/auth/login", async ({ body, cookie: { session_id } }) => {
-    const { username, password } = body as any;
+    const { username, password } = (body ?? {}) as { username?: string; password?: string };
+    if (!username || !password) {
+      return new Response(JSON.stringify({ error: "invalid_input" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const result = await auth.verifyCredentials(username, password);
     if (!result.ok) {
       const status = result.reason === "invalid_input" ? 400 : 401;
-      return new Response(JSON.stringify({ error: result.reason }), { status });
+      return new Response(JSON.stringify({ error: result.reason }), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const sessionId = auth.createSession(result.userId);
@@ -101,16 +88,25 @@ const app = new Elysia()
   .post("/api/auth/cf-login", ({ body, request }) => {
     const cfEmail = request.headers.get("x-cf-email");
     if (!cfEmail) {
-      return new Response(JSON.stringify({ error: "missing_cf_header" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "missing_cf_header" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const { email } = (body ?? {}) as { email?: string };
     if (!email || email !== cfEmail) {
-      return new Response(JSON.stringify({ error: "email_mismatch" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "email_mismatch" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const user = auth.findUserByEmail(email);
     if (!user) {
-      return new Response(JSON.stringify({ error: "no_account", email }), { status: 403 });
+      return new Response(JSON.stringify({ error: "no_account", email }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const sessionId = auth.createSession(user.userId);
@@ -126,16 +122,27 @@ const app = new Elysia()
   })
 
   .get("/api/auth/logout", ({ cookie: { session_id } }) => {
-    if (session_id?.value) auth.deleteSession(session_id.value);
+    const sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (sid) auth.deleteSession(sid);
     session_id?.set({ value: "", maxAge: 0, path: "/", secure: process.env.NODE_ENV === "production" });
     return { ok: true };
   })
 
   .get("/api/auth/me", ({ cookie: { session_id } }) => {
-    const sid = session_id?.value;
-    if (!sid) return new Response("Unauthorized", { status: 401 });
+    const sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (!sid) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const user = auth.validateSession(sid);
-    if (!user) return new Response("Unauthorized", { status: 401 });
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     return { user: { id: user.userId, username: user.username, email: user.email } };
   })
 

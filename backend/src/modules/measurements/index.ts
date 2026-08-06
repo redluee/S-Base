@@ -84,9 +84,7 @@ export class MeasurementService {
           skeletalMuscle: data.skeletalMuscle ?? null,
           fatMass: data.fatMass ?? null,
         })
-        .run();
-      
-      const measurementId = Number(insertResult.lastInsertRowid);
+      const measurementId = Number((insertResult as unknown as { lastInsertRowid?: number | bigint }).lastInsertRowid);
       return this.getById(measurementId);
     }
   }
