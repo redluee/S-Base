@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const protectedPaths = ["/dashboard", "/recipes", "/workouts"];
+const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -9,7 +9,8 @@ export function proxy(request: NextRequest) {
   const sessionId = request.cookies.get("session_id")?.value;
   const cfEmail =
     request.headers.get("cf-access-authenticated-user-email") ??
-    (process.env.NODE_ENV === "development" ? process.env.CF_DEV_EMAIL : undefined);
+    process.env.CF_DEV_EMAIL ??
+    undefined;
 
   // If user arrives at root '/'
   if (pathname === "/") {
@@ -40,5 +41,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*", "/recipes/:path*", "/workouts/:path*"],
+  matcher: ["/", "/dashboard/:path*", "/recipes/:path*", "/workouts/:path*", "/cashflow/:path*"],
 };

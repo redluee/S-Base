@@ -8,7 +8,8 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const cfEmail =
     request.headers.get("cf-access-authenticated-user-email") ??
-    (process.env.NODE_ENV === "development" ? process.env.CF_DEV_EMAIL : undefined);
+    process.env.CF_DEV_EMAIL ??
+    undefined;
   const redirect = request.nextUrl.searchParams.get("redirect") ?? "/dashboard";
 
   if (!cfEmail) {
