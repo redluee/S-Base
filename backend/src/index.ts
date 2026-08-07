@@ -5,6 +5,7 @@ import { RecipeService } from "./modules/recipes";
 import { WorkoutService } from "./modules/workout";
 import { MeasurementService } from "./modules/measurements";
 import { WineService } from "./modules/wines";
+import { CashflowService } from "./modules/cashflow";
 import db from "./db/client";
 import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
@@ -17,6 +18,7 @@ const recipes = new RecipeService();
 const workout = new WorkoutService();
 const measurements = new MeasurementService();
 const wineService = new WineService();
+const cashflow = new CashflowService();
 
 function createAuthPlugin(moduleName: string) {
   return new Elysia({ name: `auth-${moduleName}` })
@@ -48,6 +50,7 @@ function createAuthPlugin(moduleName: string) {
 const recipeAuth = createAuthPlugin("recipes");
 const workoutAuth = createAuthPlugin("workout");
 const measurementsAuth = workoutAuth;
+const cashflowAuth = createAuthPlugin("cashflow");
 
 const app = new Elysia()
   .use(cors({ origin: true, credentials: true }))
@@ -368,6 +371,91 @@ const app = new Elysia()
     }
     return new Response("Not Found", { status: 404 });
   })
+
+  // --- Cashflow routes ---
+  .group("/api/cashflow", (app) =>
+    app
+      .use(cashflowAuth)
+      .get("/trade-names", ({ userId }) => cashflow.listTradeNames(userId))
+      .post("/trade-names", async ({ userId, body }) => cashflow.createTradeName(userId, body as any))
+      .put("/trade-names/:id", async ({ params: { id }, body }) => cashflow.updateTradeName(Number(id), body as any))
+      .delete("/trade-names/:id", ({ params: { id } }) => {
+        const r = cashflow.removeTradeName(Number(id));
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .get("/clients", ({ userId }) => cashflow.listClients(userId))
+      .post("/clients", async ({ userId, body }) => cashflow.createClient(userId, body as any))
+      .get("/clients/:id", ({ params: { id } }) => {
+        const c = cashflow.getClientById(Number(id));
+        if (!c) return new Response("Not Found", { status: 404 });
+        return c;
+      })
+      .put("/clients/:id", async ({ params: { id }, body }) => {
+        const c = cashflow.updateClient(Number(id), body as any);
+        if (!c) return new Response("Not Found", { status: 404 });
+        return c;
+      })
+      .delete("/clients/:id", ({ params: { id } }) => {
+        const r = cashflow.removeClient(Number(id));
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .get("/projects", ({ userId, query }) => {
+        const clientId = query?.clientId ? Number(query.clientId) : undefined;
+        return cashflow.listProjects(userId, clientId);
+      })
+      .post("/projects", async ({ userId, body }) => cashflow.createProject(userId, body as any))
+      .get("/projects/:id", ({ params: { id } }) => {
+        const p = cashflow.getProjectById(Number(id));
+        if (!p) return new Response("Not Found", { status: 404 });
+        return p;
+      })
+      .put("/projects/:id", async ({ params: { id }, body }) => {
+        const p = cashflow.updateProject(Number(id), body as any);
+        if (!p) return new Response("Not Found", { status: 404 });
+        return p;
+      })
+      .delete("/projects/:id", ({ params: { id }, query }) => {
+        const deleteInvoices = query?.deleteInvoices === "true";
+        const r = cashflow.removeProject(Number(id), deleteInvoices);
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .get("/invoices/next-number", ({ userId }) => {
+        const year = new Date().getFullYear();
+        return { invoiceNumber: cashflow.generateInvoiceNumber(userId, year) };
+      })
+      .get("/invoices", ({ userId, query }) => {
+        const status = query?.status as string | undefined;
+        const projectId = query?.projectId ? Number(query.projectId) : undefined;
+        const clientId = query?.clientId ? Number(query.clientId) : undefined;
+        return cashflow.listInvoices(userId, status, projectId, clientId);
+      })
+      .post("/invoices", async ({ userId, body }) => cashflow.createInvoice(userId, body as any))
+      .get("/invoices/:id", ({ params: { id } }) => {
+        const inv = cashflow.getInvoiceById(Number(id));
+        if (!inv) return new Response("Not Found", { status: 404 });
+        return inv;
+      })
+      .put("/invoices/:id", async ({ params: { id }, body }) => {
+        const inv = cashflow.updateInvoice(Number(id), body as any);
+        if (!inv) return new Response("Not Found", { status: 404 });
+        return inv;
+      })
+      .delete("/invoices/:id", ({ params: { id } }) => {
+        const r = cashflow.removeInvoice(Number(id));
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .patch("/invoices/:id/paid", async ({ params: { id }, body }) => {
+        const datePaid = (body as any)?.datePaid !== undefined ? ((body as any).datePaid ? Number((body as any).datePaid) : null) : undefined;
+        const inv = cashflow.markAsPaid(Number(id), datePaid);
+        if (!inv) return new Response("Not Found", { status: 404 });
+        return inv;
+      })
+      .get("/dashboard", ({ userId, query }) => cashflow.getDashboardStats(userId, (query as any)?.year ? Number((query as any).year) : undefined))
+  )
 
   .listen({ port: PORT, hostname: "0.0.0.0" });
 
