@@ -77,7 +77,7 @@ export default async function WinesPage({
               <Link key={wt} href={`/recipes/wines${params.toString() ? `?${params.toString()}` : ""}`}>
                 <Badge
                   variant="outline"
-                  className={`shrink-0 cursor-pointer transition-all text-xs sm:text-sm px-3 py-1.5 ${
+                  className={`shrink-0 cursor-pointer transition-all text-xs sm:text-sm h-7 px-3 leading-none ${
                     (type ?? "") === wt
                       ? "bg-brand text-zinc-900 border-brand font-medium shadow-sm"
                       : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"

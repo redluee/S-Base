@@ -88,7 +88,7 @@ export function ExerciseCategorySelector({
         {selectedEquipment.map((eq) => (
           <div 
             key={eq} 
-            className="flex items-center gap-1 bg-brand/10 border border-brand/20 text-brand rounded-full px-2.5 py-1 shadow-sm"
+            className="flex items-center gap-1 bg-brand/10 border border-brand/20 text-brand rounded-full px-2.5 py-1 leading-none shadow-sm"
           >
             <span className="text-xs font-semibold">{t(eq)}</span>
             <button 
@@ -109,7 +109,7 @@ export function ExerciseCategorySelector({
             if (isOpen) setActiveTab(null);
           }}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs leading-none font-semibold border transition-all",
             isOpen 
               ? "bg-brand text-brand-foreground border-brand shadow-md"
               : "bg-white/5 border-border/80 text-muted-foreground hover:bg-white/10 hover:text-foreground"

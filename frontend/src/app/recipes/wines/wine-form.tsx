@@ -168,7 +168,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
             value={type}
             onChange={(e) => setType(e.target.value)}
             required
-            className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full h-10 px-3 text-sm leading-none rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {WINE_TYPES.map((wt) => (
               <option key={wt.value} value={wt.value}>
@@ -234,7 +234,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
           id="purchaseLocation"
           value={purchaseLocation}
           onChange={(e) => setPurchaseLocation(e.target.value)}
-          className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full h-10 px-3 text-sm leading-none rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">-- {t("Select location")} --</option>
           {PURCHASE_LOCATIONS.map((loc) => (
