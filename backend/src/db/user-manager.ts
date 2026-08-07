@@ -7,13 +7,14 @@ Gebruik:
   bun run db:user <actie> [opties]
 
 Acties:
+  list                                         Bekijk alle gebruikers
   create <username> <password>                 Maak een nieuwe gebruiker aan
-  delete <username>                            Verwijder een gebruiker en diens permissies/sessies
-  change-password <username> <new-password>    Wijzig het wachtwoord van een gebruiker
-  rename <old-username> <new-username>         Wijzig de gebruikersnaam van een gebruiker
-  permissions <username>                       Bekijk de module-permissies van een gebruiker
-  grant <username> <module>                    Koppel een module-permissie aan een gebruiker
-  revoke <username> <module>                   Trek een module-permissie in van een gebruiker
+  delete <username|id>                         Verwijder een gebruiker en diens permissies/sessies
+  change-password <username|id> <new-password> Wijzig het wachtwoord van een gebruiker
+  rename <old-username|id> <new-username>      Wijzig de gebruikersnaam van een gebruiker
+  permissions <username|id>                    Bekijk de module-permissies van een gebruiker
+  grant <username|id> <module>                 Koppel een module-permissie aan een gebruiker
+  revoke <username|id> <module>                Trek een module-permissie in van een gebruiker
 `;
 
 async function main() {
@@ -26,6 +27,11 @@ async function main() {
   const action = args[0];
 
   switch (action) {
+    case "list":
+    case "users": {
+      await listUsers();
+      break;
+    }
     case "create": {
       if (args.length < 3) {
         console.error("Fout: Gebruik: bun run db:user create <username> <password>");
@@ -37,59 +43,59 @@ async function main() {
     }
     case "delete": {
       if (args.length < 2) {
-        console.error("Fout: Gebruik: bun run db:user delete <username>");
+        console.error("Fout: Gebruik: bun run db:user delete <username|id>");
         process.exit(1);
       }
-      const [, username] = args;
-      await deleteUser(username);
+      const [, identifier] = args;
+      await deleteUser(identifier);
       break;
     }
     case "change-password": {
       if (args.length < 3) {
-        console.error("Fout: Gebruik: bun run db:user change-password <username> <new-password>");
+        console.error("Fout: Gebruik: bun run db:user change-password <username|id> <new-password>");
         process.exit(1);
       }
-      const [, username, newPassword] = args;
-      await changePassword(username, newPassword);
+      const [, identifier, newPassword] = args;
+      await changePassword(identifier, newPassword);
       break;
     }
     case "rename": {
       if (args.length < 3) {
-        console.error("Fout: Gebruik: bun run db:user rename <old-username> <new-username>");
+        console.error("Fout: Gebruik: bun run db:user rename <old-username|id> <new-username>");
         process.exit(1);
       }
-      const [, oldUsername, newUsername] = args;
-      await renameUser(oldUsername, newUsername);
+      const [, identifier, newUsername] = args;
+      await renameUser(identifier, newUsername);
       break;
     }
     case "permissions":
     case "list-permissions": {
       if (args.length < 2) {
-        console.error("Fout: Gebruik: bun run db:user permissions <username>");
+        console.error("Fout: Gebruik: bun run db:user permissions <username|id>");
         process.exit(1);
       }
-      const [, username] = args;
-      await listPermissions(username);
+      const [, identifier] = args;
+      await listPermissions(identifier);
       break;
     }
     case "grant":
     case "grant-permission": {
       if (args.length < 3) {
-        console.error("Fout: Gebruik: bun run db:user grant <username> <module>");
+        console.error("Fout: Gebruik: bun run db:user grant <username|id> <module>");
         process.exit(1);
       }
-      const [, username, moduleName] = args;
-      await grantPermission(username, moduleName);
+      const [, identifier, moduleName] = args;
+      await grantPermission(identifier, moduleName);
       break;
     }
     case "revoke":
     case "revoke-permission": {
       if (args.length < 3) {
-        console.error("Fout: Gebruik: bun run db:user revoke <username> <module>");
+        console.error("Fout: Gebruik: bun run db:user revoke <username|id> <module>");
         process.exit(1);
       }
-      const [, username, moduleName] = args;
-      await revokePermission(username, moduleName);
+      const [, identifier, moduleName] = args;
+      await revokePermission(identifier, moduleName);
       break;
     }
     default: {
@@ -97,6 +103,42 @@ async function main() {
       console.log(usage);
       process.exit(1);
     }
+  }
+}
+
+function findUser(identifier: string) {
+  const isNumeric = /^\d+$/.test(identifier);
+  if (isNumeric) {
+    const userIdNum = parseInt(identifier, 10);
+    const userById = db
+      .select()
+      .from(users)
+      .where(eq(users.userId, userIdNum))
+      .get();
+    if (userById) return userById;
+  }
+
+  return db
+    .select()
+    .from(users)
+    .where(eq(users.username, identifier))
+    .get();
+}
+
+async function listUsers() {
+  try {
+    const allUsers = db.select({ userId: users.userId, username: users.username, email: users.email }).from(users).all();
+    console.log("Gebruikers in database:");
+    if (allUsers.length === 0) {
+      console.log("  (Geen gebruikers gevonden)");
+      return;
+    }
+    for (const u of allUsers) {
+      console.log(`  ID: ${u.userId} | Gebruikersnaam: ${u.username}${u.email ? ` | Email: ${u.email}` : ""}`);
+    }
+  } catch (error) {
+    console.error("Er is een fout opgetreden bij het ophalen van gebruikers:", error);
+    process.exit(1);
   }
 }
 
@@ -153,39 +195,31 @@ async function createUser(username: string, passwordPlain: string) {
   }
 }
 
-async function deleteUser(username: string) {
+async function deleteUser(identifier: string) {
   try {
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    const user = findUser(identifier);
 
     if (!user) {
-      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      console.error(`Fout: Gebruiker '${identifier}' bestaat niet.`);
       process.exit(1);
     }
 
     // SQLite CASCADE foreign keys zorgt ervoor dat permissies en actieve sessies ook verwijderd worden.
     db.delete(users).where(eq(users.userId, user.userId)).run();
 
-    console.log(`Gebruiker '${username}' (ID: ${user.userId}) en al diens permissies/sessies zijn succesvol verwijderd.`);
+    console.log(`Gebruiker '${user.username}' (ID: ${user.userId}) en al diens permissies/sessies zijn succesvol verwijderd.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het verwijderen van de gebruiker:", error);
     process.exit(1);
   }
 }
 
-async function changePassword(username: string, passwordPlain: string) {
+async function changePassword(identifier: string, passwordPlain: string) {
   try {
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    const user = findUser(identifier);
 
     if (!user) {
-      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      console.error(`Fout: Gebruiker '${identifier}' bestaat niet.`);
       process.exit(1);
     }
 
@@ -198,23 +232,19 @@ async function changePassword(username: string, passwordPlain: string) {
       .where(eq(users.userId, user.userId))
       .run();
 
-    console.log(`Wachtwoord voor gebruiker '${username}' is succesvol gewijzigd.`);
+    console.log(`Wachtwoord voor gebruiker '${user.username}' (ID: ${user.userId}) is succesvol gewijzigd.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het wijzigen van het wachtwoord:", error);
     process.exit(1);
   }
 }
 
-async function renameUser(oldUsername: string, newUsername: string) {
+async function renameUser(identifier: string, newUsername: string) {
   try {
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, oldUsername))
-      .get();
+    const user = findUser(identifier);
 
     if (!user) {
-      console.error(`Fout: Gebruiker '${oldUsername}' bestaat niet.`);
+      console.error(`Fout: Gebruiker '${identifier}' bestaat niet.`);
       process.exit(1);
     }
 
@@ -234,23 +264,19 @@ async function renameUser(oldUsername: string, newUsername: string) {
       .where(eq(users.userId, user.userId))
       .run();
 
-    console.log(`Gebruiker '${oldUsername}' is succesvol hernoemd naar '${newUsername}'.`);
+    console.log(`Gebruiker '${user.username}' (ID: ${user.userId}) is succesvol hernoemd naar '${newUsername}'.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het hernoemen van de gebruiker:", error);
     process.exit(1);
   }
 }
 
-async function listPermissions(username: string) {
+async function listPermissions(identifier: string) {
   try {
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    const user = findUser(identifier);
 
     if (!user) {
-      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      console.error(`Fout: Gebruiker '${identifier}' bestaat niet.`);
       process.exit(1);
     }
 
@@ -263,7 +289,7 @@ async function listPermissions(username: string) {
 
     const grantedModuleIds = new Set(userPerms.map((p) => p.moduleId));
 
-    console.log(`Module-permissies voor gebruiker '${username}' (ID: ${user.userId}):`);
+    console.log(`Module-permissies voor gebruiker '${user.username}' (ID: ${user.userId}):`);
     if (allModules.length === 0) {
       console.log("  (Geen modules gevonden in de database)");
       return;
@@ -280,16 +306,12 @@ async function listPermissions(username: string) {
   }
 }
 
-async function grantPermission(username: string, targetModule: string) {
+async function grantPermission(identifier: string, targetModule: string) {
   try {
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    const user = findUser(identifier);
 
     if (!user) {
-      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      console.error(`Fout: Gebruiker '${identifier}' bestaat niet.`);
       process.exit(1);
     }
 
@@ -318,7 +340,7 @@ async function grantPermission(username: string, targetModule: string) {
       .get();
 
     if (existingPerm) {
-      console.log(`Gebruiker '${username}' heeft al permissie voor module '${mod.moduleName}'.`);
+      console.log(`Gebruiker '${user.username}' heeft al permissie voor module '${mod.moduleName}'.`);
       return;
     }
 
@@ -329,23 +351,19 @@ async function grantPermission(username: string, targetModule: string) {
       })
       .run();
 
-    console.log(`Permissie voor module '${mod.moduleName}' succesvol toegekend aan '${username}'.`);
+    console.log(`Permissie voor module '${mod.moduleName}' succesvol toegekend aan '${user.username}'.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het toekennen van de permissie:", error);
     process.exit(1);
   }
 }
 
-async function revokePermission(username: string, targetModule: string) {
+async function revokePermission(identifier: string, targetModule: string) {
   try {
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    const user = findUser(identifier);
 
     if (!user) {
-      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      console.error(`Fout: Gebruiker '${identifier}' bestaat niet.`);
       process.exit(1);
     }
 
@@ -374,7 +392,7 @@ async function revokePermission(username: string, targetModule: string) {
       .get();
 
     if (!existingPerm) {
-      console.log(`Gebruiker '${username}' heeft geen permissie voor module '${mod.moduleName}'.`);
+      console.log(`Gebruiker '${user.username}' heeft geen permissie voor module '${mod.moduleName}'.`);
       return;
     }
 
@@ -387,7 +405,7 @@ async function revokePermission(username: string, targetModule: string) {
       )
       .run();
 
-    console.log(`Permissie voor module '${mod.moduleName}' succesvol ingetrokken van '${username}'.`);
+    console.log(`Permissie voor module '${mod.moduleName}' succesvol ingetrokken van '${user.username}'.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het intrekken van de permissie:", error);
     process.exit(1);
@@ -395,4 +413,3 @@ async function revokePermission(username: string, targetModule: string) {
 }
 
 main().catch(console.error);
-
