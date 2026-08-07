@@ -271,6 +271,23 @@ async function renameUser(identifier: string, newUsername: string) {
   }
 }
 
+function findModule(targetModule: string) {
+  const allModules = db.select().from(modules).all();
+  const isNumeric = /^\d+$/.test(targetModule);
+  if (isNumeric) {
+    const modIdNum = parseInt(targetModule, 10);
+    const modById = allModules.find((m) => m.moduleId === modIdNum);
+    if (modById) return { mod: modById, allModules };
+  }
+
+  const mod = allModules.find(
+    (m) =>
+      m.moduleName.toLowerCase() === targetModule.toLowerCase() ||
+      (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase())
+  );
+  return { mod, allModules };
+}
+
 async function listPermissions(identifier: string) {
   try {
     const user = findUser(identifier);
@@ -298,7 +315,7 @@ async function listPermissions(identifier: string) {
     for (const mod of allModules) {
       const hasAccess = grantedModuleIds.has(mod.moduleId);
       const status = hasAccess ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
-      console.log(`  ${status} ${mod.moduleName}${mod.moduleAlias ? ` (${mod.moduleAlias})` : ""}`);
+      console.log(`  ${status} ID: ${mod.moduleId} | ${mod.moduleName}${mod.moduleAlias ? ` (${mod.moduleAlias})` : ""}`);
     }
   } catch (error) {
     console.error("Er is een fout opgetreden bij het ophalen van permissies:", error);
@@ -315,16 +332,11 @@ async function grantPermission(identifier: string, targetModule: string) {
       process.exit(1);
     }
 
-    const allModules = db.select().from(modules).all();
-    const mod = allModules.find(
-      (m) =>
-        m.moduleName.toLowerCase() === targetModule.toLowerCase() ||
-        (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase())
-    );
+    const { mod, allModules } = findModule(targetModule);
 
     if (!mod) {
       console.error(`Fout: Module '${targetModule}' bestaat niet.`);
-      console.log(`Beschikbare modules: ${allModules.map((m) => m.moduleName).join(", ")}`);
+      console.log(`Beschikbare modules: ${allModules.map((m) => `${m.moduleName} (ID: ${m.moduleId})`).join(", ")}`);
       process.exit(1);
     }
 
@@ -340,7 +352,7 @@ async function grantPermission(identifier: string, targetModule: string) {
       .get();
 
     if (existingPerm) {
-      console.log(`Gebruiker '${user.username}' heeft al permissie voor module '${mod.moduleName}'.`);
+      console.log(`Gebruiker '${user.username}' heeft al permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}).`);
       return;
     }
 
@@ -351,7 +363,7 @@ async function grantPermission(identifier: string, targetModule: string) {
       })
       .run();
 
-    console.log(`Permissie voor module '${mod.moduleName}' succesvol toegekend aan '${user.username}'.`);
+    console.log(`Permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}) succesvol toegekend aan '${user.username}'.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het toekennen van de permissie:", error);
     process.exit(1);
@@ -367,16 +379,11 @@ async function revokePermission(identifier: string, targetModule: string) {
       process.exit(1);
     }
 
-    const allModules = db.select().from(modules).all();
-    const mod = allModules.find(
-      (m) =>
-        m.moduleName.toLowerCase() === targetModule.toLowerCase() ||
-        (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase())
-    );
+    const { mod, allModules } = findModule(targetModule);
 
     if (!mod) {
       console.error(`Fout: Module '${targetModule}' bestaat niet.`);
-      console.log(`Beschikbare modules: ${allModules.map((m) => m.moduleName).join(", ")}`);
+      console.log(`Beschikbare modules: ${allModules.map((m) => `${m.moduleName} (ID: ${m.moduleId})`).join(", ")}`);
       process.exit(1);
     }
 
@@ -392,7 +399,7 @@ async function revokePermission(identifier: string, targetModule: string) {
       .get();
 
     if (!existingPerm) {
-      console.log(`Gebruiker '${user.username}' heeft geen permissie voor module '${mod.moduleName}'.`);
+      console.log(`Gebruiker '${user.username}' heeft geen permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}).`);
       return;
     }
 
@@ -405,7 +412,7 @@ async function revokePermission(identifier: string, targetModule: string) {
       )
       .run();
 
-    console.log(`Permissie voor module '${mod.moduleName}' succesvol ingetrokken van '${user.username}'.`);
+    console.log(`Permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}) succesvol ingetrokken van '${user.username}'.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het intrekken van de permissie:", error);
     process.exit(1);
@@ -413,3 +420,4 @@ async function revokePermission(identifier: string, targetModule: string) {
 }
 
 main().catch(console.error);
+
