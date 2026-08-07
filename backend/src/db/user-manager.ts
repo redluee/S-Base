@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import db from "./client";
 import { users, usermodulepermissions, modules } from "./schema";
 
@@ -11,6 +11,9 @@ Acties:
   delete <username>                            Verwijder een gebruiker en diens permissies/sessies
   change-password <username> <new-password>    Wijzig het wachtwoord van een gebruiker
   rename <old-username> <new-username>         Wijzig de gebruikersnaam van een gebruiker
+  permissions <username>                       Bekijk de module-permissies van een gebruiker
+  grant <username> <module>                    Koppel een module-permissie aan een gebruiker
+  revoke <username> <module>                   Trek een module-permissie in van een gebruiker
 `;
 
 async function main() {
@@ -57,6 +60,36 @@ async function main() {
       }
       const [, oldUsername, newUsername] = args;
       await renameUser(oldUsername, newUsername);
+      break;
+    }
+    case "permissions":
+    case "list-permissions": {
+      if (args.length < 2) {
+        console.error("Fout: Gebruik: bun run db:user permissions <username>");
+        process.exit(1);
+      }
+      const [, username] = args;
+      await listPermissions(username);
+      break;
+    }
+    case "grant":
+    case "grant-permission": {
+      if (args.length < 3) {
+        console.error("Fout: Gebruik: bun run db:user grant <username> <module>");
+        process.exit(1);
+      }
+      const [, username, moduleName] = args;
+      await grantPermission(username, moduleName);
+      break;
+    }
+    case "revoke":
+    case "revoke-permission": {
+      if (args.length < 3) {
+        console.error("Fout: Gebruik: bun run db:user revoke <username> <module>");
+        process.exit(1);
+      }
+      const [, username, moduleName] = args;
+      await revokePermission(username, moduleName);
       break;
     }
     default: {
@@ -208,4 +241,158 @@ async function renameUser(oldUsername: string, newUsername: string) {
   }
 }
 
+async function listPermissions(username: string) {
+  try {
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .get();
+
+    if (!user) {
+      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      process.exit(1);
+    }
+
+    const allModules = db.select().from(modules).all();
+    const userPerms = db
+      .select()
+      .from(usermodulepermissions)
+      .where(eq(usermodulepermissions.userId, user.userId))
+      .all();
+
+    const grantedModuleIds = new Set(userPerms.map((p) => p.moduleId));
+
+    console.log(`Module-permissies voor gebruiker '${username}' (ID: ${user.userId}):`);
+    if (allModules.length === 0) {
+      console.log("  (Geen modules gevonden in de database)");
+      return;
+    }
+
+    for (const mod of allModules) {
+      const hasAccess = grantedModuleIds.has(mod.moduleId);
+      const status = hasAccess ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
+      console.log(`  ${status} ${mod.moduleName}${mod.moduleAlias ? ` (${mod.moduleAlias})` : ""}`);
+    }
+  } catch (error) {
+    console.error("Er is een fout opgetreden bij het ophalen van permissies:", error);
+    process.exit(1);
+  }
+}
+
+async function grantPermission(username: string, targetModule: string) {
+  try {
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .get();
+
+    if (!user) {
+      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      process.exit(1);
+    }
+
+    const allModules = db.select().from(modules).all();
+    const mod = allModules.find(
+      (m) =>
+        m.moduleName.toLowerCase() === targetModule.toLowerCase() ||
+        (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase())
+    );
+
+    if (!mod) {
+      console.error(`Fout: Module '${targetModule}' bestaat niet.`);
+      console.log(`Beschikbare modules: ${allModules.map((m) => m.moduleName).join(", ")}`);
+      process.exit(1);
+    }
+
+    const existingPerm = db
+      .select()
+      .from(usermodulepermissions)
+      .where(
+        and(
+          eq(usermodulepermissions.userId, user.userId),
+          eq(usermodulepermissions.moduleId, mod.moduleId)
+        )
+      )
+      .get();
+
+    if (existingPerm) {
+      console.log(`Gebruiker '${username}' heeft al permissie voor module '${mod.moduleName}'.`);
+      return;
+    }
+
+    db.insert(usermodulepermissions)
+      .values({
+        userId: user.userId,
+        moduleId: mod.moduleId,
+      })
+      .run();
+
+    console.log(`Permissie voor module '${mod.moduleName}' succesvol toegekend aan '${username}'.`);
+  } catch (error) {
+    console.error("Er is een fout opgetreden bij het toekennen van de permissie:", error);
+    process.exit(1);
+  }
+}
+
+async function revokePermission(username: string, targetModule: string) {
+  try {
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .get();
+
+    if (!user) {
+      console.error(`Fout: Gebruiker '${username}' bestaat niet.`);
+      process.exit(1);
+    }
+
+    const allModules = db.select().from(modules).all();
+    const mod = allModules.find(
+      (m) =>
+        m.moduleName.toLowerCase() === targetModule.toLowerCase() ||
+        (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase())
+    );
+
+    if (!mod) {
+      console.error(`Fout: Module '${targetModule}' bestaat niet.`);
+      console.log(`Beschikbare modules: ${allModules.map((m) => m.moduleName).join(", ")}`);
+      process.exit(1);
+    }
+
+    const existingPerm = db
+      .select()
+      .from(usermodulepermissions)
+      .where(
+        and(
+          eq(usermodulepermissions.userId, user.userId),
+          eq(usermodulepermissions.moduleId, mod.moduleId)
+        )
+      )
+      .get();
+
+    if (!existingPerm) {
+      console.log(`Gebruiker '${username}' heeft geen permissie voor module '${mod.moduleName}'.`);
+      return;
+    }
+
+    db.delete(usermodulepermissions)
+      .where(
+        and(
+          eq(usermodulepermissions.userId, user.userId),
+          eq(usermodulepermissions.moduleId, mod.moduleId)
+        )
+      )
+      .run();
+
+    console.log(`Permissie voor module '${mod.moduleName}' succesvol ingetrokken van '${username}'.`);
+  } catch (error) {
+    console.error("Er is een fout opgetreden bij het intrekken van de permissie:", error);
+    process.exit(1);
+  }
+}
+
 main().catch(console.error);
+
