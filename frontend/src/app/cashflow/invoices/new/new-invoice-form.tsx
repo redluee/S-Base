@@ -273,7 +273,7 @@ export function NewInvoiceForm() {
 
   const total = lines.reduce((s, l) => s + l.totalCost, 0);
 
-  async function handleSubmit(asSent: boolean) {
+  async function handleSubmit() {
     setError("");
     if (!clientId) { setError(t("Selecteer een klant.")); return; }
     if (lines.length === 0) { setError(t("Geen regels toegevoegd.")); return; }
@@ -354,7 +354,7 @@ export function NewInvoiceForm() {
             <select
               value={projectId}
               onChange={e => handleProjectChange(e.target.value)}
-              className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              className="w-full text-sm leading-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
             >
               <option value="">{t("(Geen project)")}</option>
               {filteredProjects.map(p => (
@@ -461,7 +461,7 @@ export function NewInvoiceForm() {
       </div>
 
       {/* Invoice Lines */}
-      <div className="space-y-3 p-5 bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto">
+      <div className="space-y-4 p-4 sm:p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-300">{t("Factuurregels")}</h2>
           <button type="button" onClick={addLine} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
@@ -469,8 +469,8 @@ export function NewInvoiceForm() {
           </button>
         </div>
 
-        {/* Header row (desktop) */}
-        <div className="hidden sm:grid grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 pb-1 border-b border-zinc-800 min-w-[650px]">
+        {/* Header row (desktop only) */}
+        <div className="hidden sm:grid grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 pb-1 border-b border-zinc-800">
           <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Type")}</span>
           <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Omschrijving")}</span>
           <span className="text-[10px] font-semibold text-zinc-500 uppercase text-center">{t("Aantal")}</span>
@@ -479,95 +479,204 @@ export function NewInvoiceForm() {
           <span />
         </div>
 
-        <div className="space-y-2.5 min-w-[650px]">
-          {lines.map(line => (
-            <div key={line.localId} className="grid grid-cols-1 sm:grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 items-center">
-              {/* Type dropdown */}
-              <select
-                value={line.type}
-                onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
-                className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="hours">{t("Uren")}</option>
-                <option value="service">{t("Dienst")}</option>
-                <option value="travel_costs">{t("Reiskosten")}</option>
-                <option value="discount">{t("Korting")}</option>
-              </select>
+        <div className="space-y-3 sm:space-y-2.5">
+          {lines.map((line, idx) => (
+            <div key={line.localId}>
+              {/* Mobile View Card (< sm) */}
+              <div className="sm:hidden p-3.5 bg-zinc-950/60 border border-zinc-800/80 rounded-lg space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-xs font-mono font-bold text-zinc-500">#{idx + 1}</span>
+                    <select
+                      value={line.type}
+                      onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
+                      className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-white focus:outline-none focus:border-blue-500 flex-1"
+                    >
+                      <option value="hours">{t("Uren")}</option>
+                      <option value="service">{t("Dienst")}</option>
+                      <option value="travel_costs">{t("Reiskosten")}</option>
+                      <option value="discount">{t("Korting")}</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeLine(line.localId)}
+                    className="p-1.5 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
 
-              {/* Task Description */}
-              <Input
-                placeholder={t("Omschrijving")}
-                value={line.taskDescription}
-                onChange={e => updateLine(line.localId, "taskDescription", e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-sm"
-              />
+                <div>
+                  <Label className="text-[11px] text-zinc-400 mb-1 block">{t("Omschrijving")}</Label>
+                  <Input
+                    placeholder={t("Omschrijving")}
+                    value={line.taskDescription}
+                    onChange={e => updateLine(line.localId, "taskDescription", e.target.value)}
+                    className="bg-zinc-800 border-zinc-700 text-sm"
+                  />
+                </div>
 
-              {/* Quantity / Discount Mode */}
-              {line.type === "discount" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[11px] text-zinc-400 mb-1 block">
+                      {line.type === "discount" ? t("Kortingstype") : t("Aantal")}
+                    </Label>
+                    {line.type === "discount" ? (
+                      <select
+                        value={line.discountType}
+                        onChange={e => updateLine(line.localId, "discountType", e.target.value as DiscountType)}
+                        className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
+                      >
+                        <option value="percentage">{t("Percentage (%)")}</option>
+                        <option value="amount">{t("Bedrag (€)")}</option>
+                      </select>
+                    ) : (
+                      <div className="relative flex items-center">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder="1"
+                          value={line.quantity === 0 || line.quantity === "" ? "" : line.quantity}
+                          onChange={e => updateLine(line.localId, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
+                          className="bg-zinc-800 border-zinc-700 text-sm pr-8"
+                        />
+                        {line.type === "hours" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("uur")}</span>}
+                        {line.type === "travel_costs" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("km")}</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] text-zinc-400 mb-1 block">
+                      {line.type === "discount" ? t("Korting") : t("Prijs per eenheid (€)")}
+                    </Label>
+                    {line.type === "discount" ? (
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        value={line.discountValue === 0 || line.discountValue === "" ? "" : line.discountValue}
+                        onChange={e => updateLine(line.localId, "discountValue", e.target.value === "" ? "" : Number(e.target.value))}
+                        className="bg-zinc-800 border-zinc-700 text-sm text-right font-mono"
+                      />
+                    ) : (
+                      <div className="relative flex items-center">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0"
+                          value={line.unitPrice === 0 || line.unitPrice === "" ? "" : line.unitPrice}
+                          onChange={e => updateLine(line.localId, "unitPrice", e.target.value === "" ? "" : Number(e.target.value))}
+                          className={`bg-zinc-800 border-zinc-700 text-sm text-right ${line.type === "hours" ? "pr-14" : line.type === "travel_costs" ? "pr-12" : ""}`}
+                        />
+                        {line.type === "hours" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per uur")}</span>}
+                        {line.type === "travel_costs" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per km")}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+                  <span className="text-xs text-zinc-400 font-medium">{t("Regeltotaal")}:</span>
+                  <span className={`text-sm font-semibold ${line.totalCost < 0 ? "text-emerald-400" : "text-white"}`}>
+                    {formatEuro(line.totalCost)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Desktop View Row (>= sm) */}
+              <div className="hidden sm:grid sm:grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 items-center">
+                {/* Type dropdown */}
                 <select
-                  value={line.discountType}
-                  onChange={e => updateLine(line.localId, "discountType", e.target.value as DiscountType)}
+                  value={line.type}
+                  onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
                   className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
                 >
-                  <option value="percentage">{t("Percentage (%)")}</option>
-                  <option value="amount">{t("Bedrag (€)")}</option>
+                  <option value="hours">{t("Uren")}</option>
+                  <option value="service">{t("Dienst")}</option>
+                  <option value="travel_costs">{t("Reiskosten")}</option>
+                  <option value="discount">{t("Korting")}</option>
                 </select>
-              ) : (
-                <div className="relative flex items-center">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    placeholder="1"
-                    value={line.quantity === 0 || line.quantity === "" ? "" : line.quantity}
-                    onChange={e => updateLine(line.localId, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
-                    className="bg-zinc-800 border-zinc-700 text-sm text-center pr-8"
-                  />
-                  {line.type === "hours" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("uur")}</span>}
-                  {line.type === "travel_costs" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("km")}</span>}
-                </div>
-              )}
 
-              {/* Unit Price / Discount Value */}
-              {line.type === "discount" ? (
+                {/* Task Description */}
                 <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  value={line.discountValue === 0 || line.discountValue === "" ? "" : line.discountValue}
-                  onChange={e => updateLine(line.localId, "discountValue", e.target.value === "" ? "" : Number(e.target.value))}
-                  className="bg-zinc-800 border-zinc-700 text-sm text-right font-mono"
+                  placeholder={t("Omschrijving")}
+                  value={line.taskDescription}
+                  onChange={e => updateLine(line.localId, "taskDescription", e.target.value)}
+                  className="bg-zinc-800 border-zinc-700 text-sm"
                 />
-              ) : (
-                <div className="relative flex items-center">
+
+                {/* Quantity / Discount Mode */}
+                {line.type === "discount" ? (
+                  <select
+                    value={line.discountType}
+                    onChange={e => updateLine(line.localId, "discountType", e.target.value as DiscountType)}
+                    className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="percentage">{t("Percentage (%)")}</option>
+                    <option value="amount">{t("Bedrag (€)")}</option>
+                  </select>
+                ) : (
+                  <div className="relative flex items-center">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="1"
+                      value={line.quantity === 0 || line.quantity === "" ? "" : line.quantity}
+                      onChange={e => updateLine(line.localId, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
+                      className="bg-zinc-800 border-zinc-700 text-sm text-center pr-8"
+                    />
+                    {line.type === "hours" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("uur")}</span>}
+                    {line.type === "travel_costs" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("km")}</span>}
+                  </div>
+                )}
+
+                {/* Unit Price / Discount Value */}
+                {line.type === "discount" ? (
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
                     placeholder="0"
-                    value={line.unitPrice === 0 || line.unitPrice === "" ? "" : line.unitPrice}
-                    onChange={e => updateLine(line.localId, "unitPrice", e.target.value === "" ? "" : Number(e.target.value))}
-                    className={`bg-zinc-800 border-zinc-700 text-sm text-right ${line.type === "hours" ? "pr-14" : line.type === "travel_costs" ? "pr-12" : ""}`}
+                    value={line.discountValue === 0 || line.discountValue === "" ? "" : line.discountValue}
+                    onChange={e => updateLine(line.localId, "discountValue", e.target.value === "" ? "" : Number(e.target.value))}
+                    className="bg-zinc-800 border-zinc-700 text-sm text-right font-mono"
                   />
-                  {line.type === "hours" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per uur")}</span>}
-                  {line.type === "travel_costs" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per km")}</span>}
+                ) : (
+                  <div className="relative flex items-center">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0"
+                      value={line.unitPrice === 0 || line.unitPrice === "" ? "" : line.unitPrice}
+                      onChange={e => updateLine(line.localId, "unitPrice", e.target.value === "" ? "" : Number(e.target.value))}
+                      className={`bg-zinc-800 border-zinc-700 text-sm text-right ${line.type === "hours" ? "pr-14" : line.type === "travel_costs" ? "pr-12" : ""}`}
+                    />
+                    {line.type === "hours" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per uur")}</span>}
+                    {line.type === "travel_costs" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per km")}</span>}
+                  </div>
+                )}
+
+                {/* Total cost display */}
+                <div className={`flex items-center h-9 px-3 rounded-lg border border-zinc-700 text-sm justify-end ${line.totalCost < 0 ? "bg-emerald-500/10 text-emerald-400 font-semibold" : "bg-zinc-800/50 text-zinc-300"}`}>
+                  {formatEuro(line.totalCost)}
                 </div>
-              )}
 
-              {/* Total cost display */}
-              <div className={`flex items-center h-9 px-3 rounded-lg border border-zinc-700 text-sm justify-end ${line.totalCost < 0 ? "bg-emerald-500/10 text-emerald-400 font-semibold" : "bg-zinc-800/50 text-zinc-300"}`}>
-                {formatEuro(line.totalCost)}
+                {/* Remove button */}
+                <button
+                  type="button"
+                  onClick={() => removeLine(line.localId)}
+                  className="p-1.5 rounded text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer justify-self-center"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
               </div>
-
-              {/* Remove button */}
-              <button
-                type="button"
-                onClick={() => removeLine(line.localId)}
-                className="p-1.5 rounded text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer justify-self-center"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
             </div>
           ))}
         </div>
@@ -599,7 +708,7 @@ export function NewInvoiceForm() {
         {editId ? (
           <Button
             type="button"
-            onClick={() => handleSubmit(status === "sent" || status === "paid" || status === "overdue")}
+            onClick={() => handleSubmit()}
             disabled={saving}
             className="bg-blue-500 hover:bg-blue-400 text-white text-sm shadow-lg shadow-blue-500/20 cursor-pointer"
           >
@@ -608,7 +717,7 @@ export function NewInvoiceForm() {
         ) : (
           <Button
             type="button"
-            onClick={() => handleSubmit(!!dateCreated)}
+            onClick={() => handleSubmit()}
             disabled={saving}
             className="bg-blue-500 hover:bg-blue-400 text-white text-sm shadow-lg shadow-blue-500/20 cursor-pointer"
           >

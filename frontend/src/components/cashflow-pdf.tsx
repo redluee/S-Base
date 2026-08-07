@@ -196,33 +196,67 @@ async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
   URL.revokeObjectURL(url);
 }
 
-export function CashflowPDFButton({ invoice }: { invoice: CashflowInvoiceFull }) {
+export function CashflowPDFButton({
+  invoice,
+  fetchInvoice,
+  variant = "default",
+  className = "",
+}: {
+  invoice?: CashflowInvoiceFull;
+  fetchInvoice?: () => Promise<CashflowInvoiceFull>;
+  variant?: "default" | "icon" | "full";
+  className?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleClick = useCallback(async () => {
+  const handleClick = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      await buildAndDownloadPDF(invoice);
+      let inv = invoice;
+      if (!inv && fetchInvoice) {
+        inv = await fetchInvoice();
+      }
+      if (!inv) {
+        throw new Error("Geen factuurgegevens beschikbaar");
+      }
+      await buildAndDownloadPDF(inv);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "PDF fout");
     } finally {
       setLoading(false);
     }
-  }, [invoice]);
+  }, [invoice, fetchInvoice]);
 
-  return (
-    <div>
+  if (variant === "icon") {
+    return (
       <button
+        type="button"
         onClick={handleClick}
         disabled={loading}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-700 transition-all disabled:opacity-60 cursor-pointer"
+        title={loading ? "PDF genereren..." : "PDF downloaden"}
+        className={`p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors disabled:opacity-60 cursor-pointer ${className}`}
       >
-        <Download className="size-3.5" />
+        <Download className={`size-3.5 ${loading ? "animate-pulse" : ""}`} />
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading}
+        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-700 transition-all disabled:opacity-60 cursor-pointer whitespace-nowrap ${className}`}
+      >
+        <Download className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
         {loading ? "PDF genereren..." : "PDF downloaden"}
       </button>
-      {error && <p className="text-xs text-rose-400 mt-1">{error}</p>}
+      {error && <p className="text-[10px] text-rose-400 absolute top-full right-0 mt-1 whitespace-nowrap">{error}</p>}
     </div>
   );
 }

@@ -16,7 +16,7 @@ function ClientForm({
   loading,
 }: {
   initial?: Partial<CashflowClient>;
-  onSave: (data: any) => void;
+  onSave: (data: Omit<CashflowClient, "id" | "userId" | "createdAt">) => void;
   onCancel: () => void;
   loading: boolean;
 }) {
@@ -80,14 +80,17 @@ export default function ClientsPage() {
   const [editing, setEditing] = useState<CashflowClient | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    api.cashflow.clients.list().then(res => {
+      if (active) setItems(res);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
-  async function load() {
-    setLoading(true);
-    try { setItems(await api.cashflow.clients.list()); } catch {} finally { setLoading(false); }
-  }
-
-  async function handleSave(data: any) {
+  async function handleSave(data: Omit<CashflowClient, "id" | "userId" | "createdAt">) {
     setSaving(true);
     try {
       if (editing) {

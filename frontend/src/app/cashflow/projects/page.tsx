@@ -23,15 +23,15 @@ export default function ProjectsPage() {
   const [deleteModalProject, setDeleteModalProject] = useState<CashflowProject | null>(null);
   const [deleteInvoicesChoice, setDeleteInvoicesChoice] = useState<boolean>(false);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const [p, c] = await Promise.all([api.cashflow.projects.list(), api.cashflow.clients.list()]);
-      setProjects(p); setClients(c);
-    } catch {} finally { setLoading(false); }
-  }
+  useEffect(() => {
+    let active = true;
+    Promise.all([api.cashflow.projects.list(), api.cashflow.clients.list()]).then(([p, c]) => {
+      if (active) { setProjects(p); setClients(c); }
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   function promptDelete(project: CashflowProject) {
     setDeleteInvoicesChoice(false);
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
         <select
           value={filterClient}
           onChange={e => setFilterClient(e.target.value)}
-          className="text-xs bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-blue-500"
+          className="text-xs leading-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-blue-500"
         >
           <option value="">{t("Alle")} klanten</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

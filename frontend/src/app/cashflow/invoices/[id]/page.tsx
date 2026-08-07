@@ -75,22 +75,24 @@ export default function InvoiceDetailPage() {
     } catch {} finally { setMarkingPaid(false); }
   }
 
+  const [now] = useState(() => Date.now());
+
   if (loading || !invoice) {
     return <div className="flex justify-center py-24"><div className="size-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" /></div>;
   }
 
   const cfg = statusConfig[invoice.status] ?? statusConfig.draft;
-  const isOverdue = invoice.status !== "paid" && invoice.paymentDueDate && invoice.paymentDueDate < Date.now();
+  const isOverdue = invoice.status !== "paid" && invoice.paymentDueDate && invoice.paymentDueDate < now;
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <Link href="/cashflow/invoices" className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 mb-2 transition-colors">
             <ArrowLeft className="size-3" />Terug naar facturen
           </Link>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-xl font-bold text-white font-mono">{invoice.invoiceNumber}</h1>
             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${isOverdue ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : cfg.color}`}>
               {isOverdue ? "Te laat" : cfg.label}
@@ -98,9 +100,9 @@ export default function InvoiceDetailPage() {
           </div>
           <p className="text-xs text-zinc-400 mt-0.5">{invoice.clientName}{invoice.projectName ? ` · ${invoice.projectName}` : ""}</p>
         </div>
-        <div className="flex gap-2 mt-6 sm:mt-0 items-center">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {invoice.status !== "paid" && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <input
                 type="date"
                 value={paidDateInput}
@@ -214,7 +216,38 @@ export default function InvoiceDetailPage() {
         <div className="px-4 py-3 border-b border-zinc-800">
           <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">{t("Factuurregels")}</h2>
         </div>
-        <table className="w-full text-sm">
+
+        {/* Mobile View Cards */}
+        <div className="sm:hidden divide-y divide-zinc-800/80">
+          {invoice.lines.map((line) => (
+            <div key={line.id} className="p-3.5 space-y-1.5">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-xs text-zinc-200 font-medium">{line.taskDescription}</span>
+                <span className={`text-xs font-semibold whitespace-nowrap ${line.totalCost < 0 ? "text-emerald-400" : "text-white"}`}>
+                  {formatEuro(line.totalCost)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-zinc-500">
+                <span>
+                  {line.type === "discount"
+                    ? `${t("Korting")} (${line.discountType === "percentage" ? `${line.discountValue}%` : formatEuro(line.discountValue ?? 0)})`
+                    : line.type === "hours"
+                    ? `${line.quantity} uur × ${formatEuro(line.unitPrice)}`
+                    : line.type === "travel_costs"
+                    ? `${line.quantity} km × ${formatEuro(line.unitPrice)}`
+                    : `${line.quantity} × ${formatEuro(line.unitPrice)}`}
+                </span>
+              </div>
+            </div>
+          ))}
+          <div className="p-3.5 bg-zinc-950/40 flex justify-between items-center border-t border-zinc-800">
+            <span className="text-xs font-semibold text-zinc-400">{t("Factuurtotaal")}</span>
+            <span className="text-base font-bold text-white">{formatEuro(invoice.total)}</span>
+          </div>
+        </div>
+
+        {/* Desktop Table View */}
+        <table className="hidden sm:table w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800">
               <th className="px-4 py-2 text-left text-[10px] font-semibold text-zinc-500 uppercase">{t("Omschrijving")}</th>

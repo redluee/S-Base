@@ -34,6 +34,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [stats, setStats] = useState<CashflowDashboardStats | null>(initialStats);
   const [loading, setLoading] = useState<boolean>(false);
+  const [activeMonthTooltip, setActiveMonthTooltip] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -58,6 +59,17 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
       isMounted = false;
     };
   }, [selectedYear]);
+
+  useEffect(() => {
+    function handleTouchOutside(e: TouchEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-month-bar]")) {
+        setActiveMonthTooltip(null);
+      }
+    }
+    document.addEventListener("touchstart", handleTouchOutside);
+    return () => document.removeEventListener("touchstart", handleTouchOutside);
+  }, []);
 
   const months = getMonthsForYear(selectedYear);
   const incomeMap = new Map((stats?.monthlyIncome ?? []).map((m) => [m.month, m.total]));
@@ -140,15 +152,32 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
             const val = incomeMap.get(month) ?? 0;
             const heightPct = maxIncome > 0 ? (val / maxIncome) * 100 : 0;
             const isCurrentMonth = month === currentMonthStr;
+            const isTooltipActive = activeMonthTooltip === month;
             return (
-              <div key={month} className="flex flex-col items-center gap-1 flex-1 min-w-0 group relative">
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              <div
+                key={month}
+                data-month-bar={month}
+                onClick={() => setActiveMonthTooltip(isTooltipActive ? null : month)}
+                onTouchStart={() => setActiveMonthTooltip(month)}
+                className="flex flex-col items-center gap-1 flex-1 min-w-0 group relative cursor-pointer select-none touch-manipulation"
+              >
+                <div
+                  className={`absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-[10px] text-white whitespace-nowrap transition-opacity pointer-events-none z-10 ${
+                    isTooltipActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  }`}
+                >
                   {formatEuro(val)}
                 </div>
                 <div className="w-full flex items-end" style={{ height: "120px" }}>
                   <div
                     className={`w-full rounded-t transition-all duration-300 ${
-                      isCurrentMonth ? "bg-blue-500" : val > 0 ? "bg-blue-500/40 group-hover:bg-blue-500/60" : "bg-zinc-800"
+                      isCurrentMonth
+                        ? "bg-blue-500"
+                        : val > 0
+                        ? isTooltipActive
+                          ? "bg-blue-500/80"
+                          : "bg-blue-500/40 group-hover:bg-blue-500/60"
+                        : "bg-zinc-800"
                     }`}
                     style={{ height: `${Math.max(heightPct, val > 0 ? 4 : 2)}%` }}
                   />

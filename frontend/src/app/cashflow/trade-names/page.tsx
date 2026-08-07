@@ -80,14 +80,17 @@ export default function TradeNamesPage() {
   const [editing, setEditing] = useState<CashflowTradeName | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    api.cashflow.tradeNames.list().then(res => {
+      if (active) setItems(res);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
-  async function load() {
-    setLoading(true);
-    try { setItems(await api.cashflow.tradeNames.list()); } catch {} finally { setLoading(false); }
-  }
-
-  async function handleSave(data: any) {
+  async function handleSave(data: Omit<CashflowTradeName, "id" | "userId" | "createdAt">) {
     setSaving(true);
     try {
       if (editing) {

@@ -19,21 +19,19 @@ export function ClientAutocomplete({
   placeholder?: string;
   className?: string;
 }) {
-  const selectedClient = clients.find((c) => c.id === Number(selectedClientId));
-  const [query, setQuery] = useState(selectedClient?.name ?? "");
+  const matchedClient = clients.find((c) => c.id === Number(selectedClientId));
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const matched = clients.find((c) => c.id === Number(selectedClientId));
-    setQuery(matched?.name ?? "");
-  }, [selectedClientId, clients]);
+  // Use matchedClient name if query hasn't been typed or when client selection changes
+  const displayQuery = open ? query : (matchedClient?.name ?? query);
 
   const filteredClients = clients.filter((c) =>
-    c.name.toLowerCase().includes(query.toLowerCase())
+    c.name.toLowerCase().includes(displayQuery.toLowerCase())
   );
 
   useEffect(() => {
@@ -81,12 +79,6 @@ export function ClientAutocomplete({
     setOpen(false);
   }
 
-  function handleClear() {
-    setQuery("");
-    onSelectClient(null);
-    setOpen(true);
-  }
-
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!open) {
       if (e.key === "ArrowDown" && filteredClients.length > 0) {
@@ -125,7 +117,7 @@ export function ClientAutocomplete({
     <div className="relative">
       <Input
         ref={inputRef}
-        value={query}
+        value={displayQuery}
         onChange={(e) => {
           setQuery(e.target.value);
           setOpen(true);
@@ -140,7 +132,7 @@ export function ClientAutocomplete({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          "w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500",
+          "w-full text-sm leading-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 text-white focus:outline-none focus:border-blue-500",
           className
         )}
       />

@@ -6,7 +6,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceSummary, CashflowClient, CashflowProject } from "@/lib/api";
-import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Download, Filter, X } from "lucide-react";
+import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Filter, X } from "lucide-react";
+import { CashflowPDFButton } from "@/components/cashflow-pdf";
 
 function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
@@ -28,12 +29,8 @@ export default function InvoicesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(() =>
-    searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined
-  );
-  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(() =>
-    searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined
-  );
+  const selectedClientId = searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined;
+  const selectedProjectId = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
   const [filterStatus, setFilterStatus] = useState("");
 
   const [invoices, setInvoices] = useState<CashflowInvoiceSummary[]>([]);
@@ -57,13 +54,6 @@ export default function InvoicesPage() {
     }
     loadMetadata();
   }, []);
-
-  useEffect(() => {
-    const cid = searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined;
-    const pid = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
-    setSelectedClientId(cid);
-    setSelectedProjectId(pid);
-  }, [searchParams]);
 
   useEffect(() => {
     async function loadInvoices() {
@@ -94,8 +84,6 @@ export default function InvoicesPage() {
         pId = undefined;
       }
     }
-    setSelectedClientId(cId);
-    setSelectedProjectId(pId);
     updateUrl(cId, pId);
   }
 
@@ -108,14 +96,10 @@ export default function InvoicesPage() {
         cId = proj.clientId;
       }
     }
-    setSelectedProjectId(pId);
-    setSelectedClientId(cId);
     updateUrl(cId, pId);
   }
 
   function handleResetFilters() {
-    setSelectedClientId(undefined);
-    setSelectedProjectId(undefined);
     setFilterStatus("");
     updateUrl(undefined, undefined);
   }
@@ -175,7 +159,7 @@ export default function InvoicesPage() {
             <select
               value={selectedClientId ?? ""}
               onChange={e => handleClientChange(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs leading-none text-white focus:outline-none focus:border-blue-500 transition-colors"
             >
               <option value="">{t("Alle klanten")}</option>
               {clients.map(c => (
@@ -189,7 +173,7 @@ export default function InvoicesPage() {
             <select
               value={selectedProjectId ?? ""}
               onChange={e => handleProjectChange(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs leading-none text-white focus:outline-none focus:border-blue-500 transition-colors"
             >
               <option value="">{t("Alle projecten")}</option>
               {availableProjects.map(p => (
@@ -218,7 +202,7 @@ export default function InvoicesPage() {
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs leading-none font-semibold border transition-all cursor-pointer ${
                 filterStatus === s
                   ? s ? statusConfig[s].color : "bg-blue-500/15 text-blue-400 border-blue-500/30"
                   : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
@@ -265,7 +249,7 @@ export default function InvoicesPage() {
                 >
                   {/* Status & Number */}
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-medium tracking-wide shrink-0 ${cfg.color}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] leading-none font-medium tracking-wide shrink-0 ${cfg.color}`}>
                       <StatusIcon className="size-2.5" />
                       {cfg.label}
                     </span>
@@ -328,13 +312,7 @@ export default function InvoicesPage() {
                     >
                       <Pencil className="size-3.5" />
                     </Link>
-                    <Link
-                      href={`/cashflow/invoices/${inv.id}`}
-                      title="Bekijken & PDF"
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                    >
-                      <Download className="size-3.5" />
-                    </Link>
+                    <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
                     <button
                       onClick={() => handleDelete(inv.id)}
                       disabled={deleting === inv.id}
@@ -350,7 +328,7 @@ export default function InvoicesPage() {
                 <div className={`sm:hidden p-4 bg-zinc-900 border rounded-xl space-y-3 ${isOverdue ? "border-rose-500/30" : "border-zinc-800"}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-medium ${cfg.color}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] leading-none font-medium ${cfg.color}`}>
                         <StatusIcon className="size-2.5" />
                         {cfg.label}
                       </span>
@@ -389,7 +367,7 @@ export default function InvoicesPage() {
                       <button
                         onClick={() => handleMarkPaid(inv.id)}
                         disabled={markingPaid === inv.id}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-colors cursor-pointer"
                       >
                         <Check className="size-3.5" /> {t("Markeer als betaald")}
                       </button>
@@ -397,10 +375,8 @@ export default function InvoicesPage() {
                     <Link href={`/cashflow/invoices/new?edit=${inv.id}`} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
                       <Pencil className="size-3.5" />
                     </Link>
-                    <Link href={`/cashflow/invoices/${inv.id}`} className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10">
-                      <Download className="size-3.5" />
-                    </Link>
-                    <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10">
+                    <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
+                    <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>

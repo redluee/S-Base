@@ -23,7 +23,7 @@ export function CashflowSubnav() {
           <Link
             key={href}
             href={href}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs leading-none font-semibold whitespace-nowrap transition-all ${
               active
                 ? "bg-blue-500/15 border border-blue-500/30 text-blue-400"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"

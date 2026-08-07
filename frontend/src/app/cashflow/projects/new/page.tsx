@@ -102,8 +102,8 @@ export default function NewProjectPage() {
         await api.cashflow.projects.create(data);
       }
       router.push("/cashflow/projects");
-    } catch (e: any) {
-      setError(e.message ?? "Fout bij opslaan.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Fout bij opslaan.");
     } finally {
       setSaving(false);
     }
