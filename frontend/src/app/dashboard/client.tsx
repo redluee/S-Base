@@ -7,6 +7,7 @@ import { compressImage } from "@/lib/image";
 import {
   Dumbbell,
   ChefHat,
+  Banknote,
   User,
   Music,
   Heart,
@@ -174,6 +175,26 @@ export function DashboardClient({ username }: { username: string }) {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
             <span>{t("Recipes and wines")}</span>
+            <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+          </div>
+        </Link>
+
+        {/* Cashflow Card */}
+        <Link
+          href="/cashflow"
+          className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(59,130,246,0.25)]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+          <div className="flex items-center gap-3.5 relative z-10">
+            <div className="size-11 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <Banknote className="size-5" />
+            </div>
+            <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-blue-400 transition-colors">
+              {t("Cashflow")}
+            </h2>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <span>{t("Facturatie")}</span>
             <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
           </div>
         </Link>

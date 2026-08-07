@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { SearchBar } from "@/components/search-bar";
-import { User, LogOut, ChevronDown, Dumbbell, ChefHat } from "lucide-react";
+import { User, LogOut, ChevronDown, Dumbbell, ChefHat, Banknote } from "lucide-react";
 
 export function NavHeader({ username }: { username: string }) {
   const router = useRouter();
@@ -30,6 +30,7 @@ export function NavHeader({ username }: { username: string }) {
 
   const isWorkouts = pathname.includes("/workouts");
   const isRecipes = pathname.includes("/recipes");
+  const isCashflow = pathname.includes("/cashflow");
 
   async function handleLogout() {
     await api.logout();
@@ -59,6 +60,15 @@ export function NavHeader({ username }: { username: string }) {
           >
             <ChefHat className="size-3.5" />
             <span className="hidden xs:inline">{t("Taste tracker")}</span>
+          </Link>
+        )}
+        {isCashflow && (
+          <Link
+            href="/cashflow"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
+          >
+            <Banknote className="size-3.5" />
+            <span className="hidden xs:inline">{t("Cashflow")}</span>
           </Link>
         )}
       </div>

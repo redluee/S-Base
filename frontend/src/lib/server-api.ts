@@ -125,5 +125,33 @@ export const serverApi = {
     },
     get: (id: number) => serverFetch<Wine>(`/wines/${id}`),
   },
-};
 
+  cashflow: {
+    dashboard: (year?: number) => serverFetch<import("./api").CashflowDashboardStats>(year ? `/cashflow/dashboard?year=${year}` : "/cashflow/dashboard"),
+    tradeNames: {
+      list: () => serverFetch<import("./api").CashflowTradeName[]>("/cashflow/trade-names"),
+    },
+    clients: {
+      list: () => serverFetch<import("./api").CashflowClient[]>("/cashflow/clients"),
+    },
+    projects: {
+      list: (clientId?: number) => {
+        const params = new URLSearchParams();
+        if (clientId) params.set("clientId", String(clientId));
+        const qs = params.toString();
+        return serverFetch<import("./api").CashflowProject[]>(`/cashflow/projects${qs ? `?${qs}` : ""}`);
+      },
+    },
+    invoices: {
+      list: (status?: string, projectId?: number, clientId?: number) => {
+        const params = new URLSearchParams();
+        if (status) params.set("status", status);
+        if (projectId) params.set("projectId", String(projectId));
+        if (clientId) params.set("clientId", String(clientId));
+        const qs = params.toString();
+        return serverFetch<import("./api").CashflowInvoiceSummary[]>(`/cashflow/invoices${qs ? `?${qs}` : ""}`);
+      },
+      get: (id: number) => serverFetch<import("./api").CashflowInvoiceFull>(`/cashflow/invoices/${id}`),
+    },
+  },
+};

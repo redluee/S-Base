@@ -324,6 +324,51 @@ export const api = {
       );
     },
   },
+
+  cashflow: {
+    tradeNames: {
+      list: () => request<CashflowTradeName[]>("/cashflow/trade-names"),
+      create: (data: unknown) => request<CashflowTradeName>("/cashflow/trade-names", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: unknown) => request<CashflowTradeName>(`/cashflow/trade-names/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/trade-names/${id}`, { method: "DELETE" }),
+    },
+    clients: {
+      list: () => request<CashflowClient[]>("/cashflow/clients"),
+      get: (id: number) => request<CashflowClient>(`/cashflow/clients/${id}`),
+      create: (data: unknown) => request<CashflowClient>("/cashflow/clients", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: unknown) => request<CashflowClient>(`/cashflow/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/clients/${id}`, { method: "DELETE" }),
+    },
+    projects: {
+      list: (clientId?: number) => {
+        const params = new URLSearchParams();
+        if (clientId) params.set("clientId", String(clientId));
+        const qs = params.toString();
+        return request<CashflowProject[]>(`/cashflow/projects${qs ? `?${qs}` : ""}`);
+      },
+      get: (id: number) => request<CashflowProjectDetail>(`/cashflow/projects/${id}`),
+      create: (data: unknown) => request<CashflowProject>("/cashflow/projects", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: unknown) => request<CashflowProject>(`/cashflow/projects/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      delete: (id: number, deleteInvoices?: boolean) => request<{ deleted: boolean }>(`/cashflow/projects/${id}${deleteInvoices ? "?deleteInvoices=true" : ""}`, { method: "DELETE" }),
+    },
+    invoices: {
+      list: (status?: string, projectId?: number, clientId?: number) => {
+        const params = new URLSearchParams();
+        if (status) params.set("status", status);
+        if (projectId) params.set("projectId", String(projectId));
+        if (clientId) params.set("clientId", String(clientId));
+        const qs = params.toString();
+        return request<CashflowInvoiceSummary[]>(`/cashflow/invoices${qs ? `?${qs}` : ""}`);
+      },
+      get: (id: number) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}`),
+      nextNumber: () => request<{ invoiceNumber: string }>("/cashflow/invoices/next-number"),
+      create: (data: unknown) => request<CashflowInvoiceFull>("/cashflow/invoices", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: unknown) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/invoices/${id}`, { method: "DELETE" }),
+      markAsPaid: (id: number, datePaid?: number) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}/paid`, { method: "PATCH", body: datePaid !== undefined ? JSON.stringify({ datePaid }) : undefined }),
+    },
+    dashboard: (year?: number) => request<CashflowDashboardStats>(year ? `/cashflow/dashboard?year=${year}` : "/cashflow/dashboard"),
+  },
 };
 
 export interface Wine {
@@ -339,5 +384,109 @@ export interface Wine {
   notes: string | null;
   imageUrl: string | null;
   createdAt: string;
+}
+
+export interface CashflowTradeName {
+  id: number;
+  userId: number;
+  displayName: string;
+  address: string | null;
+  iban: string | null;
+  kvkNumber: string | null;
+  vatNumber: string | null;
+  createdAt: string;
+}
+
+export interface CashflowClient {
+  id: number;
+  userId: number;
+  name: string;
+  address: string | null;
+  email: string | null;
+  standardRate: number | null;
+  createdAt: string;
+}
+
+export interface CashflowProject {
+  id: number;
+  name: string;
+  description: string | null;
+  location: string | null;
+  createdAt: string;
+  clientId: number;
+  clientName: string;
+  clientEmail: string | null;
+  tradeNameId: number | null;
+  tradeNameDisplay: string | null;
+  invoiceCount: number;
+  totalBilled: number;
+}
+
+export interface CashflowProjectDetail {
+  id: number;
+  name: string;
+  description: string | null;
+  location: string | null;
+  createdAt: string;
+  clientId: number;
+  clientName: string;
+  clientAddress: string | null;
+  clientEmail: string | null;
+  standardRate: number | null;
+  tradeNameId: number | null;
+  tradeNameDisplay: string | null;
+  tradeNameAddress: string | null;
+  tradeNameIban: string | null;
+  tradeNameKvk: string | null;
+}
+
+export interface CashflowInvoiceLine {
+  id: number;
+  invoiceId: number;
+  taskDescription: string;
+  quantity: number;
+  unitPrice: number;
+  totalCost: number;
+  type: "hours" | "service" | "travel_costs" | "discount";
+  discountType: "percentage" | "amount" | null;
+  discountValue: number | null;
+}
+
+export interface CashflowInvoiceSummary {
+  id: number;
+  invoiceNumber: string;
+  name?: string | null;
+  status: "draft" | "sent" | "paid" | "overdue";
+  dateCreated: number | null;
+  dateService: number | null;
+  paymentDueDate: number | null;
+  datePaid?: number | null;
+  isKor: boolean;
+  projectId: number | null;
+  projectName: string | null;
+  clientId: number;
+  clientName: string;
+  tradeNameDisplay: string | null;
+  total: number;
+}
+
+export interface CashflowInvoiceFull extends CashflowInvoiceSummary {
+  projectLocation: string | null;
+  clientAddress: string | null;
+  clientEmail: string | null;
+  tradeNameId: number | null;
+  tradeNameAddress: string | null;
+  tradeNameIban: string | null;
+  tradeNameKvk: string | null;
+  tradeNameVat: string | null;
+  lines: CashflowInvoiceLine[];
+  total: number;
+  createdAt: string;
+}
+
+export interface CashflowDashboardStats {
+  monthlyIncome: { month: string; total: number }[];
+  statusTotals: { status: string; count: number; total: number }[];
+  totalPaid12m: number;
 }
 
