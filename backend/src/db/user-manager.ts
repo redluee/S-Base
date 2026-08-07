@@ -248,13 +248,18 @@ async function renameUser(identifier: string, newUsername: string) {
       process.exit(1);
     }
 
+    if (user.username === newUsername) {
+      console.log(`Gebruiker '${user.username}' (ID: ${user.userId}) heeft al de gebruikersnaam '${newUsername}'.`);
+      return;
+    }
+
     const existingNewUser = db
       .select()
       .from(users)
       .where(eq(users.username, newUsername))
       .get();
 
-    if (existingNewUser) {
+    if (existingNewUser && existingNewUser.userId !== user.userId) {
       console.error(`Fout: Een gebruiker met de naam '${newUsername}' bestaat al.`);
       process.exit(1);
     }
