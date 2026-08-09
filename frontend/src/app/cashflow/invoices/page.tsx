@@ -135,7 +135,6 @@ export default function InvoicesPage() {
     setSelectedClientId(undefined);
     setSelectedProjectId(undefined);
     setSelectedYear("");
->>>>>>> cd53d6c (feat(cashflow): add duplicate invoice number validation and enhance UI features)
     setFilterStatus("");
     updateUrl(undefined, undefined, "", "");
   }
@@ -407,7 +406,7 @@ export default function InvoicesPage() {
                     >
                       <Pencil className="size-3.5" />
                     </Link>
-                      <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
+                      <CashflowPDFButton invoiceId={inv.id} iconOnly />
                       <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
                         <Trash2 className="size-3.5" />
                       </button>
@@ -484,12 +483,11 @@ export default function InvoicesPage() {
                       <Link href={`/cashflow/invoices/new?edit=${inv.id}`} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
                         <Pencil className="size-3.5" />
                       </Link>
-                      <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
+                      <CashflowPDFButton invoiceId={inv.id} iconOnly />
                       <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
                         <Trash2 className="size-3.5" />
                       </button>
                     </div>
-                  </div>
                   </div>
                 </div>
               </div>
