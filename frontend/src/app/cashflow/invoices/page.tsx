@@ -407,15 +407,10 @@ export default function InvoicesPage() {
                     >
                       <Pencil className="size-3.5" />
                     </Link>
-                    <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
-                    <button
-                      onClick={() => handleDelete(inv.id)}
-                      disabled={deleting === inv.id}
-                      title={t("Delete")}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                      <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
+                      <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
+                        <Trash2 className="size-3.5" />
+                      </button>
                   </div>
                 </div>
 

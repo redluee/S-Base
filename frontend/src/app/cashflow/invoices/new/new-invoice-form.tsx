@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
-import type { CashflowClient, CashflowProject } from "@/lib/api";
+import type { CashflowClient, CashflowProject, CashflowTradeName } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, ChevronDown, ChevronUp, UserPlus } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, UserPlus, Building2 } from "lucide-react";
 import { ClientAutocomplete } from "@/components/client-autocomplete";
 
 type LineType = "hours" | "service" | "travel_costs" | "discount";
@@ -81,6 +81,7 @@ export function NewInvoiceForm() {
 
   const [clients, setClients] = useState<CashflowClient[]>([]);
   const [projects, setProjects] = useState<CashflowProject[]>([]);
+  const [tradeNames, setTradeNames] = useState<CashflowTradeName[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -89,6 +90,7 @@ export function NewInvoiceForm() {
   // Form state
   const [clientId, setClientId] = useState<number | "">("");
   const [projectId, setProjectId] = useState<number | "">("");
+  const [tradeNameId, setTradeNameId] = useState<number | "">("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceName, setInvoiceName] = useState("");
   const [dateCreated, setDateCreated] = useState("");
@@ -115,6 +117,7 @@ export function NewInvoiceForm() {
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
+  const [newClientKvk, setNewClientKvk] = useState("");
   const [newClientRate, setNewClientRate] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
 
@@ -157,6 +160,9 @@ export function NewInvoiceForm() {
       const p = projects.find(item => item.id === pid);
       if (p) {
         setClientId(p.clientId);
+        if (p.tradeNameId) {
+          setTradeNameId(p.tradeNameId);
+        }
         const client = clients.find(c => c.id === p.clientId);
         if (client?.standardRate !== undefined && client?.standardRate !== null) {
           updateFirstLineRate(client.standardRate);
@@ -172,19 +178,22 @@ export function NewInvoiceForm() {
     async function init() {
       setLoading(true);
       try {
-        const [cls, prjs, numRes] = await Promise.all([
+        const [cls, prjs, numRes, tns] = await Promise.all([
           api.cashflow.clients.list(),
           api.cashflow.projects.list(),
           api.cashflow.invoices.nextNumber(),
+          api.cashflow.tradeNames.list(),
         ]);
         setClients(cls);
         setProjects(prjs);
         setInvoiceNumber(numRes.invoiceNumber);
+        setTradeNames(tns);
 
         if (editId) {
           const inv = await api.cashflow.invoices.get(Number(editId));
           setClientId(inv.clientId);
           setProjectId(inv.projectId ?? "");
+          setTradeNameId(inv.tradeNameId ?? "");
           setInvoiceNumber(inv.invoiceNumber);
           setInvoiceName(inv.name ?? "");
           setDateCreated(toDate(inv.dateCreated));
@@ -257,6 +266,7 @@ export function NewInvoiceForm() {
         name: newClientName.trim(),
         email: newClientEmail.trim() || null,
         address: newClientAddress.trim() || null,
+        kvkNumber: newClientKvk.trim() || null,
         standardRate: newClientRate ? Number(newClientRate) : null,
       });
       setClients(prev => [...prev, created]);
@@ -266,7 +276,7 @@ export function NewInvoiceForm() {
         updateFirstLineRate(created.standardRate);
       }
       setShowNewClient(false);
-      setNewClientName(""); setNewClientEmail(""); setNewClientAddress(""); setNewClientRate("");
+      setNewClientName(""); setNewClientEmail(""); setNewClientAddress(""); setNewClientKvk(""); setNewClientRate("");
     } catch {
     } finally {
       setCreatingClient(false);
@@ -296,6 +306,7 @@ export function NewInvoiceForm() {
       const body = {
         clientId: Number(clientId),
         projectId: projectId ? Number(projectId) : null,
+        tradeNameId: tradeNameId ? Number(tradeNameId) : null,
         invoiceNumber: invoiceNumber.trim(),
         name: invoiceName.trim() || null,
         dateCreated: toTs(dateCreated),
@@ -348,10 +359,10 @@ export function NewInvoiceForm() {
     <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto space-y-6">
       <h1 className="text-xl font-bold text-white">{editId ? t("Factuur bewerken") : t("Nieuwe factuur")}</h1>
 
-      {/* Client & Project */}
+      {/* Client, Project & Trade Name */}
       <div className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-        <h2 className="text-sm font-semibold text-zinc-300">{t("Klant")} & {t("Project")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h2 className="text-sm font-semibold text-zinc-300">{t("Klant")}, {t("Project")} & {t("Handelsnaam")}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-zinc-400">{t("Selecteer klant")}</Label>
             <ClientAutocomplete
@@ -396,6 +407,21 @@ export function NewInvoiceForm() {
               />
             )}
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-zinc-400">{t("Handelsnaam")} <span className="text-zinc-500 font-normal">({t("optioneel")})</span></Label>
+            <select
+              value={tradeNameId}
+              onChange={e => setTradeNameId(e.target.value === "" ? "" : Number(e.target.value))}
+              className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+            >
+              <option value="">{t("(Geen handelsnaam / Standaard)")}</option>
+              {tradeNames.map(tn => (
+                <option key={tn.id} value={tn.id}>
+                  {tn.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Inline new client form */}
@@ -420,6 +446,12 @@ export function NewInvoiceForm() {
                 value={newClientAddress}
                 onChange={e => setNewClientAddress(e.target.value)}
                 className="bg-zinc-700 border-zinc-600 text-xs sm:col-span-2"
+              />
+              <Input
+                placeholder={t("KVK-nummer (optioneel)")}
+                value={newClientKvk}
+                onChange={e => setNewClientKvk(e.target.value)}
+                className="bg-zinc-700 border-zinc-600 text-xs"
               />
               <Input
                 type="number"

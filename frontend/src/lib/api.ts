@@ -411,6 +411,7 @@ export interface CashflowClient {
   name: string;
   address: string | null;
   email: string | null;
+  kvkNumber: string | null;
   standardRate: number | null;
   createdAt: string;
 }
@@ -440,6 +441,7 @@ export interface CashflowProjectDetail {
   clientName: string;
   clientAddress: string | null;
   clientEmail: string | null;
+  clientKvk: string | null;
   standardRate: number | null;
   tradeNameId: number | null;
   tradeNameDisplay: string | null;
@@ -482,6 +484,7 @@ export interface CashflowInvoiceFull extends CashflowInvoiceSummary {
   projectLocation: string | null;
   clientAddress: string | null;
   clientEmail: string | null;
+  clientKvk: string | null;
   tradeNameId: number | null;
   tradeNameAddress: string | null;
   tradeNameIban: string | null;

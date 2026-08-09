@@ -32,6 +32,7 @@ export default function NewProjectPage() {
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
+  const [newClientKvk, setNewClientKvk] = useState("");
   const [newClientRate, setNewClientRate] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
 
@@ -70,12 +71,13 @@ export default function NewProjectPage() {
         name: newClientName.trim(),
         email: newClientEmail.trim() || null,
         address: newClientAddress.trim() || null,
+        kvkNumber: newClientKvk.trim() || null,
         standardRate: newClientRate ? Number(newClientRate) : null,
       });
       setClients(prev => [...prev, created]);
       setClientId(created.id);
       setShowNewClient(false);
-      setNewClientName(""); setNewClientEmail(""); setNewClientAddress(""); setNewClientRate("");
+      setNewClientName(""); setNewClientEmail(""); setNewClientAddress(""); setNewClientKvk(""); setNewClientRate("");
     } catch {
     } finally {
       setCreatingClient(false);
@@ -148,6 +150,7 @@ export default function NewProjectPage() {
                 <Input placeholder={t("Klantnaam")} value={newClientName} onChange={e => setNewClientName(e.target.value)} className="bg-zinc-700 border-zinc-600 text-xs" />
                 <Input placeholder={t("Klantemail")} value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} className="bg-zinc-700 border-zinc-600 text-xs" />
                 <Input placeholder={t("Klantadres")} value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} className="bg-zinc-700 border-zinc-600 text-xs sm:col-span-2" />
+                <Input placeholder={t("KVK-nummer (optioneel)")} value={newClientKvk} onChange={e => setNewClientKvk(e.target.value)} className="bg-zinc-700 border-zinc-600 text-xs" />
                 <Input type="number" placeholder="Tarief (€/uur)" value={newClientRate} onChange={e => setNewClientRate(e.target.value)} className="bg-zinc-700 border-zinc-600 text-xs" />
                 <Button type="button" onClick={handleCreateClient} disabled={creatingClient || !newClientName.trim()} className="bg-blue-500 hover:bg-blue-400 text-white text-xs self-end">
                   {creatingClient ? "Aanmaken..." : t("Klant aanmaken")}

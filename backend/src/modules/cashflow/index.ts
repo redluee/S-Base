@@ -74,6 +74,7 @@ export class CashflowService {
     name: string;
     address?: string;
     email?: string;
+    kvkNumber?: string;
     standardRate?: number;
   }) {
     if (!data.name?.trim()) throw new Error("Client name is required");
@@ -82,6 +83,7 @@ export class CashflowService {
       name: data.name.trim(),
       address: data.address?.trim() || null,
       email: data.email?.trim() || null,
+      kvkNumber: data.kvkNumber?.trim() || null,
       standardRate: data.standardRate !== undefined ? Number(data.standardRate) : null,
     }).returning().get();
   }
@@ -90,6 +92,7 @@ export class CashflowService {
     name?: string;
     address?: string | null;
     email?: string | null;
+    kvkNumber?: string | null;
     standardRate?: number | null;
   }) {
     const existing = this.getClientById(id);
@@ -98,6 +101,7 @@ export class CashflowService {
       name: data.name?.trim() ?? existing.name,
       address: data.address !== undefined ? (data.address?.trim() || null) : existing.address,
       email: data.email !== undefined ? (data.email?.trim() || null) : existing.email,
+      kvkNumber: data.kvkNumber !== undefined ? (data.kvkNumber?.trim() || null) : existing.kvkNumber,
       standardRate: data.standardRate !== undefined ? (data.standardRate !== null ? Number(data.standardRate) : null) : existing.standardRate,
     }).where(eq(cashflowClients.id, id)).returning().get();
   }
@@ -146,6 +150,7 @@ export class CashflowService {
       clientName: cashflowClients.name,
       clientAddress: cashflowClients.address,
       clientEmail: cashflowClients.email,
+      clientKvk: cashflowClients.kvkNumber,
       standardRate: cashflowClients.standardRate,
       tradeNameId: cashflowTradeNames.id,
       tradeNameDisplay: cashflowTradeNames.displayName,
@@ -298,6 +303,7 @@ export class CashflowService {
       clientName: cashflowClients.name,
       clientAddress: cashflowClients.address,
       clientEmail: cashflowClients.email,
+      clientKvk: cashflowClients.kvkNumber,
       tradeNameId: cashflowTradeNames.id,
       tradeNameDisplay: cashflowTradeNames.displayName,
       tradeNameAddress: cashflowTradeNames.address,

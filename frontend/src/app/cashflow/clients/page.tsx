@@ -7,7 +7,7 @@ import type { CashflowClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Plus, Pencil, Trash2, X, Check, Mail, MapPin, Euro } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, X, Check, Mail, MapPin, Euro, Hash } from "lucide-react";
 
 function ClientForm({
   initial,
@@ -23,6 +23,7 @@ function ClientForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
+  const [kvkNumber, setKvkNumber] = useState(initial?.kvkNumber ?? "");
   const [standardRate, setStandardRate] = useState(initial?.standardRate?.toString() ?? "");
   const [error, setError] = useState("");
 
@@ -34,6 +35,7 @@ function ClientForm({
       name: name.trim(),
       address: address.trim() || null,
       email: email.trim() || null,
+      kvkNumber: kvkNumber.trim() || null,
       standardRate: standardRate ? Number(standardRate) : null,
     });
   }
@@ -56,6 +58,10 @@ function ClientForm({
           <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="bg-zinc-800 border-zinc-700" placeholder="info@bedrijf.nl" />
         </div>
         <div className="space-y-1.5">
+          <Label className="text-xs text-zinc-400">{t("KVK-nummer")} <span className="text-zinc-500 font-normal">({t("optioneel")})</span></Label>
+          <Input value={kvkNumber} onChange={e => setKvkNumber(e.target.value)} className="bg-zinc-800 border-zinc-700" placeholder="12345678" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
           <Label className="text-xs text-zinc-400">{t("Standaardtarief (€/uur)")}</Label>
           <Input type="number" min="0" step="0.01" value={standardRate} onChange={e => setStandardRate(e.target.value)} className="bg-zinc-800 border-zinc-700" placeholder="75.00" />
         </div>
@@ -158,6 +164,11 @@ export default function ClientsPage() {
                       {item.address && (
                         <span className="flex items-center gap-1 text-xs text-zinc-500">
                           <MapPin className="size-3" />{item.address}
+                        </span>
+                      )}
+                      {item.kvkNumber && (
+                        <span className="flex items-center gap-1 text-xs text-zinc-500">
+                          <Hash className="size-3" />KVK {item.kvkNumber}
                         </span>
                       )}
                       {item.standardRate && (

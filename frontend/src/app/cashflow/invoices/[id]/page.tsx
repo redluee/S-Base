@@ -95,7 +95,7 @@ export default function InvoiceDetailPage() {
   }
 
   const cfg = statusConfig[invoice.status] ?? statusConfig.draft;
-  const isOverdue = invoice.status !== "paid" && invoice.paymentDueDate && invoice.paymentDueDate < now;
+  const isOverdue = invoice.status !== "paid" && Boolean(invoice.paymentDueDate && invoice.paymentDueDate < now);
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-6">
@@ -218,6 +218,7 @@ export default function InvoiceDetailPage() {
             <p className="text-sm font-semibold text-white">{invoice.clientName}</p>
             {invoice.clientAddress && <p className="text-xs text-zinc-400">{invoice.clientAddress}</p>}
             {invoice.clientEmail && <p className="text-xs text-zinc-500">{invoice.clientEmail}</p>}
+            {invoice.clientKvk && <p className="text-xs text-zinc-500 flex items-center gap-1"><Hash className="size-3" />KVK {invoice.clientKvk}</p>}
           </div>
           {invoice.tradeNameDisplay && (
             <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-2">
@@ -277,16 +278,16 @@ export default function InvoiceDetailPage() {
         {/* Desktop Table View */}
         <table className="hidden sm:table w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-800">
+            <tr className="border-b-2 border-zinc-700">
               <th className="px-4 py-2 text-left text-[10px] font-semibold text-zinc-500 uppercase">{t("Omschrijving")}</th>
               <th className="px-4 py-2 text-center text-[10px] font-semibold text-zinc-500 uppercase">{t("Aantal")}</th>
-              <th className="px-4 py-2 text-right text-[10px] font-semibold text-zinc-500 uppercase">{t("Prijs per eenheid (€)")}</th>
+              <th className="px-4 py-2 text-right text-[10px] font-semibold text-zinc-500 uppercase whitespace-nowrap min-w-[130px]">{t("Prijs / eenheid (€)")}</th>
               <th className="px-4 py-2 text-right text-[10px] font-semibold text-zinc-500 uppercase">{t("Totaal (€)")}</th>
             </tr>
           </thead>
           <tbody>
             {invoice.lines.map((line, i) => (
-              <tr key={line.id} className={i % 2 === 0 ? "" : "bg-zinc-900/50"}>
+              <tr key={line.id} className={`${i % 2 === 0 ? "" : "bg-zinc-900/50"} ${i === invoice.lines.length - 1 ? "border-b-2 border-zinc-700" : ""}`}>
                 <td className="px-4 py-2.5 text-zinc-200">
                   {line.taskDescription}
                   {line.type === "discount" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t("Korting")} ({line.discountType === "percentage" ? `${line.discountValue}%` : formatEuro(line.discountValue ?? 0)})</span>}
@@ -311,9 +312,9 @@ export default function InvoiceDetailPage() {
           </tfoot>
         </table>
         {invoice.isKor && (
-          <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/30">
+          <div className="px-4 py-3 bg-zinc-950/20">
             <p className="text-xs text-zinc-500 italic">
-              Op deze factuur is de KOR (Kleineondernemersregeling) van toepassing. Er wordt geen BTW in rekening gebracht.
+              Op deze factuur is de KOR (Kleineondernemersregeling) van toepassing.
             </p>
           </div>
         )}
@@ -322,8 +323,8 @@ export default function InvoiceDetailPage() {
       {/* Payment info */}
       {invoice.tradeNameIban && (
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
-          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">{t("Betalingsinformatie")}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3">{t("BETALINGSINFORMATIE")}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <p className="text-xs text-zinc-500">{t("IBAN")}</p>
               <p className="text-sm font-mono text-white">{invoice.tradeNameIban}</p>
@@ -332,6 +333,12 @@ export default function InvoiceDetailPage() {
               <p className="text-xs text-zinc-500">{t("Betalingsreferentie")}</p>
               <p className="text-sm font-mono text-white">{invoice.invoiceNumber}</p>
             </div>
+            {invoice.paymentDueDate && (
+              <div>
+                <p className="text-xs text-zinc-500">{t("Te betalen vóór")}</p>
+                <p className="text-sm font-mono text-white">{formatDate(invoice.paymentDueDate)}</p>
+              </div>
+            )}
           </div>
         </div>
       )}

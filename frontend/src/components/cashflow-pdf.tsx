@@ -1,8 +1,196 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Download } from "lucide-react";
+import { Download, AlertTriangle, X } from "lucide-react";
+import { t } from "@/lib/lang";
+import { api } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
+
+export function getInvoiceValidationWarnings(invoice: CashflowInvoiceFull): string[] {
+  const warnings: string[] = [];
+
+  if (!invoice.invoiceNumber?.trim()) {
+    warnings.push("Factuurnummer ontbreekt");
+  }
+  if (!invoice.clientName?.trim()) {
+    warnings.push("Klant ontbreekt");
+  }
+  if (!invoice.projectName?.trim() && !invoice.name?.trim()) {
+    warnings.push("Projectnaam ontbreekt");
+  }
+  if (!invoice.dateCreated) {
+    warnings.push("Datum van facturering ontbreekt");
+  }
+  if (!invoice.dateService) {
+    warnings.push("Datum van dienstverlening ontbreekt");
+  }
+  if (!invoice.paymentDueDate) {
+    warnings.push("Vervaldatum ontbreekt");
+  }
+
+  if (!invoice.lines || invoice.lines.length === 0) {
+    warnings.push("Er zijn geen factuurregels toegevoegd");
+  } else {
+    invoice.lines.forEach((line, index) => {
+      const lineNum = index + 1;
+      if (!line.taskDescription?.trim()) {
+        warnings.push(`Factuurregel ${lineNum}: Omschrijving ontbreekt`);
+      }
+      if (line.type !== "discount") {
+        if (line.quantity === null || line.quantity === undefined || (line.quantity as any) === "" || Number(line.quantity) <= 0) {
+          warnings.push(`Factuurregel ${lineNum}: Aantal is niet correct ingevuld`);
+        }
+        if (line.unitPrice === null || line.unitPrice === undefined || (line.unitPrice as any) === "" || Number(line.unitPrice) < 0) {
+          warnings.push(`Factuurregel ${lineNum}: Prijs per eenheid is niet correct ingevuld`);
+        }
+      } else {
+        if (line.discountValue === null || line.discountValue === undefined || (line.discountValue as any) === "" || Number(line.discountValue) <= 0) {
+          warnings.push(`Factuurregel ${lineNum}: Kortingswaarde is niet correct ingevuld`);
+        }
+      }
+    });
+  }
+
+  return warnings;
+}
+
+interface CashflowPDFButtonProps {
+  invoice?: CashflowInvoiceFull;
+  invoiceId?: number;
+  iconOnly?: boolean;
+}
+
+export function CashflowPDFButton({ invoice: initialInvoice, invoiceId, iconOnly }: CashflowPDFButtonProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [targetInvoice, setTargetInvoice] = useState<CashflowInvoiceFull | null>(initialInvoice ?? null);
+
+  const startDownload = useCallback(async (invToUse?: CashflowInvoiceFull) => {
+    const activeInvoice = invToUse ?? targetInvoice ?? initialInvoice;
+    if (!activeInvoice) return;
+    setLoading(true);
+    setError("");
+    setShowWarningModal(false);
+    try {
+      await buildAndDownloadPDF(activeInvoice);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "PDF fout");
+    } finally {
+      setLoading(false);
+    }
+  }, [initialInvoice, targetInvoice]);
+
+  const handleClick = useCallback(async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setLoading(true);
+    setError("");
+    try {
+      let inv = initialInvoice;
+      if (!inv && invoiceId) {
+        inv = await api.cashflow.invoices.get(invoiceId);
+      }
+      if (!inv) {
+        setLoading(false);
+        return;
+      }
+      setTargetInvoice(inv);
+      const w = getInvoiceValidationWarnings(inv);
+      if (w.length > 0) {
+        setWarnings(w);
+        setShowWarningModal(true);
+        setLoading(false);
+      } else {
+        await startDownload(inv);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Fout bij ophalen factuur");
+      setLoading(false);
+    }
+  }, [initialInvoice, invoiceId, startDownload]);
+
+  const modal = showWarningModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs" onClick={e => e.stopPropagation()}>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 max-w-md w-full space-y-4 shadow-xl text-left">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 text-amber-400">
+            <AlertTriangle className="size-5 shrink-0" />
+            <h3 className="text-base font-bold text-white">{t("Waarschuwing bij PDF downloaden")}</h3>
+          </div>
+          <button
+            onClick={() => setShowWarningModal(false)}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        
+        <p className="text-xs text-zinc-400">
+          {t("De volgende velden op deze factuur zijn leeg of niet correct ingevuld:")}
+        </p>
+
+        <ul className="space-y-1.5 max-h-48 overflow-y-auto p-3 bg-zinc-950/50 rounded-lg border border-zinc-800 text-xs text-zinc-300 list-disc list-inside">
+          {warnings.map((w, idx) => (
+            <li key={idx} className="text-amber-200/90">{w}</li>
+          ))}
+        </ul>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            onClick={() => setShowWarningModal(false)}
+            className="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors cursor-pointer"
+          >
+            {t("Annuleren")}
+          </button>
+          <button
+            onClick={() => startDownload()}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors cursor-pointer"
+          >
+            {t("Toch downloaden")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (iconOnly) {
+    return (
+      <div className="inline-flex items-center">
+        <button
+          onClick={handleClick}
+          disabled={loading}
+          title={loading ? t("PDF genereren...") : t("PDF downloaden")}
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer disabled:opacity-60"
+        >
+          {loading ? (
+            <div className="size-3.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+          ) : (
+            <Download className="size-3.5" />
+          )}
+        </button>
+        {error && <p className="text-xs text-rose-400 mt-1">{error}</p>}
+        {modal}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        title={loading ? t("PDF genereren...") : t("PDF downloaden")}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-700 transition-all disabled:opacity-60 cursor-pointer"
+      >
+        <Download className="size-3.5" />
+        <span className="hidden sm:inline">{loading ? t("PDF genereren...") : t("PDF downloaden")}</span>
+      </button>
+      {error && <p className="text-xs text-rose-400 mt-1">{error}</p>}
+      {modal}
+    </div>
+  );
+}
 
 function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
@@ -17,44 +205,238 @@ function formatDate(ts: number | null | undefined): string {
 async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
   const { pdf, Document, Page, Text, View, StyleSheet } = await import("@react-pdf/renderer");
 
+  const accentColor = "#008767";
+
   const styles = StyleSheet.create({
-    page: { fontFamily: "Helvetica", fontSize: 9, color: "#1a1a1a", padding: "40pt 50pt" },
-    header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
-    brandName: { fontSize: 18, fontFamily: "Helvetica-Bold", color: "#1a1a1a", marginBottom: 3 },
-    brandMeta: { fontSize: 8, color: "#6b7280", lineHeight: 1.5 },
-    label: { fontSize: 7.5, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
-    invoiceTitle: { fontSize: 22, fontFamily: "Helvetica-Bold", color: "#1a1a1a", textAlign: "right" },
-    invoiceNumber: { fontSize: 10, color: "#2563eb", textAlign: "right", marginTop: 2 },
-    sectionRow: { flexDirection: "row", gap: 20, marginBottom: 20 },
-    section: { flex: 1 },
-    sectionTitle: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5, paddingBottom: 3, borderBottom: "0.5pt solid #e5e7eb" },
-    bodyText: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.4 },
-    mutedText: { fontSize: 8, color: "#6b7280", lineHeight: 1.4 },
-    table: { marginTop: 8 },
-    tableHeader: { flexDirection: "row", backgroundColor: "#f3f4f6", padding: "5pt 6pt", borderRadius: 3 },
-    tableRow: { flexDirection: "row", padding: "5pt 6pt", borderBottom: "0.5pt solid #f3f4f6" },
-    tableRowAlt: { flexDirection: "row", padding: "5pt 6pt", borderBottom: "0.5pt solid #f3f4f6", backgroundColor: "#fafafa" },
-    colDesc: { flex: 1 },
-    colQty: { width: 40, textAlign: "center" },
-    colPrice: { width: 65, textAlign: "right" },
-    colTotal: { width: 65, textAlign: "right" },
-    th: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 },
-    td: { fontSize: 8.5, color: "#1a1a1a" },
-    tdMuted: { fontSize: 8.5, color: "#6b7280" },
-    divider: { borderTop: "0.5pt solid #e5e7eb", marginTop: 6, marginBottom: 6 },
-    totalRow: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 10, marginTop: 8 },
-    totalLabel: { fontSize: 9, color: "#6b7280" },
-    totalAmount: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#1a1a1a" },
-    korBox: { marginTop: 12, padding: "8pt 10pt", backgroundColor: "#f9fafb", border: "0.5pt solid #e5e7eb", borderRadius: 3 },
-    korText: { fontSize: 8, color: "#6b7280", lineHeight: 1.5, fontStyle: "italic" },
-    paymentBox: { marginTop: 16, padding: "10pt 12pt", backgroundColor: "#eff6ff", border: "0.5pt solid #bfdbfe", borderRadius: 3 },
-    paymentTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#1d4ed8", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 },
-    paymentRow: { flexDirection: "row", gap: 20 },
-    paymentItem: { flex: 1 },
-    paymentLabel: { fontSize: 7.5, color: "#3b82f6", marginBottom: 2 },
-    paymentValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1d4ed8" },
-    footer: { position: "absolute", bottom: 30, left: 50, right: 50, borderTop: "0.5pt solid #e5e7eb", paddingTop: 6, flexDirection: "row", justifyContent: "space-between" },
-    footerText: { fontSize: 7, color: "#9ca3af" },
+    page: {
+      fontFamily: "Helvetica",
+      fontSize: 10,
+      color: "#2b2b2b",
+      backgroundColor: "#ffffff",
+      paddingTop: 56.7,
+      paddingBottom: 56.7,
+      paddingLeft: 51,
+      paddingRight: 51,
+    },
+
+    /* Header */
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      borderBottom: `2pt solid ${accentColor}`,
+      paddingBottom: 16,
+      marginBottom: 30,
+    },
+    tradeName: {
+      fontSize: 24,
+      fontFamily: "Helvetica-Bold",
+      letterSpacing: 0.5,
+      color: "#111111",
+      marginBottom: 4,
+    },
+    tradeSub: {
+      fontSize: 10,
+      color: "#666666",
+      lineHeight: 1.4,
+    },
+    invoiceLabel: {
+      alignItems: "flex-end",
+    },
+    docType: {
+      fontSize: 14,
+      fontFamily: "Helvetica-Bold",
+      color: "#111111",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: 6,
+    },
+    referenceText: {
+      fontSize: 11,
+      color: "#444444",
+    },
+    referenceValue: {
+      fontFamily: "Helvetica-Bold",
+      color: accentColor,
+    },
+
+    /* Info Section */
+    infoSection: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 30,
+      gap: 20,
+    },
+    infoBlock: {
+      flex: 1,
+    },
+    infoTitle: {
+      fontSize: 10,
+      fontFamily: "Helvetica-Bold",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      color: "#888888",
+      marginBottom: 8,
+    },
+    infoText: {
+      fontSize: 11,
+      color: "#2b2b2b",
+      lineHeight: 1.4,
+      marginBottom: 2,
+    },
+
+    /* Line items table */
+    itemsTable: {
+      marginBottom: 20,
+    },
+    tableHeader: {
+      flexDirection: "row",
+      borderBottom: `2pt solid ${accentColor}`,
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 6,
+      paddingRight: 6,
+    },
+    tableRow: {
+      flexDirection: "row",
+      borderBottom: "1pt solid #eeeeee",
+      paddingTop: 10,
+      paddingBottom: 10,
+      paddingLeft: 6,
+      paddingRight: 6,
+    },
+    colDesc: {
+      flex: 1,
+    },
+    colQty: {
+      width: 55,
+      textAlign: "right",
+    },
+    colPrice: {
+      width: 90,
+      textAlign: "right",
+    },
+    colAmount: {
+      width: 80,
+      textAlign: "right",
+    },
+    th: {
+      fontSize: 10,
+      fontFamily: "Helvetica-Bold",
+      color: "#888888",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    td: {
+      fontSize: 11,
+      color: "#2b2b2b",
+    },
+    tdMuted: {
+      fontSize: 9,
+      color: "#666666",
+      marginTop: 2,
+    },
+
+    /* Totals */
+    totalsSection: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      marginTop: 10,
+      marginBottom: 30,
+    },
+    totalsTable: {
+      width: 260,
+    },
+    totalsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingTop: 6,
+      paddingBottom: 6,
+      paddingLeft: 6,
+      paddingRight: 6,
+    },
+    totalsGrandRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      borderTop: `2pt solid ${accentColor}`,
+      paddingTop: 10,
+      paddingBottom: 6,
+      paddingLeft: 6,
+      paddingRight: 6,
+    },
+    totalsLabel: {
+      fontSize: 11,
+      color: "#555555",
+    },
+    totalsValue: {
+      fontSize: 11,
+      color: "#2b2b2b",
+      textAlign: "right",
+    },
+    totalsGrandLabel: {
+      fontSize: 13,
+      fontFamily: "Helvetica-Bold",
+      color: "#111111",
+    },
+    totalsGrandValue: {
+      fontSize: 13,
+      fontFamily: "Helvetica-Bold",
+      color: accentColor,
+      textAlign: "right",
+    },
+
+    /* Meta table */
+    metaTable: {
+      marginBottom: 30,
+    },
+    metaRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      borderBottom: "1pt solid #eeeeee",
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+    metaLabel: {
+      fontSize: 11,
+      color: "#888888",
+      width: "45%",
+    },
+    metaValue: {
+      fontSize: 11,
+      color: "#2b2b2b",
+      fontFamily: "Helvetica-Bold",
+      textAlign: "right",
+    },
+
+    /* Note Box */
+    noteBox: {
+      backgroundColor: "#f7f7f5",
+      borderLeft: `3pt solid ${accentColor}`,
+      paddingTop: 12,
+      paddingBottom: 12,
+      paddingLeft: 16,
+      paddingRight: 16,
+      marginBottom: 30,
+    },
+    noteText: {
+      fontSize: 10,
+      color: "#555555",
+      lineHeight: 1.5,
+    },
+
+    /* Footer */
+    footer: {
+      marginTop: 40,
+      paddingTop: 14,
+      borderTop: "1pt solid #dddddd",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    footerText: {
+      fontSize: 9,
+      color: "#999999",
+    },
   });
 
   const total = invoice.lines.reduce((s, l) => s + l.totalCost, 0);
@@ -65,120 +447,117 @@ async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.brandName}>{invoice.tradeNameDisplay ?? ""}</Text>
-            {invoice.tradeNameAddress ? <Text style={styles.brandMeta}>{invoice.tradeNameAddress}</Text> : null}
-            {invoice.tradeNameKvk ? <Text style={styles.brandMeta}>KVK: {invoice.tradeNameKvk}</Text> : null}
-            {invoice.tradeNameIban ? <Text style={styles.brandMeta}>IBAN: {invoice.tradeNameIban}</Text> : null}
-            {invoice.tradeNameVat ? <Text style={styles.brandMeta}>BTW: {invoice.tradeNameVat}</Text> : null}
+            <Text style={styles.tradeName}>{invoice.tradeNameDisplay ?? "Mijn Bedrijf"}</Text>
+            {invoice.tradeNameAddress ? <Text style={styles.tradeSub}>{invoice.tradeNameAddress}</Text> : null}
           </View>
-          <View>
-            <Text style={styles.invoiceTitle}>FACTUUR</Text>
-            <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
+          <View style={styles.invoiceLabel}>
+            <Text style={styles.docType}>Factuur</Text>
+            <Text style={styles.referenceText}>
+              Referentie: <Text style={styles.referenceValue}>{invoice.invoiceNumber}</Text>
+            </Text>
           </View>
         </View>
 
-        {/* Client & Invoice Details */}
-        <View style={styles.sectionRow}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Factureren aan</Text>
-            <Text style={styles.bodyText}>{invoice.clientName}</Text>
-            {invoice.clientAddress ? <Text style={styles.mutedText}>{invoice.clientAddress}</Text> : null}
-            {invoice.clientEmail ? <Text style={styles.mutedText}>{invoice.clientEmail}</Text> : null}
+        {/* Info section */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoBlock}>
+            <Text style={styles.infoTitle}>Gefactureerd aan</Text>
+            <Text style={styles.infoText}>{invoice.clientName}</Text>
+            {invoice.clientAddress ? <Text style={styles.infoText}>{invoice.clientAddress}</Text> : null}
+            {invoice.clientEmail ? <Text style={styles.infoText}>{invoice.clientEmail}</Text> : null}
+            {invoice.clientKvk ? <Text style={styles.infoText}>KvK: {invoice.clientKvk}</Text> : null}
           </View>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Factuurgegevens</Text>
-            <View style={{ flexDirection: "row", gap: 6, marginBottom: 3 }}>
-              <Text style={styles.mutedText}>Factuurdatum:</Text>
-              <Text style={styles.bodyText}>{formatDate(invoice.dateCreated)}</Text>
-            </View>
-            {invoice.dateService ? (
-              <View style={{ flexDirection: "row", gap: 6, marginBottom: 3 }}>
-                <Text style={styles.mutedText}>Datum dienst:</Text>
-                <Text style={styles.bodyText}>{formatDate(invoice.dateService)}</Text>
-              </View>
-            ) : null}
-            {invoice.paymentDueDate ? (
-              <View style={{ flexDirection: "row", gap: 6, marginBottom: 3 }}>
-                <Text style={styles.mutedText}>Vervaldatum:</Text>
-                <Text style={styles.bodyText}>{formatDate(invoice.paymentDueDate)}</Text>
-              </View>
-            ) : null}
-            {invoice.projectName ? (
-              <View style={{ flexDirection: "row", gap: 6 }}>
-                <Text style={styles.mutedText}>Project:</Text>
-                <Text style={styles.bodyText}>{invoice.projectName}</Text>
-              </View>
-            ) : null}
+          <View style={styles.infoBlock}>
+            <Text style={styles.infoTitle}>Van</Text>
+            <Text style={styles.infoText}>{invoice.tradeNameDisplay ?? "Mijn Bedrijf"}</Text>
+            {invoice.tradeNameKvk ? <Text style={styles.infoText}>KvK: {invoice.tradeNameKvk}</Text> : null}
+            {invoice.tradeNameIban ? <Text style={styles.infoText}>IBAN: {invoice.tradeNameIban}</Text> : null}
+            {invoice.tradeNameVat ? <Text style={styles.infoText}>BTW: {invoice.tradeNameVat}</Text> : null}
           </View>
         </View>
 
         {/* Line items */}
-        <View style={styles.table}>
+        <View style={styles.itemsTable}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
             <Text style={[styles.th, styles.colQty]}>Aantal</Text>
-            <Text style={[styles.th, styles.colPrice]}>Prijs / eenheid</Text>
-            <Text style={[styles.th, styles.colTotal]}>Totaal</Text>
+            <Text style={[styles.th, styles.colPrice]}>Stukprijs</Text>
+            <Text style={[styles.th, styles.colAmount]}>Bedrag</Text>
           </View>
-          {invoice.lines.map((line, i) => (
-            <View key={line.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+          {invoice.lines.map((line) => (
+            <View key={line.id} style={styles.tableRow}>
               <View style={styles.colDesc}>
                 <Text style={styles.td}>{line.taskDescription}</Text>
-                {line.type === "travel_costs" ? <Text style={[styles.tdMuted, { fontSize: 7.5 }]}>Reiskosten</Text> : null}
+                {line.type === "travel_costs" ? <Text style={styles.tdMuted}>Reiskosten</Text> : null}
                 {line.type === "discount" ? (
-                  <Text style={[styles.tdMuted, { fontSize: 7.5, color: "#10b981" }]}>
+                  <Text style={[styles.tdMuted, { color: accentColor }]}>
                     Korting ({line.discountType === "percentage" ? `${line.discountValue}%` : formatEuro(line.discountValue ?? 0)})
                   </Text>
                 ) : null}
               </View>
-              <Text style={[styles.tdMuted, styles.colQty]}>
+              <Text style={[styles.td, styles.colQty]}>
                 {line.type === "discount" ? "-" : line.type === "hours" ? `${line.quantity} uur` : line.type === "travel_costs" ? `${line.quantity} km` : `${line.quantity}`}
               </Text>
-              <Text style={[styles.tdMuted, styles.colPrice]}>
+              <Text style={[styles.td, styles.colPrice]}>
                 {line.type === "discount" ? "-" : formatEuro(line.unitPrice)}
               </Text>
-              <Text style={[styles.td, styles.colTotal, { fontFamily: "Helvetica-Bold" }]}>{formatEuro(line.totalCost)}</Text>
+              <Text style={[styles.td, styles.colAmount, { fontFamily: "Helvetica-Bold" }]}>
+                {formatEuro(line.totalCost)}
+              </Text>
             </View>
           ))}
         </View>
 
-        {/* Total */}
-        <View style={styles.divider} />
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Totaal te betalen</Text>
-          <Text style={styles.totalAmount}>{formatEuro(total)}</Text>
+        {/* Totals */}
+        <View style={styles.totalsSection}>
+          <View style={styles.totalsTable}>
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>Subtotaal</Text>
+              <Text style={styles.totalsValue}>{formatEuro(total)}</Text>
+            </View>
+            <View style={styles.totalsGrandRow}>
+              <Text style={styles.totalsGrandLabel}>Totaal te betalen</Text>
+              <Text style={styles.totalsGrandValue}>{formatEuro(total)}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* KOR */}
-        {invoice.isKor && (
-          <View style={styles.korBox}>
-            <Text style={styles.korText}>
-              Op deze factuur is de KOR (Kleineondernemersregeling) van toepassing. Er wordt geen BTW in rekening gebracht.
-            </Text>
+        {/* Meta table */}
+        <View style={styles.metaTable}>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Factuurreferentie</Text>
+            <Text style={styles.metaValue}>{invoice.invoiceNumber}</Text>
           </View>
-        )}
-
-        {/* Payment info */}
-        {invoice.tradeNameIban && (
-          <View style={styles.paymentBox}>
-            <Text style={styles.paymentTitle}>Betalingsinformatie</Text>
-            <View style={styles.paymentRow}>
-              <View style={styles.paymentItem}>
-                <Text style={styles.paymentLabel}>IBAN</Text>
-                <Text style={styles.paymentValue}>{invoice.tradeNameIban}</Text>
-              </View>
-              <View style={styles.paymentItem}>
-                <Text style={styles.paymentLabel}>Betalingsreferentie</Text>
-                <Text style={styles.paymentValue}>{invoice.invoiceNumber}</Text>
-              </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Factuurdatum</Text>
+            <Text style={styles.metaValue}>{formatDate(invoice.dateCreated)}</Text>
+          </View>
+          {invoice.dateService ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Datum van dienstverlening</Text>
+              <Text style={styles.metaValue}>{formatDate(invoice.dateService)}</Text>
             </View>
+          ) : null}
+          {invoice.paymentDueDate ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Te betalen vóór</Text>
+              <Text style={styles.metaValue}>{formatDate(invoice.paymentDueDate)}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Notes (KOR) */}
+        {invoice.isKor && (
+          <View style={styles.noteBox}>
+            <Text style={styles.noteText}>
+              Op deze factuur wordt geen btw in rekening gebracht, aangezien de kleineondernemersregeling (KOR) van toepassing is.
+            </Text>
           </View>
         )}
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{invoice.tradeNameDisplay ?? ""}</Text>
-          <Text style={styles.footerText}>{invoice.invoiceNumber}</Text>
+          <Text style={styles.footerText}>Bedankt voor uw vertrouwen aan mij bij deze opdracht</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -195,7 +574,6 @@ async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
 export function CashflowPDFButton({
   invoice,
   fetchInvoice,
