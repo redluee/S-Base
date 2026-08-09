@@ -84,6 +84,7 @@ export function NewInvoiceForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
   // Form state
   const [clientId, setClientId] = useState<number | "">("");
@@ -260,6 +261,7 @@ export function NewInvoiceForm() {
       });
       setClients(prev => [...prev, created]);
       setClientId(created.id);
+      setFieldErrors(prev => ({ ...prev, clientId: undefined }));
       if (created.standardRate !== undefined && created.standardRate !== null) {
         updateFirstLineRate(created.standardRate);
       }
@@ -275,8 +277,18 @@ export function NewInvoiceForm() {
 
   async function handleSubmit() {
     setError("");
-    if (!clientId) { setError(t("Selecteer een klant.")); return; }
-    if (lines.length === 0) { setError(t("Geen regels toegevoegd.")); return; }
+    setFieldErrors({});
+
+    const newFieldErrors: Record<string, string> = {};
+    if (!invoiceNumber.trim()) newFieldErrors.invoiceNumber = t("Factuurnummer is verplicht.");
+    if (!clientId) newFieldErrors.clientId = t("Selecteer een klant.");
+    if (lines.length === 0) newFieldErrors.lines = t("Geen regels toegevoegd.");
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
+
     setSaving(true);
     try {
       const hasDateCreated = !!dateCreated;
@@ -284,7 +296,7 @@ export function NewInvoiceForm() {
       const body = {
         clientId: Number(clientId),
         projectId: projectId ? Number(projectId) : null,
-        invoiceNumber,
+        invoiceNumber: invoiceNumber.trim(),
         name: invoiceName.trim() || null,
         dateCreated: toTs(dateCreated),
         dateService: toTs(dateService),
@@ -309,7 +321,16 @@ export function NewInvoiceForm() {
       }
       router.push("/cashflow/invoices");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Fout bij opslaan.");
+      const rawMsg = e instanceof Error ? e.message : "Fout bij opslaan.";
+      const translated = t(rawMsg);
+      const lower = (rawMsg + " " + translated).toLowerCase();
+      if (lower.includes("invoice number") || lower.includes("factuurnummer")) {
+        setFieldErrors(prev => ({ ...prev, invoiceNumber: translated }));
+      } else if (lower.includes("client") || lower.includes("klant")) {
+        setFieldErrors(prev => ({ ...prev, clientId: translated }));
+      } else {
+        setError(translated);
+      }
     } finally {
       setSaving(false);
     }
@@ -339,6 +360,9 @@ export function NewInvoiceForm() {
               onSelectClient={handleSelectClient}
               placeholder={t("Zoek of selecteer klant")}
             />
+            {fieldErrors.clientId && (
+              <p className="text-xs text-rose-400 mt-1 font-medium">{fieldErrors.clientId}</p>
+            )}
             <button
               type="button"
               onClick={() => setShowNewClient(!showNewClient)}
@@ -423,7 +447,17 @@ export function NewInvoiceForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-zinc-400">{t("Factuurnummer")}</Label>
-            <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="bg-zinc-800 border-zinc-700 font-mono" />
+            <Input
+              value={invoiceNumber}
+              onChange={e => {
+                setInvoiceNumber(e.target.value);
+                setFieldErrors(prev => ({ ...prev, invoiceNumber: undefined }));
+              }}
+              className={`bg-zinc-800 border-zinc-700 font-mono ${fieldErrors.invoiceNumber ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
+            />
+            {fieldErrors.invoiceNumber && (
+              <p className="text-xs text-rose-400 mt-1 font-medium">{fieldErrors.invoiceNumber}</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-zinc-400">{t("Datum van facturering")}</Label>
@@ -437,6 +471,28 @@ export function NewInvoiceForm() {
             <Label className="text-xs text-zinc-400">{t("Vervaldatum")}</Label>
             <Input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className="bg-zinc-800 border-zinc-700" />
           </div>
+          {editId && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-zinc-400">{t("Status")}</Label>
+              <select
+                value={status}
+                onChange={e => {
+                  const newStatus = e.target.value;
+                  setStatus(newStatus);
+                  if (newStatus !== "paid") {
+                    setDatePaid("");
+                  } else if (!datePaid) {
+                    setDatePaid(new Date().toISOString().split("T")[0]);
+                  }
+                }}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="draft">{t("Concept")}</option>
+                <option value="sent">{t("Verzonden / Openstaand")}</option>
+                <option value="paid">{t("Betaald")}</option>
+              </select>
+            </div>
+          )}
           {status === "paid" && (
             <div className="space-y-1.5">
               <Label className="text-xs text-zinc-400">{t("Datum van betaling")}</Label>
@@ -468,6 +524,9 @@ export function NewInvoiceForm() {
             <Plus className="size-3.5" />{t("Regel toevoegen")}
           </button>
         </div>
+        {fieldErrors.lines && (
+          <p className="text-xs text-rose-400 font-medium">{fieldErrors.lines}</p>
+        )}
 
         {/* Header row (desktop only) */}
         <div className="hidden sm:grid grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 pb-1 border-b border-zinc-800">

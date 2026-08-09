@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
-import { Check, Pencil, ArrowLeft, Building2, User, CreditCard, Hash } from "lucide-react";
+import { Check, Pencil, ArrowLeft, Building2, User, CreditCard, Hash, Trash2 } from "lucide-react";
 import { CashflowPDFButton } from "@/components/cashflow-pdf";
 
 function formatEuro(n: number) {
@@ -52,6 +52,19 @@ export default function InvoiceDetailPage() {
     }
     load();
   }, [id, router]);
+
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!invoice || !confirm(t("Weet je zeker dat je deze factuur wilt verwijderen?"))) return;
+    setDeleting(true);
+    try {
+      await api.cashflow.invoices.delete(invoice.id);
+      router.push("/cashflow/invoices");
+    } catch {
+      setDeleting(false);
+    }
+  }
 
   async function handleMarkPaid(customDateTs?: number) {
     if (!invoice) return;
@@ -112,16 +125,31 @@ export default function InvoiceDetailPage() {
               <button
                 onClick={() => handleMarkPaid()}
                 disabled={markingPaid}
+                title={t("Markeer als betaald")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand/10 border border-brand/20 text-brand text-xs font-semibold hover:bg-brand/20 transition-all cursor-pointer whitespace-nowrap"
               >
-                <Check className="size-3.5" />{t("Markeer als betaald")}
+                <Check className="size-3.5" />
+                <span className="hidden sm:inline">{t("Markeer als betaald")}</span>
               </button>
             </div>
           )}
-          <Link href={`/cashflow/invoices/new?edit=${invoice.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-700 transition-all">
-            <Pencil className="size-3.5" />{t("Edit")}
+          <Link
+            href={`/cashflow/invoices/new?edit=${invoice.id}`}
+            title={t("Edit")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-700 transition-all"
+          >
+            <Pencil className="size-3.5" />
+            <span className="hidden sm:inline">{t("Edit")}</span>
           </Link>
           <CashflowPDFButton invoice={invoice} />
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            title={t("Delete")}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         </div>
       </div>
 
@@ -261,7 +289,6 @@ export default function InvoiceDetailPage() {
               <tr key={line.id} className={i % 2 === 0 ? "" : "bg-zinc-900/50"}>
                 <td className="px-4 py-2.5 text-zinc-200">
                   {line.taskDescription}
-                  {line.type === "travel_costs" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">{t("Reiskosten")}</span>}
                   {line.type === "discount" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t("Korting")} ({line.discountType === "percentage" ? `${line.discountValue}%` : formatEuro(line.discountValue ?? 0)})</span>}
                 </td>
                 <td className="px-4 py-2.5 text-center text-zinc-400">

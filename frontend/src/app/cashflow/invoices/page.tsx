@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceSummary, CashflowClient, CashflowProject } from "@/lib/api";
-import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Filter, X } from "lucide-react";
+import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Download, Filter, X, Eye } from "lucide-react";
 import { CashflowPDFButton } from "@/components/cashflow-pdf";
 
 function formatEuro(n: number) {
@@ -23,15 +23,21 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   sent: { label: "Verzonden", color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock },
   paid: { label: "Betaald", color: "bg-brand/10 text-brand border-brand/20", icon: Check },
   overdue: { label: "Te laat", color: "bg-rose-500/10 text-rose-400 border-rose-500/20", icon: AlertCircle },
+  open: { label: "Openstaand", color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock },
 };
 
 export default function InvoicesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const selectedClientId = searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined;
-  const selectedProjectId = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
-  const [filterStatus, setFilterStatus] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(() =>
+    searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined
+  );
+  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(() =>
+    searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined
+  );
+  const [selectedYear, setSelectedYear] = useState<string>(() => searchParams.get("year") || "");
+  const [filterStatus, setFilterStatus] = useState<string>(() => searchParams.get("status") || "");
 
   const [invoices, setInvoices] = useState<CashflowInvoiceSummary[]>([]);
   const [clients, setClients] = useState<CashflowClient[]>([]);
@@ -56,6 +62,16 @@ export default function InvoicesPage() {
   }, []);
 
   useEffect(() => {
+  useEffect(() => {
+    const cid = searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined;
+    const pid = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
+    const yr = searchParams.get("year") || "";
+    const st = searchParams.get("status") || "";
+    setSelectedClientId(cid);
+    setSelectedProjectId(pid);
+    setSelectedYear(yr);
+    setFilterStatus(st);
+  }, [searchParams]);
     async function loadInvoices() {
       setLoading(true);
       try {
@@ -67,10 +83,12 @@ export default function InvoicesPage() {
     loadInvoices();
   }, [selectedProjectId, selectedClientId]);
 
-  function updateUrl(cId?: number, pId?: number) {
+  function updateUrl(cId?: number, pId?: number, yr?: string, st?: string) {
     const params = new URLSearchParams();
     if (cId) params.set("clientId", String(cId));
     if (pId) params.set("projectId", String(pId));
+    if (yr) params.set("year", yr);
+    if (st) params.set("status", st);
     const qs = params.toString();
     router.replace(qs ? `/cashflow/invoices?${qs}` : "/cashflow/invoices", { scroll: false });
   }
@@ -84,7 +102,9 @@ export default function InvoicesPage() {
         pId = undefined;
       }
     }
-    updateUrl(cId, pId);
+    setSelectedClientId(cId);
+    setSelectedProjectId(pId);
+    updateUrl(cId, pId, selectedYear, filterStatus);
   }
 
   function handleProjectChange(pIdStr: string) {
@@ -96,12 +116,28 @@ export default function InvoicesPage() {
         cId = proj.clientId;
       }
     }
-    updateUrl(cId, pId);
+    setSelectedProjectId(pId);
+    setSelectedClientId(cId);
+    updateUrl(cId, pId, selectedYear, filterStatus);
+  }
+
+  function handleYearChange(yrStr: string) {
+    setSelectedYear(yrStr);
+    updateUrl(selectedClientId, selectedProjectId, yrStr, filterStatus);
+  }
+
+  function handleStatusChange(stStr: string) {
+    setFilterStatus(stStr);
+    updateUrl(selectedClientId, selectedProjectId, selectedYear, stStr);
   }
 
   function handleResetFilters() {
+    setSelectedClientId(undefined);
+    setSelectedProjectId(undefined);
+    setSelectedYear("");
+>>>>>>> cd53d6c (feat(cashflow): add duplicate invoice number validation and enhance UI features)
     setFilterStatus("");
-    updateUrl(undefined, undefined);
+    updateUrl(undefined, undefined, "", "");
   }
 
   async function handleMarkPaid(id: number) {
@@ -121,14 +157,50 @@ export default function InvoicesPage() {
     } catch {} finally { setDeleting(null); }
   }
 
-  const filtered = invoices.filter(i => !filterStatus || i.status === filterStatus);
+  const yearsInInvoices = Array.from(
+    new Set(invoices.map(i => new Date(i.datePaid ?? i.dateCreated ?? Date.now()).getFullYear()))
+  ).sort((a, b) => b - a);
+
+  const currentYr = new Date().getFullYear();
+  if (!yearsInInvoices.includes(currentYr)) {
+    yearsInInvoices.unshift(currentYr);
+  }
+  if (selectedYear && !yearsInInvoices.includes(Number(selectedYear))) {
+    yearsInInvoices.push(Number(selectedYear));
+    yearsInInvoices.sort((a, b) => b - a);
+  }
+
+  const filtered = invoices.filter(i => {
+    if (filterStatus === "open") {
+      if (i.status !== "sent" && i.status !== "overdue") return false;
+    } else if (filterStatus && i.status !== filterStatus) {
+      return false;
+    }
+
+    if (selectedYear) {
+      const invYear = new Date(i.datePaid ?? i.dateCreated ?? Date.now()).getFullYear();
+      if (invYear !== Number(selectedYear)) return false;
+    }
+
+    return true;
+  });
+
   const totalVisible = filtered.reduce((s, i) => s + i.total, 0);
 
   const availableProjects = selectedClientId
     ? projects.filter(p => p.clientId === selectedClientId)
     : projects;
 
-  const hasActiveFilters = Boolean(selectedClientId || selectedProjectId || filterStatus);
+  const hasActiveFilters = Boolean(selectedClientId || selectedProjectId || selectedYear || filterStatus);
+
+  const statusPills = [
+    { value: "", label: t("Alle") },
+    { value: "open", label: t("Openstaand") },
+    { value: "paid", label: t("Betaald") },
+    { value: "sent", label: t("Verzonden") },
+    { value: "overdue", label: t("Te laat") },
+    { value: "draft", label: t("Concept") },
+  ];
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-5">
@@ -183,6 +255,20 @@ export default function InvoicesPage() {
               ))}
             </select>
 
+            {/* Year Select */}
+            <select
+              value={selectedYear}
+              onChange={e => handleYearChange(e.target.value)}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              <option value="">{t("Alle jaren")}</option>
+              {yearsInInvoices.map(y => (
+                <option key={y} value={String(y)}>
+                  {y}
+                </option>
+              ))}
+            </select>
+
             {hasActiveFilters && (
               <button
                 onClick={handleResetFilters}
@@ -198,17 +284,17 @@ export default function InvoicesPage() {
 
         {/* Status Pills */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-800/60">
-          {["", "draft", "sent", "paid", "overdue"].map(s => (
+          {statusPills.map(sp => (
             <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs leading-none font-semibold border transition-all cursor-pointer ${
-                filterStatus === s
-                  ? s ? statusConfig[s].color : "bg-blue-500/15 text-blue-400 border-blue-500/30"
+              key={sp.value}
+              onClick={() => handleStatusChange(sp.value)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                filterStatus === sp.value
+                  ? sp.value && statusConfig[sp.value] ? statusConfig[sp.value].color : "bg-blue-500/15 text-blue-400 border-blue-500/30"
                   : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
               }`}
             >
-              {s ? t(s) : t("Alle")}
+              {sp.label}
             </button>
           ))}
         </div>
@@ -243,7 +329,8 @@ export default function InvoicesPage() {
               <div key={inv.id}>
                 {/* Desktop view row */}
                 <div
-                  className={`hidden sm:grid sm:grid-cols-[170px_1.5fr_1fr_1fr_110px_120px] gap-4 items-center px-4 py-3 bg-zinc-900 border rounded-xl transition-colors ${
+                  onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
+                  className={`hidden sm:grid sm:grid-cols-[170px_1.5fr_1fr_1fr_110px_120px] gap-4 items-center px-4 py-3 bg-zinc-900 border rounded-xl transition-colors cursor-pointer ${
                     isOverdue ? "border-rose-500/30 hover:border-rose-500/50" : "border-zinc-800 hover:border-zinc-700"
                   }`}
                 >
@@ -255,6 +342,7 @@ export default function InvoicesPage() {
                     </span>
                     <Link
                       href={`/cashflow/invoices/${inv.id}`}
+                      onClick={e => e.stopPropagation()}
                       className="text-xs font-mono font-bold text-white hover:text-blue-400 transition-colors shrink-0"
                     >
                       {inv.invoiceNumber}
@@ -294,7 +382,7 @@ export default function InvoicesPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                     {inv.status !== "paid" && (
                       <button
                         onClick={() => handleMarkPaid(inv.id)}
@@ -305,6 +393,13 @@ export default function InvoicesPage() {
                         <Check className="size-3.5" />
                       </button>
                     )}
+                    <Link
+                      href={`/cashflow/invoices/${inv.id}`}
+                      title={t("Details bekijken")}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                    >
+                      <Eye className="size-3.5" />
+                    </Link>
                     <Link
                       href={`/cashflow/invoices/new?edit=${inv.id}`}
                       title={t("Factuur bewerken")}
@@ -325,14 +420,23 @@ export default function InvoicesPage() {
                 </div>
 
                 {/* Mobile view card */}
-                <div className={`sm:hidden p-4 bg-zinc-900 border rounded-xl space-y-3 ${isOverdue ? "border-rose-500/30" : "border-zinc-800"}`}>
+                <div
+                  onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
+                  className={`sm:hidden p-4 bg-zinc-900 border rounded-xl space-y-3 cursor-pointer hover:border-zinc-700 transition-colors ${
+                    isOverdue ? "border-rose-500/30 hover:border-rose-500/50" : "border-zinc-800"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] leading-none font-medium ${cfg.color}`}>
                         <StatusIcon className="size-2.5" />
                         {cfg.label}
                       </span>
-                      <Link href={`/cashflow/invoices/${inv.id}`} className="text-xs font-mono font-bold text-white hover:text-blue-400">
+                      <Link
+                        href={`/cashflow/invoices/${inv.id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-xs font-mono font-bold text-white hover:text-blue-400"
+                      >
                         {inv.invoiceNumber}
                       </Link>
                     </div>
@@ -362,23 +466,35 @@ export default function InvoicesPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
-                    {inv.status !== "paid" && (
-                      <button
-                        onClick={() => handleMarkPaid(inv.id)}
-                        disabled={markingPaid === inv.id}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-colors cursor-pointer"
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-800/80" onClick={e => e.stopPropagation()}>
+                    <div>
+                      {inv.status !== "paid" && (
+                        <button
+                          onClick={() => handleMarkPaid(inv.id)}
+                          disabled={markingPaid === inv.id}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-colors cursor-pointer"
+                        >
+                          <Check className="size-3.5" /> {t("Markeer als betaald")}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/cashflow/invoices/${inv.id}`}
+                        title={t("Details bekijken")}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
                       >
-                        <Check className="size-3.5" /> {t("Markeer als betaald")}
+                        <Eye className="size-3.5" />
+                      </Link>
+                      <Link href={`/cashflow/invoices/new?edit=${inv.id}`} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
+                        <Pencil className="size-3.5" />
+                      </Link>
+                      <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
+                      <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
+                        <Trash2 className="size-3.5" />
                       </button>
-                    )}
-                    <Link href={`/cashflow/invoices/new?edit=${inv.id}`} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
-                      <Pencil className="size-3.5" />
-                    </Link>
-                    <CashflowPDFButton fetchInvoice={() => api.cashflow.invoices.get(inv.id)} variant="icon" />
-                    <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id} className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    </div>
+                  </div>
                   </div>
                 </div>
               </div>

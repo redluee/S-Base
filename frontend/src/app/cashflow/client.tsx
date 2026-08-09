@@ -104,41 +104,65 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="col-span-2 lg:col-span-1 rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-blue-400">
-            <TrendingUp className="size-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">{t("Omzet")} {selectedYear}</span>
+        <Link
+          href={`/cashflow/invoices?year=${selectedYear}&status=paid`}
+          className="col-span-2 lg:col-span-1 rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-blue-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-blue-400">
+              <TrendingUp className="size-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Omzet")} {selectedYear}</span>
+            </div>
+            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-2xl font-bold text-white">{formatEuro(stats?.totalPaid12m ?? 0)}</p>
           <p className="text-xs text-zinc-500">{paid?.count ?? 0} betaalde facturen</p>
-        </div>
+        </Link>
 
-        <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-amber-400">
-            <Clock className="size-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">{t("Openstaand")}</span>
+        <Link
+          href="/cashflow/invoices?status=open"
+          className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-amber-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-400">
+              <Clock className="size-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Openstaand")}</span>
+            </div>
+            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-xl font-bold text-white">{formatEuro(outstanding)}</p>
           <p className="text-xs text-zinc-500">{outstandingCount} facturen</p>
-        </div>
+        </Link>
 
-        <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-zinc-400">
-            <FileText className="size-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">{t("Concept")}</span>
+        <Link
+          href="/cashflow/invoices?status=draft"
+          className="hidden md:flex rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex-col gap-2 hover:border-zinc-700 hover:bg-zinc-850/60 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-zinc-400">
+              <FileText className="size-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Concept")}</span>
+            </div>
+            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-zinc-300 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-xl font-bold text-white">{formatEuro(draft?.total ?? 0)}</p>
           <p className="text-xs text-zinc-500">{draft?.count ?? 0} facturen</p>
-        </div>
+        </Link>
 
-        <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-rose-400">
-            <Clock className="size-4" />
-            <span className="text-xs font-semibold uppercase tracking-wide">{t("Te laat")}</span>
+        <Link
+          href="/cashflow/invoices?status=overdue"
+          className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-rose-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-rose-400">
+              <Clock className="size-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Te laat")}</span>
+            </div>
+            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-xl font-bold text-white">{formatEuro(overdue?.total ?? 0)}</p>
           <p className="text-xs text-zinc-500">{overdue?.count ?? 0} facturen</p>
-        </div>
+        </Link>
       </div>
 
       {/* Income Chart */}

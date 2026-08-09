@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, like, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, like, gte, lte, ne } from "drizzle-orm";
 import db from "../../db/client";
 import {
   cashflowTradeNames,
@@ -357,7 +357,21 @@ export class CashflowService {
       discountValue?: number | null;
     }[];
   }) {
-    if (!data.invoiceNumber?.trim()) throw new Error("Invoice number is required");
+    const invNum = data.invoiceNumber?.trim();
+    if (!invNum) throw new Error("Invoice number is required");
+
+    const existingInv = db.select({ id: cashflowInvoices.id })
+      .from(cashflowInvoices)
+      .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
+      .where(and(
+        eq(cashflowClients.userId, userId),
+        sql`LOWER(${cashflowInvoices.invoiceNumber}) = LOWER(${invNum})`
+      ))
+      .get();
+
+    if (existingInv) {
+      throw new Error("Factuurnummer is al in gebruik");
+    }
 
     let finalClientId = data.clientId;
     let finalTradeNameId = data.tradeNameId;
@@ -379,7 +393,7 @@ export class CashflowService {
       clientId: finalClientId,
       projectId: data.projectId ?? null,
       tradeNameId: finalTradeNameId ?? null,
-      invoiceNumber: data.invoiceNumber.trim(),
+      invoiceNumber: invNum,
       name: data.name?.trim() || null,
       dateCreated: data.dateCreated ?? null,
       dateService: data.dateService ?? null,
@@ -430,6 +444,32 @@ export class CashflowService {
     const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
     if (!existing) return null;
     if (data.status && !INVOICE_STATUSES.includes(data.status as any)) throw new Error("Invalid status");
+
+    if (data.invoiceNumber !== undefined) {
+      const invNum = data.invoiceNumber.trim();
+      if (!invNum) throw new Error("Invoice number is required");
+
+      const client = db.select({ userId: cashflowClients.userId })
+        .from(cashflowClients)
+        .where(eq(cashflowClients.id, existing.clientId))
+        .get();
+
+      if (client) {
+        const duplicateInv = db.select({ id: cashflowInvoices.id })
+          .from(cashflowInvoices)
+          .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
+          .where(and(
+            eq(cashflowClients.userId, client.userId),
+            sql`LOWER(${cashflowInvoices.invoiceNumber}) = LOWER(${invNum})`,
+            ne(cashflowInvoices.id, id)
+          ))
+          .get();
+
+        if (duplicateInv) {
+          throw new Error("Factuurnummer is al in gebruik");
+        }
+      }
+    }
 
     const nextStatus = (data.status as any) ?? existing.status;
     let nextDatePaid = data.datePaid;
@@ -544,7 +584,10 @@ export class CashflowService {
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
       .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
       .leftJoin(cashflowInvoiceLines, eq(cashflowInvoiceLines.invoiceId, cashflowInvoices.id))
-      .where(eq(cashflowClients.userId, userId))
+      .where(and(
+        eq(cashflowClients.userId, userId),
+        dateFilter
+      ))
       .groupBy(cashflowInvoices.status)
       .all();
 
