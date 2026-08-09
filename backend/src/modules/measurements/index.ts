@@ -55,6 +55,14 @@ export class MeasurementService {
     bodyFat?: number | null;
     skeletalMuscle?: number | null;
     fatMass?: number | null;
+    waist?: number | null;
+    chest?: number | null;
+    hips?: number | null;
+    biceps?: number | null;
+    thighs?: number | null;
+    shoulders?: number | null;
+    neck?: number | null;
+    calves?: number | null;
   }) {
     const existing = db.select()
       .from(measurements)
@@ -69,12 +77,20 @@ export class MeasurementService {
           bodyFat: data.bodyFat !== undefined ? data.bodyFat : existing.bodyFat,
           skeletalMuscle: data.skeletalMuscle !== undefined ? data.skeletalMuscle : existing.skeletalMuscle,
           fatMass: data.fatMass !== undefined ? data.fatMass : existing.fatMass,
+          waist: data.waist !== undefined ? data.waist : existing.waist,
+          chest: data.chest !== undefined ? data.chest : existing.chest,
+          hips: data.hips !== undefined ? data.hips : existing.hips,
+          biceps: data.biceps !== undefined ? data.biceps : existing.biceps,
+          thighs: data.thighs !== undefined ? data.thighs : existing.thighs,
+          shoulders: data.shoulders !== undefined ? data.shoulders : existing.shoulders,
+          neck: data.neck !== undefined ? data.neck : existing.neck,
+          calves: data.calves !== undefined ? data.calves : existing.calves,
         })
         .where(eq(measurements.measurementId, existing.measurementId))
         .run();
       return this.getById(existing.measurementId);
     } else {
-      const insertResult = db.insert(measurements)
+      const inserted = db.insert(measurements)
         .values({
           userId,
           date: data.date,
@@ -83,9 +99,18 @@ export class MeasurementService {
           bodyFat: data.bodyFat ?? null,
           skeletalMuscle: data.skeletalMuscle ?? null,
           fatMass: data.fatMass ?? null,
+          waist: data.waist ?? null,
+          chest: data.chest ?? null,
+          hips: data.hips ?? null,
+          biceps: data.biceps ?? null,
+          thighs: data.thighs ?? null,
+          shoulders: data.shoulders ?? null,
+          neck: data.neck ?? null,
+          calves: data.calves ?? null,
         })
-      const measurementId = Number((insertResult as unknown as { lastInsertRowid?: number | bigint }).lastInsertRowid);
-      return this.getById(measurementId);
+        .returning()
+        .get();
+      return this.getById(inserted.measurementId);
     }
   }
 

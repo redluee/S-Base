@@ -16,7 +16,10 @@ import {
   Calendar,
   X,
   Loader2,
-  Pencil
+  Pencil,
+  Ruler,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +41,14 @@ interface Measurement {
   bodyFat: number | null;
   skeletalMuscle: number | null;
   fatMass: number | null;
+  waist?: number | null;
+  chest?: number | null;
+  hips?: number | null;
+  biceps?: number | null;
+  thighs?: number | null;
+  shoulders?: number | null;
+  neck?: number | null;
+  calves?: number | null;
   createdAt: string;
   photos: Photo[];
 }
@@ -62,6 +73,18 @@ export default function BodyPage() {
   const [formBodyFat, setFormBodyFat] = useState("");
   const [formSkeletalMuscle, setFormSkeletalMuscle] = useState("");
   const [formFatMass, setFormFatMass] = useState("");
+
+  // Body circumferences state (in cm)
+  const [formWaist, setFormWaist] = useState("");
+  const [formChest, setFormChest] = useState("");
+  const [formHips, setFormHips] = useState("");
+  const [formBiceps, setFormBiceps] = useState("");
+  const [formThighs, setFormThighs] = useState("");
+  const [formShoulders, setFormShoulders] = useState("");
+  const [formNeck, setFormNeck] = useState("");
+  const [formCalves, setFormCalves] = useState("");
+  const [showBodyCircumferences, setShowBodyCircumferences] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
 
   // Photo viewer state
@@ -112,49 +135,90 @@ export default function BodyPage() {
     return sortedPast.length > 0 && sortedPast[0].height ? sortedPast[0].height.toString() : "";
   };
 
+  const parseNumberInput = (v: string): number | null => {
+    if (!v) return null;
+    const num = parseFloat(v.replace(",", "."));
+    return isNaN(num) ? null : num;
+  };
+
   const updateCalculatedFatMass = (w: string, bf: string) => {
-    const weightNum = parseFloat(w);
-    const fatPctNum = parseFloat(bf);
-    if (!isNaN(weightNum) && !isNaN(fatPctNum)) {
+    const weightNum = parseNumberInput(w);
+    const fatPctNum = parseNumberInput(bf);
+    if (weightNum !== null && fatPctNum !== null) {
       setFormFatMass(((weightNum * fatPctNum) / 100).toFixed(1));
     } else {
       setFormFatMass("");
     }
   };
 
+  const populateFormFieldsFromLog = (log: Measurement) => {
+    setFormHeight(log.height?.toString() ?? "");
+    setFormWeight(log.weight?.toString() ?? "");
+    setFormBodyFat(log.bodyFat?.toString() ?? "");
+    setFormSkeletalMuscle(log.skeletalMuscle?.toString() ?? "");
+    setFormFatMass(log.fatMass?.toString() ?? "");
+    setFormWaist(log.waist?.toString() ?? "");
+    setFormChest(log.chest?.toString() ?? "");
+    setFormHips(log.hips?.toString() ?? "");
+    setFormBiceps(log.biceps?.toString() ?? "");
+    setFormThighs(log.thighs?.toString() ?? "");
+    setFormShoulders(log.shoulders?.toString() ?? "");
+    setFormNeck(log.neck?.toString() ?? "");
+    setFormCalves(log.calves?.toString() ?? "");
+
+    const hasCircumferences = Boolean(
+      log.waist || log.chest || log.hips || log.biceps || 
+      log.thighs || log.shoulders || log.neck || log.calves
+    );
+    setShowBodyCircumferences(hasCircumferences);
+  };
+
+  const clearCircumferenceFields = () => {
+    setFormWaist("");
+    setFormChest("");
+    setFormHips("");
+    setFormBiceps("");
+    setFormThighs("");
+    setFormShoulders("");
+    setFormNeck("");
+    setFormCalves("");
+    setShowBodyCircumferences(false);
+  };
+
   const handleDateChange = (date: string) => {
     setFormDate(date);
     const existing = logs.find((l) => l.date === date && l.measurementId !== editingId);
     if (existing) {
-      setFormHeight(existing.height?.toString() ?? "");
-      setFormWeight(existing.weight?.toString() ?? "");
-      setFormBodyFat(existing.bodyFat?.toString() ?? "");
-      setFormSkeletalMuscle(existing.skeletalMuscle?.toString() ?? "");
-      setFormFatMass(existing.fatMass?.toString() ?? "");
+      populateFormFieldsFromLog(existing);
     } else {
       setFormHeight(getAutofilledHeight(date, logs));
     }
   };
 
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // Open form for a new entry
   const handleNewEntry = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getTodayString();
     setFormDate(today);
     
     const existing = logs.find((l) => l.date === today);
     if (existing) {
       setEditingId(existing.measurementId);
-      setFormHeight(existing.height?.toString() ?? "");
-      setFormWeight(existing.weight?.toString() ?? "");
-      setFormBodyFat(existing.bodyFat?.toString() ?? "");
-      setFormSkeletalMuscle(existing.skeletalMuscle?.toString() ?? "");
-      setFormFatMass(existing.fatMass?.toString() ?? "");
+      populateFormFieldsFromLog(existing);
     } else {
       setEditingId(0);
       setFormWeight("");
       setFormBodyFat("");
       setFormSkeletalMuscle("");
       setFormFatMass("");
+      clearCircumferenceFields();
       setFormHeight(getAutofilledHeight(today, logs));
     }
   };
@@ -163,11 +227,7 @@ export default function BodyPage() {
   const handleEditEntry = (log: Measurement) => {
     setEditingId(log.measurementId);
     setFormDate(log.date);
-    setFormHeight(log.height?.toString() ?? "");
-    setFormWeight(log.weight?.toString() ?? "");
-    setFormBodyFat(log.bodyFat?.toString() ?? "");
-    setFormSkeletalMuscle(log.skeletalMuscle?.toString() ?? "");
-    setFormFatMass(log.fatMass?.toString() ?? "");
+    populateFormFieldsFromLog(log);
   };
 
   const handleCancelEdit = () => {
@@ -183,11 +243,19 @@ export default function BodyPage() {
     try {
       const data = {
         date: formDate,
-        height: formHeight ? parseFloat(formHeight) : null,
-        weight: formWeight ? parseFloat(formWeight) : null,
-        bodyFat: formBodyFat ? parseFloat(formBodyFat) : null,
-        skeletalMuscle: formSkeletalMuscle ? parseFloat(formSkeletalMuscle) : null,
-        fatMass: formFatMass ? parseFloat(formFatMass) : null,
+        height: parseNumberInput(formHeight),
+        weight: parseNumberInput(formWeight),
+        bodyFat: parseNumberInput(formBodyFat),
+        skeletalMuscle: parseNumberInput(formSkeletalMuscle),
+        fatMass: parseNumberInput(formFatMass),
+        waist: parseNumberInput(formWaist),
+        chest: parseNumberInput(formChest),
+        hips: parseNumberInput(formHips),
+        biceps: parseNumberInput(formBiceps),
+        thighs: parseNumberInput(formThighs),
+        shoulders: parseNumberInput(formShoulders),
+        neck: parseNumberInput(formNeck),
+        calves: parseNumberInput(formCalves),
       };
 
       await api.measurements.save(data);
@@ -290,11 +358,19 @@ export default function BodyPage() {
       measurementId: 0,
       userId: user?.id ?? 0,
       date: formDate,
-      height: formHeight ? parseFloat(formHeight) : null,
-      weight: formWeight ? parseFloat(formWeight) : null,
-      bodyFat: formBodyFat ? parseFloat(formBodyFat) : null,
-      skeletalMuscle: formSkeletalMuscle ? parseFloat(formSkeletalMuscle) : null,
-      fatMass: formFatMass ? parseFloat(formFatMass) : null,
+      height: parseNumberInput(formHeight),
+      weight: parseNumberInput(formWeight),
+      bodyFat: parseNumberInput(formBodyFat),
+      skeletalMuscle: parseNumberInput(formSkeletalMuscle),
+      fatMass: parseNumberInput(formFatMass),
+      waist: parseNumberInput(formWaist),
+      chest: parseNumberInput(formChest),
+      hips: parseNumberInput(formHips),
+      biceps: parseNumberInput(formBiceps),
+      thighs: parseNumberInput(formThighs),
+      shoulders: parseNumberInput(formShoulders),
+      neck: parseNumberInput(formNeck),
+      calves: parseNumberInput(formCalves),
       createdAt: "",
       photos: []
     },
@@ -487,42 +563,42 @@ export default function BodyPage() {
 
         {/* Summary Dashboard Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px]">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("Weight")}</span>
-            <span className="text-2xl sm:text-3xl font-black text-brand font-display mt-1">
+          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Weight")}</span>
+            <span className="text-2xl sm:text-3xl font-black text-brand font-display mt-1 truncate">
               {latestLog?.weight ? `${latestLog.weight} kg` : "-"}
             </span>
-            <span className="text-[10px] text-muted-foreground mt-1">
+            <span className="text-[10px] text-muted-foreground mt-1 truncate">
               {latestLog ? latestLog.date : t("Geen metingen")}
             </span>
           </div>
 
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px]">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("Body Fat")}</span>
-            <span className="text-2xl sm:text-3xl font-black text-foreground font-display mt-1">
+          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Body Fat")}</span>
+            <span className="text-2xl sm:text-3xl font-black text-foreground font-display mt-1 truncate">
               {latestLog?.bodyFat ? `${latestLog.bodyFat}%` : "-"}
             </span>
-            <span className="text-[10px] text-muted-foreground mt-1">
+            <span className="text-[10px] text-muted-foreground mt-1 truncate">
               {latestLog?.fatMass ? `${latestLog.fatMass} kg ${t("vetmassa")}` : t("Geen data")}
             </span>
           </div>
 
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px]">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("Skeletal Muscle")}</span>
-            <span className="text-2xl sm:text-3xl font-black text-amber-400 font-display mt-1">
+          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Skeletal Muscle")}</span>
+            <span className="text-2xl sm:text-3xl font-black text-amber-400 font-display mt-1 truncate">
               {latestLog?.skeletalMuscle ? `${latestLog.skeletalMuscle} kg` : "-"}
             </span>
-            <span className="text-[10px] text-muted-foreground mt-1">
-              {t("Skeletspiermassa")}
+            <span className="text-[10px] text-muted-foreground mt-1 truncate">
+              {latestLog?.skeletalMuscle && latestLog?.weight ? `${((latestLog.skeletalMuscle / latestLog.weight) * 100).toFixed(1)}%` : t("Skeletspiermassa")}
             </span>
           </div>
 
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px]">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">BMI</span>
-            <span className="text-2xl sm:text-3xl font-black text-foreground font-display mt-1">
+          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">BMI</span>
+            <span className="text-2xl sm:text-3xl font-black text-foreground font-display mt-1 truncate">
               {latestBmi !== null ? latestBmi : "-"}
             </span>
-            <span className="text-[10px] text-muted-foreground mt-1">
+            <span className="text-[10px] text-muted-foreground mt-1 truncate">
               {logs.length} {logs.length === 1 ? t("meting gelogd") : t("metingen gelogd")}
             </span>
           </div>
@@ -581,7 +657,7 @@ export default function BodyPage() {
                               <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Height")}</label>
                               <input 
                                 type="number" 
-                                step="0.1" 
+                                step="any" 
                                 min="0"
                                 placeholder="cm"
                                 value={formHeight}
@@ -594,7 +670,7 @@ export default function BodyPage() {
                               <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Weight")}</label>
                               <input 
                                 type="number" 
-                                step="0.05" 
+                                step="any" 
                                 min="0"
                                 placeholder="kg"
                                 value={formWeight}
@@ -610,7 +686,7 @@ export default function BodyPage() {
                               <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Body Fat")}</label>
                               <input 
                                 type="number" 
-                                step="0.1" 
+                                step="any" 
                                 min="0"
                                 placeholder="%"
                                 value={formBodyFat}
@@ -626,7 +702,7 @@ export default function BodyPage() {
                               <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Skeletal Muscle")}</label>
                               <input 
                                 type="number" 
-                                step="0.1" 
+                                step="any" 
                                 min="0"
                                 placeholder="kg"
                                 value={formSkeletalMuscle}
@@ -639,13 +715,140 @@ export default function BodyPage() {
                               <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Fat Mass")}</label>
                               <input 
                                 type="number" 
-                                step="0.1" 
+                                step="any" 
                                 disabled
                                 placeholder="Auto"
                                 value={formFatMass}
                                 className="w-full bg-background/30 border border-border/40 rounded-md px-2 py-1 text-xs text-muted-foreground cursor-not-allowed opacity-75"
                               />
                             </div>
+                          </div>
+
+                          {/* Toggle button for body circumferences */}
+                          <div className="pt-1">
+                            <button 
+                              type="button" 
+                              onClick={() => setShowBodyCircumferences(!showBodyCircumferences)}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover transition-colors py-1 cursor-pointer"
+                            >
+                              <Ruler className="size-3.5" />
+                              <span>{showBodyCircumferences ? t("Lichaamsmetingen verbergen") : t("+ Lichaamsmetingen toevoegen")}</span>
+                              {showBodyCircumferences ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                            </button>
+
+                            {showBodyCircumferences && (
+                              <div className="mt-3 p-3.5 rounded-lg bg-muted/20 border border-border/60 space-y-2.5 animate-in fade-in duration-200">
+                                <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                  {t("Lichaamsmetingen")} (cm)
+                                </span>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Middel")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formWaist}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormWaist(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Borst")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formChest}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormChest(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Heupen")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formHips}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormHips(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Biceps")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formBiceps}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormBiceps(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Bovenbenen")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formThighs}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormThighs(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Schouders")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formShoulders}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormShoulders(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Nek")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formNeck}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormNeck(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="bg-background border border-border/60 rounded-md p-2">
+                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Kuiten")}</label>
+                                    <input 
+                                      type="number" 
+                                      step="any" 
+                                      min="0"
+                                      placeholder="cm"
+                                      value={formCalves}
+                                      onKeyDown={preventInvalidInput}
+                                      onChange={(e) => setFormCalves(e.target.value)}
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex justify-end gap-2 pt-2">
@@ -673,6 +876,14 @@ export default function BodyPage() {
                   }
 
                   // Standard read-only card block
+                  const fatPct = log.bodyFat !== null ? `${log.bodyFat}%` : (log.fatMass !== null && log.weight ? `${((log.fatMass / log.weight) * 100).toFixed(1)}%` : null);
+                  const fatKg = log.fatMass !== null ? `${log.fatMass} kg` : (log.bodyFat !== null && log.weight ? `${((log.weight * log.bodyFat) / 100).toFixed(1)} kg` : null);
+                  const fatDisplay = fatPct && fatKg ? `${fatPct} (${fatKg})` : (fatPct || fatKg || null);
+
+                  const muscleKg = log.skeletalMuscle !== null ? `${log.skeletalMuscle} kg` : null;
+                  const musclePct = log.skeletalMuscle !== null && log.weight ? `${((log.skeletalMuscle / log.weight) * 100).toFixed(1)}%` : null;
+                  const muscleDisplay = musclePct && muscleKg ? `${musclePct} (${muscleKg})` : (musclePct || muscleKg || null);
+
                   return (
                     <div key={log.measurementId} className="rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/30 transition-all duration-200 p-5 sm:p-6">
                       <div className="flex items-center justify-between gap-4 mb-4">
@@ -704,38 +915,84 @@ export default function BodyPage() {
                       </div>
 
                       {/* Metric Chips */}
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
                         {log.height && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("Height")}</span>
-                            <span className="font-display font-bold text-sm text-foreground">{log.height} cm</span>
+                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
+                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Height")}</span>
+                            <span className="font-display font-bold text-sm text-foreground block truncate">{log.height} cm</span>
                           </div>
                         )}
                         {log.weight && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("Weight")}</span>
-                            <span className="font-display font-bold text-sm text-brand">{log.weight} kg</span>
+                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
+                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Weight")}</span>
+                            <span className="font-display font-bold text-sm text-brand block truncate">{log.weight} kg</span>
                           </div>
                         )}
-                        {log.bodyFat && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("Body Fat")}</span>
-                            <span className="font-display font-bold text-sm text-foreground">{log.bodyFat}%</span>
+                        {fatDisplay && (
+                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
+                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Body Fat")}</span>
+                            <span className="font-display font-bold text-sm text-foreground block truncate" title={fatDisplay}>{fatDisplay}</span>
                           </div>
                         )}
-                        {log.skeletalMuscle && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("Skeletal Muscle")}</span>
-                            <span className="font-display font-bold text-sm text-amber-400">{log.skeletalMuscle} kg</span>
-                          </div>
-                        )}
-                        {log.fatMass && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("Fat Mass")}</span>
-                            <span className="font-display font-bold text-sm text-foreground">{log.fatMass} kg</span>
+                        {muscleDisplay && (
+                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
+                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Skeletal Muscle")}</span>
+                            <span className="font-display font-bold text-sm text-amber-400 block truncate" title={muscleDisplay}>{muscleDisplay}</span>
                           </div>
                         )}
                       </div>
+
+                      {/* Recorded Circumferences Sub-section */}
+                      {Boolean(log.waist || log.chest || log.hips || log.biceps || log.thighs || log.shoulders || log.neck || log.calves) && (
+                        <div className="mb-4 pt-3 border-t border-border/40">
+                          <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-2 flex items-center gap-1">
+                            <Ruler className="size-3 text-brand" />
+                            {t("Lichaamsmetingen")}
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {log.waist && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Middel")}:</span> {log.waist} cm
+                              </span>
+                            )}
+                            {log.chest && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Borst")}:</span> {log.chest} cm
+                              </span>
+                            )}
+                            {log.hips && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Heupen")}:</span> {log.hips} cm
+                              </span>
+                            )}
+                            {log.biceps && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Biceps")}:</span> {log.biceps} cm
+                              </span>
+                            )}
+                            {log.thighs && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Bovenbenen")}:</span> {log.thighs} cm
+                              </span>
+                            )}
+                            {log.shoulders && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Schouders")}:</span> {log.shoulders} cm
+                              </span>
+                            )}
+                            {log.neck && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Nek")}:</span> {log.neck} cm
+                              </span>
+                            )}
+                            {log.calves && (
+                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
+                                <span className="text-muted-foreground mr-1">{t("Kuiten")}:</span> {log.calves} cm
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* BMI and Photos container */}
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-border/50 pt-3.5">

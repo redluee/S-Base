@@ -11,6 +11,14 @@ export const measurements = sqliteTable("measurements", {
   bodyFat: real("body_fat"), // %
   skeletalMuscle: real("skeletal_muscle"), // kg
   fatMass: real("fat_mass"), // kg
+  waist: real("waist"), // in cm
+  chest: real("chest"), // in cm
+  hips: real("hips"), // in cm
+  biceps: real("biceps"), // in cm
+  thighs: real("thighs"), // in cm
+  shoulders: real("shoulders"), // in cm
+  neck: real("neck"), // in cm
+  calves: real("calves"), // in cm
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
