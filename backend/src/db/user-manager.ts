@@ -264,12 +264,14 @@ async function renameUser(identifier: string, newUsername: string) {
       process.exit(1);
     }
 
+    const oldName = user.username;
+
     db.update(users)
       .set({ username: newUsername })
       .where(eq(users.userId, user.userId))
       .run();
 
-    console.log(`Gebruiker '${user.username}' (ID: ${user.userId}) is succesvol hernoemd naar '${newUsername}'.`);
+    console.log(`Gebruiker '${oldName}' (ID: ${user.userId}) is succesvol hernoemd naar '${newUsername}'. Alle gekoppelde gegevens en permissies blijven behouden.`);
   } catch (error) {
     console.error("Er is een fout opgetreden bij het hernoemen van de gebruiker:", error);
     process.exit(1);
