@@ -122,7 +122,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
         heartRate: e.defaultHeartRate?.toString() ?? "",
         defaultRestTime: formatDuration(e.defaultRestTime ?? 90),
         equipment: mapEquipment(e.equipment),
-        perSide: false,
+        perSide: Boolean(e.perSide),
         trackingFields: getInitialTracking(e, cat)
       };
     }) ?? [{ 
@@ -242,14 +242,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
   function updateExerciseMultiple(id: string, fields: Partial<Omit<ExerciseRow, "id">>) {
     setExercises((prev) => prev.map((ex) => {
       if (ex.id !== id) return ex;
-      
-      const newEx = { ...ex, ...fields };
-      
-      if (fields.category && fields.category !== ex.category) {
-        newEx.trackingFields = getDefaultTracking(fields.category);
-      }
-
-      return newEx;
+      return { ...ex, ...fields };
     }));
   }
 

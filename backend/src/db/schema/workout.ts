@@ -27,6 +27,7 @@ export const templateExercises = sqliteTable("template_exercises", {
   defaultHeartRate: integer("default_heart_rate"),
   defaultRestTime: integer("default_rest_time"),
   equipment: text("equipment"),
+  perSide: integer("per_side").notNull().default(0),
 });
 
 export const workoutSessions = sqliteTable("workout_sessions", {
@@ -46,6 +47,7 @@ export const sessionExercises = sqliteTable("session_exercises", {
   sortOrder: integer("sort_order").notNull().default(0),
   category: text("category").notNull().default("Free Weights"),
   equipment: text("equipment"),
+  perSide: integer("per_side").notNull().default(0),
 });
 
 export const sessionSets = sqliteTable("session_sets", {

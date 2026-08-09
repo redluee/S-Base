@@ -18,6 +18,7 @@ interface Suggestion {
   defaultWeight?: number | null;
   defaultDistance?: number | null;
   defaultDuration?: number | null;
+  perSide?: number | null;
 }
 
 export function ExerciseAutocomplete({
@@ -38,6 +39,7 @@ export function ExerciseAutocomplete({
     defaultWeight?: number,
     defaultDistance?: number,
     defaultDuration?: number,
+    perSide?: boolean,
   ) => void;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -122,6 +124,7 @@ export function ExerciseAutocomplete({
       suggestion.defaultWeight ?? undefined,
       suggestion.defaultDistance ?? undefined,
       suggestion.defaultDuration ?? undefined,
+      Boolean(suggestion.perSide),
     );
     setOpen(false);
     inputRef.current?.blur();

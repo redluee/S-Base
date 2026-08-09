@@ -144,6 +144,11 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
                             {t(eqItem) || eqItem}
                           </span>
                         ))}
+                        {Boolean(ex.perSide) && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            {t("Per side")}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -159,58 +164,30 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
                       {ex.defaultSets} {ex.defaultSets === 1 ? t("Set") : t("Sets")}
                     </span>
 
-                    {cat === "resistance" && (
-                      <>
-                        {ex.defaultReps != null && (
-                          <span>• {ex.defaultReps} {t("Reps")}</span>
-                        )}
-                        {ex.defaultWeight != null && (
-                          <span>• {ex.defaultWeight} kg</span>
-                        )}
-                        {ex.defaultRpe != null && (
-                          <span>• RPE {ex.defaultRpe}</span>
-                        )}
-                      </>
+                    {ex.defaultReps != null && ex.defaultReps > 0 && (
+                      <span>• {ex.defaultReps} {t("Reps")}</span>
                     )}
 
-                    {cat === "bodyweight" && (
-                      <>
-                        {ex.defaultReps != null && (
-                          <span>• {ex.defaultReps} {t("Reps")}</span>
-                        )}
-                        {ex.defaultWeight != null && ex.defaultWeight !== 0 && (
-                          <span>
-                            • {ex.defaultWeight > 0 ? `+${ex.defaultWeight}` : ex.defaultWeight} kg
-                          </span>
-                        )}
-                      </>
+                    {ex.defaultDuration != null && ex.defaultDuration > 0 && (
+                      <span>• ⏱️ {formatSecs(ex.defaultDuration)}</span>
                     )}
 
-                    {cat === "cardio" && (
-                      <>
-                        {ex.defaultDistance != null && (
-                          <span>• {ex.defaultDistance} km</span>
-                        )}
-                        {ex.defaultDuration != null && (
-                          <span>• {formatSecs(ex.defaultDuration)}</span>
-                        )}
-                        {ex.defaultHeartRate != null && (
-                          <span>• {ex.defaultHeartRate} bpm</span>
-                        )}
-                      </>
+                    {ex.defaultWeight != null && (cat === "bodyweight" || cat === "isometric" ? ex.defaultWeight !== 0 : true) && (
+                      <span>
+                        • {ex.defaultWeight > 0 && (cat === "bodyweight" || cat === "isometric") ? `+${ex.defaultWeight}` : ex.defaultWeight} kg
+                      </span>
                     )}
 
-                    {cat === "isometric" && (
-                      <>
-                        {ex.defaultDuration != null && (
-                          <span>• {formatSecs(ex.defaultDuration)}</span>
-                        )}
-                        {ex.defaultWeight != null && ex.defaultWeight !== 0 && (
-                          <span>
-                            • {ex.defaultWeight > 0 ? `+${ex.defaultWeight}` : ex.defaultWeight} kg
-                          </span>
-                        )}
-                      </>
+                    {ex.defaultDistance != null && ex.defaultDistance > 0 && (
+                      <span>• {ex.defaultDistance} km</span>
+                    )}
+
+                    {ex.defaultHeartRate != null && ex.defaultHeartRate > 0 && (
+                      <span>• ❤️ {ex.defaultHeartRate} bpm</span>
+                    )}
+
+                    {ex.defaultRpe != null && ex.defaultRpe > 0 && (
+                      <span>• RPE {ex.defaultRpe}</span>
                     )}
                   </div>
                 </div>

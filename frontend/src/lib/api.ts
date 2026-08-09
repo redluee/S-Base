@@ -25,6 +25,14 @@ export interface Measurement {
   bodyFat: number | null;
   skeletalMuscle: number | null;
   fatMass: number | null;
+  waist?: number | null;
+  chest?: number | null;
+  hips?: number | null;
+  biceps?: number | null;
+  thighs?: number | null;
+  shoulders?: number | null;
+  neck?: number | null;
+  calves?: number | null;
   createdAt: string;
   photos: MeasurementPhoto[];
 }

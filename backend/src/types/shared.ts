@@ -53,6 +53,7 @@ export interface TemplateExercise {
   defaultHeartRate: number | null;
   defaultRestTime: number | null;
   equipment: string | null;
+  perSide?: number | null;
 }
 
 export interface FullWorkoutTemplate extends WorkoutTemplate {
@@ -89,6 +90,7 @@ export interface SessionExercise {
   sortOrder: number;
   category?: string;
   equipment?: string | null;
+  perSide?: number | null;
   sets: SessionSet[];
   templateExercise?: {
     defaultReps?: number | null;
@@ -99,6 +101,7 @@ export interface SessionExercise {
     defaultHeartRate?: number | null;
     defaultRestTime?: number | null;
     equipment?: string | null;
+    perSide?: number | null;
   } | null;
 }
 

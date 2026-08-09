@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Plus } from "lucide-react";
+import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Plus, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
@@ -80,7 +80,11 @@ export interface WorkoutExerciseCardProps {
   startRestTimer: (exIdx: number, setIdx: number, customTime?: number) => void;
   stopRestTimer: () => void;
   adjustRestTimer: (seconds: number) => void;
+  onStartRepTimer?: (exIdx: number, setIdx: number, targetDurationSeconds?: number | null) => void;
+  onStartEditing?: (exIdx: number) => void;
   highlightZeroReps?: boolean;
+  soundEnabled?: boolean;
+  toggleSound?: () => void;
 }
 
 
@@ -180,7 +184,11 @@ export function WorkoutExerciseCard({
   setHistoryExerciseName,
   stopRestTimer,
   adjustRestTimer,
+  onStartRepTimer,
+  onStartEditing,
   highlightZeroReps,
+  soundEnabled,
+  toggleSound,
 }: WorkoutExerciseCardProps) {
   const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: SessionSet) => s.completed === 1);
   const cat = normalizeCategory(ex.category);
@@ -232,7 +240,7 @@ export function WorkoutExerciseCard({
                   </span>
                 )}
               </h3>
-              <div className="mt-1">
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
                 <ExerciseCategorySelector
                   category={ex.category ?? "Free Weights"}
                   equipment={ex.equipment ?? ""}
@@ -293,17 +301,30 @@ export function WorkoutExerciseCard({
                   onClick={() => setActiveMenuExerciseId(null)}
                 />
                 <div className="absolute right-0 mt-1 w-48 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl z-20 py-1 text-sm">
-                  <button
-                    onClick={() => {
-                      setReplacingExerciseId(ex.sessionExerciseId!);
-                      setReplaceName("");
-                      setActiveMenuExerciseId(null);
-                    }}
-                    className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
-                  >
-                    <Edit2 className="size-4 mr-2 text-zinc-500" />
-                    {t("Replace Exercise")}
-                  </button>
+                  {onStartEditing ? (
+                    <button
+                      onClick={() => {
+                        onStartEditing(exIdx);
+                        setActiveMenuExerciseId(null);
+                      }}
+                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
+                    >
+                      <Edit2 className="size-4 mr-2 text-zinc-500" />
+                      {t("Edit Exercise")}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setReplacingExerciseId(ex.sessionExerciseId!);
+                        setReplaceName("");
+                        setActiveMenuExerciseId(null);
+                      }}
+                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
+                    >
+                      <Edit2 className="size-4 mr-2 text-zinc-500" />
+                      {t("Replace Exercise")}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setHistoryExerciseName(ex.exerciseName, ex.equipment);
@@ -337,6 +358,7 @@ export function WorkoutExerciseCard({
       {/* Sets Table */}
       {ex.sets?.length > 0 && (() => {
         const isTimed = isTimedExercise(ex, previousSetsMap);
+        const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
 
         return (
           <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60">
@@ -349,7 +371,12 @@ export function WorkoutExerciseCard({
                     <>
                       <th className="text-center py-2 px-3 font-normal w-28">kg</th>
                       <th className="text-center py-2 px-3 font-normal w-24">
-                        {isTimed ? t("Time (MM:SS)") : t("Reps")}
+                        <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
+                        {perSide && (
+                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
+                            ({t("per side")})
+                          </span>
+                        )}
                       </th>
                     </>
                   )}
@@ -357,21 +384,40 @@ export function WorkoutExerciseCard({
                     <>
                       <th className="text-center py-2 px-3 font-normal w-28">{t("Added/Assisted (kg)")}</th>
                       <th className="text-center py-2 px-3 font-normal w-24">
-                        {isTimed ? t("Time (MM:SS)") : t("Reps")}
+                        <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
+                        {perSide && (
+                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
+                            ({t("per side")})
+                          </span>
+                        )}
                       </th>
                     </>
                   )}
                   {cat === "cardio" && (
                     <>
                       <th className="text-center py-2 px-3 font-normal w-24">{t("Distance (km)")}</th>
-                      <th className="text-center py-2 px-3 font-normal w-24">{t("Time (MM:SS)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">
+                        <span>{t("Time (MM:SS)")}</span>
+                        {perSide && (
+                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
+                            ({t("per side")})
+                          </span>
+                        )}
+                      </th>
                       <th className="text-center py-2 px-3 font-normal w-24">{t("Avg HR (bpm)")}</th>
                     </>
                   )}
                   {cat === "isometric" && (
                     <>
                       <th className="text-center py-2 px-3 font-normal w-24">{t("Added weight (kg)")}</th>
-                      <th className="text-center py-2 px-3 font-normal w-24">{t("Time (MM:SS)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-24">
+                        <span>{t("Time (MM:SS)")}</span>
+                        {perSide && (
+                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
+                            ({t("per side")})
+                          </span>
+                        )}
+                      </th>
                     </>
                   )}
                   <th className="text-center py-2 px-3 font-normal w-16">{t("Done")}</th>
@@ -493,17 +539,31 @@ export function WorkoutExerciseCard({
                             </td>
                             <td className="py-2 px-2 align-middle">
                               {isTimed ? (
-                                <AutoSaveInput
-                                  type="text"
-                                  placeholder="MM:SS"
-                                  value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
-                                  onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                    isZero
-                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                      : "border-border/80 focus-visible:border-brand/40"
-                                  }`}
-                                />
+                                <div className="relative flex items-center justify-center">
+                                  <AutoSaveInput
+                                    type="text"
+                                    placeholder="MM:SS"
+                                    value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                    onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                    className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                      onStartRepTimer ? "pr-7" : ""
+                                    } ${
+                                      isZero
+                                        ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                        : "border-border/80 focus-visible:border-brand/40"
+                                    }`}
+                                  />
+                                  {onStartRepTimer && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
+                                      className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
+                                      title={t("Start Timer")}
+                                    >
+                                      <Timer className="size-3.5" />
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <AutoSaveInput
                                   type="number"
@@ -538,17 +598,31 @@ export function WorkoutExerciseCard({
                             </td>
                             <td className="py-2 px-2 align-middle">
                               {isTimed ? (
-                                <AutoSaveInput
-                                  type="text"
-                                  placeholder="MM:SS"
-                                  value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
-                                  onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                    isZero
-                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                      : "border-border/80 focus-visible:border-brand/40"
-                                  }`}
-                                />
+                                <div className="relative flex items-center justify-center">
+                                  <AutoSaveInput
+                                    type="text"
+                                    placeholder="MM:SS"
+                                    value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                    onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                    className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                      onStartRepTimer ? "pr-7" : ""
+                                    } ${
+                                      isZero
+                                        ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                        : "border-border/80 focus-visible:border-brand/40"
+                                    }`}
+                                  />
+                                  {onStartRepTimer && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
+                                      className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
+                                      title={t("Start Timer")}
+                                    >
+                                      <Timer className="size-3.5" />
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <AutoSaveInput
                                   type="number"
@@ -586,17 +660,31 @@ export function WorkoutExerciseCard({
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="text"
-                              placeholder="MM:SS"
-                              value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
-                              onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                isZero
-                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                  : "border-border/80 focus-visible:border-brand/40"
-                              }`}
-                            />
+                            <div className="relative flex items-center justify-center">
+                              <AutoSaveInput
+                                type="text"
+                                placeholder="MM:SS"
+                                value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                  onStartRepTimer ? "pr-7" : ""
+                                } ${
+                                  isZero
+                                    ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                    : "border-border/80 focus-visible:border-brand/40"
+                                }`}
+                              />
+                              {onStartRepTimer && (
+                                <button
+                                  type="button"
+                                  onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
+                                  className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
+                                  title={t("Start Timer")}
+                                >
+                                  <Timer className="size-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="py-2 px-2 align-middle">
                             <AutoSaveInput
@@ -625,17 +713,31 @@ export function WorkoutExerciseCard({
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="text"
-                              placeholder="MM:SS"
-                              value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
-                              onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                isZero
-                                  ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                  : "border-border/80 focus-visible:border-brand/40"
-                              }`}
-                            />
+                            <div className="relative flex items-center justify-center">
+                              <AutoSaveInput
+                                type="text"
+                                placeholder="MM:SS"
+                                value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                  onStartRepTimer ? "pr-7" : ""
+                                } ${
+                                  isZero
+                                    ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                    : "border-border/80 focus-visible:border-brand/40"
+                                }`}
+                              />
+                              {onStartRepTimer && (
+                                <button
+                                  type="button"
+                                  onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
+                                  className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
+                                  title={t("Start Timer")}
+                                >
+                                  <Timer className="size-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </>
                       )}
@@ -741,6 +843,20 @@ export function WorkoutExerciseCard({
                                             >
                                               {t("Skip")}
                                             </button>
+                                            {toggleSound && (
+                                              <button
+                                                onClick={toggleSound}
+                                                title={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
+                                                aria-label={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
+                                                className="p-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 active:scale-95"
+                                              >
+                                                {soundEnabled ? (
+                                                  <Volume2 className="size-3.5 text-brand" />
+                                                ) : (
+                                                  <VolumeX className="size-3.5 text-zinc-500" />
+                                                )}
+                                              </button>
+                                            )}
                                           </div>
                                         </div>
                                       )}

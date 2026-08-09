@@ -95,6 +95,7 @@ export class WorkoutService {
       heartRate?: number;
       defaultRestTime?: number;
       equipment?: string;
+      perSide?: number;
     }[];
   }) {
     if (data.estimatedTime !== undefined && data.estimatedTime < 0) {
@@ -132,6 +133,7 @@ export class WorkoutService {
           defaultHeartRate: ex.heartRate,
           defaultRestTime: ex.defaultRestTime,
           equipment: ex.equipment,
+          perSide: ex.perSide ?? 0,
         }).run();
       }
     }
@@ -156,6 +158,7 @@ export class WorkoutService {
       heartRate?: number;
       defaultRestTime?: number;
       equipment?: string;
+      perSide?: number;
     }[];
   }) {
     const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
@@ -198,6 +201,7 @@ export class WorkoutService {
           defaultHeartRate: ex.heartRate,
           defaultRestTime: ex.defaultRestTime,
           equipment: ex.equipment,
+          perSide: ex.perSide ?? 0,
         }).run();
       }
     }
@@ -326,6 +330,7 @@ export class WorkoutService {
           defaultHeartRate: templateExercises.defaultHeartRate,
           defaultRestTime: templateExercises.defaultRestTime,
           equipment: templateExercises.equipment,
+          perSide: templateExercises.perSide,
         })
           .from(templateExercises);
 
@@ -356,6 +361,7 @@ export class WorkoutService {
           defaultHeartRate: templateEx.defaultHeartRate,
           defaultRestTime: templateEx.defaultRestTime,
           equipment: templateEx.equipment,
+          perSide: templateEx.perSide,
         } : null
       };
     });
@@ -393,6 +399,7 @@ export class WorkoutService {
             sortOrder: tex.sortOrder,
             category: tex.category ?? "Free Weights",
             equipment: tex.equipment,
+            perSide: tex.perSide ?? 0,
           }).returning().get();
 
           for (let s = 1; s <= tex.defaultSets; s++) {
@@ -424,6 +431,7 @@ export class WorkoutService {
       sortOrder: number;
       category?: string;
       equipment?: string;
+      perSide?: number;
       sets?: {
         setId?: number;
         setNumber: number;
@@ -484,6 +492,7 @@ export class WorkoutService {
             sortOrder: ex.sortOrder,
             category: ex.category ?? "Free Weights",
             equipment: ex.equipment,
+            perSide: ex.perSide ?? 0,
           }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
 
           if (ex.sets) {
@@ -510,6 +519,7 @@ export class WorkoutService {
             sortOrder: ex.sortOrder,
             category: ex.category ?? "Free Weights",
             equipment: ex.equipment,
+            perSide: ex.perSide ?? 0,
           }).returning().get();
 
           if (ex.sets) {
@@ -564,6 +574,7 @@ export class WorkoutService {
       defaultDuration: templateExercises.defaultDuration,
       defaultRestTime: templateExercises.defaultRestTime,
       equipment: templateExercises.equipment,
+      perSide: templateExercises.perSide,
     })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
@@ -578,6 +589,7 @@ export class WorkoutService {
       name: sessionExercises.exerciseName,
       category: sessionExercises.category,
       equipment: sessionExercises.equipment,
+      perSide: sessionExercises.perSide,
     })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
@@ -600,6 +612,7 @@ export class WorkoutService {
         defaultDuration: number | null;
         defaultRestTime: number | null;
         equipment: string | null;
+        perSide: number | null;
       }
     >();
 
@@ -616,6 +629,7 @@ export class WorkoutService {
           defaultDuration: r.defaultDuration,
           defaultRestTime: r.defaultRestTime,
           equipment: eqNorm,
+          perSide: r.perSide ?? 0,
         });
       }
     }
@@ -633,6 +647,7 @@ export class WorkoutService {
           defaultDuration: null,
           defaultRestTime: null,
           equipment: eqNorm,
+          perSide: r.perSide ?? 0,
         });
       }
     }
@@ -650,6 +665,7 @@ export class WorkoutService {
         defaultDuration: data.defaultDuration,
         defaultRestTime: data.defaultRestTime,
         equipment: data.equipment,
+        perSide: data.perSide,
       };
     });
   }

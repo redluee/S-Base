@@ -197,9 +197,6 @@ export function ExerciseEditBlock({
           equipment={ex.equipment}
           onChange={(cat, eq) => {
             const updates: Partial<ExerciseRowData> = { category: cat, equipment: eq };
-            if (cat !== ex.category) {
-              updates.trackingFields = getDefaultTracking(cat);
-            }
             onChange(updates);
           }}
         />

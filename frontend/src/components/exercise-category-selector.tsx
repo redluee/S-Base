@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/lang";
-import { X, Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { X, Plus, ChevronRight, ChevronLeft, ChevronDown, Folder, Check } from "lucide-react";
 
 export const CATEGORY_MAP = {
   "Bodyweight": [
@@ -35,6 +35,18 @@ export const CATEGORY_MAP = {
   ],
 };
 
+function normalizeCategoryName(cat?: string): string {
+  if (!cat) return "Free Weights";
+  const c = cat.toLowerCase().trim();
+  if (c === "bodyweight") return "Bodyweight";
+  if (c === "free weights" || c === "freeweights" || c === "resistance") return "Free Weights";
+  if (c === "machines" || c === "machine") return "Machines";
+  if (c === "functional" || c === "isometric") return "Functional";
+  if (c === "cardio") return "Cardio";
+  if (cat in CATEGORY_MAP) return cat;
+  return "Free Weights";
+}
+
 interface ExerciseCategorySelectorProps {
   category: string;
   equipment: string; // Comma separated string e.g. "Plyo Box, Dumbbell"
@@ -47,8 +59,11 @@ export function ExerciseCategorySelector({
   onChange,
 }: ExerciseCategorySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCatOpen, setIsCatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const currentCategory = normalizeCategoryName(category);
 
   // Parse comma separated equipment
   const selectedEquipment = equipment 
@@ -60,6 +75,7 @@ export function ExerciseCategorySelector({
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setIsCatOpen(false);
         setActiveTab(null);
       }
     }
@@ -70,7 +86,7 @@ export function ExerciseCategorySelector({
   const addEquipment = (eq: string) => {
     if (!eq || selectedEquipment.includes(eq)) return;
     const newEq = [...selectedEquipment, eq].join(", ");
-    // Note: We use the existing category prop so we don't reset tracking fields in the parent
+    // Note: We use the existing category prop so changing equipment doesn't affect category
     onChange(category, newEq);
     setIsOpen(false);
     setActiveTab(null);
@@ -84,6 +100,59 @@ export function ExerciseCategorySelector({
   return (
     <div className="flex flex-col gap-2 relative" ref={containerRef}>
       <div className="flex flex-wrap items-center gap-2">
+        {/* Category Pill Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setIsCatOpen(!isCatOpen);
+              setIsOpen(false);
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer",
+              isCatOpen
+                ? "bg-brand text-brand-foreground border-brand shadow-sm"
+                : "bg-white/5 border-border/80 text-foreground hover:bg-white/10"
+            )}
+          >
+            <Folder className="size-3.5 text-brand" />
+            <span>{t(currentCategory)}</span>
+            <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
+          </button>
+
+          {/* Category Dropdown Popover */}
+          {isCatOpen && (
+            <div className="absolute top-full left-0 mt-2 w-48 bg-popover border border-border shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
+                {t("Categorie")}
+              </div>
+              {Object.keys(CATEGORY_MAP).map((catKey) => {
+                const isSelected = currentCategory === catKey;
+                return (
+                  <button
+                    key={catKey}
+                    type="button"
+                    onClick={() => {
+                      // Change category without affecting equipment selection
+                      onChange(catKey, equipment);
+                      setIsCatOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center justify-between w-full px-3.5 py-2 text-xs font-medium transition-colors text-left",
+                      isSelected
+                        ? "bg-brand/10 text-brand font-semibold"
+                        : "hover:bg-muted/50 text-popover-foreground"
+                    )}
+                  >
+                    <span>{t(catKey)}</span>
+                    {isSelected && <Check className="size-3.5 text-brand shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Selected Equipment Chips */}
         {selectedEquipment.map((eq) => (
           <div 
@@ -106,6 +175,7 @@ export function ExerciseCategorySelector({
           type="button"
           onClick={() => {
             setIsOpen(!isOpen);
+            setIsCatOpen(false);
             if (isOpen) setActiveTab(null);
           }}
           className={cn(
@@ -120,13 +190,13 @@ export function ExerciseCategorySelector({
         </button>
       </div>
 
-      {/* Dropdown Popover */}
+      {/* Equipment Dropdown Popover */}
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 w-64 bg-popover border border-border shadow-xl rounded-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           {!activeTab ? (
             <div className="flex flex-col py-1">
               <div className="px-3 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
-                {t("Kies categorie")}
+                {t("Kies materiaal categorie")}
               </div>
               {Object.keys(CATEGORY_MAP).map((cat) => (
                 <button

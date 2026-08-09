@@ -157,6 +157,11 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
                     ))}
                 </div>
               )}
+              {Boolean(ex.perSide || ex.templateExercise?.perSide) && (
+                <span className="inline-flex items-center text-[10px] font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                  {t("Per side")}
+                </span>
+              )}
             </div>
             {ex.sets?.length > 0 && (
               <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -172,36 +177,54 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
                   return (
                     <table className="w-full text-xs sm:text-sm">
                       <thead>
-                        <tr className="border-b border-border/50">
-                          <th className="text-left p-2 text-muted-foreground font-normal w-12">{t("Set")}</th>
-                          {(cat === "resistance") && (
-                            <>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Reps")}</th>
-                              <th className="text-right p-2 text-muted-foreground font-normal">kg</th>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("RPE (0-10)")}</th>
-                            </>
-                          )}
-                          {cat === "bodyweight" && (
-                            <>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Reps")}</th>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Added/Assisted (kg)")}</th>
-                            </>
-                          )}
-                          {cat === "cardio" && (
-                            <>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Distance (km)")}</th>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Time")}</th>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Avg HR (bpm)")}</th>
-                            </>
-                          )}
-                          {cat === "isometric" && (
-                            <>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Time")}</th>
-                              <th className="text-right p-2 text-muted-foreground font-normal">{t("Added weight (kg)")}</th>
-                            </>
-                          )}
-                          <th className="text-right p-2 text-muted-foreground font-normal w-20">{t("Complete")}</th>
-                        </tr>
+                        {(() => {
+                          const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
+
+                          return (
+                            <tr className="border-b border-border/50">
+                              <th className="text-left p-2 text-muted-foreground font-normal w-12">{t("Set")}</th>
+                              {(cat === "resistance") && (
+                                <>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">
+                                    <div>{t("Reps")}</div>
+                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
+                                  </th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">kg</th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("RPE (0-10)")}</th>
+                                </>
+                              )}
+                              {cat === "bodyweight" && (
+                                <>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">
+                                    <div>{t("Reps")}</div>
+                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
+                                  </th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Added/Assisted (kg)")}</th>
+                                </>
+                              )}
+                              {cat === "cardio" && (
+                                <>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Distance (km)")}</th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">
+                                    <div>{t("Time")}</div>
+                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
+                                  </th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Avg HR (bpm)")}</th>
+                                </>
+                              )}
+                              {cat === "isometric" && (
+                                <>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">
+                                    <div>{t("Time")}</div>
+                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
+                                  </th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Added weight (kg)")}</th>
+                                </>
+                              )}
+                              <th className="text-right p-2 text-muted-foreground font-normal w-20">{t("Complete")}</th>
+                            </tr>
+                          );
+                        })()}
                       </thead>
                       <tbody>
                         {ex.sets.map((set: SessionSet, si: number) => (

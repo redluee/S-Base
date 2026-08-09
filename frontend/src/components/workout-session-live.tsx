@@ -17,13 +17,24 @@ import {
   Play,
   Dumbbell,
   Save,
-  FileText
+  FileText,
 } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
+import {
+  unlockAudio,
+  scheduleRestEndSound,
+  cancelScheduledSound,
+  triggerRestTimerCompletion,
+  resetTimerTriggerState,
+  requestNotificationPermission,
+  isSoundEnabled,
+  setSoundEnabled,
+} from "@/lib/sound";
 import { WorkoutExerciseCard, normalizeCategory, isSetZero, isTimedExercise } from "@/components/workout-exercise-card";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { WorkoutCompletionSummary } from "@/components/workout-completion-summary";
-import { ExerciseEditBlock, type ExerciseRowData, unmapCategory, formatDuration } from "@/components/exercise-edit-block";
+import { ExerciseEditBlock, type ExerciseRowData, mapCategory, unmapCategory, mapEquipment, formatDuration } from "@/components/exercise-edit-block";
+import { RepTimerModal } from "@/components/rep-timer-modal";
 import type { FullWorkoutSession, SessionExercise, SessionSet, PersonalRecord } from "@backend/types/shared";
 
 
@@ -42,13 +53,31 @@ export function WorkoutSessionLive({
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Rep Timer state
+  const [activeRepTimer, setActiveRepTimer] = useState<{
+    exIdx: number;
+    setIdx: number;
+    exerciseName: string;
+    setNumber: number;
+    targetDurationSeconds?: number | null;
+  } | null>(null);
+
   // Rest Timer State
   const [restSecondsLeft, setRestSecondsLeft] = useState(0);
   const [restTotalSeconds, setRestTotalSeconds] = useState(0);
   const [restActive, setRestActive] = useState(false);
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const restEndTimeRef = useRef<number | null>(null);
   const [activeRestExerciseIdx, setActiveRestExerciseIdx] = useState<number | null>(null);
   const [activeRestSetIdx, setActiveRestSetIdx] = useState<number | null>(null);
+  const [soundEnabled, setSoundEnabledState] = useState(() => isSoundEnabled());
+
+  function toggleSound() {
+    const next = !soundEnabled;
+    setSoundEnabledState(next);
+    setSoundEnabled(next);
+    if (next) unlockAudio();
+  }
 
   // Pop Burst satisfaction animation state
   const [lastCompletedSet, setLastCompletedSet] = useState<{ exIdx: number; setIdx: number } | null>(null);
@@ -63,6 +92,8 @@ export function WorkoutSessionLive({
   const [activeEquipmentMenuExerciseId, setActiveEquipmentMenuExerciseId] = useState<number | null>(null);
   const [replacingExerciseId, setReplacingExerciseId] = useState<number | null>(null);
   const [replaceName, setReplaceName] = useState("");
+  const [editingExerciseIdx, setEditingExerciseIdx] = useState<number | null>(null);
+  const [editingExerciseDraft, setEditingExerciseDraft] = useState<ExerciseRowData | null>(null);
 
   // Exercise history modal state
   const [historyExerciseName, setHistoryExerciseName] = useState<string | null>(null);
@@ -169,17 +200,26 @@ export function WorkoutSessionLive({
 
   // Rest Timer countdown
   useEffect(() => {
-    if (restActive && restSecondsLeft > 0) {
-      restIntervalRef.current = setInterval(() => {
-        setRestSecondsLeft((prev) => {
-          if (prev <= 1) {
-            setRestActive(false);
-            if (restIntervalRef.current) clearInterval(restIntervalRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (restActive && restEndTimeRef.current) {
+      const checkRestTimer = () => {
+        if (!restEndTimeRef.current) return;
+        const now = Date.now();
+        const diffSeconds = Math.ceil((restEndTimeRef.current - now) / 1000);
+
+        if (diffSeconds <= 0) {
+          setRestSecondsLeft(0);
+          setRestActive(false);
+          restEndTimeRef.current = null;
+
+          triggerRestTimerCompletion();
+          if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+        } else {
+          setRestSecondsLeft(diffSeconds);
+        }
+      };
+
+      checkRestTimer();
+      restIntervalRef.current = setInterval(checkRestTimer, 250);
     } else {
       if (restIntervalRef.current) clearInterval(restIntervalRef.current);
     }
@@ -187,11 +227,19 @@ export function WorkoutSessionLive({
     return () => {
       if (restIntervalRef.current) clearInterval(restIntervalRef.current);
     };
-  }, [restActive, restSecondsLeft]);
+  }, [restActive]);
 
-  // Alert on window leave
+  // Cleanup sound and timers on component unmount
+  useEffect(() => {
+    return () => {
+      cancelScheduledSound();
+    };
+  }, []);
+
+  // Alert on window leave & cleanup sound on unmount/close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      cancelScheduledSound();
       if (bypassWarningRef.current || !session || isSummaryView || session.completedAt) return;
       e.preventDefault();
       e.returnValue = t("You have an active workout. Leaving will lose unsaved progress.");
@@ -199,7 +247,10 @@ export function WorkoutSessionLive({
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      cancelScheduledSound();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [session, isSummaryView]);
 
   // Stop / start functions
@@ -213,16 +264,27 @@ export function WorkoutSessionLive({
 
   function startRestTimer(exIdx: number, setIdx: number, customTime?: number) {
     if (!session?.exercises) return;
+    unlockAudio();
+    requestNotificationPermission();
+
     const ex = session.exercises[exIdx];
     const time = customTime || getExerciseRestTime(ex);
+
+    resetTimerTriggerState();
+    restEndTimeRef.current = Date.now() + time * 1000;
     setRestSecondsLeft(time);
     setRestTotalSeconds(time);
     setRestActive(true);
     setActiveRestExerciseIdx(exIdx);
     setActiveRestSetIdx(setIdx);
+
+    scheduleRestEndSound(time);
   }
 
   function stopRestTimer() {
+    cancelScheduledSound();
+    resetTimerTriggerState();
+    restEndTimeRef.current = null;
     setRestActive(false);
     setRestSecondsLeft(0);
     setActiveRestExerciseIdx(null);
@@ -230,8 +292,44 @@ export function WorkoutSessionLive({
   }
 
   function adjustRestTimer(seconds: number) {
-    setRestSecondsLeft((prev) => Math.max(0, prev + seconds));
+    unlockAudio();
+    resetTimerTriggerState();
+
+    if (!restEndTimeRef.current) {
+      restEndTimeRef.current = Date.now() + restSecondsLeft * 1000;
+    }
+    restEndTimeRef.current += seconds * 1000;
+
+    const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+    setRestSecondsLeft(remaining);
     setRestTotalSeconds((prev) => Math.max(0, prev + seconds));
+
+    if (remaining <= 0) {
+      stopRestTimer();
+    } else {
+      scheduleRestEndSound(remaining);
+    }
+  }
+
+  function handleStartRepTimer(exIdx: number, setIdx: number, targetDurationSeconds?: number | null) {
+    if (!session?.exercises?.[exIdx]) return;
+    const ex = session.exercises[exIdx];
+    const set = ex.sets[setIdx];
+    setActiveRepTimer({
+      exIdx,
+      setIdx,
+      exerciseName: ex.exerciseName,
+      setNumber: set?.setNumber ?? (setIdx + 1),
+      targetDurationSeconds: set?.duration ?? targetDurationSeconds ?? null,
+    });
+  }
+
+  async function handleFinishRepTimer(elapsedSeconds: number) {
+    if (!activeRepTimer || !session?.exercises) return;
+    const { exIdx, setIdx } = activeRepTimer;
+
+    setActiveRepTimer(null);
+    await updateSetAndComplete(exIdx, setIdx, elapsedSeconds);
   }
 
   async function updateElapsedSeconds(newSeconds: number) {
@@ -271,6 +369,7 @@ export function WorkoutSessionLive({
             sortOrder: ex.sortOrder,
             category: ex.category ?? "resistance",
             equipment: ex.equipment ?? "none",
+            perSide: ex.perSide ?? (ex.templateExercise?.perSide ? 1 : 0),
             sets: ex.sets?.map((s: SessionSet) => ({
               setId: s.setId,
               setNumber: s.setNumber,
@@ -362,6 +461,41 @@ export function WorkoutSessionLive({
     await saveExercises(exercises);
   }
 
+  async function updateSetAndComplete(exerciseIndex: number, setIndex: number, durationSeconds: number) {
+    if (!session) return;
+    const exercises = [...(session.exercises ?? [])];
+    const ex = { ...exercises[exerciseIndex] };
+    const sets = [...(ex.sets ?? [])];
+    const set = { ...sets[setIndex] };
+
+    set.duration = durationSeconds;
+    set.completed = 1;
+
+    // Copy updated duration to subsequent incomplete sets in the same exercise
+    for (let i = setIndex + 1; i < sets.length; i++) {
+      if (sets[i].completed !== 1) {
+        sets[i] = { ...sets[i], duration: durationSeconds } as SessionSet;
+      }
+    }
+
+    sets[setIndex] = set;
+    ex.sets = sets;
+    exercises[exerciseIndex] = ex;
+    setSession({ ...session, exercises });
+    await saveExercises(exercises);
+
+    const hasNextIncompleteSet = setIndex < sets.length - 1 && sets.slice(setIndex + 1).some((s) => s.completed === 0);
+    const restTime = getExerciseRestTime(ex);
+    if (restTime > 0 && hasNextIncompleteSet) {
+      startRestTimer(exerciseIndex, setIndex, restTime);
+    } else if (activeRestExerciseIdx === exerciseIndex) {
+      stopRestTimer();
+    }
+
+    setLastCompletedSet({ exIdx: exerciseIndex, setIdx: setIndex });
+    setTimeout(() => setLastCompletedSet(null), 800);
+  }
+
   async function toggleSetCompleted(exerciseIndex: number, setIndex: number) {
     if (!session) return;
     const exercises = [...(session.exercises ?? [])];
@@ -400,24 +534,19 @@ export function WorkoutSessionLive({
         set.rpe = set.rpe ?? defaultRpe;
       }
 
-      const hasSubsequentCompletedSet = sets.slice(setIndex + 1).some((s) => s.completed === 1);
+      const hasNextIncompleteSet = setIndex < sets.length - 1 && sets.slice(setIndex + 1).some((s) => s.completed === 0);
       const restTime = getExerciseRestTime(ex);
-      if (restTime > 0 && !hasSubsequentCompletedSet) {
-        setRestSecondsLeft(restTime);
-        setRestTotalSeconds(restTime);
-        setRestActive(true);
-        setActiveRestExerciseIdx(exerciseIndex);
-        setActiveRestSetIdx(setIndex);
+      if (restTime > 0 && hasNextIncompleteSet) {
+        startRestTimer(exerciseIndex, setIndex, restTime);
+      } else if (activeRestExerciseIdx === exerciseIndex) {
+        stopRestTimer();
       }
 
       setLastCompletedSet({ exIdx: exerciseIndex, setIdx: setIndex });
       setTimeout(() => setLastCompletedSet(null), 800);
     } else {
       if (activeRestExerciseIdx === exerciseIndex && activeRestSetIdx === setIndex) {
-        setRestActive(false);
-        setRestSecondsLeft(0);
-        setActiveRestExerciseIdx(null);
-        setActiveRestSetIdx(null);
+        stopRestTimer();
       }
     }
 
@@ -457,7 +586,7 @@ export function WorkoutSessionLive({
     await saveExercises(exercises);
   }
 
-  async function addExercise(nameOverride?: string, categoryOverride?: string, defaultSets?: number, defaultReps?: number, equipmentOverride?: string) {
+  async function addExercise(nameOverride?: string, categoryOverride?: string, defaultSets?: number, defaultReps?: number, equipmentOverride?: string, perSideOverride?: boolean) {
     const name = nameOverride || newExerciseName.trim();
     if (!session || !name) return;
     const exercises = [...(session.exercises ?? [])];
@@ -485,6 +614,7 @@ export function WorkoutSessionLive({
       sortOrder: exercises.length,
       category: cat,
       equipment: eq,
+      perSide: perSideOverride ? 1 : 0,
       sets: initialSets,
     });
 
@@ -528,6 +658,7 @@ export function WorkoutSessionLive({
       sortOrder: exercises.length,
       category: cat,
       equipment: eq,
+      perSide: draft.perSide ? 1 : 0,
       sets: initialSets,
     });
 
@@ -561,6 +692,117 @@ export function WorkoutSessionLive({
 
     setReplacingExerciseId(null);
     setReplaceName("");
+    setSession({ ...session, exercises });
+    await saveExercises(exercises);
+  }
+
+  function startEditingExercise(exIdx: number) {
+    if (!session?.exercises?.[exIdx]) return;
+    const ex = session.exercises[exIdx];
+    const cat = mapCategory(ex.category || "resistance");
+    const eq = mapEquipment(ex.equipment || "");
+    const firstSet = ex.sets?.[0];
+    const numSets = ex.sets?.length ? String(ex.sets.length) : "3";
+
+    const reps = firstSet?.reps != null ? String(firstSet.reps) : (ex.templateExercise?.defaultReps?.toString() ?? "8");
+    const weight = firstSet?.weight != null ? String(firstSet.weight) : (ex.templateExercise?.defaultWeight?.toString() ?? "");
+    const distance = firstSet?.distance != null ? String(firstSet.distance) : (ex.templateExercise?.defaultDistance?.toString() ?? "");
+    const duration = firstSet?.duration != null ? formatDuration(firstSet.duration) : formatDuration(ex.templateExercise?.defaultDuration);
+    const defaultRestTime = formatDuration(ex.templateExercise?.defaultRestTime ?? 90);
+    const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
+
+    const hasReps = ex.sets?.some((s) => s.reps != null && s.reps > 0) ?? (cat !== "Cardio");
+    const hasTime = ex.sets?.some((s) => s.duration != null && s.duration > 0) ?? (cat === "Cardio" || cat === "Functional");
+    const hasWeight = ex.sets?.some((s) => s.weight != null && s.weight !== undefined) ?? true;
+    const hasDistance = ex.sets?.some((s) => s.distance != null && s.distance > 0) ?? (cat === "Cardio");
+
+    setEditingExerciseDraft({
+      name: ex.exerciseName,
+      category: cat,
+      sets: numSets,
+      reps,
+      weight,
+      distance,
+      distanceUnit: "km",
+      duration,
+      defaultRestTime,
+      equipment: eq,
+      perSide,
+      trackingFields: {
+        reps: hasReps,
+        time: hasTime,
+        weight: hasWeight,
+        distance: hasDistance,
+      },
+    });
+    setEditingExerciseIdx(exIdx);
+  }
+
+  async function saveEditedExercise(exIdx: number, draft: ExerciseRowData) {
+    if (!session || !draft.name.trim()) return;
+    const exercises = [...(session.exercises ?? [])];
+    const targetEx = exercises[exIdx];
+    if (!targetEx) return;
+
+    const cat = unmapCategory(draft.category);
+    const eq = draft.equipment || "none";
+
+    const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
+    const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
+    const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
+    const weightVal = (draft.trackingFields.weight && draft.weight) ? parseFloat(draft.weight) : null;
+    let distVal = (draft.trackingFields.distance && draft.distance) ? parseFloat(draft.distance) : null;
+    if (distVal !== null && draft.distanceUnit === "m") {
+      distVal = distVal / 1000;
+    }
+
+    const existingSets = targetEx.sets ?? [];
+    const updatedSets: SessionSet[] = [];
+
+    for (let i = 0; i < numSets; i++) {
+      const setNum = i + 1;
+      const existing = existingSets[i];
+      if (existing) {
+        updatedSets.push({
+          ...existing,
+          setNumber: setNum,
+          reps: draft.trackingFields.reps ? (existing.completed ? existing.reps : (numReps ?? existing.reps)) : null,
+          weight: draft.trackingFields.weight ? (existing.completed ? existing.weight : (weightVal ?? existing.weight)) : null,
+          duration: draft.trackingFields.time ? (existing.completed ? existing.duration : (durationSecs ?? existing.duration)) : null,
+          distance: draft.trackingFields.distance ? (existing.completed ? existing.distance : (distVal ?? existing.distance)) : null,
+        });
+      } else {
+        updatedSets.push({
+          setNumber: setNum,
+          reps: numReps,
+          weight: weightVal,
+          distance: distVal,
+          duration: durationSecs,
+          rpe: null,
+          heartRate: null,
+          completed: 0,
+        });
+      }
+    }
+
+    const defaultRestTimeSecs = parseDurationHelper(draft.defaultRestTime) ?? 90;
+
+    exercises[exIdx] = {
+      ...targetEx,
+      exerciseName: draft.name.trim(),
+      category: cat,
+      equipment: eq,
+      perSide: draft.perSide ? 1 : 0,
+      sets: updatedSets,
+      templateExercise: {
+        ...(targetEx.templateExercise ?? {}),
+        defaultRestTime: defaultRestTimeSecs,
+        perSide: draft.perSide ? 1 : 0,
+      },
+    };
+
+    setEditingExerciseIdx(null);
+    setEditingExerciseDraft(null);
     setSession({ ...session, exercises });
     await saveExercises(exercises);
   }
@@ -913,19 +1155,21 @@ export function WorkoutSessionLive({
         </div>
       </div>
 
-      {/* Workout Notes Card */}
-      <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-3.5 mb-6">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          <FileText className="size-3.5 text-brand" />
-          <span>{t("Notes")}</span>
+      {/* Workout Notes Card - Only in edit mode of a completed session */}
+      {session?.completedAt ? (
+        <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-3.5 mb-6">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            <FileText className="size-3.5 text-brand" />
+            <span>{t("Notes")}</span>
+          </div>
+          <Textarea
+            value={summaryNotes}
+            onChange={(e) => setSummaryNotes(e.target.value)}
+            placeholder={t("Write session feedback, how you felt, details...")}
+            className="bg-white/5 border-border min-h-[60px] text-xs text-foreground focus-visible:ring-brand"
+          />
         </div>
-        <Textarea
-          value={summaryNotes}
-          onChange={(e) => setSummaryNotes(e.target.value)}
-          placeholder={t("Write session feedback, how you felt, details...")}
-          className="bg-white/5 border-border min-h-[60px] text-xs text-foreground focus-visible:ring-brand"
-        />
-      </div>
+      ) : null}
 
       {exercises.length === 0 ? (
         <div className="flex-1 flex flex-col gap-6 pb-20 max-[375px]:-mx-4">
@@ -955,9 +1199,9 @@ export function WorkoutSessionLive({
                     <ExerciseAutocomplete
                       value={newExerciseName}
                       onChange={setNewExerciseName}
-                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration) => {
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment);
+                          addExercise(name, category, sets, reps, equipment, perSide);
                         } else {
                           setUnknownExerciseDraft({
                             name,
@@ -970,7 +1214,7 @@ export function WorkoutSessionLive({
                             duration: defaultDuration ? formatDuration(defaultDuration) : "",
                             defaultRestTime: formatDuration(defaultRestTime ?? 90),
                             equipment: equipment || "",
-                            perSide: false,
+                            perSide: Boolean(perSide),
                             trackingFields: { reps: true, time: false, weight: true, distance: false }
                           });
                         }
@@ -1029,45 +1273,71 @@ export function WorkoutSessionLive({
               {exercises.length} {exercises.length === 1 ? t("exercise") : t("exercises")}
             </span>
           </div>
-          {exercises.map((ex: SessionExercise, exIdx: number) => (
-            <WorkoutExerciseCard
-              key={ex.sessionExerciseId ?? exIdx}
-              ex={ex}
-              exIdx={exIdx}
-              totalExercises={exercises.length}
-              saving={saving}
-              replacingExerciseId={replacingExerciseId}
-              setReplacingExerciseId={setReplacingExerciseId}
-              replaceName={replaceName}
-              setReplaceName={setReplaceName}
-              replaceExercise={replaceExercise}
-              updateCategory={updateCategory}
-              updateEquipment={updateEquipment}
-              removeExercise={removeExercise}
-              moveExerciseUpDirect={moveExerciseUpDirect}
-              moveExerciseDownDirect={moveExerciseDownDirect}
-              updateSet={updateSet}
-              addSet={addSet}
-              toggleSetCompleted={toggleSetCompleted}
-              removeSet={removeSet}
-              previousSetsMap={previousSetsMap}
-              activeRestExerciseIdx={activeRestExerciseIdx}
-              activeRestSetIdx={activeRestSetIdx}
-              restSecondsLeft={restSecondsLeft}
-              restTotalSeconds={restTotalSeconds}
-              restActive={restActive}
-              lastCompletedSet={lastCompletedSet}
-              activeMenuExerciseId={activeMenuExerciseId}
-              setActiveMenuExerciseId={setActiveMenuExerciseId}
-              activeEquipmentMenuExerciseId={activeEquipmentMenuExerciseId}
-              setActiveEquipmentMenuExerciseId={setActiveEquipmentMenuExerciseId}
-              setHistoryExerciseName={handleSetHistoryExercise}
-              startRestTimer={startRestTimer}
-              stopRestTimer={stopRestTimer}
-              adjustRestTimer={adjustRestTimer}
-              highlightZeroReps={highlightZeroReps}
-            />
-          ))}
+          {exercises.map((ex: SessionExercise, exIdx: number) => {
+            if (editingExerciseIdx === exIdx && editingExerciseDraft) {
+              return (
+                <div key={ex.sessionExerciseId ?? exIdx} className="mb-4">
+                  <ExerciseEditBlock
+                    exercise={editingExerciseDraft}
+                    index={exIdx}
+                    onChange={(fields) =>
+                      setEditingExerciseDraft((prev) => (prev ? { ...prev, ...fields } : null))
+                    }
+                    onSave={() => saveEditedExercise(exIdx, editingExerciseDraft)}
+                    onCancel={() => {
+                      setEditingExerciseIdx(null);
+                      setEditingExerciseDraft(null);
+                    }}
+                    saveButtonLabel={t("Wijzigingen Opslaan")}
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <WorkoutExerciseCard
+                key={ex.sessionExerciseId ?? exIdx}
+                ex={ex}
+                exIdx={exIdx}
+                totalExercises={exercises.length}
+                saving={saving}
+                replacingExerciseId={replacingExerciseId}
+                setReplacingExerciseId={setReplacingExerciseId}
+                replaceName={replaceName}
+                setReplaceName={setReplaceName}
+                replaceExercise={replaceExercise}
+                onStartEditing={startEditingExercise}
+                updateCategory={updateCategory}
+                updateEquipment={updateEquipment}
+                removeExercise={removeExercise}
+                moveExerciseUpDirect={moveExerciseUpDirect}
+                moveExerciseDownDirect={moveExerciseDownDirect}
+                updateSet={updateSet}
+                addSet={addSet}
+                toggleSetCompleted={toggleSetCompleted}
+                removeSet={removeSet}
+                previousSetsMap={previousSetsMap}
+                activeRestExerciseIdx={activeRestExerciseIdx}
+                activeRestSetIdx={activeRestSetIdx}
+                restSecondsLeft={restSecondsLeft}
+                restTotalSeconds={restTotalSeconds}
+                restActive={restActive}
+                lastCompletedSet={lastCompletedSet}
+                activeMenuExerciseId={activeMenuExerciseId}
+                setActiveMenuExerciseId={setActiveMenuExerciseId}
+                activeEquipmentMenuExerciseId={activeEquipmentMenuExerciseId}
+                setActiveEquipmentMenuExerciseId={setActiveEquipmentMenuExerciseId}
+                setHistoryExerciseName={handleSetHistoryExercise}
+                startRestTimer={startRestTimer}
+                stopRestTimer={stopRestTimer}
+                adjustRestTimer={adjustRestTimer}
+                onStartRepTimer={handleStartRepTimer}
+                highlightZeroReps={highlightZeroReps}
+                soundEnabled={soundEnabled}
+                toggleSound={toggleSound}
+              />
+            );
+          })}
 
           {/* Underneath other exercises: render ExerciseEditBlock if unknownExerciseDraft exists */}
           {unknownExerciseDraft ? (
@@ -1226,6 +1496,17 @@ export function WorkoutSessionLive({
           exerciseName={historyExerciseName}
           equipment={historyExerciseEquipment ?? undefined}
           onClose={() => handleSetHistoryExercise(null, null)}
+        />
+      )}
+
+      {/* Active Rep Timer Modal Overlay */}
+      {activeRepTimer && (
+        <RepTimerModal
+          exerciseName={activeRepTimer.exerciseName}
+          setNumber={activeRepTimer.setNumber}
+          targetDurationSeconds={activeRepTimer.targetDurationSeconds}
+          onFinish={handleFinishRepTimer}
+          onClose={() => setActiveRepTimer(null)}
         />
       )}
     </div>
