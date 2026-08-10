@@ -111,7 +111,7 @@ async function uploadFormDataWithProgress<T>(
 
 export const api = {
   login: (username: string, password: string) =>
-    request<{ user: { id: number; username: string; email: string | null } }>("/auth/login", {
+    request<{ user: { id: number; username: string; email: string | null; modules?: string[] } }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
@@ -119,7 +119,7 @@ export const api = {
   logout: () => request<{ ok: boolean }>("/auth/logout"),
 
   me: () =>
-    request<{ user: { id: number; username: string; email: string | null } }>("/auth/me"),
+    request<{ user: { id: number; username: string; email: string | null; modules?: string[] } }>("/auth/me"),
 
   ingredients: {
     search: (q: string) =>
@@ -377,7 +377,52 @@ export const api = {
     },
     dashboard: (year?: number) => request<CashflowDashboardStats>(year ? `/cashflow/dashboard?year=${year}` : "/cashflow/dashboard"),
   },
+
+  pulse: {
+    users: () => request<PulseUser[]>("/pulse/users"),
+    modules: () => request<PulseModuleInfo[]>("/pulse/modules"),
+    stats: () => request<PulseStats>("/pulse/stats"),
+    updateEmail: (id: number, email: string | null) =>
+      request<PulseUser>(`/pulse/users/${id}/email`, {
+        method: "PUT",
+        body: JSON.stringify({ email }),
+      }),
+    updateStatus: (id: number, isPaused: boolean) =>
+      request<PulseUser>(`/pulse/users/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ isPaused }),
+      }),
+    updateModules: (id: number, modules: string[]) =>
+      request<PulseUser>(`/pulse/users/${id}/modules`, {
+        method: "PUT",
+        body: JSON.stringify({ modules }),
+      }),
+  },
 };
+
+export interface PulseUser {
+  userId: number;
+  username: string;
+  email: string | null;
+  isPaused: number;
+  lastLoginAt: string | null;
+  createdAt: string | null;
+  modules: string[];
+}
+
+export interface PulseModuleInfo {
+  moduleId: number;
+  moduleName: string;
+  moduleAlias: string | null;
+  description: string | null;
+}
+
+export interface PulseStats {
+  totalUsers: number;
+  activeUsers: number;
+  pausedUsers: number;
+  totalPermissions: number;
+}
 
 export interface Wine {
   wineId: number;

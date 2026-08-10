@@ -68,6 +68,9 @@ export interface WorkoutSession {
   completedAt: string | null;
   notes: string | null;
   name: string | null;
+  exerciseCount?: number;
+  completedSetsCount?: number;
+  totalSetsCount?: number;
 }
 
 export interface SessionSet {

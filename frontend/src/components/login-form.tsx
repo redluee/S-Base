@@ -27,6 +27,7 @@ export function LoginForm() {
       const msg = e instanceof Error ? e.message : "";
       if (msg === "not_found") setError(t("User not found"));
       else if (msg === "wrong_password") setError(t("Wrong password"));
+      else if (msg === "account_paused" || msg.includes("gepauzeerd")) setError(t("Your account has been paused. Please contact an administrator."));
       else setError(t("Login failed. Please try again."));
     } finally {
       setLoading(false);

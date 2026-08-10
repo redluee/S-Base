@@ -29,6 +29,7 @@ export default async function RecipesPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/");
+  if (!user.modules?.includes("recipes")) redirect("/dashboard");
 
   const { status, sortBy, sortOrder, q } = await searchParams;
   const recipes = await serverApi.recipes.list(status, sortBy, sortOrder, q);

@@ -31,7 +31,40 @@ Acties:
   revoke <username|id> <module>                  Trek een module-permissie in van een gebruiker
 `;
 
+export const DEFAULT_MODULES = [
+  { name: "recipes", alias: "Smaak Tracker", description: "Module voor het beheren van recepten en wijnen" },
+  { name: "workout", alias: "Workout Studio", description: "Module voor het beheren van workouts, trainingssessies en lichaamsmetingen" },
+  { name: "cashflow", alias: "Cashflow", description: "Module voor facturatie en financieel beheer" },
+  { name: "you", alias: "Voor Jou", description: "Toegang tot stevenheijn.nl/you" },
+  { name: "lyric_quotes", alias: "Lyric Quotes", description: "Toegang tot stevenheijn.nl/lyric_quotes" },
+];
+
+export async function ensureDefaultModules() {
+  const oldMeasurements = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
+  if (oldMeasurements) {
+    db.delete(usermodulepermissions).where(eq(usermodulepermissions.moduleId, oldMeasurements.moduleId)).run();
+    db.delete(modules).where(eq(modules.moduleId, oldMeasurements.moduleId)).run();
+  }
+
+  for (const mod of DEFAULT_MODULES) {
+    const existing = db.select().from(modules).where(eq(modules.moduleName, mod.name)).get();
+    if (!existing) {
+      db.insert(modules).values({
+        moduleName: mod.name,
+        moduleAlias: mod.alias,
+        description: mod.description,
+      }).run();
+    } else if (existing.moduleAlias !== mod.alias || existing.description !== mod.description) {
+      db.update(modules)
+        .set({ moduleAlias: mod.alias, description: mod.description })
+        .where(eq(modules.moduleId, existing.moduleId))
+        .run();
+    }
+  }
+}
+
 async function main() {
+  await ensureDefaultModules();
   const args = process.argv.slice(2);
   if (args.length === 0) {
     isInteractive = true;

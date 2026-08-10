@@ -43,7 +43,7 @@ export async function getCurrentUser() {
 }
 
 export const serverApi = {
-  me: () => serverFetch<{ user: { id: number; username: string; email: string | null } }>("/auth/me"),
+  me: () => serverFetch<{ user: { id: number; username: string; email: string | null; modules?: string[] } }>("/auth/me"),
 
   recipes: {
     list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {
@@ -153,5 +153,11 @@ export const serverApi = {
       },
       get: (id: number) => serverFetch<import("./api").CashflowInvoiceFull>(`/cashflow/invoices/${id}`),
     },
+  },
+
+  pulse: {
+    users: () => serverFetch<import("./api").PulseUser[]>("/pulse/users"),
+    modules: () => serverFetch<import("./api").PulseModuleInfo[]>("/pulse/modules"),
+    stats: () => serverFetch<import("./api").PulseStats>("/pulse/stats"),
   },
 };

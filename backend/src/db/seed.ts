@@ -33,11 +33,19 @@ async function seed() {
   console.log("Starting development database seeding...");
 
   // 1. Ensure modules exist
-  const recipesMod = await getOrCreateModule("recipes", "Smaak Tracker", "Module voor het beheren van recepten");
-  const workoutMod = await getOrCreateModule("workout", "Workout Studio", "Module voor het beheren van workouts en trainingssessies");
-  const measurementsMod = await getOrCreateModule("measurements", "Metingen", "Module voor lichaamsmetingen");
+  const oldMeasurements = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
+  if (oldMeasurements) {
+    db.delete(usermodulepermissions).where(eq(usermodulepermissions.moduleId, oldMeasurements.moduleId)).run();
+    db.delete(modules).where(eq(modules.moduleId, oldMeasurements.moduleId)).run();
+  }
 
-  const allDbModules = [recipesMod, workoutMod, measurementsMod];
+  const recipesMod = await getOrCreateModule("recipes", "Smaak Tracker", "Module voor het beheren van recepten en wijnen");
+  const workoutMod = await getOrCreateModule("workout", "Workout Studio", "Module voor het beheren van workouts, trainingssessies en lichaamsmetingen");
+  const cashflowMod = await getOrCreateModule("cashflow", "Cashflow", "Module voor facturatie en financieel beheer");
+  const youMod = await getOrCreateModule("you", "Voor Jou", "Toegang tot stevenheijn.nl/you");
+  const lyricQuotesMod = await getOrCreateModule("lyric_quotes", "Lyric Quotes", "Toegang tot stevenheijn.nl/lyric_quotes");
+
+  const allDbModules = [recipesMod, workoutMod, cashflowMod, youMod, lyricQuotesMod];
 
   // 2. Setup users: admin and test
   const usernames = ["admin", "test"];

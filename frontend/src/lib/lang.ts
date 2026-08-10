@@ -495,6 +495,21 @@ const nl: Record<string, string> = {
   "Reset to target time": "Streeftijd herstellen",
   "Save target time": "Doeltijd opslaan",
   "Save actual time": "Gemeten tijd opslaan",
+  "Your account has been paused. Please contact an administrator.": "Uw account is gepauzeerd. Neem contact op met de beheerder.",
+  "User Management & Monitoring": "Gebruikersbeheer & Monitoring",
+  "Pause Account": "Account pauzeren",
+  "Unpause Account": "Account hervatten",
+  "Email Address": "E-mailadres",
+  "Module Access": "Module toegang",
+  "Last Login": "Laatst ingelogd",
+  "Account Status": "Account status",
+  "Paused": "Gepauzeerd",
+  "Never": "Nooit",
+  "Total Users": "Totaal gebruikers",
+  "Active Users": "Actieve gebruikers",
+  "Paused Accounts": "Gepauzeerde accounts",
+  "Total Permissions": "Totaal permissies",
+  "Search users...": "Zoek gebruikers...",
 };
 
 

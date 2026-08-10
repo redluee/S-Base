@@ -6,6 +6,8 @@ export const users = sqliteTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").unique(),
   pswdHash: text("pswd_hash").notNull(),
+  lastLoginAt: text("last_login_at"),
+  isPaused: integer("is_paused", { mode: "number" }).notNull().default(0),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 

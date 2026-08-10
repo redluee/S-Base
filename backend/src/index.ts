@@ -6,6 +6,7 @@ import { WorkoutService } from "./modules/workout";
 import { MeasurementService } from "./modules/measurements";
 import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
+import { PulseService } from "./modules/pulse";
 import db from "./db/client";
 import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
@@ -19,6 +20,7 @@ const workout = new WorkoutService();
 const measurements = new MeasurementService();
 const wineService = new WineService();
 const cashflow = new CashflowService();
+const pulse = new PulseService();
 
 function createAuthPlugin(moduleName: string) {
   return new Elysia({ name: `auth-${moduleName}` })
@@ -51,6 +53,7 @@ const recipeAuth = createAuthPlugin("recipes");
 const workoutAuth = createAuthPlugin("workout");
 const measurementsAuth = workoutAuth;
 const cashflowAuth = createAuthPlugin("cashflow");
+const pulseAuth = createAuthPlugin("pulse");
 
 const app = new Elysia()
   .use(cors({ origin: true, credentials: true }))
@@ -74,6 +77,18 @@ const app = new Elysia()
     }
     const result = await auth.verifyCredentials(username, password);
     if (!result.ok) {
+      if (result.reason === "account_paused") {
+        return new Response(
+          JSON.stringify({
+            error: "account_paused",
+            message: "Uw account is gepauzeerd. Neem contact op met de beheerder.",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
       const status = result.reason === "invalid_input" ? 400 : 401;
       return new Response(JSON.stringify({ error: result.reason }), {
         status,
@@ -85,7 +100,7 @@ const app = new Elysia()
     const isSecure = process.env.NODE_ENV === "production";
     session_id?.set({ value: sessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
 
-    return { user: { id: result.userId, username, email: result.email } };
+    return { user: { id: result.userId, username, email: result.email, modules: auth.getUserModules(result.userId) } };
   })
 
   .post("/api/auth/cf-login", ({ body, request }) => {
@@ -112,10 +127,24 @@ const app = new Elysia()
       });
     }
 
+    if (user.isPaused === 1) {
+      return new Response(
+        JSON.stringify({
+          error: "account_paused",
+          message: "Uw account is gepauzeerd. Neem contact op met de beheerder.",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    auth.logLastLogin(user.userId);
     const sessionId = auth.createSession(user.userId);
     const isSecure = process.env.NODE_ENV === "production";
     const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
-    return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email } }), {
+    return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email, modules: auth.getUserModules(user.userId) } }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -146,40 +175,40 @@ const app = new Elysia()
         headers: { "Content-Type": "application/json" },
       });
     }
-    return { user: { id: user.userId, username: user.username, email: user.email } };
+    return { user: { id: user.userId, username: user.username, email: user.email, modules: auth.getUserModules(user.userId) } };
   })
 
   // --- Ingredient routes ---
-  .get("/api/ingredients/search", ({ query }) => {
-    const q = query?.q as string | undefined;
-    if (!q || q.length < 1) return [];
-    return recipes.ingredientSearch(q);
-  })
+  .group("/api/ingredients", (app) =>
+    app
+      .use(recipeAuth)
+      .get("/search", ({ query }) => {
+        const q = query?.q as string | undefined;
+        if (!q || q.length < 1) return [];
+        return recipes.ingredientSearch(q);
+      })
+  )
 
-  // --- Recipe GET routes ---
-  .get("/api/recipes", ({ query }) => {
-    const status = query?.status as string | undefined;
-    const sortBy = query?.sortBy as string | undefined;
-    const sortOrder = query?.sortOrder as string | undefined;
-    const q = query?.q as string | undefined;
-    if (q) return recipes.search(q, status, sortBy, sortOrder);
-    return recipes.list(status, sortBy, sortOrder);
-  })
-
-  .get("/api/recipes/suggest", ({ query }) => {
-    const q = query?.q as string | undefined;
-    if (!q || q.length < 1) return [];
-    return recipes.suggest(q);
-  })
-
-  .get("/api/recipes/:id", ({ params: { id } }) => {
-    return recipes.getById(Number(id));
-  })
-
-  // --- Recipe Mutating routes ---
+  // --- Recipe routes ---
   .group("/api/recipes", (app) =>
     app
       .use(recipeAuth)
+      .get("/", ({ query }) => {
+        const status = query?.status as string | undefined;
+        const sortBy = query?.sortBy as string | undefined;
+        const sortOrder = query?.sortOrder as string | undefined;
+        const q = query?.q as string | undefined;
+        if (q) return recipes.search(q, status, sortBy, sortOrder);
+        return recipes.list(status, sortBy, sortOrder);
+      })
+      .get("/suggest", ({ query }) => {
+        const q = query?.q as string | undefined;
+        if (!q || q.length < 1) return [];
+        return recipes.suggest(q);
+      })
+      .get("/:id", ({ params: { id } }) => {
+        return recipes.getById(Number(id));
+      })
       .post("/", async ({ body }) => recipes.create(body as any))
       .put("/:id", async ({ params: { id }, body }) => recipes.update(Number(id), body as any))
       .delete("/:id", ({ params: { id } }) => recipes.remove(Number(id)))
@@ -363,7 +392,14 @@ const app = new Elysia()
   )
 
   // Serve uploads
-  .get("/api/uploads/:filename", async ({ params: { filename } }) => {
+  .get("/api/uploads/:filename", async ({ params: { filename }, cookie: { session_id } }) => {
+    const sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (!sid || !auth.validateSession(sid)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const filePath = join(import.meta.dir, "../uploads", filename);
     const file = Bun.file(filePath);
     if (await file.exists()) {
@@ -455,6 +491,33 @@ const app = new Elysia()
         return inv;
       })
       .get("/dashboard", ({ userId, query }) => cashflow.getDashboardStats(userId, (query as any)?.year ? Number((query as any).year) : undefined))
+  )
+
+  // --- Pulse Admin / Monitoring routes ---
+  .group("/api/pulse", (app) =>
+    app
+      .use(pulseAuth)
+      .get("/users", () => pulse.listUsers())
+      .get("/modules", () => pulse.listModules())
+      .get("/stats", () => pulse.getStats())
+      .put("/users/:id/email", ({ params: { id }, body }) => {
+        const { email } = (body ?? {}) as { email?: string | null };
+        const u = pulse.updateEmail(Number(id), email ?? null);
+        if (!u) return new Response("Not Found", { status: 404 });
+        return u;
+      })
+      .put("/users/:id/status", ({ params: { id }, body }) => {
+        const { isPaused } = (body ?? {}) as { isPaused?: number | boolean };
+        const u = pulse.updateStatus(Number(id), isPaused ? 1 : 0);
+        if (!u) return new Response("Not Found", { status: 404 });
+        return u;
+      })
+      .put("/users/:id/modules", ({ params: { id }, body }) => {
+        const { modules } = (body ?? {}) as { modules?: string[] };
+        const u = pulse.updateModules(Number(id), Array.isArray(modules) ? modules : []);
+        if (!u) return new Response("Not Found", { status: 404 });
+        return u;
+      })
   )
 
   .listen({ port: PORT, hostname: "0.0.0.0" });
