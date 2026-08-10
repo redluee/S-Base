@@ -6,5 +6,5 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
 
-  return <DashboardClient username={user.username} />;
+  return <DashboardClient username={user.username} userModules={user.modules} />;
 }

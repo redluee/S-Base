@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { t } from "@/lib/lang";
 import { compressImage } from "@/lib/image";
+import { api } from "@/lib/api";
+import type { WorkoutSession } from "@backend/types/shared";
+import { RunningWorkoutCard } from "@/components/running-workout-card";
 import {
   Dumbbell,
   ChefHat,
@@ -17,25 +20,41 @@ import {
   RotateCcw,
   Image as ImageIcon,
   Sliders,
+  Activity,
 } from "lucide-react";
 
 const DEFAULT_BG = "/karp-350.jpg";
 const DEFAULT_BLUR = 5;
 const DEFAULT_BRIGHTNESS = 80;
 
-export function DashboardClient({ username }: { username: string }) {
+export function DashboardClient({
+  username,
+  userModules,
+}: {
+  username: string;
+  userModules?: string[];
+}) {
   const [blur, setBlur] = useState<number>(DEFAULT_BLUR);
   const [brightness, setBrightness] = useState<number>(DEFAULT_BRIGHTNESS);
   const [bgImage, setBgImage] = useState<string>(DEFAULT_BG);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [runningSession, setRunningSession] = useState<WorkoutSession | null>(null);
+
+  useEffect(() => {
+    api.workouts.sessions.list("active").then((sessions) => {
+      if (sessions && sessions.length > 0) {
+        setRunningSession(sessions[0]);
+      }
+    }).catch(() => {});
+  }, []);
 
   const storageKey = `sbase_dashboard_bg_${username.toLowerCase().trim() || "default"}`;
 
-  const isSpecialUser =
-    username.toLowerCase() === "dèmi" ||
-    username.toLowerCase() === "demi" ||
-    username.toLowerCase() === "admin";
+  const hasModule = (moduleName: string): boolean => {
+    if (!Array.isArray(userModules)) return false;
+    return userModules.includes(moduleName);
+  };
   // Load saved background settings from localStorage per user
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -137,114 +156,158 @@ export function DashboardClient({ username }: { username: string }) {
         </p>
       </section>
 
+      {/* Running Workout Banner */}
+      {runningSession && (
+        <div className="w-full max-w-3xl mb-6 relative z-10 animate-in fade-in slide-in-from-top-4 duration-300">
+          <RunningWorkoutCard session={runningSession} compact onDiscard={() => setRunningSession(null)} />
+        </div>
+      )}
+
       {/* Cards Grid */}
       <nav className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-3xl mb-16 relative z-10">
         {/* Workout Studio Card */}
-        <Link
-          href="/workouts"
-          className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-teal-950/40 via-zinc-900/80 to-emerald-950/30 backdrop-blur-md border border-white/10 hover:border-brand/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(0,227,164,0.25)]"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-          <div className="flex items-center gap-3.5 relative z-10">
-            <div className="size-11 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,227,164,0.4)] group-hover:scale-110 transition-transform duration-300">
-              <Dumbbell className="size-5" />
+        {hasModule("workout") && (
+          <Link
+            href="/workouts"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-teal-950/40 via-zinc-900/80 to-emerald-950/30 backdrop-blur-md border border-white/10 hover:border-brand/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(0,227,164,0.25)]"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="flex items-center gap-3.5 relative z-10">
+              <div className="size-11 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,227,164,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <Dumbbell className="size-5" />
+              </div>
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-brand transition-colors">
+                {t("Workout Studio")}
+              </h2>
             </div>
-            <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-brand transition-colors">
-              {t("Workout Studio")}
-            </h2>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-brand font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-            <span>{t("Start training")}</span>
-            <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-          </div>
-        </Link>
+            <div className="flex items-center gap-1.5 text-xs text-brand font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+              <span>{t("Start training")}</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+            </div>
+          </Link>
+        )}
 
         {/* Taste Tracker Card */}
-        <Link
-          href="/recipes"
-          className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-zinc-900/80 to-orange-950/30 backdrop-blur-md border border-white/10 hover:border-amber-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(245,158,11,0.25)]"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-          <div className="flex items-center gap-3.5 relative z-10">
-            <div className="size-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.4)] group-hover:scale-110 transition-transform duration-300">
-              <ChefHat className="size-5" />
+        {hasModule("recipes") && (
+          <Link
+            href="/recipes"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-zinc-900/80 to-orange-950/30 backdrop-blur-md border border-white/10 hover:border-amber-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(245,158,11,0.25)]"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="flex items-center gap-3.5 relative z-10">
+              <div className="size-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <ChefHat className="size-5" />
+              </div>
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-amber-400 transition-colors">
+                {t("Taste tracker")}
+              </h2>
             </div>
-            <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-amber-400 transition-colors">
-              {t("Taste tracker")}
-            </h2>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-            <span>{t("Recipes and wines")}</span>
-            <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-          </div>
-        </Link>
+            <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+              <span>{t("Recipes and wines")}</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+            </div>
+          </Link>
+        )}
 
         {/* Cashflow Card */}
-        <Link
-          href="/cashflow"
-          className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(59,130,246,0.25)]"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-          <div className="flex items-center gap-3.5 relative z-10">
-            <div className="size-11 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-300">
-              <Banknote className="size-5" />
+        {hasModule("cashflow") && (
+          <Link
+            href="/cashflow"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(59,130,246,0.25)]"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="flex items-center gap-3.5 relative z-10">
+              <div className="size-11 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <Banknote className="size-5" />
+              </div>
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-blue-400 transition-colors">
+                {t("Cashflow")}
+              </h2>
             </div>
-            <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-blue-400 transition-colors">
-              {t("Cashflow")}
-            </h2>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-            <span>{t("Facturatie")}</span>
-            <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-          </div>
-        </Link>
+            <div className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+              <span>{t("Facturatie")}</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+            </div>
+          </Link>
+        )}
 
-        {isSpecialUser && (
-          <>
+        {/* Combined Lyric Quotes & You Modules Card */}
+        {(hasModule("lyric_quotes") || hasModule("you")) && (
+          <div
+            className={`grid gap-3 ${
+              hasModule("lyric_quotes") && hasModule("you")
+                ? "grid-cols-1 sm:grid-cols-[1.5fr_1fr]"
+                : "grid-cols-1"
+            }`}
+          >
             {/* Lyric Quotes Card */}
-            <a
-              href="https://stevenheijn.nl/lyric_quotes/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-violet-950/40 via-zinc-900/80 to-purple-950/30 backdrop-blur-md border border-white/10 hover:border-violet-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(139,92,246,0.25)]"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-              <div className="flex items-center gap-3.5 relative z-10">
-                <div className="size-11 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300">
-                  <Music className="size-5" />
+            {hasModule("lyric_quotes") && (
+              <a
+                href="https://stevenheijn.nl/lyric_quotes/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex flex-row items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-950/40 via-zinc-900/80 to-purple-950/30 backdrop-blur-md border border-white/10 hover:border-violet-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(139,92,246,0.25)] h-full min-w-0"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 min-w-0">
+                  <div className="size-9 sm:size-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300">
+                    <Music className="size-4 sm:size-5" />
+                  </div>
+                  <h2 className="font-display font-black text-base sm:text-lg text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors whitespace-nowrap">
+                    {t("Lyric Quotes")}
+                  </h2>
                 </div>
-                <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors">
-                  {t("Lyric Quotes")}
-                </h2>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-violet-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-                <span>{t("Bekijk quotes")}</span>
-                <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-              </div>
-            </a>
+                <div className="flex items-center gap-1 text-xs text-violet-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1.5">
+                  <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+                </div>
+              </a>
+            )}
 
             {/* Voor Jou Card */}
-            <a
-              href="https://stevenheijn.nl/you"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-rose-950/40 via-zinc-900/80 to-pink-950/30 backdrop-blur-md border border-white/10 hover:border-rose-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(244,63,94,0.25)]"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-              <div className="flex items-center gap-3.5 relative z-10">
-                <div className="size-11 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300">
-                  <Heart className="size-5" />
+            {hasModule("you") && (
+              <a
+                href="https://stevenheijn.nl/you"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex flex-row items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-zinc-900/80 to-pink-950/30 backdrop-blur-md border border-white/10 hover:border-rose-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(244,63,94,0.25)] h-full min-w-0"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 min-w-0">
+                  <div className="size-9 sm:size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300">
+                    <Heart className="size-4 sm:size-5" />
+                  </div>
+                  <h2 className="font-display font-black text-base sm:text-lg text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors whitespace-nowrap">
+                    {t("You")}
+                  </h2>
                 </div>
-                <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors">
-                  {t("You")}
-                </h2>
+                <div className="flex items-center gap-1 text-xs text-rose-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1.5">
+                  <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+                </div>
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Pulse Card */}
+        {hasModule("pulse") && (
+          <Link
+            href="/pulse"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-red-950/40 via-zinc-900/80 to-rose-950/30 backdrop-blur-md border border-white/10 hover:border-red-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(239,68,68,0.25)]"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="flex items-center gap-3.5 relative z-10">
+              <div className="size-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(239,68,68,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <Activity className="size-5" />
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-rose-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-                <span>{t("Poems for each other")}</span>
-                <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-              </div>
-            </a>
-          </>
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-red-400 transition-colors">
+                Pulse
+              </h2>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-red-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+              <span>{t("Monitoring")}</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+            </div>
+          </Link>
         )}
       </nav>
 
