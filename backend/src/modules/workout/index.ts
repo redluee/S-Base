@@ -217,7 +217,7 @@ export class WorkoutService {
   }
 
   listSessions(userId: number, status?: string, q?: string) {
-    this.cleanupEmptySessions(userId, 0);
+    this.cleanupEmptySessions(userId, 12 * 3600);
     const conditions = [eq(workoutSessions.userId, userId)];
 
     if (status === "active") {
@@ -234,7 +234,9 @@ export class WorkoutService {
       completedAt: workoutSessions.completedAt,
       notes: workoutSessions.notes,
       name: workoutSessions.name,
-      exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`
+      exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`,
+      completedSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id AND session_sets.completed = 1)`,
+      totalSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id)`
     })
     .from(workoutSessions)
     .where(and(...conditions))
@@ -851,7 +853,7 @@ export class WorkoutService {
   }
 
   listUniqueExercises(userId: number) {
-    this.cleanupEmptySessions(userId, 0);
+    this.cleanupEmptySessions(userId, 12 * 3600);
     const fromTemplates = db.select({ name: templateExercises.exerciseName, equipment: templateExercises.equipment })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
@@ -893,7 +895,7 @@ export class WorkoutService {
   }
 
   getStats(userId: number) {
-    this.cleanupEmptySessions(userId, 0);
+    this.cleanupEmptySessions(userId, 12 * 3600);
     const lastSession = db.select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.userId, userId), sql`${workoutSessions.completedAt} IS NOT NULL`))
@@ -944,7 +946,7 @@ export class WorkoutService {
     };
   }
 
-  cleanupEmptySessions(userId: number, minAgeSeconds: number = 0) {
+  cleanupEmptySessions(userId: number, minAgeSeconds: number = 12 * 3600) {
     const activeSessions = db.select({
       sessionId: workoutSessions.sessionId,
       startedAt: workoutSessions.startedAt,

@@ -130,6 +130,16 @@ export function WorkoutSessionLive({
   const createSession = useCallback(async () => {
     setLoading(true);
     try {
+      const activeSessions = await api.workouts.sessions.list("active");
+      if (activeSessions && activeSessions.length > 0) {
+        const active = activeSessions[0];
+        const fullActive = await api.workouts.sessions.get(active.sessionId);
+        if (fullActive) {
+          setSession(fullActive);
+          router.replace(`/workouts/session/${fullActive.sessionId}`);
+          return;
+        }
+      }
       const s = await api.workouts.sessions.create();
       setSession(s);
       router.replace(`/workouts/session/${s.sessionId}`);

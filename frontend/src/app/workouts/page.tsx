@@ -6,16 +6,21 @@ import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
 import { MotivationalQuote } from "@/components/motivational-quote";
 import { WorkoutSubnav } from "@/components/workout-subnav";
+import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { t } from "@/lib/lang";
 
 export default async function WorkoutsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
+  if (!user.modules?.includes("workout")) redirect("/dashboard");
 
-  const [templates, stats] = await Promise.all([
+  const [templates, stats, activeSessions] = await Promise.all([
     serverApi.workouts.templates.list(),
-    serverApi.workouts.stats()
+    serverApi.workouts.stats(),
+    serverApi.workouts.sessions.list("active")
   ]);
+
+  const runningSession = activeSessions?.[0] ?? null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -27,6 +32,13 @@ export default async function WorkoutsPage() {
           </h1>
           <WorkoutSubnav current="workouts" />
         </div>
+
+        {/* Running Workout Banner */}
+        {runningSession && (
+          <div className="mb-6">
+            <RunningWorkoutCard session={runningSession} />
+          </div>
+        )}
 
         {/* Stats Dashboard */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
