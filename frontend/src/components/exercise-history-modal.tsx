@@ -84,16 +84,62 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
               const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
               const totalVolume = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+              const totalReps = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.reps ?? 0), 0);
+              const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
+              const totalDuration = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.duration ?? 0), 0);
+              const maxDuration = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.duration ?? 0), 0);
+
+              const statMode: "weight" | "reps" | "time" =
+                maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+
+              const formatSec = (totalSec: number) => {
+                const min = Math.floor(totalSec / 60);
+                const sec = totalSec % 60;
+                if (min === 0) return `${sec}s`;
+                return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
+              };
+
+              const topValueText =
+                statMode === "weight"
+                  ? `${maxWeight} kg`
+                  : statMode === "reps"
+                  ? `${maxReps} reps`
+                  : maxDuration > 0
+                  ? formatSec(maxDuration)
+                  : "-";
+
+              const topLabel =
+                statMode === "weight"
+                  ? t("Best set")
+                  : statMode === "reps"
+                  ? t("Max reps")
+                  : t("Max duration");
+
+              const totalValueText =
+                statMode === "weight"
+                  ? `${totalVolume} kg`
+                  : statMode === "reps"
+                  ? `${totalReps} reps`
+                  : totalDuration > 0
+                  ? formatSec(totalDuration)
+                  : "-";
+
+              const totalLabel =
+                statMode === "weight"
+                  ? t("Total volume")
+                  : statMode === "reps"
+                  ? t("Total reps")
+                  : t("Total duration");
 
               return (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl text-center">
-                    <div className="text-xl font-bold text-brand">{maxWeight} kg</div>
-                    <div className="text-[10px] text-muted-foreground uppercase">{t("Best set")}</div>
+                    <div className="text-xl font-bold text-brand">{topValueText}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase">{topLabel}</div>
                   </div>
                   <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl text-center">
-                    <div className="text-xl font-bold text-amber-400">{totalVolume} kg</div>
-                    <div className="text-[10px] text-muted-foreground uppercase">{t("Total volume")}</div>
+                    <div className="text-xl font-bold text-amber-400">{totalValueText}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase">{totalLabel}</div>
                   </div>
                 </div>
               );
@@ -102,17 +148,42 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
             {/* SVG chart */}
             {historyData.sessions.length > 0 && (
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5">
-                <div className="text-[10px] text-muted-foreground mb-2 uppercase">Volume (kg)</div>
+                {(() => {
+                  const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
+                  const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+                  const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
+                  const statMode: "weight" | "reps" | "time" =
+                    maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+
+                  const chartLabel =
+                    statMode === "weight"
+                      ? "Volume (kg)"
+                      : statMode === "reps"
+                      ? "Reps"
+                      : "Tijd (min/sec)";
+
+                  return <div className="text-[10px] text-muted-foreground mb-2 uppercase">{chartLabel}</div>;
+                })()}
                 <svg viewBox="0 0 300 100" className="w-full h-auto" preserveAspectRatio="none">
                   <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
                   {(() => {
-                    const volumes = historyData.sessions.map((s: ProgressSession) =>
-                      s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0),
+                    const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
+                    const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+                    const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
+                    const statMode: "weight" | "reps" | "time" =
+                      maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+
+                    const values = historyData.sessions.map((s: ProgressSession) =>
+                      statMode === "weight"
+                        ? s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0)
+                        : statMode === "reps"
+                        ? s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.reps ?? 0), 0)
+                        : s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.duration ?? 0), 0)
                     );
-                    const maxVol = Math.max(...volumes, 1);
-                    const points = volumes.map((v: number, i: number) => {
+                    const maxVal = Math.max(...values, 1);
+                    const points = values.map((v: number, i: number) => {
                       const x = historyData.sessions.length > 1 ? (i / (historyData.sessions.length - 1)) * 280 + 10 : 150;
-                      const y = 90 - (v / maxVol) * 80;
+                      const y = 90 - (v / maxVal) * 80;
                       return `${x},${y}`;
                     });
 
@@ -126,9 +197,9 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                           strokeLinejoin="round"
                           points={points.join(" ")}
                         />
-                        {volumes.map((v: number, i: number) => {
+                        {values.map((v: number, i: number) => {
                           const x = historyData.sessions.length > 1 ? (i / (historyData.sessions.length - 1)) * 280 + 10 : 150;
-                          const y = 90 - (v / maxVol) * 80;
+                          const y = 90 - (v / maxVal) * 80;
                           return (
                             <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" />
                           );
@@ -144,7 +215,32 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
             <div className="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-1">
               {[...historyData.sessions].reverse().map((sessionItem: ProgressSession, idx: number) => {
                 const date = new Date(sessionItem.startedAt);
+                const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
+                const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+                const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
+                const statMode: "weight" | "reps" | "time" =
+                  maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+
                 const vol = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+                const reps = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.reps ?? 0), 0);
+                const dur = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.duration ?? 0), 0);
+
+                const formatSec = (totalSec: number) => {
+                  const min = Math.floor(totalSec / 60);
+                  const sec = totalSec % 60;
+                  if (min === 0) return `${sec}s`;
+                  return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
+                };
+
+                const sessionBadgeText =
+                  statMode === "weight" && vol > 0
+                    ? `${vol} kg volume`
+                    : statMode === "reps" && reps > 0
+                    ? `${reps} reps`
+                    : statMode === "time" && dur > 0
+                    ? formatSec(dur)
+                    : null;
+
                 return (
                   <div
                     key={idx}
@@ -163,8 +259,8 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                           ({sessionItem.sets.length} sets)
                         </span>
                       </div>
-                      {vol > 0 && (
-                        <span className="font-medium text-brand/90 tabular-nums text-[11px]">{vol} kg volume</span>
+                      {sessionBadgeText && (
+                        <span className="font-medium text-brand/90 tabular-nums text-[11px]">{sessionBadgeText}</span>
                       )}
                     </div>
                     

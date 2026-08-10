@@ -76,8 +76,23 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   });
 
   const allSets = filteredSessions.flatMap((s: WorkoutSession) => s.sets);
-  const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
   const maxWeight = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.weight ?? 0), 0);
+  const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
+  const totalReps = allSets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0);
+  const maxReps = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.reps ?? 0), 0);
+  const totalDuration = allSets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0);
+  const maxDuration = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.duration ?? 0), 0);
+
+  // Determine stat mode: "weight", "reps", or "time"
+  const statMode: "weight" | "reps" | "time" =
+    maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+
+  const formatSeconds = (totalSec: number) => {
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    if (min === 0) return `${sec}s`;
+    return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
+  };
 
   return (
     <div>
@@ -153,15 +168,43 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
       <div className="grid grid-cols-3 gap-3 mb-8">
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
           <div className="text-lg sm:text-2xl font-bold text-brand">
-            {maxWeight > 0 ? `${maxWeight} kg` : "-"}
+            {statMode === "weight"
+              ? `${maxWeight} kg`
+              : statMode === "reps"
+              ? `${maxReps} reps`
+              : maxDuration > 0
+              ? formatSeconds(maxDuration)
+              : "-"}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">{t("Best set")}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {statMode === "weight"
+              ? t("Best set")
+              : statMode === "reps"
+              ? t("Max reps")
+              : t("Max duration")}
+          </div>
         </div>
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
           <div className="text-lg sm:text-2xl font-bold text-amber-400">
-            {totalVolume > 0 ? `${totalVolume}` : "-"}
+            {statMode === "weight"
+              ? totalVolume > 0
+                ? `${totalVolume}`
+                : "-"
+              : statMode === "reps"
+              ? totalReps > 0
+                ? `${totalReps}`
+                : "-"
+              : totalDuration > 0
+              ? formatSeconds(totalDuration)
+              : "-"}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">{t("Total volume")}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {statMode === "weight"
+              ? t("Total volume")
+              : statMode === "reps"
+              ? t("Total reps")
+              : t("Total duration")}
+          </div>
         </div>
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
           <div className="text-lg sm:text-2xl font-bold text-blue-400">
@@ -179,9 +222,15 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
         <div className="space-y-4">
           <h2 className="text-sm font-medium text-muted-foreground">{t("History")}</h2>
 
-          {/* Simple SVG line chart for volume over time */}
+          {/* Simple SVG line chart */}
           <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
-            <div className="text-xs text-muted-foreground mb-3">Volume (kg) per sessie</div>
+            <div className="text-xs text-muted-foreground mb-3">
+              {statMode === "weight"
+                ? "Volume (kg) per sessie"
+                : statMode === "reps"
+                ? "Reps per sessie"
+                : "Tijd (min/sec) per sessie"}
+            </div>
             <svg
               viewBox="0 0 320 130"
               className="w-full h-auto"
@@ -191,14 +240,18 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
               <line x1="40" y1="105" x2="310" y2="105" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
               
               {(() => {
-                const volumes = filteredSessions.map((s: WorkoutSession) =>
-                  s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0),
+                const values = filteredSessions.map((s: WorkoutSession) =>
+                  statMode === "weight"
+                    ? s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0)
+                    : statMode === "reps"
+                    ? s.sets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0)
+                    : s.sets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0)
                 );
-                const maxVol = Math.max(...volumes, 1);
+                const maxVal = Math.max(...values, 1);
                 
-                const points = volumes.map((v: number, i: number) => {
+                const points = values.map((v: number, i: number) => {
                   const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
-                  const y = 105 - (v / maxVol) * 95;
+                  const y = 105 - (v / maxVal) * 95;
                   return `${x},${y}`;
                 });
 
@@ -209,12 +262,18 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
                 };
 
+                const formatYLabel = (val: number) => {
+                  if (statMode === "weight") return `${val} kg`;
+                  if (statMode === "reps") return `${val}`;
+                  return formatSeconds(val);
+                };
+
                 return (
                   <>
                     {/* Y Axis Labels */}
-                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{maxVol} kg</text>
-                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{Math.round(maxVol / 2)} kg</text>
-                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">0 kg</text>
+                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(maxVal)}</text>
+                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(Math.round(maxVal / 2))}</text>
+                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{statMode === "time" ? "0s" : "0"}</text>
 
                     {/* X Axis Labels */}
                     {filteredSessions.length === 1 && (
@@ -237,12 +296,12 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                       points={points.join(" ")}
                     />
                     {/* Plot Dots */}
-                    {volumes.map((v: number, i: number) => {
+                    {values.map((v: number, i: number) => {
                       const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
-                      const y = 105 - (v / maxVol) * 95;
+                      const y = 105 - (v / maxVal) * 95;
                       return (
                         <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" className="hover:r-4 transition-all">
-                          <title>{v} kg</title>
+                          <title>{formatYLabel(v)}</title>
                         </circle>
                       );
                     })}
@@ -255,7 +314,17 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
           {/* Session list */}
           {[...filteredSessions].reverse().map((session: WorkoutSession) => {
             const vol = session.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
+            const reps = session.sets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0);
+            const dur = session.sets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0);
             const date = parseDateString(session.startedAt);
+
+            const sessionBadgeText =
+              statMode === "weight"
+                ? `${vol} kg`
+                : statMode === "reps"
+                ? `${reps} reps`
+                : formatSeconds(dur);
+
             return (
               <Link
                 key={session.sessionId}
@@ -278,7 +347,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     )}
                   </div>
                   <span className="text-xs sm:text-sm font-bold text-brand tabular-nums bg-brand/5 px-2 py-0.5 rounded border border-brand/20">
-                    {vol} kg
+                    {sessionBadgeText}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">

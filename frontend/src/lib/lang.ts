@@ -249,6 +249,8 @@ const nl: Record<string, string> = {
   "seconds": "seconden",
   "sec": "sec",
   "Volume": "Volume",
+  "Total reps": "Totaal herhalingen",
+  "Total duration": "Totale tijdsduur",
   "Oefening": "Oefening",
   "Merge": "Samenvoegen",
   "Merge exercises": "Oefeningen samenvoegen",
