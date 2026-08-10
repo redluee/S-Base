@@ -173,8 +173,8 @@ export function DashboardClient({
           >
             <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,227,164,0.4)] group-hover:scale-110 transition-transform duration-300">
-                <Dumbbell className="size-5" />
+              <div className="size-11 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,227,164,0.4)] group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+                <Dumbbell className="size-5 anim-dumbbell rotate-90" />
               </div>
               <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-brand transition-colors">
                 {t("Workout Studio")}
@@ -195,8 +195,16 @@ export function DashboardClient({
           >
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.4)] group-hover:scale-110 transition-transform duration-300">
-                <ChefHat className="size-5" />
+              <div className="size-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+                <ChefHat className="size-5 anim-hat" />
+                {/* Tomato SVG icon revealed under hat */}
+                <svg className="absolute size-5 anim-tomato opacity-0 pointer-events-none" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5 C12 5 11 2 8 3" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M12 5 C12 5 13 2 16 3" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M12 7 C12 6 12 5 12 4" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx="12" cy="14" r="7" fill="#ef4444"/>
+                  <ellipse cx="9.5" cy="11.5" rx="1.8" ry="1.2" fill="rgba(255,255,255,0.25)" transform="rotate(-20 9.5 11.5)"/>
+                </svg>
               </div>
               <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-amber-400 transition-colors">
                 {t("Taste tracker")}
@@ -217,8 +225,11 @@ export function DashboardClient({
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-300">
-                <Banknote className="size-5" />
+              <div className="size-11 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+                {/* Back bill — hidden until hover */}
+                <Banknote className="size-4.5 absolute anim-bill-back opacity-0 text-blue-300" aria-hidden="true" />
+                {/* Front bill */}
+                <Banknote className="size-5 relative anim-bill-front" />
               </div>
               <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-blue-400 transition-colors">
                 {t("Cashflow")}
@@ -250,8 +261,12 @@ export function DashboardClient({
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
                 <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
-                  <div className="size-8 sm:size-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300">
+                  <div className="size-8 sm:size-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                     <Music className="size-4 sm:size-5" />
+                    {/* Dancing music notes */}
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-1 opacity-0 pointer-events-none select-none" aria-hidden="true">♪</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-2 opacity-0 pointer-events-none select-none" aria-hidden="true">♫</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-3 opacity-0 pointer-events-none select-none" aria-hidden="true">♩</span>
                   </div>
                   <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                     {t("Lyric Quotes")}
@@ -273,8 +288,12 @@ export function DashboardClient({
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
                 <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
-                  <div className="size-8 sm:size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300">
+                  <div className="size-8 sm:size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                     <Heart className="size-4 sm:size-5" />
+                    {/* Floating hearts */}
+                    <Heart className="absolute size-2.5 text-rose-300 anim-heart-1 opacity-0 pointer-events-none" aria-hidden="true" />
+                    <Heart className="absolute size-2 text-pink-400 anim-heart-2 opacity-0 pointer-events-none" aria-hidden="true" />
+                    <Heart className="absolute size-3 text-rose-500 anim-heart-3 opacity-0 pointer-events-none" aria-hidden="true" />
                   </div>
                   <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                     {t("You")}
@@ -296,8 +315,28 @@ export function DashboardClient({
           >
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(239,68,68,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="size-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(239,68,68,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                 <Activity className="size-5" />
+                {/* EKG heartrate SVG overlay */}
+                <svg
+                  viewBox="0 0 60 20"
+                  className="absolute inset-0 w-full h-full p-1.5 pointer-events-none"
+                  aria-hidden="true"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <polyline
+                    className="anim-ekg"
+                    points="0,10 10,10 14,2 18,18 22,2 26,18 30,10 40,10 42,6 44,14 46,10 60,10"
+                    stroke="rgba(239,68,68,0.9)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                    strokeDasharray="120"
+                    strokeDashoffset="120"
+                  />
+                </svg>
               </div>
               <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-red-400 transition-colors">
                 Pulse
