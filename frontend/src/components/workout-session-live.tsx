@@ -535,7 +535,7 @@ export function WorkoutSessionLive({
         set.distance = set.distance ?? defaultDistance;
         set.duration = set.duration ?? defaultDuration;
         set.heartRate = set.heartRate ?? defaultHeartRate;
-      } else if (isTimed || cat === "isometric") {
+      } else if (isTimed) {
         set.duration = set.duration ?? (defaultDuration > 0 ? defaultDuration : null);
         set.weight = set.weight ?? defaultWeight;
       } else {
@@ -776,18 +776,18 @@ export function WorkoutSessionLive({
         updatedSets.push({
           ...existing,
           setNumber: setNum,
-          reps: draft.trackingFields.reps ? (existing.completed ? existing.reps : (numReps ?? existing.reps)) : null,
-          weight: draft.trackingFields.weight ? (existing.completed ? existing.weight : (weightVal ?? existing.weight)) : null,
-          duration: draft.trackingFields.time ? (existing.completed ? existing.duration : (durationSecs ?? existing.duration)) : null,
-          distance: draft.trackingFields.distance ? (existing.completed ? existing.distance : (distVal ?? existing.distance)) : null,
+          reps: draft.trackingFields.reps ? (existing.reps ?? numReps ?? 10) : null,
+          weight: draft.trackingFields.weight ? (existing.weight ?? weightVal) : null,
+          duration: draft.trackingFields.time ? (existing.duration ?? durationSecs) : null,
+          distance: draft.trackingFields.distance ? (existing.distance ?? distVal) : null,
         });
       } else {
         updatedSets.push({
           setNumber: setNum,
-          reps: numReps,
-          weight: weightVal,
-          distance: distVal,
-          duration: durationSecs,
+          reps: draft.trackingFields.reps ? (numReps ?? 10) : null,
+          weight: draft.trackingFields.weight ? weightVal : null,
+          distance: draft.trackingFields.distance ? distVal : null,
+          duration: draft.trackingFields.time ? durationSecs : null,
           rpe: null,
           heartRate: null,
           completed: 0,
@@ -806,6 +806,10 @@ export function WorkoutSessionLive({
       sets: updatedSets,
       templateExercise: {
         ...(targetEx.templateExercise ?? {}),
+        defaultReps: draft.trackingFields.reps ? (numReps ?? 10) : null,
+        defaultDuration: draft.trackingFields.time ? durationSecs : null,
+        defaultWeight: draft.trackingFields.weight ? weightVal : null,
+        defaultDistance: draft.trackingFields.distance ? distVal : null,
         defaultRestTime: defaultRestTimeSecs,
         perSide: draft.perSide ? 1 : 0,
       },

@@ -852,6 +852,135 @@ export class WorkoutService {
     };
   }
 
+  mergeExercises(userId: number, sourceName: string, targetName: string) {
+    const sName = sourceName ? sourceName.trim() : "";
+    const tName = targetName ? targetName.trim() : "";
+
+    if (!sName || !tName) {
+      throw new Error("Source and target exercise names are required");
+    }
+    if (sName === tName) {
+      throw new Error("Source and target exercise names must be different");
+    }
+
+    // 1. Update template_exercises
+    db.update(templateExercises)
+      .set({ exerciseName: tName })
+      .where(and(
+        sql`LOWER(${templateExercises.exerciseName}) = LOWER(${sName})`,
+        sql`${templateExercises.templateId} IN (SELECT template_id FROM workout_templates WHERE user_id = ${userId})`
+      ))
+      .run();
+
+    // Consolidate duplicate template exercises within same template if any exist
+    const userTemplateIds = db.select({ templateId: workoutTemplates.templateId })
+      .from(workoutTemplates)
+      .where(eq(workoutTemplates.userId, userId))
+      .all()
+      .map(t => t.templateId);
+
+    for (const tid of userTemplateIds) {
+      const texs = db.select()
+        .from(templateExercises)
+        .where(and(
+          eq(templateExercises.templateId, tid),
+          sql`LOWER(${templateExercises.exerciseName}) = LOWER(${tName})`
+        ))
+        .orderBy(templateExercises.templateExerciseId)
+        .all();
+
+      if (texs.length > 1) {
+        const primary = texs[0];
+        if (primary.exerciseName !== tName) {
+          db.update(templateExercises)
+            .set({ exerciseName: tName })
+            .where(eq(templateExercises.templateExerciseId, primary.templateExerciseId))
+            .run();
+        }
+        for (let i = 1; i < texs.length; i++) {
+          db.delete(templateExercises)
+            .where(eq(templateExercises.templateExerciseId, texs[i].templateExerciseId))
+            .run();
+        }
+      }
+    }
+
+    // 2. Update session_exercises
+    db.update(sessionExercises)
+      .set({ exerciseName: tName })
+      .where(and(
+        sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${sName})`,
+        sql`${sessionExercises.sessionId} IN (SELECT session_id FROM workout_sessions WHERE user_id = ${userId})`
+      ))
+      .run();
+
+    // 3. Consolidate duplicate session exercises within same session if any exist
+    const userSessionIds = db.select({ sessionId: workoutSessions.sessionId })
+      .from(workoutSessions)
+      .where(eq(workoutSessions.userId, userId))
+      .all()
+      .map(s => s.sessionId);
+
+    for (const sid of userSessionIds) {
+      const sexs = db.select()
+        .from(sessionExercises)
+        .where(and(
+          eq(sessionExercises.sessionId, sid),
+          sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${tName})`
+        ))
+        .orderBy(sessionExercises.sessionExerciseId)
+        .all();
+
+      if (sexs.length > 1) {
+        const primary = sexs[0];
+        if (primary.exerciseName !== tName) {
+          db.update(sessionExercises)
+            .set({ exerciseName: tName })
+            .where(eq(sessionExercises.sessionExerciseId, primary.sessionExerciseId))
+            .run();
+        }
+
+        for (let i = 1; i < sexs.length; i++) {
+          const duplicate = sexs[i];
+          const primarySets = db.select()
+            .from(sessionSets)
+            .where(eq(sessionSets.sessionExerciseId, primary.sessionExerciseId))
+            .orderBy(sessionSets.setNumber)
+            .all();
+
+          const maxSetNum = primarySets.length > 0 ? Math.max(...primarySets.map(s => s.setNumber)) : 0;
+
+          const dupSets = db.select()
+            .from(sessionSets)
+            .where(eq(sessionSets.sessionExerciseId, duplicate.sessionExerciseId))
+            .orderBy(sessionSets.setNumber)
+            .all();
+
+          for (let j = 0; j < dupSets.length; j++) {
+            const setItem = dupSets[j];
+            db.update(sessionSets)
+              .set({
+                sessionExerciseId: primary.sessionExerciseId,
+                setNumber: maxSetNum + j + 1,
+              })
+              .where(eq(sessionSets.setId, setItem.setId))
+              .run();
+          }
+
+          db.delete(sessionExercises)
+            .where(eq(sessionExercises.sessionExerciseId, duplicate.sessionExerciseId))
+            .run();
+        }
+      }
+    }
+
+    return {
+      success: true,
+      sourceName: sName,
+      targetName: tName,
+    };
+  }
+
   listUniqueExercises(userId: number) {
     this.cleanupEmptySessions(userId, 12 * 3600);
     const fromTemplates = db.select({ name: templateExercises.exerciseName, equipment: templateExercises.equipment })

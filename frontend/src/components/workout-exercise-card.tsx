@@ -100,16 +100,24 @@ export function normalizeCategory(cat: string | null | undefined): "resistance" 
 }
 
 export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
-  const cat = normalizeCategory(ex.category);
-  if (cat === "isometric" || cat === "cardio") return true;
-  const firstPrevSet = previousSetsMap?.[ex.exerciseName]?.[0];
+  const hasCurrentRepsSets = ex.sets?.some((s) => s.reps != null && s.reps > 0);
+  const hasCurrentTimeSets = ex.sets?.some((s) => s.duration != null && s.duration > 0);
+
+  if (hasCurrentRepsSets && !hasCurrentTimeSets) return false;
+  if (hasCurrentTimeSets && !hasCurrentRepsSets) return true;
+
+  if (ex.templateExercise?.defaultReps != null && ex.templateExercise.defaultReps > 0 && (ex.templateExercise.defaultDuration == null || ex.templateExercise.defaultDuration === 0)) {
+    return false;
+  }
   if (ex.templateExercise?.defaultDuration != null && ex.templateExercise.defaultDuration > 0) {
     return true;
   }
+
+  const cat = normalizeCategory(ex.category);
+  if (cat === "isometric" || cat === "cardio") return true;
+
+  const firstPrevSet = previousSetsMap?.[ex.exerciseName]?.[0];
   if (firstPrevSet?.duration != null && firstPrevSet.duration > 0) {
-    return true;
-  }
-  if (ex.sets?.some((s) => s.duration != null && s.duration > 0)) {
     return true;
   }
   return false;
@@ -713,31 +721,47 @@ export function WorkoutExerciseCard({
                             />
                           </td>
                           <td className="py-2 px-2 align-middle">
-                            <div className="relative flex items-center justify-center">
+                            {isTimed ? (
+                              <div className="relative flex items-center justify-center">
+                                <AutoSaveInput
+                                  type="text"
+                                  placeholder="MM:SS"
+                                  value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                  onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
+                                    onStartRepTimer ? "pr-7" : ""
+                                  } ${
+                                    isZero
+                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
+                                      : "border-border/80 focus-visible:border-brand/40"
+                                  }`}
+                                />
+                                {onStartRepTimer && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
+                                    className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
+                                    title={t("Start Timer")}
+                                  >
+                                    <Timer className="size-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
                               <AutoSaveInput
-                                type="text"
-                                placeholder="MM:SS"
-                                value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
-                                onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                placeholder="0"
+                                value={set.reps ?? targetSource?.reps ?? null}
+                                onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                                 className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                  onStartRepTimer ? "pr-7" : ""
-                                } ${
                                   isZero
                                     ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
                                     : "border-border/80 focus-visible:border-brand/40"
                                 }`}
                               />
-                              {onStartRepTimer && (
-                                <button
-                                  type="button"
-                                  onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
-                                  className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
-                                  title={t("Start Timer")}
-                                >
-                                  <Timer className="size-3.5" />
-                                </button>
-                              )}
-                            </div>
+                            )}
                           </td>
                         </>
                       )}

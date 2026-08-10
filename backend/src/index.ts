@@ -345,6 +345,23 @@ const app = new Elysia()
       .get("/exercises/:name/progress", ({ params: { name }, query, userId }) => {
         return workout.exerciseProgress(userId, decodeURIComponent(name), query?.equipment as string | undefined);
       })
+      .post("/exercises/merge", async ({ body, userId }) => {
+        const { sourceName, targetName } = (body || {}) as { sourceName: string; targetName: string };
+        if (!sourceName || !targetName) {
+          return new Response(JSON.stringify({ error: "Source and target exercise names are required" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        try {
+          return workout.mergeExercises(userId, sourceName, targetName);
+        } catch (err: any) {
+          return new Response(JSON.stringify({ error: err.message || "Failed to merge exercises" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      })
   )
   
   // --- Measurements routes ---

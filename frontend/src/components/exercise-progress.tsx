@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { t } from "@/lib/lang";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, GitMerge } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ExerciseMergeModal } from "@/components/exercise-merge-modal";
 
 interface SetItem {
   setNumber: number;
@@ -38,6 +40,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
   const initialEquipment = searchParams.get("equipment") || "all";
   const [selectedEquipment, setSelectedEquipment] = useState<string>(initialEquipment);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
 
   // Extract all unique equipment options present in availableEquipments or sessions
   const availableEquipments = Array.from(
@@ -87,9 +90,20 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
       </Link>
 
       <div className="flex flex-col gap-4 mb-6">
-        <h1 className="font-display text-2xl sm:text-3xl text-foreground">
-          {exerciseName}
-        </h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground">
+            {exerciseName}
+          </h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMergeModalOpen(true)}
+            className="gap-1.5 cursor-pointer shrink-0"
+          >
+            <GitMerge className="size-4 text-brand" />
+            <span>{t("Merge")}</span>
+          </Button>
+        </div>
 
         {/* Material / Equipment Filter Tabs */}
         {showMaterialTabs && (
@@ -308,6 +322,16 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
           })}
         </div>
       )}
+
+      <ExerciseMergeModal
+        isOpen={isMergeModalOpen}
+        onClose={() => setIsMergeModalOpen(false)}
+        sourceName={exerciseName}
+        onSuccess={(targetName) => {
+          router.push(`/workouts/exercises/${encodeURIComponent(targetName)}`);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

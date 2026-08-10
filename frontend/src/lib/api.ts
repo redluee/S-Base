@@ -263,6 +263,12 @@ export const api = {
             equipment ? `?equipment=${encodeURIComponent(equipment)}` : ""
           }`,
         ),
+
+      merge: (sourceName: string, targetName: string) =>
+        request<{ success: boolean; sourceName: string; targetName: string }>("/workouts/exercises/merge", {
+          method: "POST",
+          body: JSON.stringify({ sourceName, targetName }),
+        }),
     },
     suggest: (q: string) =>
       request<{
