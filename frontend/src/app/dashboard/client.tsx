@@ -234,9 +234,9 @@ export function DashboardClient({
         {/* Combined Lyric Quotes & You Modules Card */}
         {(hasModule("lyric_quotes") || hasModule("you")) && (
           <div
-            className={`grid gap-3 ${
+            className={`grid gap-2.5 sm:gap-3 ${
               hasModule("lyric_quotes") && hasModule("you")
-                ? "grid-cols-1 sm:grid-cols-[1.5fr_1fr]"
+                ? "grid-cols-[1.5fr_1fr]"
                 : "grid-cols-1"
             }`}
           >
@@ -246,18 +246,18 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/lyric_quotes/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-row items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-950/40 via-zinc-900/80 to-purple-950/30 backdrop-blur-md border border-white/10 hover:border-violet-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(139,92,246,0.25)] h-full min-w-0"
+                className="group relative flex flex-row items-center justify-between p-2.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-950/40 via-zinc-900/80 to-purple-950/30 backdrop-blur-md border border-white/10 hover:border-violet-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(139,92,246,0.25)] h-full min-w-0"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-                <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 min-w-0">
-                  <div className="size-9 sm:size-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
+                  <div className="size-8 sm:size-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300">
                     <Music className="size-4 sm:size-5" />
                   </div>
-                  <h2 className="font-display font-black text-base sm:text-lg text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors whitespace-nowrap">
+                  <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                     {t("Lyric Quotes")}
                   </h2>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-violet-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1.5">
+                <div className="flex items-center gap-1 text-xs text-violet-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
                   <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
                 </div>
               </a>
@@ -269,18 +269,18 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/you"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-row items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-zinc-900/80 to-pink-950/30 backdrop-blur-md border border-white/10 hover:border-rose-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(244,63,94,0.25)] h-full min-w-0"
+                className="group relative flex flex-row items-center justify-between p-2.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-zinc-900/80 to-pink-950/30 backdrop-blur-md border border-white/10 hover:border-rose-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(244,63,94,0.25)] h-full min-w-0"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-                <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 min-w-0">
-                  <div className="size-9 sm:size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
+                  <div className="size-8 sm:size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300">
                     <Heart className="size-4 sm:size-5" />
                   </div>
-                  <h2 className="font-display font-black text-base sm:text-lg text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors whitespace-nowrap">
+                  <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                     {t("You")}
                   </h2>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-rose-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1.5">
+                <div className="flex items-center gap-1 text-xs text-rose-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
                   <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
                 </div>
               </a>
