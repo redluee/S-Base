@@ -983,12 +983,20 @@ export class WorkoutService {
 
   listUniqueExercises(userId: number) {
     this.cleanupEmptySessions(userId, 12 * 3600);
-    const fromTemplates = db.select({ name: templateExercises.exerciseName, equipment: templateExercises.equipment })
+    const fromTemplates = db.select({
+      name: templateExercises.exerciseName,
+      equipment: templateExercises.equipment,
+      category: templateExercises.category,
+    })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
       .where(eq(workoutTemplates.userId, userId))
       .all();
-    const fromSessions = db.select({ name: sessionExercises.exerciseName, equipment: sessionExercises.equipment })
+    const fromSessions = db.select({
+      name: sessionExercises.exerciseName,
+      equipment: sessionExercises.equipment,
+      category: sessionExercises.category,
+    })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
       .where(and(
@@ -997,26 +1005,33 @@ export class WorkoutService {
       ))
       .all();
 
-    const map = new Map<string, Set<string>>();
+    const map = new Map<string, { eqSet: Set<string>; catSet: Set<string> }>();
 
     for (const r of [...fromTemplates, ...fromSessions]) {
       if (r.name) {
         if (!map.has(r.name)) {
-          map.set(r.name, new Set());
+          map.set(r.name, { eqSet: new Set(), catSet: new Set() });
         }
+        const entry = map.get(r.name)!;
         if (r.equipment && r.equipment !== "none" && r.equipment !== "null" && r.equipment !== "undefined") {
-          map.get(r.name)!.add(r.equipment);
+          entry.eqSet.add(r.equipment);
+        }
+        if (r.category && r.category !== "null" && r.category !== "undefined") {
+          entry.catSet.add(r.category);
         }
       }
     }
 
-    const list: { name: string; equipment: string | null; equipments: string[] }[] = [];
-    for (const [name, eqSet] of map.entries()) {
+    const list: { name: string; equipment: string | null; equipments: string[]; category: string | null; categories: string[] }[] = [];
+    for (const [name, { eqSet, catSet }] of map.entries()) {
       const eqArray = Array.from(eqSet).sort();
+      const catArray = Array.from(catSet).sort();
       list.push({
         name,
         equipment: eqArray[0] ?? null,
         equipments: eqArray,
+        category: catArray[0] ?? "Free Weights",
+        categories: catArray.length > 0 ? catArray : ["Free Weights"],
       });
     }
 

@@ -37,19 +37,23 @@ export interface ExerciseRowData {
 }
 
 export function mapCategory(cat: string) {
-  if (cat === "resistance") return "Free Weights";
-  if (cat === "bodyweight") return "Bodyweight";
-  if (cat === "cardio") return "Cardio";
-  if (cat === "isometric") return "Functional";
-  return cat || "Free Weights";
+  if (!cat) return "Free Weights";
+  const c = cat.toLowerCase().trim();
+  if (c === "resistance" || c === "free weights" || c === "freeweights") return "Free Weights";
+  if (c === "machines" || c === "machine") return "Machines";
+  if (c === "bodyweight") return "Bodyweight";
+  if (c === "cardio") return "Cardio";
+  if (c === "functional" || c === "isometric") return "Functional";
+  return cat;
 }
 
 export function unmapCategory(cat: string): string {
-  if (cat === "Free Weights" || cat === "Machines") return "resistance";
-  if (cat === "Bodyweight") return "bodyweight";
-  if (cat === "Cardio") return "cardio";
-  if (cat === "Functional") return "isometric";
-  return "resistance";
+  if (cat === "Free Weights") return "Free Weights";
+  if (cat === "Machines") return "Machines";
+  if (cat === "Bodyweight") return "Bodyweight";
+  if (cat === "Cardio") return "Cardio";
+  if (cat === "Functional") return "Functional";
+  return cat || "Free Weights";
 }
 
 export function mapEquipment(eq: string) {
@@ -197,6 +201,9 @@ export function ExerciseEditBlock({
           equipment={ex.equipment}
           onChange={(cat, eq) => {
             const updates: Partial<ExerciseRowData> = { category: cat, equipment: eq };
+            if (cat !== ex.category) {
+              updates.trackingFields = getDefaultTracking(cat);
+            }
             onChange(updates);
           }}
         />

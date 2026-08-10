@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
 import { WorkoutSubnav } from "@/components/workout-subnav";
+import { ExerciseList } from "@/components/exercise-list";
 import { t } from "@/lib/lang";
 import { serverApi } from "@/lib/server-api";
 import { Dumbbell } from "lucide-react";
@@ -10,7 +9,7 @@ import { Dumbbell } from "lucide-react";
 export default async function ExercisesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; equipment?: string }>;
 }) {
   let user: { id: number; username: string } | null = null;
   try {
@@ -18,17 +17,8 @@ export default async function ExercisesPage({
   } catch {}
   if (!user) redirect("/");
 
-  const { q } = await searchParams;
-  let exercises = await serverApi.workouts.exercises.list();
-
-  if (q) {
-    const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
-    exercises = exercises.filter((ex) => {
-      const nameNorm = ex.name.replace(/[\s\-\/]/g, "").toLowerCase();
-      const eqNorms = (ex.equipments || []).map((eq) => t(eq).replace(/[\s\-\/]/g, "").toLowerCase());
-      return nameNorm.includes(normalizedQ) || eqNorms.some((eq) => eq.includes(normalizedQ));
-    });
-  }
+  const { q, category, equipment } = await searchParams;
+  const exercises = await serverApi.workouts.exercises.list();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,56 +32,12 @@ export default async function ExercisesPage({
           <WorkoutSubnav current="exercises" />
         </div>
 
-        {exercises.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center bg-card rounded-xl ring-1 ring-foreground/10">
-            <p className="text-sm text-muted-foreground">
-              {q ? `${t("Clear search")} ("${q}")` : t("No data yet for this exercise.")}
-            </p>
-            {q && (
-              <Link href="/workouts/exercises" className="mt-4">
-                <Button size="sm" variant="outline" className="cursor-pointer">
-                  {t("Clear")}
-                </Button>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {exercises.map((ex) => {
-              const equipments = ex.equipments && ex.equipments.length > 0 ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
-              return (
-                <Link
-                  key={ex.name}
-                  href={`/workouts/exercises/${encodeURIComponent(ex.name)}`}
-                  className="block rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/35 transition-all duration-200 active:scale-[0.99] hover:-translate-y-[1px]"
-                >
-                  <div className="px-4 sm:px-5 py-3 sm:py-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 min-w-0">
-                        <span className="text-sm sm:text-base font-medium text-foreground truncate">{ex.name}</span>
-                        {equipments.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1">
-                            {equipments.map((eq) => (
-                              <span
-                                key={eq}
-                                className="text-[11px] px-2 py-0.5 rounded-full bg-foreground/5 text-muted-foreground font-medium ring-1 ring-foreground/10"
-                              >
-                                {t(eq)}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <svg className="size-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        <ExerciseList
+          exercises={exercises}
+          initialQuery={q}
+          initialCategory={category}
+          initialEquipment={equipment}
+        />
       </main>
     </div>
   );

@@ -157,11 +157,7 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
                     ))}
                 </div>
               )}
-              {Boolean(ex.perSide || ex.templateExercise?.perSide) && (
-                <span className="inline-flex items-center text-[10px] font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                  {t("Per side")}
-                </span>
-              )}
+
             </div>
             {ex.sets?.length > 0 && (
               <div className="overflow-x-auto -mx-4 sm:mx-0">

@@ -521,6 +521,14 @@ const nl: Record<string, string> = {
   "Paused Accounts": "Gepauzeerde accounts",
   "Total Permissions": "Totaal permissies",
   "Search users...": "Zoek gebruikers...",
+  "Filter exercises...": "Oefeningen zoeken...",
+  "All categories": "Alle categorieën",
+  "All equipment": "Alle materialen",
+  "Clear filters": "Filters wissen",
+  "No exercises found matching your filters.": "Geen oefeningen gevonden die voldoen aan je filters.",
+  "Free Weights": "Vrije gewichten",
+  "Machines": "Apparaten",
+  "Functional": "Functioneel",
 };
 
 

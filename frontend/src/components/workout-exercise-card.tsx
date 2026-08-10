@@ -100,6 +100,9 @@ export function normalizeCategory(cat: string | null | undefined): "resistance" 
 }
 
 export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
+  const cat = normalizeCategory(ex.category);
+  if (cat === "isometric" || cat === "cardio") return true;
+
   const hasCurrentRepsSets = ex.sets?.some((s) => s.reps != null && s.reps > 0);
   const hasCurrentTimeSets = ex.sets?.some((s) => s.duration != null && s.duration > 0);
 
@@ -112,9 +115,6 @@ export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<st
   if (ex.templateExercise?.defaultDuration != null && ex.templateExercise.defaultDuration > 0) {
     return true;
   }
-
-  const cat = normalizeCategory(ex.category);
-  if (cat === "isometric" || cat === "cardio") return true;
 
   const firstPrevSet = previousSetsMap?.[ex.exerciseName]?.[0];
   if (firstPrevSet?.duration != null && firstPrevSet.duration > 0) {
@@ -539,8 +539,8 @@ export function WorkoutExerciseCard({
                                 min="0"
                                 step="any"
                                 inputMode="decimal"
-                                placeholder="0"
-                                value={set.weight ?? targetSource?.weight ?? null}
+                                placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
+                                value={set.weight !== undefined ? set.weight : (targetSource?.weight ?? null)}
                                 onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                                 className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                               />
@@ -550,8 +550,8 @@ export function WorkoutExerciseCard({
                                 <div className="relative flex items-center justify-center">
                                   <AutoSaveInput
                                     type="text"
-                                    placeholder="MM:SS"
-                                    value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                    placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
+                                    value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
                                     onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                     className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                       onStartRepTimer ? "pr-7" : ""
@@ -577,8 +577,8 @@ export function WorkoutExerciseCard({
                                   type="number"
                                   min="0"
                                   inputMode="numeric"
-                                  placeholder="0"
-                                  value={set.reps ?? targetSource?.reps ?? null}
+                                  placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
+                                  value={set.reps !== undefined ? set.reps : (targetSource?.reps ?? null)}
                                   onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                                   className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                     isZero
@@ -598,8 +598,8 @@ export function WorkoutExerciseCard({
                                 type="number"
                                 min="0"
                                 step="any"
-                                placeholder="0"
-                                value={set.weight ?? targetSource?.weight ?? null}
+                                placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
+                                value={set.weight !== undefined ? set.weight : (targetSource?.weight ?? null)}
                                 onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                                 className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                               />
@@ -609,8 +609,8 @@ export function WorkoutExerciseCard({
                                 <div className="relative flex items-center justify-center">
                                   <AutoSaveInput
                                     type="text"
-                                    placeholder="MM:SS"
-                                    value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                    placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
+                                    value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
                                     onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                     className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                       onStartRepTimer ? "pr-7" : ""
@@ -636,8 +636,8 @@ export function WorkoutExerciseCard({
                                   type="number"
                                   min="0"
                                   inputMode="numeric"
-                                  placeholder="0"
-                                  value={set.reps ?? targetSource?.reps ?? null}
+                                  placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
+                                  value={set.reps !== undefined ? set.reps : (targetSource?.reps ?? null)}
                                   onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                                   className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                     isZero
@@ -657,8 +657,8 @@ export function WorkoutExerciseCard({
                               type="number"
                               min="0"
                               step="any"
-                              placeholder="0.0"
-                              value={set.distance ?? targetSource?.distance ?? null}
+                              placeholder={targetSource?.distance != null ? String(targetSource.distance) : "0.0"}
+                              value={set.distance !== undefined ? set.distance : (targetSource?.distance ?? null)}
                               onSave={(val) => updateSet(exIdx, setIdx, "distance", val ? Math.max(0, Number(val)) : null)}
                               className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                 isZero
@@ -671,8 +671,8 @@ export function WorkoutExerciseCard({
                             <div className="relative flex items-center justify-center">
                               <AutoSaveInput
                                 type="text"
-                                placeholder="MM:SS"
-                                value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
+                                value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
                                 onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                 className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                   onStartRepTimer ? "pr-7" : ""
@@ -698,8 +698,8 @@ export function WorkoutExerciseCard({
                             <AutoSaveInput
                               type="number"
                               min="0"
-                              placeholder="140"
-                              value={set.heartRate ?? targetSource?.heartRate ?? null}
+                              placeholder={targetSource?.heartRate != null ? String(targetSource.heartRate) : "140"}
+                              value={set.heartRate !== undefined ? set.heartRate : (targetSource?.heartRate ?? null)}
                               onSave={(val) => updateSet(exIdx, setIdx, "heartRate", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
@@ -714,8 +714,8 @@ export function WorkoutExerciseCard({
                               type="number"
                               min="0"
                               step="any"
-                              placeholder="0"
-                              value={set.weight ?? targetSource?.weight ?? null}
+                              placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
+                              value={set.weight !== undefined ? set.weight : (targetSource?.weight ?? null)}
                               onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
@@ -725,8 +725,8 @@ export function WorkoutExerciseCard({
                               <div className="relative flex items-center justify-center">
                                 <AutoSaveInput
                                   type="text"
-                                  placeholder="MM:SS"
-                                  value={(set.duration ?? targetSource?.duration) != null ? formatSecs(set.duration ?? targetSource?.duration) : ""}
+                                  placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
+                                  value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
                                   onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                   className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                     onStartRepTimer ? "pr-7" : ""

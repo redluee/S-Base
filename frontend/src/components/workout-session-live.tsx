@@ -425,7 +425,29 @@ export function WorkoutSessionLive({
   async function updateCategory(exerciseIndex: number, category: string) {
     if (!session) return;
     const exercises = [...(session.exercises ?? [])];
-    exercises[exerciseIndex] = { ...exercises[exerciseIndex], category };
+    const targetEx = exercises[exerciseIndex];
+    if (!targetEx) return;
+
+    const newNormCat = normalizeCategory(category);
+    const oldNormCat = normalizeCategory(targetEx.category);
+
+    const updatedEx = { ...targetEx, category };
+
+    if (newNormCat !== oldNormCat && targetEx.sets?.length) {
+      updatedEx.sets = targetEx.sets.map((set) => {
+        const newSet = { ...set };
+        if (newNormCat === "cardio") {
+          newSet.reps = null;
+          newSet.weight = null;
+        } else if (newNormCat === "resistance" || newNormCat === "bodyweight") {
+          newSet.duration = null;
+          newSet.distance = null;
+        }
+        return newSet;
+      });
+    }
+
+    exercises[exerciseIndex] = updatedEx;
     setSession({ ...session, exercises });
     await saveExercises(exercises);
   }
@@ -760,8 +782,9 @@ export function WorkoutSessionLive({
     const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
     const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
     const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
-    const weightVal = (draft.trackingFields.weight && draft.weight) ? parseFloat(draft.weight) : null;
-    let distVal = (draft.trackingFields.distance && draft.distance) ? parseFloat(draft.distance) : null;
+    const hasWeightInput = draft.trackingFields.weight && draft.weight !== undefined && draft.weight !== null && draft.weight.trim() !== "";
+    const weightVal = hasWeightInput ? parseFloat(draft.weight) : null;
+    let distVal = (draft.trackingFields.distance && draft.distance && draft.distance.trim() !== "") ? parseFloat(draft.distance) : null;
     if (distVal !== null && draft.distanceUnit === "m") {
       distVal = distVal / 1000;
     }
@@ -776,8 +799,8 @@ export function WorkoutSessionLive({
         updatedSets.push({
           ...existing,
           setNumber: setNum,
-          reps: draft.trackingFields.reps ? (existing.reps ?? numReps ?? 10) : null,
-          weight: draft.trackingFields.weight ? (existing.weight ?? weightVal) : null,
+          reps: draft.trackingFields.reps ? (existing.reps ?? numReps) : null,
+          weight: draft.trackingFields.weight ? (hasWeightInput ? weightVal : (draft.weight?.trim() === "" ? null : existing.weight)) : null,
           duration: draft.trackingFields.time ? (existing.duration ?? durationSecs) : null,
           distance: draft.trackingFields.distance ? (existing.distance ?? distVal) : null,
         });
