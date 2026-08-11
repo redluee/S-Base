@@ -30,14 +30,10 @@ export default function InvoicesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(() =>
-    searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined
-  );
-  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(() =>
-    searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined
-  );
-  const [selectedYear, setSelectedYear] = useState<string>(() => searchParams.get("year") || "");
-  const [filterStatus, setFilterStatus] = useState<string>(() => searchParams.get("status") || "");
+  const selectedClientId = searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined;
+  const selectedProjectId = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
+  const selectedYear = searchParams.get("year") || "";
+  const filterStatus = searchParams.get("status") || "";
 
   const [invoices, setInvoices] = useState<CashflowInvoiceSummary[]>([]);
   const [clients, setClients] = useState<CashflowClient[]>([]);
@@ -61,17 +57,9 @@ export default function InvoicesPage() {
     loadMetadata();
   }, []);
 
+
+
   useEffect(() => {
-  useEffect(() => {
-    const cid = searchParams.get("clientId") ? Number(searchParams.get("clientId")) : undefined;
-    const pid = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
-    const yr = searchParams.get("year") || "";
-    const st = searchParams.get("status") || "";
-    setSelectedClientId(cid);
-    setSelectedProjectId(pid);
-    setSelectedYear(yr);
-    setFilterStatus(st);
-  }, [searchParams]);
     async function loadInvoices() {
       setLoading(true);
       try {
@@ -102,8 +90,6 @@ export default function InvoicesPage() {
         pId = undefined;
       }
     }
-    setSelectedClientId(cId);
-    setSelectedProjectId(pId);
     updateUrl(cId, pId, selectedYear, filterStatus);
   }
 
@@ -116,26 +102,18 @@ export default function InvoicesPage() {
         cId = proj.clientId;
       }
     }
-    setSelectedProjectId(pId);
-    setSelectedClientId(cId);
     updateUrl(cId, pId, selectedYear, filterStatus);
   }
 
   function handleYearChange(yrStr: string) {
-    setSelectedYear(yrStr);
     updateUrl(selectedClientId, selectedProjectId, yrStr, filterStatus);
   }
 
   function handleStatusChange(stStr: string) {
-    setFilterStatus(stStr);
     updateUrl(selectedClientId, selectedProjectId, selectedYear, stStr);
   }
 
   function handleResetFilters() {
-    setSelectedClientId(undefined);
-    setSelectedProjectId(undefined);
-    setSelectedYear("");
-    setFilterStatus("");
     updateUrl(undefined, undefined, "", "");
   }
 
@@ -157,10 +135,10 @@ export default function InvoicesPage() {
   }
 
   const yearsInInvoices = Array.from(
-    new Set(invoices.map(i => new Date(i.datePaid ?? i.dateCreated ?? Date.now()).getFullYear()))
+    new Set(invoices.map(i => new Date(i.datePaid ?? i.dateCreated ?? now).getFullYear()))
   ).sort((a, b) => b - a);
 
-  const currentYr = new Date().getFullYear();
+  const currentYr = new Date(now).getFullYear();
   if (!yearsInInvoices.includes(currentYr)) {
     yearsInInvoices.unshift(currentYr);
   }
@@ -177,7 +155,7 @@ export default function InvoicesPage() {
     }
 
     if (selectedYear) {
-      const invYear = new Date(i.datePaid ?? i.dateCreated ?? Date.now()).getFullYear();
+      const invYear = new Date(i.datePaid ?? i.dateCreated ?? now).getFullYear();
       if (invYear !== Number(selectedYear)) return false;
     }
 
