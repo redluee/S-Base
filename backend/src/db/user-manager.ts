@@ -37,6 +37,7 @@ export const DEFAULT_MODULES = [
   { name: "cashflow", alias: "Cashflow", description: "Module voor facturatie en financieel beheer" },
   { name: "you", alias: "Voor Jou", description: "Toegang tot stevenheijn.nl/you" },
   { name: "lyric_quotes", alias: "Lyric Quotes", description: "Toegang tot stevenheijn.nl/lyric_quotes" },
+  { name: "pulse", alias: "Pulse", description: "Monitoring & admin paneel" },
 ];
 
 export async function ensureDefaultModules() {
@@ -756,4 +757,6 @@ async function revokePermission(identifier: string, targetModule: string) {
   }
 }
 
-main().catch(console.error);
+if (import.meta.main) {
+  main().catch(console.error);
+}

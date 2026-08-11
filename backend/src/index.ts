@@ -13,6 +13,10 @@ import { eq, and } from "drizzle-orm";
 import { join } from "path";
 import { mkdir } from "fs/promises";
 
+import { ensureDefaultModules } from "./db/user-manager";
+
+await ensureDefaultModules();
+
 const PORT = 3001;
 const auth = new AuthService();
 const recipes = new RecipeService();
