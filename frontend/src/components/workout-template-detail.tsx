@@ -1,16 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft, Play, Upload, Check } from "lucide-react";
 import { normalizeCategory } from "@/components/workout-exercise-card";
 
 export function WorkoutTemplateDetail({ template }: { template: any }) {
   const router = useRouter();
+  const [copied, setCopied] = useState(false);
+
+  function handleExport() {
+    const jsonString = JSON.stringify(template, null, 2);
+    navigator.clipboard.writeText(jsonString);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   async function handleDelete() {
     if (!confirm(t("Delete this template?"))) return;
@@ -61,7 +70,23 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
             )}
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 items-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            title={t("Export JSON")}
+            className="flex items-center gap-1.5"
+          >
+            {copied ? (
+              <Check className="size-4 text-emerald-400" />
+            ) : (
+              <Upload className="size-4" />
+            )}
+            <span className="hidden sm:inline">
+              {copied ? t("Copied!") : t("Export")}
+            </span>
+          </Button>
           <Link href={`/workouts/t/${template.templateId}/edit`}>
             <Button variant="outline" size="sm">
               {t("Edit")}

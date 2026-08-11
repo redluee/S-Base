@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Pencil, FileText } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, FileText, Upload, Check } from "lucide-react";
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
@@ -17,6 +17,14 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
   const router = useRouter();
   const searchParams = useSearchParams();
   const celebrate = searchParams?.get("celebrate") === "true";
+  const [copied, setCopied] = useState(false);
+
+  function handleExport() {
+    const jsonString = JSON.stringify(session, null, 2);
+    navigator.clipboard.writeText(jsonString);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   useEffect(() => {
     if (celebrate) {
@@ -97,6 +105,22 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            title={t("Export JSON")}
+            className="flex items-center gap-1.5"
+          >
+            {copied ? (
+              <Check className="size-4 text-emerald-400" />
+            ) : (
+              <Upload className="size-4" />
+            )}
+            <span className="hidden sm:inline">
+              {copied ? t("Copied!") : t("Export")}
+            </span>
+          </Button>
           <Link href={`/workouts/session/${session.sessionId}`}>
             <Button
               variant="outline"
