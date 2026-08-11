@@ -7,6 +7,7 @@ import { NavHeader } from "@/components/nav-header";
 import { MotivationalQuote } from "@/components/motivational-quote";
 import { WorkoutSubnav } from "@/components/workout-subnav";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
+import { WorkoutImportModal } from "@/components/workout-import-modal";
 import { t } from "@/lib/lang";
 
 export default async function WorkoutsPage() {
@@ -125,14 +126,17 @@ export default async function WorkoutsPage() {
 
           <div className="flex items-center justify-between mt-3 mb-1">
             <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
-            <Link href="/workouts/new">
-              <Button size="sm" className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium">
-                <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {t("New Template")}
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <WorkoutImportModal />
+              <Link href="/workouts/new">
+                <Button size="sm" className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium">
+                  <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  {t("New Template")}
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {templates.length === 0 ? (

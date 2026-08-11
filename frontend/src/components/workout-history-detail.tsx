@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,6 +14,41 @@ import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
 import { normalizeCategory } from "@/components/workout-exercise-card";
 
+export function cleanSessionForExport(session: FullWorkoutSession) {
+  const cleaned: Record<string, any> = {
+    name: session.name || "Workout Session",
+  };
+  if (session.notes) cleaned.notes = session.notes;
+
+  if (Array.isArray(session.exercises)) {
+    cleaned.exercises = session.exercises.map((ex: any) => {
+      const cleanedEx: Record<string, any> = {
+        exerciseName: ex.exerciseName,
+      };
+      if (ex.category) cleanedEx.category = ex.category;
+      if (ex.equipment) cleanedEx.equipment = ex.equipment;
+      if (ex.perSide) cleanedEx.perSide = Number(ex.perSide);
+
+      if (Array.isArray(ex.sets)) {
+        cleanedEx.sets = ex.sets.map((s: any) => {
+          const cleanedSet: Record<string, any> = {
+            setNumber: s.setNumber,
+          };
+          if (s.reps != null) cleanedSet.reps = s.reps;
+          if (s.weight != null && s.weight !== 0) cleanedSet.weight = s.weight;
+          if (s.distance != null && s.distance > 0) cleanedSet.distance = s.distance;
+          if (s.duration != null && s.duration > 0) cleanedSet.duration = s.duration;
+          return cleanedSet;
+        });
+      }
+
+      return cleanedEx;
+    });
+  }
+
+  return cleaned;
+}
+
 export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,7 +56,8 @@ export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession 
   const [copied, setCopied] = useState(false);
 
   function handleExport() {
-    const jsonString = JSON.stringify(session, null, 2);
+    const cleaned = cleanSessionForExport(session);
+    const jsonString = JSON.stringify(cleaned, null, 2);
     navigator.clipboard.writeText(jsonString);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

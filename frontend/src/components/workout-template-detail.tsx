@@ -10,12 +10,58 @@ import Link from "next/link";
 import { ArrowLeft, Play, Upload, Check } from "lucide-react";
 import { normalizeCategory } from "@/components/workout-exercise-card";
 
+export function cleanTemplateForExport(template: any) {
+  const cleaned: Record<string, any> = {
+    name: template.name,
+  };
+  if (template.description) cleaned.description = template.description;
+  if (template.targetMuscleGroups) cleaned.targetMuscleGroups = template.targetMuscleGroups;
+  if (template.estimatedTime) cleaned.estimatedTime = template.estimatedTime;
+
+  if (Array.isArray(template.exercises)) {
+    cleaned.exercises = template.exercises.map((ex: any) => {
+      const cleanedEx: Record<string, any> = {
+        exerciseName: ex.exerciseName,
+      };
+      if (ex.category) cleanedEx.category = ex.category;
+
+      const sets = ex.defaultSets ?? ex.sets;
+      if (sets != null) cleanedEx.sets = sets;
+
+      const reps = ex.defaultReps ?? ex.reps;
+      if (reps != null) cleanedEx.reps = reps;
+
+      const weight = ex.defaultWeight ?? ex.weight;
+      if (weight != null && weight !== 0) cleanedEx.weight = weight;
+
+      const distance = ex.defaultDistance ?? ex.distance;
+      if (distance != null && distance > 0) cleanedEx.distance = distance;
+
+      const duration = ex.defaultDuration ?? ex.duration;
+      if (duration != null && duration > 0) cleanedEx.duration = duration;
+
+      const restTime = ex.defaultRestTime ?? ex.restTime;
+      if (restTime != null && restTime > 0) cleanedEx.defaultRestTime = restTime;
+
+      if (ex.equipment) cleanedEx.equipment = ex.equipment;
+      if (ex.perSide) cleanedEx.perSide = Number(ex.perSide);
+
+      return cleanedEx;
+    });
+  } else {
+    cleaned.exercises = [];
+  }
+
+  return cleaned;
+}
+
 export function WorkoutTemplateDetail({ template }: { template: any }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
   function handleExport() {
-    const jsonString = JSON.stringify(template, null, 2);
+    const cleaned = cleanTemplateForExport(template);
+    const jsonString = JSON.stringify(cleaned, null, 2);
     navigator.clipboard.writeText(jsonString);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
