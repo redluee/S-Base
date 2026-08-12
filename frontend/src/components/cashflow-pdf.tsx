@@ -37,14 +37,14 @@ export function getInvoiceValidationWarnings(invoice: CashflowInvoiceFull): stri
         warnings.push(`Factuurregel ${lineNum}: Omschrijving ontbreekt`);
       }
       if (line.type !== "discount") {
-        if (line.quantity === null || line.quantity === undefined || (line.quantity as any) === "" || Number(line.quantity) <= 0) {
+        if (line.quantity === null || line.quantity === undefined || String(line.quantity).trim() === "" || Number(line.quantity) <= 0) {
           warnings.push(`Factuurregel ${lineNum}: Aantal is niet correct ingevuld`);
         }
-        if (line.unitPrice === null || line.unitPrice === undefined || (line.unitPrice as any) === "" || Number(line.unitPrice) < 0) {
+        if (line.unitPrice === null || line.unitPrice === undefined || String(line.unitPrice).trim() === "" || Number(line.unitPrice) < 0) {
           warnings.push(`Factuurregel ${lineNum}: Prijs per eenheid is niet correct ingevuld`);
         }
       } else {
-        if (line.discountValue === null || line.discountValue === undefined || (line.discountValue as any) === "" || Number(line.discountValue) <= 0) {
+        if (line.discountValue === null || line.discountValue === undefined || String(line.discountValue).trim() === "" || Number(line.discountValue) <= 0) {
           warnings.push(`Factuurregel ${lineNum}: Kortingswaarde is niet correct ingevuld`);
         }
       }
