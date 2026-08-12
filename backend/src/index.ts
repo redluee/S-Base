@@ -15,7 +15,9 @@ import { mkdir } from "fs/promises";
 
 import { ensureDefaultModules } from "./db/user-manager";
 
-await ensureDefaultModules();
+try {
+  await ensureDefaultModules();
+} catch {}
 
 const PORT = 3001;
 const auth = new AuthService();
@@ -49,7 +51,7 @@ function createAuthPlugin(moduleName: string) {
       }
     })
     .derive({ as: "scoped" }, ({ user }) => {
-      return { userId: user!.userId, username: user!.username };
+      return { userId: user?.userId ?? 0, username: user?.username ?? "" };
     });
 }
 
@@ -59,7 +61,7 @@ const measurementsAuth = workoutAuth;
 const cashflowAuth = createAuthPlugin("cashflow");
 const pulseAuth = createAuthPlugin("pulse");
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(cors({ origin: true, credentials: true }))
   .onError(({ code, error }) => {
     console.error(`Error ${code}:`, error);

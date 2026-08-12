@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "test": "DB_PATH=:memory: bun test",
     "start": "NODE_ENV=production bun run src/index.ts",
     "db:migrate": "bun run src/db/migrate.ts",
     "db:seed": "bun run src/db/seed.ts",
