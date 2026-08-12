@@ -10,6 +10,30 @@ import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { WorkoutImportModal } from "@/components/workout-import-modal";
 import { t } from "@/lib/lang";
 
+function getMilestoneStats(totalWorkouts: number) {
+  const milestones = [0, 5, 10, 20, 50];
+  let prevMilestone = 0;
+  let nextMilestone = 5;
+
+  if (totalWorkouts < 50) {
+    for (let i = 0; i < milestones.length - 1; i++) {
+      if (totalWorkouts >= milestones[i] && totalWorkouts < milestones[i + 1]) {
+        prevMilestone = milestones[i];
+        nextMilestone = milestones[i + 1];
+        break;
+      }
+    }
+  } else {
+    prevMilestone = Math.floor(totalWorkouts / 50) * 50;
+    nextMilestone = prevMilestone + 50;
+  }
+
+  const remaining = nextMilestone - totalWorkouts;
+  const percentage = Math.min(100, Math.max(0, (totalWorkouts / nextMilestone) * 100));
+
+  return { nextMilestone, prevMilestone, remaining, percentage };
+}
+
 export default async function WorkoutsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
@@ -68,10 +92,7 @@ export default async function WorkoutsPage() {
           </div>
           <div className="rounded-xl bg-card p-2.5 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[90px] sm:min-h-[130px]">
             {(() => {
-              const nextMilestone = Math.floor(stats.totalWorkouts / 50) * 50 + 50;
-              const prevMilestone = nextMilestone - 50;
-              const progressCount = stats.totalWorkouts - prevMilestone;
-              const percentage = Math.min(100, Math.max(0, (progressCount / 50) * 100));
+              const { nextMilestone, remaining, percentage } = getMilestoneStats(stats.totalWorkouts);
 
               return (
                 <div className="flex flex-col w-full text-center items-center justify-center">
@@ -80,7 +101,7 @@ export default async function WorkoutsPage() {
                     <span className="text-zinc-500 text-xs sm:text-sm font-semibold font-display">/ {nextMilestone}</span>
                   </div>
                   <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 font-medium leading-tight">
-                    {50 - progressCount} {t("tot volgende mijlpaal")}
+                    {remaining} {t("tot volgende mijlpaal")}
                   </span>
                   
                   {/* Progress bar */}

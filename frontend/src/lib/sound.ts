@@ -128,6 +128,41 @@ export function resetTimerTriggerState(): void {
   cancelScheduledSound();
 }
 
+function notifyServiceWorkerSchedule(delaySeconds: number, title: string, body: string, tag: string): void {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  const soundEnabled = isSoundEnabled();
+  const targetTimestamp = Date.now() + delaySeconds * 1000;
+
+  const message = {
+    type: "SCHEDULE_TIMER",
+    targetTimestamp,
+    title,
+    body,
+    tag,
+    soundEnabled,
+  };
+
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage(message);
+  } else {
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.active?.postMessage(message);
+    }).catch(() => {});
+  }
+}
+
+function notifyServiceWorkerCancel(): void {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  const message = { type: "CANCEL_TIMER" };
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage(message);
+  } else {
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.active?.postMessage(message);
+    }).catch(() => {});
+  }
+}
+
 /**
  * Schedules background audio play at target time.
  * Automatically cancels any previously scheduled sound or timeouts.
@@ -146,6 +181,13 @@ export function scheduleRestEndSound(delaySeconds: number): void {
   scheduledTimeoutId = setTimeout(() => {
     triggerRestTimerCompletion();
   }, delaySeconds * 1000);
+
+  notifyServiceWorkerSchedule(
+    delaySeconds,
+    "Pauze voorbij! ⏱️",
+    "Tijd voor je volgende set!",
+    "rest-timer-done"
+  );
 }
 
 /**
@@ -164,6 +206,8 @@ export function cancelScheduledSound(): void {
     } catch {}
   });
   activeScheduledOscillators = [];
+
+  notifyServiceWorkerCancel();
 }
 
 /**
@@ -181,31 +225,103 @@ export function triggerRestTimerCompletion(): void {
 }
 
 export function vibrateDevice(): void {
+  if (!isSoundEnabled()) return;
   if (typeof window !== "undefined" && "vibrate" in navigator) {
     try {
-      navigator.vibrate([200, 100, 200, 100, 300]);
+      navigator.vibrate([300, 100, 300, 100, 400]);
     } catch {}
   }
 }
 
 export function requestNotificationPermission(): void {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission === "default") {
+  if (typeof window === "undefined") return;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+  if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission().catch(() => {});
   }
 }
 
-export function sendRestEndNotification(): void {
+async function sendNotification(title: string, body: string, tag: string): Promise<void> {
   if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission === "granted") {
+  if (Notification.permission !== "granted") return;
+
+  const soundOn = isSoundEnabled();
+  const options: NotificationOptions & { vibrate?: number[]; silent?: boolean } = {
+    body,
+    icon: "/favicon.ico",
+    tag,
+    silent: !soundOn,
+    ...(soundOn ? { vibrate: [300, 100, 300, 100, 400] } : { vibrate: [] }),
+  };
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, options);
+        return;
+      }
+    }
+    new Notification(title, options);
+  } catch {
     try {
-      new Notification("Pauze voorbij! ⏱️", {
-        body: "Tijd voor je volgende set!",
-        icon: "/favicon.ico",
-        tag: "rest-timer-done",
-      });
-    } catch (e) {
-      console.error("Failed to display notification:", e);
+      new Notification(title, options);
+    } catch (err) {
+      console.error("Failed to display notification:", err);
     }
   }
 }
+
+export function sendRestEndNotification(): void {
+  sendNotification("Pauze voorbij! ⏱️", "Tijd voor je volgende set!", "rest-timer-done");
+}
+
+export function sendSetEndNotification(exerciseName?: string, setNumber?: number): void {
+  const details = exerciseName && setNumber ? `${exerciseName} - Set ${setNumber}` : "Tijd is om!";
+  sendNotification("Set voltooid! ⏱️", details, "set-timer-done");
+}
+
+/**
+ * Triggers completion actions for set countdown timer ONCE (sound, vibrate, notification).
+ */
+export function triggerSetTimerCompletion(exerciseName?: string, setNumber?: number): void {
+  if (hasTriggeredCurrentTimer) return;
+  hasTriggeredCurrentTimer = true;
+
+  cancelScheduledSound();
+
+  playRestTimerEndSound();
+  vibrateDevice();
+  sendSetEndNotification(exerciseName, setNumber);
+}
+
+/**
+ * Schedules background set timer completion at target time.
+ */
+export function scheduleSetEndSound(delaySeconds: number, exerciseName?: string, setNumber?: number): void {
+  cancelScheduledSound();
+  hasTriggeredCurrentTimer = false;
+
+  if (delaySeconds <= 0) return;
+
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+
+  scheduledTimeoutId = setTimeout(() => {
+    triggerSetTimerCompletion(exerciseName, setNumber);
+  }, delaySeconds * 1000);
+
+  const details = exerciseName && setNumber ? `${exerciseName} - Set ${setNumber}` : "Tijd is om!";
+  notifyServiceWorkerSchedule(
+    delaySeconds,
+    "Set voltooid! ⏱️",
+    details,
+    "set-timer-done"
+  );
+}
+
+

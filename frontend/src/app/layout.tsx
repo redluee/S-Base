@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { OfflineSyncProvider } from "@/components/offline-sync-provider";
 
 export const metadata: Metadata = {
   title: "S-Base",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl" className="dark h-full antialiased" suppressHydrationWarning>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <OfflineSyncProvider />
+        {children}
+      </body>
     </html>
   );
 }

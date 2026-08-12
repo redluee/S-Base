@@ -1,10 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Play, Pause, RotateCcw, Check, X, Plus, Minus, Timer as TimerIcon, Target } from "lucide-react";
+import { Play, Pause, RotateCcw, Check, X, Plus, Minus, Timer as TimerIcon, Target, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/lang";
-import { playRestTimerEndSound, isSoundEnabled } from "@/lib/sound";
+import {
+  triggerSetTimerCompletion,
+  scheduleSetEndSound,
+  cancelScheduledSound,
+  resetTimerTriggerState,
+  unlockAudio,
+  requestNotificationPermission,
+  isSoundEnabled,
+  setSoundEnabled,
+} from "@/lib/sound";
 
 interface RepTimerModalProps {
   exerciseName: string;
@@ -72,6 +81,7 @@ export function RepTimerModal({
   const [targetTime, setTargetTime] = useState<number>(initialTarget);
   const [isRunning, setIsRunning] = useState(true);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [soundEnabled, setSoundEnabledState] = useState(() => isSoundEnabled());
 
   const startTimeRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef<number>(0);
@@ -80,6 +90,64 @@ export function RepTimerModal({
   // Track chime triggers
   const last3BeepSecRef = useRef<number | null>(null);
   const targetChimeTriggeredRef = useRef(false);
+
+  function toggleSound() {
+    const next = !soundEnabled;
+    setSoundEnabledState(next);
+    setSoundEnabled(next);
+    if (isRunning && targetDurationSeconds && targetDurationSeconds > 0 && !targetChimeTriggeredRef.current) {
+      const currentElapsedSec = Math.floor(accumulatedMsRef.current / 1000);
+      const remainingSecs = targetTime - currentElapsedSec;
+      if (remainingSecs > 0) {
+        scheduleSetEndSound(remainingSecs, exerciseName, setNumber);
+      }
+    }
+  }
+
+  // Request permissions and unlock audio on initial render
+  useEffect(() => {
+    unlockAudio();
+    requestNotificationPermission();
+  }, []);
+
+  // Schedule background sound & vibration notification whenever running state or target changes
+  useEffect(() => {
+    if (isRunning && targetDurationSeconds && targetDurationSeconds > 0 && !targetChimeTriggeredRef.current) {
+      const currentElapsedSec = Math.floor(accumulatedMsRef.current / 1000);
+      const remainingSecs = targetTime - currentElapsedSec;
+      if (remainingSecs > 0) {
+        scheduleSetEndSound(remainingSecs, exerciseName, setNumber);
+      }
+    } else if (!isRunning) {
+      cancelScheduledSound();
+    }
+  }, [isRunning, targetTime, targetDurationSeconds, exerciseName, setNumber, soundEnabled]);
+
+
+  // Handle returning from background / screen off
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isRunning && startTimeRef.current !== null) {
+        const now = performance.now();
+        const currentTotalMs = accumulatedMsRef.current + (now - startTimeRef.current);
+        setElapsedMs(currentTotalMs);
+
+        const currentElapsedSec = Math.floor(currentTotalMs / 1000);
+        if (targetDurationSeconds && targetDurationSeconds > 0) {
+          const secsRemaining = targetTime - currentElapsedSec;
+          if (secsRemaining <= 0 && !targetChimeTriggeredRef.current) {
+            targetChimeTriggeredRef.current = true;
+            triggerSetTimerCompletion(exerciseName, setNumber);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isRunning, targetTime, targetDurationSeconds, exerciseName, setNumber]);
 
   // High precision timer loop via requestAnimationFrame
   useEffect(() => {
@@ -102,10 +170,10 @@ export function RepTimerModal({
               playLoudBeep(750, "sine", 0.15);
             }
 
-            // Loud completion chime when target is reached (timer continues running!)
+            // Completion chime and vibration when target is reached
             if (secsRemaining <= 0 && !targetChimeTriggeredRef.current) {
               targetChimeTriggeredRef.current = true;
-              playRestTimerEndSound();
+              triggerSetTimerCompletion(exerciseName, setNumber);
             }
           }
 
@@ -129,7 +197,14 @@ export function RepTimerModal({
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [isRunning, targetTime, targetDurationSeconds]);
+  }, [isRunning, targetTime, targetDurationSeconds, exerciseName, setNumber]);
+
+  // Cleanup scheduled sound on component unmount
+  useEffect(() => {
+    return () => {
+      cancelScheduledSound();
+    };
+  }, []);
 
   const elapsedSeconds = Math.floor(elapsedMs / 1000);
   const isCountdown = targetDurationSeconds != null && targetDurationSeconds > 0;
@@ -142,10 +217,13 @@ export function RepTimerModal({
     : Math.min(100, (elapsedMs % 60000) / 600);
 
   const handleTogglePlay = () => {
+    unlockAudio();
     setIsRunning((prev) => !prev);
   };
 
   const handleReset = () => {
+    cancelScheduledSound();
+    resetTimerTriggerState();
     setIsRunning(false);
     startTimeRef.current = null;
     accumulatedMsRef.current = 0;
@@ -184,12 +262,26 @@ export function RepTimerModal({
               <p className="text-xs text-muted-foreground">{t("Set")} {setNumber} • {isCountdown ? t("Target Time") : t("Timed Rep")}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <X className="size-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleSound}
+              title={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
+              aria-label={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              {soundEnabled ? (
+                <Volume2 className="size-5 text-brand" />
+              ) : (
+                <VolumeX className="size-5 text-zinc-500" />
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
         </div>
 
         {/* Circular Timer Display */}
@@ -287,23 +379,23 @@ export function RepTimerModal({
         </div>
 
         {/* Complete & Save Buttons */}
-        <div className="w-full flex flex-col gap-2 pt-1">
+        <div className="w-full flex items-center gap-2 pt-1">
           <Button
             onClick={() => handleCompleteWithSeconds(elapsedSeconds)}
-            className="w-full bg-brand text-black font-semibold hover:bg-brand/90 h-11 rounded-xl shadow-[0_0_20px_rgba(0,227,164,0.3)] gap-2"
+            className="flex-1 bg-brand text-black font-semibold hover:bg-brand/90 h-11 rounded-xl shadow-[0_0_20px_rgba(0,227,164,0.3)] text-xs sm:text-sm gap-1.5 px-2"
           >
-            <Check className="size-5 stroke-[2.5px]" />
-            {t("Finish & Save Set")} ({formatSecs(elapsedSeconds)})
+            <Check className="size-4 stroke-[2.5px] shrink-0" />
+            <span>({formatSecs(elapsedSeconds)}) opslaan</span>
           </Button>
 
-          {isCountdown && elapsedSeconds !== targetTime && (
+          {isCountdown && (
             <Button
               variant="outline"
               onClick={() => handleCompleteWithSeconds(targetTime)}
-              className="w-full border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 h-9 rounded-xl text-xs gap-1.5"
+              className="flex-1 border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 h-11 rounded-xl text-xs gap-1.5 px-2 font-medium"
             >
-              <Target className="size-3.5 text-brand" />
-              {t("Save target time") || "Doeltijd opslaan"} ({formatSecs(targetTime)})
+              <Target className="size-4 text-brand shrink-0" />
+              <span>Doeltijd opslaan ({formatSecs(targetTime)})</span>
             </Button>
           )}
         </div>

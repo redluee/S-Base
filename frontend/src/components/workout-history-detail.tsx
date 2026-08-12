@@ -13,6 +13,7 @@ import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
 import { normalizeCategory } from "@/components/workout-exercise-card";
+import { getOfflineSession, syncOfflineSession } from "@/lib/offline-workout";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {
   const cleaned: Record<string, any> = {
@@ -49,11 +50,29 @@ export function cleanSessionForExport(session: FullWorkoutSession) {
   return cleaned;
 }
 
-export function WorkoutHistoryDetail({ session }: { session: FullWorkoutSession }) {
+export function WorkoutHistoryDetail({ session: initialSession }: { session: FullWorkoutSession }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const celebrate = searchParams?.get("celebrate") === "true";
   const [copied, setCopied] = useState(false);
+  const [session, setSession] = useState<FullWorkoutSession>(() => {
+    if (initialSession?.sessionId) {
+      const offlineData = getOfflineSession(initialSession.sessionId);
+      if (offlineData?.session) return offlineData.session;
+    }
+    return initialSession;
+  });
+
+  useEffect(() => {
+    if (initialSession?.sessionId) {
+      const offlineData = getOfflineSession(initialSession.sessionId);
+      if (offlineData?.pendingSync && navigator.onLine) {
+        syncOfflineSession(initialSession.sessionId).then((synced) => {
+          if (synced) setSession(synced);
+        });
+      }
+    }
+  }, [initialSession]);
 
   function handleExport() {
     const cleaned = cleanSessionForExport(session);

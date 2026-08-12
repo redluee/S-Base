@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Plus, Volume2, VolumeX } from "lucide-react";
+import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Plus, Volume2, VolumeX, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
@@ -55,7 +55,17 @@ export interface WorkoutExerciseCardProps {
   setReplacingExerciseId: (id: number | null) => void;
   replaceName: string;
   setReplaceName: (name: string) => void;
-  replaceExercise: (id: number, name: string, category?: string, equipment?: string) => void;
+  replaceExercise: (
+    id: number,
+    name: string,
+    category?: string,
+    equipment?: string,
+    defaultRestTime?: number,
+    defaultWeight?: number,
+    defaultDistance?: number,
+    defaultDuration?: number,
+    perSide?: boolean
+  ) => void;
   updateCategory: (idx: number, category: string) => Promise<void>;
   updateEquipment: (idx: number, equipment: string) => Promise<void>;
   removeExercise: (id: number) => void;
@@ -214,29 +224,42 @@ export function WorkoutExerciseCard({
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           {replacingExerciseId === ex.sessionExerciseId ? (
-            <div className="flex gap-2 items-center w-full">
-              <div className="flex-1">
-                <ExerciseAutocomplete
-                  value={replaceName}
-                  onChange={setReplaceName}
-                  onSelect={(v, sets, reps, category, equipment) => {
-                    replaceExercise(ex.sessionExerciseId!, v, category, equipment);
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex gap-2 items-center w-full">
+                <div className="flex-1">
+                  <ExerciseAutocomplete
+                    value={replaceName}
+                    onChange={setReplaceName}
+                    onSelect={(v, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
+                      replaceExercise(ex.sessionExerciseId!, v, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide);
+                    }}
+                    placeholder={t("Search exercise") + "..."}
+                    className="w-full h-8 text-sm"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setReplacingExerciseId(null);
+                    setReplaceName("");
                   }}
-                  placeholder={t("Search exercise") + "..."}
-                  className="w-full h-8 text-sm"
-                />
+                  className="h-8 text-xs text-muted-foreground hover:bg-white/5"
+                >
+                  {t("Cancel")}
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
+              <button
+                type="button"
                 onClick={() => {
-                  setReplacingExerciseId(null);
-                  setReplaceName("");
+                  if (replaceName.trim()) {
+                    replaceExercise(ex.sessionExerciseId!, replaceName.trim(), undefined);
+                  }
                 }}
-                className="h-8 text-xs text-muted-foreground hover:bg-white/5"
+                className="text-xs text-brand hover:underline font-medium text-left self-start cursor-pointer"
               >
-                {t("Cancel")}
-              </Button>
+                + {t("Nieuwe oefening instellen")}
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-1">
@@ -252,6 +275,7 @@ export function WorkoutExerciseCard({
                 <ExerciseCategorySelector
                   category={ex.category ?? "Free Weights"}
                   equipment={ex.equipment ?? ""}
+                  readOnlyCategory={true}
                   onChange={(cat, eq) => {
                     if (cat !== ex.category) {
                       updateCategory(exIdx, cat);
@@ -309,27 +333,28 @@ export function WorkoutExerciseCard({
                   onClick={() => setActiveMenuExerciseId(null)}
                 />
                 <div className="absolute right-0 mt-1 w-48 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl z-20 py-1 text-sm">
-                  {onStartEditing ? (
+                  {onStartEditing && (
                     <button
                       onClick={() => {
                         onStartEditing(exIdx);
                         setActiveMenuExerciseId(null);
                       }}
-                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
+                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left cursor-pointer"
                     >
                       <Edit2 className="size-4 mr-2 text-zinc-500" />
                       {t("Edit Exercise")}
                     </button>
-                  ) : (
+                  )}
+                  {setReplacingExerciseId && (
                     <button
                       onClick={() => {
                         setReplacingExerciseId(ex.sessionExerciseId!);
-                        setReplaceName("");
+                        if (setReplaceName) setReplaceName("");
                         setActiveMenuExerciseId(null);
                       }}
-                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
+                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left cursor-pointer"
                     >
-                      <Edit2 className="size-4 mr-2 text-zinc-500" />
+                      <RefreshCw className="size-4 mr-2 text-zinc-500" />
                       {t("Replace Exercise")}
                     </button>
                   )}
@@ -338,7 +363,7 @@ export function WorkoutExerciseCard({
                       setHistoryExerciseName(ex.exerciseName, ex.equipment);
                       setActiveMenuExerciseId(null);
                     }}
-                    className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left"
+                    className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left cursor-pointer"
                   >
                     <History className="size-4 mr-2 text-zinc-500" />
                     {t("View History")}
@@ -351,7 +376,7 @@ export function WorkoutExerciseCard({
                       }
                       setActiveMenuExerciseId(null);
                     }}
-                    className="flex w-full items-center px-4 py-2 text-red-400 hover:bg-zinc-800 text-left"
+                    className="flex w-full items-center px-4 py-2 text-red-400 hover:bg-zinc-800 text-left cursor-pointer"
                   >
                     <Trash2 className="size-4 mr-2" />
                     {t("Remove")}

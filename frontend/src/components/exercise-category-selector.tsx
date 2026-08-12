@@ -51,12 +51,14 @@ interface ExerciseCategorySelectorProps {
   category: string;
   equipment: string; // Comma separated string e.g. "Plyo Box, Dumbbell"
   onChange: (category: string, equipment: string) => void;
+  readOnlyCategory?: boolean;
 }
 
 export function ExerciseCategorySelector({
   category,
   equipment,
   onChange,
+  readOnlyCategory = false,
 }: ExerciseCategorySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCatOpen, setIsCatOpen] = useState(false);
@@ -102,26 +104,33 @@ export function ExerciseCategorySelector({
       <div className="flex flex-wrap items-center gap-2">
         {/* Category Pill Dropdown */}
         <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              setIsCatOpen(!isCatOpen);
-              setIsOpen(false);
-            }}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer",
-              isCatOpen
-                ? "bg-brand text-brand-foreground border-brand shadow-sm"
-                : "bg-white/5 border-border/80 text-foreground hover:bg-white/10"
-            )}
-          >
-            <Folder className="size-3.5 text-brand" />
-            <span>{t(currentCategory)}</span>
-            <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
-          </button>
+          {readOnlyCategory ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 border-border/80 text-foreground cursor-default select-none">
+              <Folder className="size-3.5 text-brand" />
+              <span>{t(currentCategory)}</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setIsCatOpen(!isCatOpen);
+                setIsOpen(false);
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer",
+                isCatOpen
+                  ? "bg-brand text-brand-foreground border-brand shadow-sm"
+                  : "bg-white/5 border-border/80 text-foreground hover:bg-white/10"
+              )}
+            >
+              <Folder className="size-3.5 text-brand" />
+              <span>{t(currentCategory)}</span>
+              <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
+            </button>
+          )}
 
           {/* Category Dropdown Popover */}
-          {isCatOpen && (
+          {!readOnlyCategory && isCatOpen && (
             <div className="absolute top-full left-0 mt-2 w-48 bg-popover border border-border shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
                 {t("Categorie")}

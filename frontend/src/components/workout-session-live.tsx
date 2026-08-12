@@ -36,6 +36,12 @@ import { WorkoutCompletionSummary } from "@/components/workout-completion-summar
 import { ExerciseEditBlock, type ExerciseRowData, mapCategory, unmapCategory, mapEquipment, formatDuration } from "@/components/exercise-edit-block";
 import { RepTimerModal } from "@/components/rep-timer-modal";
 import type { FullWorkoutSession, SessionExercise, SessionSet, PersonalRecord } from "@backend/types/shared";
+import {
+  getOfflineSession,
+  saveOfflineSession,
+  clearOfflineSession,
+  syncOfflineSession,
+} from "@/lib/offline-workout";
 
 
 export function WorkoutSessionLive({
@@ -45,7 +51,19 @@ export function WorkoutSessionLive({
   userId?: number;
 }) {
   const router = useRouter();
-  const [session, setSession] = useState<FullWorkoutSession | null>(initialSession ?? null);
+  const [session, setSession] = useState<FullWorkoutSession | null>(() => {
+    if (initialSession?.sessionId) {
+      const offlineData = getOfflineSession(initialSession.sessionId);
+      if (offlineData?.pendingSync && offlineData.session) {
+        return {
+          ...initialSession,
+          ...offlineData.session,
+          exercises: offlineData.session.exercises ?? initialSession.exercises,
+        };
+      }
+    }
+    return initialSession ?? null;
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -77,6 +95,12 @@ export function WorkoutSessionLive({
     setSoundEnabledState(next);
     setSoundEnabled(next);
     if (next) unlockAudio();
+    if (restActive && restEndTimeRef.current) {
+      const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+      if (remaining > 0) {
+        scheduleRestEndSound(remaining);
+      }
+    }
   }
 
   // Pop Burst satisfaction animation state
@@ -157,6 +181,18 @@ export function WorkoutSessionLive({
     }
   }, [session, createSession]);
 
+  // Trigger sync if offline data is pending and connection is online
+  useEffect(() => {
+    if (session?.sessionId) {
+      const offlineData = getOfflineSession(session.sessionId);
+      if (offlineData?.pendingSync && navigator.onLine) {
+        syncOfflineSession(session.sessionId).then((synced) => {
+          if (synced) setSession(synced);
+        });
+      }
+    }
+  }, [session?.sessionId]);
+
   // Sync session details when loaded
   useEffect(() => {
     if (session) {
@@ -236,6 +272,29 @@ export function WorkoutSessionLive({
 
     return () => {
       if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    };
+  }, [restActive]);
+
+  // Sync rest timer when returning from background / screen off
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && restActive && restEndTimeRef.current) {
+        const now = Date.now();
+        const diffSeconds = Math.ceil((restEndTimeRef.current - now) / 1000);
+        if (diffSeconds <= 0) {
+          setRestSecondsLeft(0);
+          setRestActive(false);
+          restEndTimeRef.current = null;
+          triggerRestTimerCompletion();
+        } else {
+          setRestSecondsLeft(diffSeconds);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [restActive]);
 
@@ -370,6 +429,12 @@ export function WorkoutSessionLive({
     setSaving(true);
     const currentVersion = ++syncVersionRef.current;
 
+    const updatedSession: FullWorkoutSession = {
+      ...session,
+      exercises,
+    };
+    saveOfflineSession(updatedSession, false);
+
     syncPromiseChain.current = syncPromiseChain.current.then(async () => {
       try {
         const s = await api.workouts.sessions.update(session.sessionId, {
@@ -396,9 +461,10 @@ export function WorkoutSessionLive({
 
         if (currentVersion === syncVersionRef.current) {
           setSession(s);
+          clearOfflineSession(session.sessionId);
         }
       } catch (err) {
-        console.error("Failed to sync exercises", err);
+        console.warn("Failed to sync exercises to server (saved offline)", err);
       } finally {
         if (currentVersion === syncVersionRef.current) {
           setSaving(false);
@@ -412,13 +478,20 @@ export function WorkoutSessionLive({
   async function saveWorkoutTitle() {
     if (!session || !sessionName.trim()) return;
     setIsEditingName(false);
+    const updatedSession: FullWorkoutSession = {
+      ...session,
+      name: sessionName.trim(),
+    };
+    setSession(updatedSession);
+    saveOfflineSession(updatedSession, false);
     try {
       const s = await api.workouts.sessions.update(session.sessionId, {
         name: sessionName.trim(),
       });
       setSession(s);
+      clearOfflineSession(session.sessionId);
     } catch (err) {
-      console.error("Failed to save title", err);
+      console.warn("Failed to save title to server (saved offline)", err);
     }
   }
 
@@ -709,17 +782,123 @@ export function WorkoutSessionLive({
     await saveExercises(reindexed);
   }
 
-  async function replaceExercise(exerciseId: number, name: string, category?: string, equipment?: string) {
-    if (!session) return;
+  async function replaceExercise(
+    exerciseId: number,
+    name: string,
+    category?: string,
+    equipment?: string,
+    defaultRestTime?: number,
+    defaultWeight?: number,
+    defaultDistance?: number,
+    defaultDuration?: number,
+    perSide?: boolean
+  ) {
+    if (!session || !name.trim()) return;
     const exercises = [...(session.exercises ?? [])];
     const idx = exercises.findIndex((ex) => ex.sessionExerciseId === exerciseId);
     if (idx === -1) return;
 
+    const trimmedName = name.trim();
+
+    // Check if this exercise is known (category passed or found in history/progress)
+    let isKnown = Boolean(category);
+    let historySessionSets: SessionSet[] | null = null;
+    let historyCategory: string | undefined = undefined;
+    let historyEquipment: string | undefined = undefined;
+
+    // Try fetching progress/history for this exercise name
+    try {
+      const res = await api.workouts.exercises.progress(trimmedName);
+      if (res?.sessions?.length) {
+        const completedSessions = res.sessions.filter((s) => s.sets?.length > 0);
+        if (completedSessions.length > 0) {
+          isKnown = true;
+          const lastSession = completedSessions[completedSessions.length - 1];
+          historySessionSets = lastSession.sets as unknown as SessionSet[];
+          if ((res as { category?: string }).category) {
+            historyCategory = (res as { category?: string }).category;
+          }
+          if (lastSession.equipment) {
+            historyEquipment = lastSession.equipment;
+          }
+          // Update previousSetsMap so ghost targets show up instantly
+          setPreviousSetsMap((prev) => ({
+            ...prev,
+            [trimmedName]: lastSession.sets,
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch progress during exercise replacement", err);
+    }
+
+    // If exercise is NOT known (does not exist yet in system):
+    if (!isKnown) {
+      setReplacingExerciseId(null);
+      setReplaceName("");
+      // Show the exercise creation block (ExerciseEditBlock) for this exercise index
+      setEditingExerciseDraft({
+        name: trimmedName,
+        category: "Free Weights",
+        sets: "3",
+        reps: "8",
+        weight: defaultWeight?.toString() ?? "",
+        distance: defaultDistance?.toString() ?? "",
+        distanceUnit: "km",
+        duration: defaultDuration ? formatDuration(defaultDuration) : "",
+        defaultRestTime: formatDuration(defaultRestTime ?? 90),
+        equipment: equipment || "",
+        perSide: Boolean(perSide),
+        trackingFields: { reps: true, time: false, weight: true, distance: false }
+      });
+      setEditingExerciseIdx(idx);
+      return;
+    }
+
+    // Exercise IS known: take over settings from last time executed or default template settings
+    const cat = category || historyCategory || "resistance";
+    const eq = equipment || historyEquipment || "none";
+    const isPerSide = perSide ? 1 : 0;
+
+    let initialSets: SessionSet[] = [];
+
+    if (historySessionSets && historySessionSets.length > 0) {
+      // Take over settings from last executed session!
+      initialSets = historySessionSets.map((s, i) => ({
+        setNumber: i + 1,
+        reps: s.reps ?? null,
+        weight: s.weight ?? null,
+        distance: s.distance ?? null,
+        duration: s.duration ?? null,
+        rpe: s.rpe ?? null,
+        heartRate: s.heartRate ?? null,
+        completed: 0,
+      }));
+    } else {
+      // No past execution history, construct sets using default values
+      const numSets = 3;
+      const numReps = 10;
+      for (let i = 1; i <= numSets; i++) {
+        initialSets.push({
+          setNumber: i,
+          reps: numReps,
+          weight: defaultWeight ?? null,
+          distance: defaultDistance ?? null,
+          duration: defaultDuration ?? null,
+          rpe: null,
+          heartRate: null,
+          completed: 0,
+        });
+      }
+    }
+
     exercises[idx] = {
       ...exercises[idx],
-      exerciseName: name,
-      category: category ?? "resistance",
-      equipment: equipment ?? "none",
+      exerciseName: trimmedName,
+      category: cat,
+      equipment: eq,
+      perSide: isPerSide,
+      sets: initialSets,
     };
 
     setReplacingExerciseId(null);
@@ -789,7 +968,8 @@ export function WorkoutSessionLive({
       distVal = distVal / 1000;
     }
 
-    const existingSets = targetEx.sets ?? [];
+    const isSameExercise = targetEx.exerciseName === draft.name.trim();
+    const existingSets = isSameExercise ? (targetEx.sets ?? []) : [];
     const updatedSets: SessionSet[] = [];
 
     for (let i = 0; i < numSets; i++) {
@@ -976,19 +1156,54 @@ export function WorkoutSessionLive({
       const startedTime = parseDateString(session.startedAt).getTime();
       const finalCompletedAt = new Date(startedTime + finalSecs * 1000).toISOString();
 
-      bypassWarningRef.current = true;
-
-      await api.workouts.sessions.update(session.sessionId, {
+      const completedSession: FullWorkoutSession = {
+        ...session,
         name: sessionName.trim(),
         notes: summaryNotes.trim(),
-      });
+        completedAt: finalCompletedAt,
+      };
 
-      await api.workouts.sessions.complete(session.sessionId, finalCompletedAt);
+      setSession(completedSession);
+      saveOfflineSession(completedSession, true, finalCompletedAt);
+
+      bypassWarningRef.current = true;
+
+      try {
+        await api.workouts.sessions.update(session.sessionId, {
+          name: sessionName.trim(),
+          notes: summaryNotes.trim(),
+          exercises: completedSession.exercises?.map((ex) => ({
+            sessionExerciseId: ex.sessionExerciseId,
+            exerciseName: ex.exerciseName,
+            sortOrder: ex.sortOrder,
+            category: ex.category ?? "resistance",
+            equipment: ex.equipment ?? "none",
+            perSide: ex.perSide ?? (ex.templateExercise?.perSide ? 1 : 0),
+            sets: ex.sets?.map((st: SessionSet) => ({
+              setId: st.setId,
+              setNumber: st.setNumber,
+              reps: st.reps ?? null,
+              weight: st.weight,
+              distance: st.distance,
+              duration: st.duration,
+              rpe: st.rpe,
+              heartRate: st.heartRate,
+              completed: st.completed,
+            })),
+          })),
+        });
+
+        await api.workouts.sessions.complete(session.sessionId, finalCompletedAt);
+        clearOfflineSession(session.sessionId);
+      } catch (err) {
+        console.warn("Failed to complete session on server (saved offline for sync when online)", err);
+        syncOfflineSession(session.sessionId);
+      }
 
       router.push(`/workouts/history/${session.sessionId}?celebrate=true`);
       router.refresh();
     } catch (err) {
-      console.error("Failed to complete session", err);
+      console.error("Failed to complete session summary", err);
     } finally {
       setSaving(false);
     }
@@ -997,12 +1212,14 @@ export function WorkoutSessionLive({
   async function discardWorkout() {
     if (!session || !confirm(t("Are you sure you want to delete this active workout session? This cannot be undone."))) return;
     bypassWarningRef.current = true;
+    clearOfflineSession(session.sessionId);
     try {
       await api.workouts.sessions.delete(session.sessionId);
       router.push("/workouts");
       router.refresh();
     } catch (err) {
       console.error("Failed to discard session", err);
+      router.push("/workouts");
     }
   }
 
