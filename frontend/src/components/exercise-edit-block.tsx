@@ -64,13 +64,13 @@ export function mapEquipment(eq: string) {
   if (eq === "cable") return "Cable";
   if (eq === "machine") return "Machine";
   if (eq === "band") return "Resistance Band";
-  if (eq === "ball") return "Medicine Ball";
+  if (eq === "ball" || eq === "bal") return "Medicine Ball";
   return eq;
 }
 
 export function getDefaultTracking(category: string): TrackingFields {
   if (category === "Cardio") return { reps: false, time: true, weight: false, distance: true };
-  if (category === "Functional") return { reps: true, time: true, weight: true, distance: false };
+  if (category === "Functional") return { reps: true, time: false, weight: true, distance: false };
   return { reps: true, time: false, weight: true, distance: false };
 }
 
@@ -200,11 +200,7 @@ export function ExerciseEditBlock({
           category={ex.category}
           equipment={ex.equipment}
           onChange={(cat, eq) => {
-            const updates: Partial<ExerciseRowData> = { category: cat, equipment: eq };
-            if (cat !== ex.category) {
-              updates.trackingFields = getDefaultTracking(cat);
-            }
-            onChange(updates);
+            onChange({ category: cat, equipment: eq });
           }}
         />
       </div>

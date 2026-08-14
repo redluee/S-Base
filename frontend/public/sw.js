@@ -26,7 +26,7 @@ self.addEventListener("message", (event) => {
       const options = {
         body: data.body || "",
         icon: "/favicon.ico",
-        tag: data.tag || "timer-done",
+        tag: data.tag || "sbase-workout-timer",
         renotify: true,
         data: { timestamp: Date.now() },
         ...(soundEnabled
@@ -42,6 +42,14 @@ self.addEventListener("message", (event) => {
       clearTimeout(backgroundTimerId);
       backgroundTimerId = null;
     }
+  } else if (data.type === "CLEAR_NOTIFICATIONS") {
+    if (backgroundTimerId) {
+      clearTimeout(backgroundTimerId);
+      backgroundTimerId = null;
+    }
+    self.registration.getNotifications().then((notifications) => {
+      notifications.forEach((notification) => notification.close());
+    }).catch(() => {});
   }
 });
 
@@ -56,4 +64,3 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
-

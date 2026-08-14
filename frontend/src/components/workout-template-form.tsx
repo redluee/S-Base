@@ -28,7 +28,7 @@ function mapEquipment(eq: string) {
   if (eq === "cable") return "Cable";
   if (eq === "machine") return "Machine";
   if (eq === "band") return "Resistance Band";
-  if (eq === "ball") return "Medicine Ball";
+  if (eq === "ball" || eq === "bal") return "Medicine Ball";
   return eq || "Dumbbell";
 }
 
@@ -77,7 +77,7 @@ function formatDuration(secVal: number | null | undefined): string {
 
 function getDefaultTracking(category: string): TrackingFields {
   if (category === "Cardio") return { reps: false, time: true, weight: false, distance: true };
-  if (category === "Functional") return { reps: true, time: true, weight: true, distance: false };
+  if (category === "Functional") return { reps: true, time: false, weight: true, distance: false };
   return { reps: true, time: false, weight: true, distance: false };
 }
 

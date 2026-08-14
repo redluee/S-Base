@@ -29,6 +29,9 @@ import {
   requestNotificationPermission,
   isSoundEnabled,
   setSoundEnabled,
+  requestScreenWakeLock,
+  releaseScreenWakeLock,
+  clearActiveNotifications,
 } from "@/lib/sound";
 import { WorkoutExerciseCard, normalizeCategory, isSetZero, isTimedExercise } from "@/components/workout-exercise-card";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
@@ -233,6 +236,18 @@ export function WorkoutSessionLive({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.exercises?.length]);
 
+  // Screen wake lock during active workout
+  useEffect(() => {
+    if (session?.sessionId && !isPaused && !isSummaryView && !session?.completedAt) {
+      requestScreenWakeLock();
+    } else {
+      releaseScreenWakeLock();
+    }
+    return () => {
+      releaseScreenWakeLock();
+    };
+  }, [session?.sessionId, isPaused, isSummaryView, session?.completedAt]);
+
   // Main timer tick
   useEffect(() => {
     if (!session?.sessionId || isPaused || isSummaryView || session?.completedAt) return;
@@ -302,6 +317,7 @@ export function WorkoutSessionLive({
   useEffect(() => {
     return () => {
       cancelScheduledSound();
+      clearActiveNotifications();
     };
   }, []);
 
@@ -309,6 +325,7 @@ export function WorkoutSessionLive({
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       cancelScheduledSound();
+      clearActiveNotifications();
       if (bypassWarningRef.current || !session || isSummaryView || session.completedAt) return;
       e.preventDefault();
       e.returnValue = t("You have an active workout. Leaving will lose unsaved progress.");
@@ -318,6 +335,7 @@ export function WorkoutSessionLive({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       cancelScheduledSound();
+      clearActiveNotifications();
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [session, isSummaryView]);
@@ -352,6 +370,7 @@ export function WorkoutSessionLive({
 
   function stopRestTimer() {
     cancelScheduledSound();
+    clearActiveNotifications();
     resetTimerTriggerState();
     restEndTimeRef.current = null;
     setRestActive(false);
@@ -501,26 +520,7 @@ export function WorkoutSessionLive({
     const targetEx = exercises[exerciseIndex];
     if (!targetEx) return;
 
-    const newNormCat = normalizeCategory(category);
-    const oldNormCat = normalizeCategory(targetEx.category);
-
-    const updatedEx = { ...targetEx, category };
-
-    if (newNormCat !== oldNormCat && targetEx.sets?.length) {
-      updatedEx.sets = targetEx.sets.map((set) => {
-        const newSet = { ...set };
-        if (newNormCat === "cardio") {
-          newSet.reps = null;
-          newSet.weight = null;
-        } else if (newNormCat === "resistance" || newNormCat === "bodyweight") {
-          newSet.duration = null;
-          newSet.distance = null;
-        }
-        return newSet;
-      });
-    }
-
-    exercises[exerciseIndex] = updatedEx;
+    exercises[exerciseIndex] = { ...targetEx, category };
     setSession({ ...session, exercises });
     await saveExercises(exercises);
   }
@@ -568,6 +568,7 @@ export function WorkoutSessionLive({
 
   async function updateSetAndComplete(exerciseIndex: number, setIndex: number, durationSeconds: number) {
     if (!session) return;
+    clearActiveNotifications();
     const exercises = [...(session.exercises ?? [])];
     const ex = { ...exercises[exerciseIndex] };
     const sets = [...(ex.sets ?? [])];
@@ -612,6 +613,7 @@ export function WorkoutSessionLive({
     set.completed = nextCompleted;
 
     if (nextCompleted === 1) {
+      clearActiveNotifications();
       const prevSets = previousSetsMap[ex.exerciseName];
       const prevSet = prevSets?.[setIndex] ?? prevSets?.[prevSets.length - 1];
       const templateEx = ex.templateExercise;
@@ -691,7 +693,17 @@ export function WorkoutSessionLive({
     await saveExercises(exercises);
   }
 
-  async function addExercise(nameOverride?: string, categoryOverride?: string, defaultSets?: number, defaultReps?: number, equipmentOverride?: string, perSideOverride?: boolean) {
+  async function addExercise(
+    nameOverride?: string,
+    categoryOverride?: string,
+    defaultSets?: number,
+    defaultReps?: number,
+    equipmentOverride?: string,
+    perSideOverride?: boolean,
+    defaultWeight?: number,
+    defaultDistance?: number,
+    defaultDuration?: number
+  ) {
     const name = nameOverride || newExerciseName.trim();
     if (!session || !name) return;
     const exercises = [...(session.exercises ?? [])];
@@ -705,9 +717,9 @@ export function WorkoutSessionLive({
       initialSets.push({
         setNumber: i,
         reps: numReps,
-        weight: null,
-        distance: null,
-        duration: null,
+        weight: defaultWeight ?? null,
+        distance: defaultDistance ?? null,
+        duration: defaultDuration ?? null,
         rpe: null,
         heartRate: null,
         completed: 0,
@@ -923,7 +935,7 @@ export function WorkoutSessionLive({
     const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
 
     const hasReps = ex.sets?.some((s) => s.reps != null && s.reps > 0) ?? (cat !== "Cardio");
-    const hasTime = ex.sets?.some((s) => s.duration != null && s.duration > 0) ?? (cat === "Cardio" || cat === "Functional");
+    const hasTime = ex.sets?.some((s) => s.duration != null && s.duration > 0) ?? (cat === "Cardio");
     const hasWeight = ex.sets?.some((s) => s.weight != null && s.weight !== undefined) ?? true;
     const hasDistance = ex.sets?.some((s) => s.distance != null && s.distance > 0) ?? (cat === "Cardio");
 
@@ -1455,7 +1467,7 @@ export function WorkoutSessionLive({
                       onChange={setNewExerciseName}
                       onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide);
+                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration);
                         } else {
                           setUnknownExerciseDraft({
                             name,
@@ -1616,9 +1628,9 @@ export function WorkoutSessionLive({
                     <ExerciseAutocomplete
                       value={newExerciseName}
                       onChange={setNewExerciseName}
-                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration) => {
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment);
+                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration);
                         } else {
                           setUnknownExerciseDraft({
                             name,
@@ -1631,7 +1643,7 @@ export function WorkoutSessionLive({
                             duration: defaultDuration ? formatDuration(defaultDuration) : "",
                             defaultRestTime: formatDuration(defaultRestTime ?? 90),
                             equipment: equipment || "",
-                            perSide: false,
+                            perSide: Boolean(perSide),
                             trackingFields: { reps: true, time: false, weight: true, distance: false }
                           });
                         }

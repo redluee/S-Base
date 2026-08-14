@@ -12,7 +12,7 @@ import { ArrowLeft, Trash2, Pencil, FileText, Upload, Check } from "lucide-react
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
-import { normalizeCategory } from "@/components/workout-exercise-card";
+import { normalizeCategory, isTimedExercise } from "@/components/workout-exercise-card";
 import { getOfflineSession, syncOfflineSession } from "@/lib/offline-workout";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {
@@ -291,7 +291,7 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
                               {cat === "isometric" && (
                                 <>
                                   <th className="text-right p-2 text-muted-foreground font-normal">
-                                    <div>{t("Time")}</div>
+                                    <div>{isTimedExercise(ex) ? t("Time") : t("Reps")}</div>
                                     {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
                                   </th>
                                   <th className="text-right p-2 text-muted-foreground font-normal">{t("Added weight (kg)")}</th>
@@ -334,7 +334,11 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
                             )}
                             {cat === "isometric" && (
                               <>
-                                <td className="p-2 text-right text-foreground">{formatSecs(set.duration)}</td>
+                                <td className="p-2 text-right text-foreground">
+                                  {set.duration != null && set.duration > 0 && (!set.reps || set.reps === 0)
+                                    ? formatSecs(set.duration)
+                                    : (set.reps ?? "—")}
+                                </td>
                                 <td className="p-2 text-right text-foreground">{set.weight ?? "—"}</td>
                               </>
                             )}

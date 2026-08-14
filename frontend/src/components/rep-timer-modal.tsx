@@ -13,6 +13,7 @@ import {
   requestNotificationPermission,
   isSoundEnabled,
   setSoundEnabled,
+  clearActiveNotifications,
 } from "@/lib/sound";
 
 interface RepTimerModalProps {
@@ -203,6 +204,7 @@ export function RepTimerModal({
   useEffect(() => {
     return () => {
       cancelScheduledSound();
+      clearActiveNotifications();
     };
   }, []);
 
@@ -223,6 +225,7 @@ export function RepTimerModal({
 
   const handleReset = () => {
     cancelScheduledSound();
+    clearActiveNotifications();
     resetTimerTriggerState();
     setIsRunning(false);
     startTimeRef.current = null;
@@ -244,6 +247,7 @@ export function RepTimerModal({
   };
 
   const handleCompleteWithSeconds = (secs: number) => {
+    clearActiveNotifications();
     onFinish(Math.max(1, secs));
   };
 

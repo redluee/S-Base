@@ -110,9 +110,6 @@ export function normalizeCategory(cat: string | null | undefined): "resistance" 
 }
 
 export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
-  const cat = normalizeCategory(ex.category);
-  if (cat === "isometric" || cat === "cardio") return true;
-
   const hasCurrentRepsSets = ex.sets?.some((s) => s.reps != null && s.reps > 0);
   const hasCurrentTimeSets = ex.sets?.some((s) => s.duration != null && s.duration > 0);
 
@@ -122,14 +119,25 @@ export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<st
   if (ex.templateExercise?.defaultReps != null && ex.templateExercise.defaultReps > 0 && (ex.templateExercise.defaultDuration == null || ex.templateExercise.defaultDuration === 0)) {
     return false;
   }
-  if (ex.templateExercise?.defaultDuration != null && ex.templateExercise.defaultDuration > 0) {
+  if (ex.templateExercise?.defaultDuration != null && ex.templateExercise.defaultDuration > 0 && (ex.templateExercise.defaultReps == null || ex.templateExercise.defaultReps === 0)) {
     return true;
   }
 
+  const cat = normalizeCategory(ex.category);
+  if (cat === "cardio") return true;
+
   const firstPrevSet = previousSetsMap?.[ex.exerciseName]?.[0];
+  if (firstPrevSet?.reps != null && firstPrevSet.reps > 0 && (firstPrevSet.duration == null || firstPrevSet.duration === 0)) {
+    return false;
+  }
   if (firstPrevSet?.duration != null && firstPrevSet.duration > 0) {
     return true;
   }
+
+  if (cat === "isometric" && !hasCurrentRepsSets && ex.templateExercise?.defaultReps == null) {
+    return true;
+  }
+
   return false;
 }
 
@@ -444,7 +452,7 @@ export function WorkoutExerciseCard({
                     <>
                       <th className="text-center py-2 px-3 font-normal w-24">{t("Added weight (kg)")}</th>
                       <th className="text-center py-2 px-3 font-normal w-24">
-                        <span>{t("Time (MM:SS)")}</span>
+                        <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
                         {perSide && (
                           <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
                             ({t("per side")})
@@ -491,7 +499,7 @@ export function WorkoutExerciseCard({
                     const hasTimeTarget =
                       targetSource.duration != null &&
                       targetSource.duration > 0 &&
-                      (targetSource.reps == null || targetSource.reps === 0 || cat === "isometric");
+                      (targetSource.reps == null || targetSource.reps === 0 || isTimed);
 
                     if (hasTimeTarget) {
                       const durStr = formatSecs(targetSource.duration) || `${targetSource.duration}s`;
@@ -521,14 +529,24 @@ export function WorkoutExerciseCard({
                       const dur = targetSource.duration ?? 0;
                       ghostText = `${dist} km x ${formatSecs(dur) || "0:00"}`;
                     } else if (cat === "isometric") {
-                      const dur = targetSource.duration ?? 0;
-                      const weight = targetSource.weight;
-                      const durStr = formatSecs(dur) || `${dur}s`;
-                      
-                      if (weight != null && weight !== 0) {
-                        ghostText = `${weight} KG x ${durStr}`;
+                      if (isTimed) {
+                        const dur = targetSource.duration ?? 0;
+                        const weight = targetSource.weight;
+                        const durStr = formatSecs(dur) || `${dur}s`;
+                        
+                        if (weight != null && weight !== 0) {
+                          ghostText = `${weight} KG x ${durStr}`;
+                        } else {
+                          ghostText = durStr;
+                        }
                       } else {
-                        ghostText = durStr;
+                        const reps = targetSource.reps ?? 10;
+                        const weight = targetSource.weight;
+                        if (weight != null && weight !== 0) {
+                          ghostText = `${reps} x ${weight} KG`;
+                        } else {
+                          ghostText = `${reps} reps`;
+                        }
                       }
                     }
                   }
@@ -565,7 +583,7 @@ export function WorkoutExerciseCard({
                                 step="any"
                                 inputMode="decimal"
                                 placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
-                                value={set.weight !== undefined ? set.weight : (targetSource?.weight ?? null)}
+                                value={set.weight != null ? set.weight : (targetSource?.weight ?? null)}
                                 onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                                 className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                               />
@@ -576,7 +594,7 @@ export function WorkoutExerciseCard({
                                   <AutoSaveInput
                                     type="text"
                                     placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                    value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
+                                    value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
                                     onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                     className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                       onStartRepTimer ? "pr-7" : ""
@@ -603,7 +621,7 @@ export function WorkoutExerciseCard({
                                   min="0"
                                   inputMode="numeric"
                                   placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
-                                  value={set.reps !== undefined ? set.reps : (targetSource?.reps ?? null)}
+                                  value={set.reps != null ? set.reps : (targetSource?.reps ?? null)}
                                   onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                                   className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                     isZero
@@ -624,7 +642,7 @@ export function WorkoutExerciseCard({
                                 min="0"
                                 step="any"
                                 placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
-                                value={set.weight !== undefined ? set.weight : (targetSource?.weight ?? null)}
+                                value={set.weight != null ? set.weight : (targetSource?.weight ?? null)}
                                 onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                                 className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                               />
@@ -635,7 +653,7 @@ export function WorkoutExerciseCard({
                                   <AutoSaveInput
                                     type="text"
                                     placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                    value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
+                                    value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
                                     onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                     className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                       onStartRepTimer ? "pr-7" : ""
@@ -662,7 +680,7 @@ export function WorkoutExerciseCard({
                                   min="0"
                                   inputMode="numeric"
                                   placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
-                                  value={set.reps !== undefined ? set.reps : (targetSource?.reps ?? null)}
+                                  value={set.reps != null ? set.reps : (targetSource?.reps ?? null)}
                                   onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                                   className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                     isZero
@@ -683,7 +701,7 @@ export function WorkoutExerciseCard({
                               min="0"
                               step="any"
                               placeholder={targetSource?.distance != null ? String(targetSource.distance) : "0.0"}
-                              value={set.distance !== undefined ? set.distance : (targetSource?.distance ?? null)}
+                              value={set.distance != null ? set.distance : (targetSource?.distance ?? null)}
                               onSave={(val) => updateSet(exIdx, setIdx, "distance", val ? Math.max(0, Number(val)) : null)}
                               className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                 isZero
@@ -697,7 +715,7 @@ export function WorkoutExerciseCard({
                               <AutoSaveInput
                                 type="text"
                                 placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
+                                value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
                                 onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                 className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                   onStartRepTimer ? "pr-7" : ""
@@ -724,7 +742,7 @@ export function WorkoutExerciseCard({
                               type="number"
                               min="0"
                               placeholder={targetSource?.heartRate != null ? String(targetSource.heartRate) : "140"}
-                              value={set.heartRate !== undefined ? set.heartRate : (targetSource?.heartRate ?? null)}
+                              value={set.heartRate != null ? set.heartRate : (targetSource?.heartRate ?? null)}
                               onSave={(val) => updateSet(exIdx, setIdx, "heartRate", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
@@ -740,7 +758,7 @@ export function WorkoutExerciseCard({
                               min="0"
                               step="any"
                               placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
-                              value={set.weight !== undefined ? set.weight : (targetSource?.weight ?? null)}
+                              value={set.weight != null ? set.weight : (targetSource?.weight ?? null)}
                               onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
                               className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
@@ -751,7 +769,7 @@ export function WorkoutExerciseCard({
                                 <AutoSaveInput
                                   type="text"
                                   placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                  value={(set.duration !== undefined ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration !== undefined ? set.duration : targetSource?.duration) : ""}
+                                  value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
                                   onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
                                   className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                     onStartRepTimer ? "pr-7" : ""
@@ -777,8 +795,8 @@ export function WorkoutExerciseCard({
                                 type="number"
                                 min="0"
                                 inputMode="numeric"
-                                placeholder="0"
-                                value={set.reps ?? targetSource?.reps ?? null}
+                                placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
+                                value={set.reps != null ? set.reps : (targetSource?.reps ?? null)}
                                 onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
                                 className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
                                   isZero

@@ -25,10 +25,11 @@ export const CATEGORY_MAP = {
   "Functional": [
     "Resistance Band",
     "Medicine Ball",
+    "Swiss Ball",
     "Sandbag",
     "Sled",
     "Plyo Box",
-    "bal",
+    "Ball",
   ],
   "Cardio": [
     "Cardio Machine",
