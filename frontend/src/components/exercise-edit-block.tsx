@@ -119,7 +119,11 @@ export function ExerciseEditBlock({
     reps?: number,
     category?: string,
     equipment?: string,
-    defaultRestTime?: number
+    defaultRestTime?: number,
+    defaultWeight?: number,
+    defaultDistance?: number,
+    defaultDuration?: number,
+    perSide?: boolean
   ) {
     const updates: Partial<ExerciseRowData> = { name };
     if (category) {
@@ -130,13 +134,21 @@ export function ExerciseEditBlock({
     if (equipment) updates.equipment = mapEquipment(equipment);
     if (sets !== undefined) updates.sets = sets.toString();
     if (reps !== undefined) updates.reps = reps.toString();
-    if (defaultRestTime !== undefined) updates.defaultRestTime = formatDuration(defaultRestTime);
+    if (defaultWeight !== undefined && defaultWeight !== null) updates.weight = defaultWeight.toString();
+    if (defaultDistance !== undefined && defaultDistance !== null) updates.distance = defaultDistance.toString();
+    if (defaultDuration !== undefined && defaultDuration !== null) updates.duration = formatDuration(defaultDuration);
+    if (defaultRestTime !== undefined && defaultRestTime !== null) updates.defaultRestTime = formatDuration(defaultRestTime);
+    if (perSide !== undefined) updates.perSide = Boolean(perSide);
 
     onChange(updates);
   }
 
   return (
-    <div className="relative flex flex-col gap-5 p-5 bg-card/40 border border-border/50 rounded-xl group shadow-sm">
+    <div
+      id={`template-exercise-${ex.id}`}
+      data-exercise-id={ex.id}
+      className="scroll-mt-24 relative flex flex-col gap-5 p-5 bg-card/40 border border-border/50 rounded-xl group shadow-sm"
+    >
       <div className="absolute top-0 left-0 w-1 h-full bg-brand/40 rounded-l-xl" />
 
       {/* Header with Exercise Autocomplete */}

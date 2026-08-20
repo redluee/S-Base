@@ -300,7 +300,8 @@ export function WorkoutSessionLive({
           setRestSecondsLeft(0);
           setRestActive(false);
           restEndTimeRef.current = null;
-          triggerRestTimerCompletion();
+          const skipSound = diffSeconds < -2; // Skip sound if it ended more than 2 seconds ago in background
+          triggerRestTimerCompletion(skipSound);
         } else {
           setRestSecondsLeft(diffSeconds);
         }
@@ -702,28 +703,74 @@ export function WorkoutSessionLive({
     perSideOverride?: boolean,
     defaultWeight?: number,
     defaultDistance?: number,
-    defaultDuration?: number
+    defaultDuration?: number,
+    lastSets?: Array<{
+      setNumber: number;
+      reps?: number | null;
+      weight?: number | null;
+      distance?: number | null;
+      duration?: number | null;
+      rpe?: number | null;
+      heartRate?: number | null;
+    }>
   ) {
     const name = nameOverride || newExerciseName.trim();
     if (!session || !name) return;
     const exercises = [...(session.exercises ?? [])];
     const cat = categoryOverride || "resistance";
     const eq = equipmentOverride || (cat === "resistance" ? "dumbbell" : "none");
-    
-    const numSets = defaultSets || 1;
-    const numReps = defaultReps ?? 10;
-    const initialSets = [];
-    for (let i = 1; i <= numSets; i++) {
-      initialSets.push({
-        setNumber: i,
-        reps: numReps,
-        weight: defaultWeight ?? null,
-        distance: defaultDistance ?? null,
-        duration: defaultDuration ?? null,
-        rpe: null,
-        heartRate: null,
+
+    let historySessionSets: SessionSet[] | null = (lastSets as unknown as SessionSet[]) || null;
+
+    if (!historySessionSets || historySessionSets.length === 0) {
+      try {
+        const res = await api.workouts.exercises.progress(name);
+        if (res?.sessions?.length) {
+          const completedSessions = res.sessions.filter((s) => s.sets?.length > 0);
+          if (completedSessions.length > 0) {
+            const lastSession = completedSessions[completedSessions.length - 1];
+            historySessionSets = lastSession.sets as unknown as SessionSet[];
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load progress for added exercise", err);
+      }
+    }
+
+    if (historySessionSets && historySessionSets.length > 0) {
+      setPreviousSetsMap((prev) => ({
+        ...prev,
+        [name]: historySessionSets!,
+      }));
+    }
+
+    let initialSets: SessionSet[] = [];
+    if (historySessionSets && historySessionSets.length > 0) {
+      initialSets = historySessionSets.map((s, i) => ({
+        setNumber: i + 1,
+        reps: s.reps ?? null,
+        weight: s.weight ?? null,
+        distance: s.distance ?? null,
+        duration: s.duration ?? null,
+        rpe: s.rpe ?? null,
+        heartRate: s.heartRate ?? null,
         completed: 0,
-      });
+      }));
+    } else {
+      const numSets = defaultSets || 3;
+      const numReps = defaultReps ?? 10;
+      for (let i = 1; i <= numSets; i++) {
+        initialSets.push({
+          setNumber: i,
+          reps: numReps,
+          weight: defaultWeight ?? null,
+          distance: defaultDistance ?? null,
+          duration: defaultDuration ?? null,
+          rpe: null,
+          heartRate: null,
+          completed: 0,
+        });
+      }
     }
 
     exercises.push({
@@ -803,7 +850,16 @@ export function WorkoutSessionLive({
     defaultWeight?: number,
     defaultDistance?: number,
     defaultDuration?: number,
-    perSide?: boolean
+    perSide?: boolean,
+    lastSets?: Array<{
+      setNumber: number;
+      reps?: number | null;
+      weight?: number | null;
+      distance?: number | null;
+      duration?: number | null;
+      rpe?: number | null;
+      heartRate?: number | null;
+    }>
   ) {
     if (!session || !name.trim()) return;
     const exercises = [...(session.exercises ?? [])];
@@ -814,34 +870,39 @@ export function WorkoutSessionLive({
 
     // Check if this exercise is known (category passed or found in history/progress)
     let isKnown = Boolean(category);
-    let historySessionSets: SessionSet[] | null = null;
+    let historySessionSets: SessionSet[] | null = (lastSets as unknown as SessionSet[]) || null;
     let historyCategory: string | undefined = undefined;
     let historyEquipment: string | undefined = undefined;
 
-    // Try fetching progress/history for this exercise name
-    try {
-      const res = await api.workouts.exercises.progress(trimmedName);
-      if (res?.sessions?.length) {
-        const completedSessions = res.sessions.filter((s) => s.sets?.length > 0);
-        if (completedSessions.length > 0) {
-          isKnown = true;
-          const lastSession = completedSessions[completedSessions.length - 1];
-          historySessionSets = lastSession.sets as unknown as SessionSet[];
-          if ((res as { category?: string }).category) {
-            historyCategory = (res as { category?: string }).category;
+    // Try fetching progress/history for this exercise name if not already provided
+    if (!historySessionSets || historySessionSets.length === 0) {
+      try {
+        const res = await api.workouts.exercises.progress(trimmedName);
+        if (res?.sessions?.length) {
+          const completedSessions = res.sessions.filter((s) => s.sets?.length > 0);
+          if (completedSessions.length > 0) {
+            isKnown = true;
+            const lastSession = completedSessions[completedSessions.length - 1];
+            historySessionSets = lastSession.sets as unknown as SessionSet[];
+            if ((res as { category?: string }).category) {
+              historyCategory = (res as { category?: string }).category;
+            }
+            if (lastSession.equipment) {
+              historyEquipment = lastSession.equipment;
+            }
           }
-          if (lastSession.equipment) {
-            historyEquipment = lastSession.equipment;
-          }
-          // Update previousSetsMap so ghost targets show up instantly
-          setPreviousSetsMap((prev) => ({
-            ...prev,
-            [trimmedName]: lastSession.sets,
-          }));
         }
+      } catch (err) {
+        console.error("Failed to fetch progress during exercise replacement", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch progress during exercise replacement", err);
+    }
+
+    if (historySessionSets && historySessionSets.length > 0) {
+      // Update previousSetsMap so ghost targets show up instantly
+      setPreviousSetsMap((prev) => ({
+        ...prev,
+        [trimmedName]: historySessionSets!,
+      }));
     }
 
     // If exercise is NOT known (does not exist yet in system):
@@ -1049,12 +1110,28 @@ export function WorkoutSessionLive({
   async function swapExercises(from: number, to: number) {
     if (!session) return;
     const exercises = [...(session.exercises ?? [])];
+    const movedItem = exercises[from];
+    const movedId = movedItem?.sessionExerciseId ?? to;
     const temp = exercises[from];
     exercises[from] = exercises[to];
     exercises[to] = temp;
     const reindexed = exercises.map((ex, i) => ({ ...ex, sortOrder: i }));
     setSession({ ...session, exercises: reindexed });
     await saveExercises(reindexed);
+
+    setTimeout(() => {
+      const el =
+        document.getElementById(`session-exercise-${movedId}`) ||
+        document.querySelector(`[data-ex-id="${movedId}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const isVeryTall = rect.height > window.innerHeight * 0.75;
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: isVeryTall ? "start" : "center",
+        });
+      }
+    }, 60);
   }
 
   async function handleSaveHistoryEdit() {
@@ -1303,7 +1380,7 @@ export function WorkoutSessionLive({
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Global Header (Sticky) */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-md z-20 pb-4 pt-1 border-b border-border/40 mb-6">
+      <div className="sticky top-0 bg-background/95 backdrop-blur-md z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-6 pt-6 pb-4 border-b border-border/40 mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             {isEditingName ? (
@@ -1465,9 +1542,9 @@ export function WorkoutSessionLive({
                     <ExerciseAutocomplete
                       value={newExerciseName}
                       onChange={setNewExerciseName}
-                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration);
+                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration, lastSets);
                         } else {
                           setUnknownExerciseDraft({
                             name,
@@ -1628,9 +1705,9 @@ export function WorkoutSessionLive({
                     <ExerciseAutocomplete
                       value={newExerciseName}
                       onChange={setNewExerciseName}
-                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration);
+                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration, lastSets);
                         } else {
                           setUnknownExerciseDraft({
                             name,

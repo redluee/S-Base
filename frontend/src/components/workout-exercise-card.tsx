@@ -64,7 +64,16 @@ export interface WorkoutExerciseCardProps {
     defaultWeight?: number,
     defaultDistance?: number,
     defaultDuration?: number,
-    perSide?: boolean
+    perSide?: boolean,
+    lastSets?: Array<{
+      setNumber: number;
+      reps?: number | null;
+      weight?: number | null;
+      distance?: number | null;
+      duration?: number | null;
+      rpe?: number | null;
+      heartRate?: number | null;
+    }>
   ) => void;
   updateCategory: (idx: number, category: string) => Promise<void>;
   updateEquipment: (idx: number, equipment: string) => Promise<void>;
@@ -221,8 +230,9 @@ export function WorkoutExerciseCard({
 
   return (
     <div
-      data-ex-id={ex.sessionExerciseId}
-      className={`rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-all duration-300 max-[375px]:border-0 max-[375px]:rounded-none max-[375px]:bg-transparent ${
+      id={`session-exercise-${ex.sessionExerciseId ?? exIdx}`}
+      data-ex-id={ex.sessionExerciseId ?? exIdx}
+      className={`scroll-mt-24 rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-all duration-300 max-[375px]:border-0 max-[375px]:rounded-none max-[375px]:bg-transparent ${
         allSetsDone
           ? "border-brand shadow-[0_0_15px_rgba(0,227,164,0.15)] ring-1 ring-brand/35"
           : "border-border"
@@ -238,8 +248,8 @@ export function WorkoutExerciseCard({
                   <ExerciseAutocomplete
                     value={replaceName}
                     onChange={setReplaceName}
-                    onSelect={(v, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide) => {
-                      replaceExercise(ex.sessionExerciseId!, v, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide);
+                    onSelect={(v, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets) => {
+                      replaceExercise(ex.sessionExerciseId!, v, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets);
                     }}
                     placeholder={t("Search exercise") + "..."}
                     className="w-full h-8 text-sm"

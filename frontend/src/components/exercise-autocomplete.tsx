@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
@@ -19,6 +18,15 @@ interface Suggestion {
   defaultDistance?: number | null;
   defaultDuration?: number | null;
   perSide?: number | null;
+  lastSets?: Array<{
+    setNumber: number;
+    reps?: number | null;
+    weight?: number | null;
+    distance?: number | null;
+    duration?: number | null;
+    rpe?: number | null;
+    heartRate?: number | null;
+  }>;
 }
 
 export function ExerciseAutocomplete({
@@ -40,6 +48,15 @@ export function ExerciseAutocomplete({
     defaultDistance?: number,
     defaultDuration?: number,
     perSide?: boolean,
+    lastSets?: Array<{
+      setNumber: number;
+      reps?: number | null;
+      weight?: number | null;
+      distance?: number | null;
+      duration?: number | null;
+      rpe?: number | null;
+      heartRate?: number | null;
+    }>,
   ) => void;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -48,9 +65,8 @@ export function ExerciseAutocomplete({
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const fetchSuggestions = useCallback(async (q: string) => {
@@ -77,39 +93,20 @@ export function ExerciseAutocomplete({
   }, [value, fetchSuggestions]);
 
   useEffect(() => {
-    if (!open || !inputRef.current) return;
-    function updatePosition() {
-      if (!inputRef.current) return;
-      const rect = inputRef.current.getBoundingClientRect();
-      setMenuStyle({
-        position: "fixed",
-        left: rect.left,
-        top: rect.bottom + 4,
-        width: rect.width,
-      });
-    }
-    updatePosition();
-    window.addEventListener("scroll", updatePosition, true);
-    window.addEventListener("resize", updatePosition);
-    return () => {
-      window.removeEventListener("scroll", updatePosition, true);
-      window.removeEventListener("resize", updatePosition);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
       if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(e.target as Node)
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
       ) {
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   function select(suggestion: Suggestion) {
@@ -125,6 +122,7 @@ export function ExerciseAutocomplete({
       suggestion.defaultDistance ?? undefined,
       suggestion.defaultDuration ?? undefined,
       Boolean(suggestion.perSide),
+      suggestion.lastSets,
     );
     setOpen(false);
     inputRef.current?.blur();
@@ -162,7 +160,18 @@ export function ExerciseAutocomplete({
           if (exactMatch) {
             select(exactMatch);
           } else {
-            select({ value: value.trim(), defaultSets: 1, defaultReps: 10 });
+            select({
+              value: value.trim(),
+              defaultSets: 1,
+              defaultReps: 10,
+              category: undefined,
+              equipment: undefined,
+              defaultRestTime: undefined,
+              defaultWeight: undefined,
+              defaultDistance: undefined,
+              defaultDuration: undefined,
+              perSide: undefined,
+            });
           }
         }
         break;
@@ -174,7 +183,7 @@ export function ExerciseAutocomplete({
   }
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <Input
         ref={inputRef}
         value={value}
@@ -194,33 +203,31 @@ export function ExerciseAutocomplete({
           className
         )}
       />
-      {open &&
-        suggestions.length > 0 &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            ref={menuRef}
-            style={menuStyle}
-            className="z-50 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-md"
-          >
-            {suggestions.map((suggestion, i) => (
-              <button
-                key={`${suggestion.value}-${i}`}
-                type="button"
-                onClick={() => select(suggestion)}
-                onMouseEnter={() => setActiveIndex(i)}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 ${
-                  i === activeIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground hover:bg-accent/50"
-                }`}
-              >
-                <span className="flex-1">{suggestion.value}</span>
-              </button>
-            ))}
-          </div>,
-          document.body,
-        )}
+      {open && suggestions.length > 0 && (
+        <div
+          className="absolute left-0 top-full mt-1 w-full z-50 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-md"
+        >
+          {suggestions.map((suggestion, i) => (
+            <button
+              key={`${suggestion.value}-${i}`}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                select(suggestion);
+              }}
+              onClick={() => select(suggestion)}
+              onMouseEnter={() => setActiveIndex(i)}
+              className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 ${
+                i === activeIndex
+                  ? "bg-accent text-accent-foreground"
+                  : "text-foreground hover:bg-accent/50"
+              }`}
+            >
+              <span className="flex-1">{suggestion.value}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

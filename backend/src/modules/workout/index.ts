@@ -461,87 +461,89 @@ export class WorkoutService {
       }
     }
 
-    const updateFields: any = {};
-    if (data.name !== undefined) updateFields.name = data.name;
-    if (data.notes !== undefined) updateFields.notes = data.notes;
-    if (data.completedAt !== undefined) updateFields.completedAt = data.completedAt;
+    db.transaction((tx) => {
+      const updateFields: any = {};
+      if (data.name !== undefined) updateFields.name = data.name;
+      if (data.notes !== undefined) updateFields.notes = data.notes;
+      if (data.completedAt !== undefined) updateFields.completedAt = data.completedAt;
 
-    if (Object.keys(updateFields).length > 0) {
-      db.update(workoutSessions).set(updateFields).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
-    }
-
-    if (data.exercises) {
-      const currentExerciseIds = db.select({ id: sessionExercises.sessionExerciseId })
-        .from(sessionExercises)
-        .where(eq(sessionExercises.sessionId, id))
-        .all()
-        .map((r) => r.id);
-
-      const incomingIds = data.exercises
-        .filter((e) => e.sessionExerciseId)
-        .map((e) => e.sessionExerciseId!);
-
-      const toRemove = currentExerciseIds.filter((ci) => !incomingIds.includes(ci));
-      for (const removeId of toRemove) {
-        db.delete(sessionSets).where(eq(sessionSets.sessionExerciseId, removeId)).run();
-        db.delete(sessionExercises).where(eq(sessionExercises.sessionExerciseId, removeId)).run();
+      if (Object.keys(updateFields).length > 0) {
+        tx.update(workoutSessions).set(updateFields).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
       }
 
-      for (const ex of data.exercises) {
-        if (ex.sessionExerciseId) {
-          db.update(sessionExercises).set({
-            exerciseName: ex.exerciseName,
-            sortOrder: ex.sortOrder,
-            category: ex.category ?? "Free Weights",
-            equipment: ex.equipment,
-            perSide: ex.perSide ?? 0,
-          }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
+      if (data.exercises) {
+        const currentExerciseIds = tx.select({ id: sessionExercises.sessionExerciseId })
+          .from(sessionExercises)
+          .where(eq(sessionExercises.sessionId, id))
+          .all()
+          .map((r) => r.id);
 
-          if (ex.sets) {
-            db.delete(sessionSets).where(eq(sessionSets.sessionExerciseId, ex.sessionExerciseId)).run();
+        const incomingIds = data.exercises
+          .filter((e) => e.sessionExerciseId)
+          .map((e) => e.sessionExerciseId!);
 
-            for (const set of ex.sets) {
-              db.insert(sessionSets).values({
-                sessionExerciseId: ex.sessionExerciseId,
-                setNumber: set.setNumber,
-                reps: set.reps,
-                weight: set.weight,
-                distance: set.distance,
-                duration: set.duration,
-                rpe: set.rpe,
-                heartRate: set.heartRate,
-                completed: set.completed ?? 0,
-              }).run();
+        const toRemove = currentExerciseIds.filter((ci) => !incomingIds.includes(ci));
+        for (const removeId of toRemove) {
+          tx.delete(sessionSets).where(eq(sessionSets.sessionExerciseId, removeId)).run();
+          tx.delete(sessionExercises).where(eq(sessionExercises.sessionExerciseId, removeId)).run();
+        }
+
+        for (const ex of data.exercises) {
+          if (ex.sessionExerciseId) {
+            tx.update(sessionExercises).set({
+              exerciseName: ex.exerciseName,
+              sortOrder: ex.sortOrder,
+              category: ex.category ?? "Free Weights",
+              equipment: ex.equipment,
+              perSide: ex.perSide ?? 0,
+            }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
+
+            if (ex.sets) {
+              tx.delete(sessionSets).where(eq(sessionSets.sessionExerciseId, ex.sessionExerciseId)).run();
+
+              for (const set of ex.sets) {
+                tx.insert(sessionSets).values({
+                  sessionExerciseId: ex.sessionExerciseId,
+                  setNumber: set.setNumber,
+                  reps: set.reps,
+                  weight: set.weight,
+                  distance: set.distance,
+                  duration: set.duration,
+                  rpe: set.rpe,
+                  heartRate: set.heartRate,
+                  completed: set.completed ?? 0,
+                }).run();
+              }
             }
-          }
-        } else {
-          const se = db.insert(sessionExercises).values({
-            sessionId: id,
-            exerciseName: ex.exerciseName,
-            sortOrder: ex.sortOrder,
-            category: ex.category ?? "Free Weights",
-            equipment: ex.equipment,
-            perSide: ex.perSide ?? 0,
-          }).returning().get();
+          } else {
+            const se = tx.insert(sessionExercises).values({
+              sessionId: id,
+              exerciseName: ex.exerciseName,
+              sortOrder: ex.sortOrder,
+              category: ex.category ?? "Free Weights",
+              equipment: ex.equipment,
+              perSide: ex.perSide ?? 0,
+            }).returning().get();
 
-          if (ex.sets) {
-            for (const set of ex.sets) {
-              db.insert(sessionSets).values({
-                sessionExerciseId: se.sessionExerciseId,
-                setNumber: set.setNumber,
-                reps: set.reps,
-                weight: set.weight,
-                distance: set.distance,
-                duration: set.duration,
-                rpe: set.rpe,
-                heartRate: set.heartRate,
-                completed: set.completed ?? 0,
-              }).run();
+            if (ex.sets) {
+              for (const set of ex.sets) {
+                tx.insert(sessionSets).values({
+                  sessionExerciseId: se.sessionExerciseId,
+                  setNumber: set.setNumber,
+                  reps: set.reps,
+                  weight: set.weight,
+                  distance: set.distance,
+                  duration: set.duration,
+                  rpe: set.rpe,
+                  heartRate: set.heartRate,
+                  completed: set.completed ?? 0,
+                }).run();
+              }
             }
           }
         }
       }
-    }
+    });
 
     return this.getSession(id, userId);
   }
@@ -566,6 +568,28 @@ export class WorkoutService {
 
   suggestExercises(userId: number, q: string) {
     const normalizedQ = normalizeSearchString(q);
+    if (!normalizedQ) return [];
+
+    const fromSessions = db.select({
+      sessionExerciseId: sessionExercises.sessionExerciseId,
+      name: sessionExercises.exerciseName,
+      category: sessionExercises.category,
+      equipment: sessionExercises.equipment,
+      perSide: sessionExercises.perSide,
+      completedAt: workoutSessions.completedAt,
+      startedAt: workoutSessions.startedAt,
+      sessionId: workoutSessions.sessionId,
+    })
+      .from(sessionExercises)
+      .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
+      .where(and(
+        like(sqlNormalize(sessionExercises.exerciseName), `%${normalizedQ}%`),
+        eq(workoutSessions.userId, userId),
+        sql`${workoutSessions.completedAt} IS NOT NULL`
+      ))
+      .orderBy(sql`${workoutSessions.completedAt} DESC`, sql`${workoutSessions.startedAt} DESC`, sql`${workoutSessions.sessionId} DESC`)
+      .all();
+
     const fromTemplates = db.select({
       name: templateExercises.exerciseName,
       category: templateExercises.category,
@@ -584,92 +608,132 @@ export class WorkoutService {
         like(sqlNormalize(templateExercises.exerciseName), `%${normalizedQ}%`),
         eq(workoutTemplates.userId, userId)
       ))
-      .limit(10)
       .all();
 
-    const fromSessions = db.select({
-      name: sessionExercises.exerciseName,
-      category: sessionExercises.category,
-      equipment: sessionExercises.equipment,
-      perSide: sessionExercises.perSide,
-    })
-      .from(sessionExercises)
-      .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        like(sqlNormalize(sessionExercises.exerciseName), `%${normalizedQ}%`),
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`
-      ))
-      .limit(10)
-      .all();
-
-    const exerciseMap = new Map<
+    const uniqueExercisesMap = new Map<
       string,
       {
+        name: string;
         category: string;
-        defaultSets: number | null;
+        equipment: string | null;
+        perSide: number;
+        defaultSets: number;
         defaultReps: number | null;
         defaultWeight: number | null;
         defaultDistance: number | null;
         defaultDuration: number | null;
         defaultRestTime: number | null;
-        equipment: string | null;
-        perSide: number | null;
+        lastSets: Array<{
+          setNumber: number;
+          reps: number | null;
+          weight: number | null;
+          distance: number | null;
+          duration: number | null;
+          rpe: number | null;
+          heartRate: number | null;
+        }>;
       }
     >();
 
-    for (const r of fromTemplates) {
-      const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
-      const key = `${r.name}::${eqNorm ?? ""}`;
-      if (!exerciseMap.has(key)) {
-        exerciseMap.set(key, {
-          category: r.category ?? "Free Weights",
-          defaultSets: r.defaultSets,
-          defaultReps: r.defaultReps,
-          defaultWeight: r.defaultWeight,
-          defaultDistance: r.defaultDistance,
-          defaultDuration: r.defaultDuration,
-          defaultRestTime: r.defaultRestTime,
-          equipment: eqNorm,
-          perSide: r.perSide ?? 0,
-        });
-      }
-    }
-
     for (const r of fromSessions) {
-      const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
-      const key = `${r.name}::${eqNorm ?? ""}`;
-      if (!exerciseMap.has(key)) {
-        exerciseMap.set(key, {
+      const key = r.name.trim().toLowerCase();
+      if (!uniqueExercisesMap.has(key)) {
+        const sets = db.select({
+          setNumber: sessionSets.setNumber,
+          reps: sessionSets.reps,
+          weight: sessionSets.weight,
+          distance: sessionSets.distance,
+          duration: sessionSets.duration,
+          rpe: sessionSets.rpe,
+          heartRate: sessionSets.heartRate,
+        })
+          .from(sessionSets)
+          .where(eq(sessionSets.sessionExerciseId, r.sessionExerciseId))
+          .orderBy(sessionSets.setNumber)
+          .all();
+
+        const lastSetWithValues = sets.slice().reverse().find(s => s.reps != null || s.weight != null || s.distance != null || s.duration != null) ?? sets[sets.length - 1];
+        const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+
+        uniqueExercisesMap.set(key, {
+          name: r.name,
           category: r.category ?? "Free Weights",
-          defaultSets: null,
-          defaultReps: null,
-          defaultWeight: null,
-          defaultDistance: null,
-          defaultDuration: null,
-          defaultRestTime: null,
           equipment: eqNorm,
           perSide: r.perSide ?? 0,
+          defaultSets: sets.length > 0 ? sets.length : 3,
+          defaultReps: lastSetWithValues?.reps ?? (sets[0]?.reps ?? 10),
+          defaultWeight: lastSetWithValues?.weight ?? (sets[0]?.weight ?? null),
+          defaultDistance: lastSetWithValues?.distance ?? (sets[0]?.distance ?? null),
+          defaultDuration: lastSetWithValues?.duration ?? (sets[0]?.duration ?? null),
+          defaultRestTime: null,
+          lastSets: sets.map((s, idx) => ({
+            setNumber: s.setNumber || idx + 1,
+            reps: s.reps ?? null,
+            weight: s.weight ?? null,
+            distance: s.distance ?? null,
+            duration: s.duration ?? null,
+            rpe: s.rpe ?? null,
+            heartRate: s.heartRate ?? null,
+          })),
         });
       }
     }
 
-    return Array.from(exerciseMap.entries()).map(([key, data]) => {
-      const [name] = key.split("::");
-      return {
-        type: "exercise" as const,
-        value: name,
-        category: data.category,
-        defaultSets: data.defaultSets,
-        defaultReps: data.defaultReps,
-        defaultWeight: data.defaultWeight,
-        defaultDistance: data.defaultDistance,
-        defaultDuration: data.defaultDuration,
-        defaultRestTime: data.defaultRestTime,
-        equipment: data.equipment,
-        perSide: data.perSide,
-      };
-    });
+    for (const r of fromTemplates) {
+      const key = r.name.trim().toLowerCase();
+      const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+
+      if (uniqueExercisesMap.has(key)) {
+        const existing = uniqueExercisesMap.get(key)!;
+        if (existing.defaultRestTime == null && r.defaultRestTime != null) {
+          existing.defaultRestTime = r.defaultRestTime;
+        }
+      } else {
+        const numSets = r.defaultSets || 3;
+        const numReps = r.defaultReps ?? 10;
+        const templateSets = [];
+        for (let i = 1; i <= numSets; i++) {
+          templateSets.push({
+            setNumber: i,
+            reps: numReps,
+            weight: r.defaultWeight ?? null,
+            distance: r.defaultDistance ?? null,
+            duration: r.defaultDuration ?? null,
+            rpe: null,
+            heartRate: null,
+          });
+        }
+
+        uniqueExercisesMap.set(key, {
+          name: r.name,
+          category: r.category ?? "Free Weights",
+          equipment: eqNorm,
+          perSide: r.perSide ?? 0,
+          defaultSets: numSets,
+          defaultReps: numReps,
+          defaultWeight: r.defaultWeight ?? null,
+          defaultDistance: r.defaultDistance ?? null,
+          defaultDuration: r.defaultDuration ?? null,
+          defaultRestTime: r.defaultRestTime ?? null,
+          lastSets: templateSets,
+        });
+      }
+    }
+
+    return Array.from(uniqueExercisesMap.values()).slice(0, 10).map((data) => ({
+      type: "exercise" as const,
+      value: data.name,
+      category: data.category,
+      defaultSets: data.defaultSets,
+      defaultReps: data.defaultReps,
+      defaultWeight: data.defaultWeight,
+      defaultDistance: data.defaultDistance,
+      defaultDuration: data.defaultDuration,
+      defaultRestTime: data.defaultRestTime,
+      equipment: data.equipment,
+      perSide: data.perSide,
+      lastSets: data.lastSets,
+    }));
   }
 
   suggestWorkoutSearch(userId: number, q: string) {
@@ -777,11 +841,12 @@ export class WorkoutService {
   }
 
   exerciseProgress(userId: number, name: string, equipment?: string) {
+    const trimmedName = name.trim();
     const availableEqRows = db.select({ equipment: sessionExercises.equipment })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
       .where(and(
-        eq(sessionExercises.exerciseName, name),
+        sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${trimmedName})`,
         eq(workoutSessions.userId, userId),
         sql`${workoutSessions.completedAt} IS NOT NULL`
       ))
@@ -796,7 +861,7 @@ export class WorkoutService {
     const availableEquipments = Array.from(availableEquipmentsSet).sort();
 
     const conditions = [
-      eq(sessionExercises.exerciseName, name),
+      sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${trimmedName})`,
       sql`${workoutSessions.completedAt} IS NOT NULL`,
       eq(workoutSessions.userId, userId),
     ];
@@ -827,28 +892,23 @@ export class WorkoutService {
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
       .where(and(...conditions))
-      .orderBy(workoutSessions.startedAt, sessionExercises.sortOrder, sessionSets.setNumber)
+      .orderBy(sql`${workoutSessions.startedAt} ASC`, sql`${workoutSessions.sessionId} ASC`, sessionExercises.sortOrder, sessionSets.setNumber)
       .all();
 
-    const sessions: Record<number, { startedAt: string; equipment: string | null; sets: typeof rows }> = {};
+    const sessionsMap = new Map<number, { sessionId: number; startedAt: string; equipment: string | null; sets: typeof rows }>();
     for (const row of rows) {
-      if (!sessions[row.sessionId]) {
-        sessions[row.sessionId] = { startedAt: row.startedAt, equipment: row.equipment ?? null, sets: [] };
+      if (!sessionsMap.has(row.sessionId)) {
+        sessionsMap.set(row.sessionId, { sessionId: row.sessionId, startedAt: row.startedAt, equipment: row.equipment ?? null, sets: [] });
       }
-      sessions[row.sessionId].sets.push(row);
+      sessionsMap.get(row.sessionId)!.sets.push(row);
     }
 
     return {
-      exerciseName: name,
+      exerciseName: rows[0]?.exerciseName ?? trimmedName,
       category: rows[0]?.category ?? "Free Weights",
       equipment: equipment && equipment !== "all" ? equipment : null,
       availableEquipments,
-      sessions: Object.entries(sessions).map(([id, s]) => ({
-        sessionId: Number(id),
-        startedAt: s.startedAt,
-        equipment: s.equipment,
-        sets: s.sets,
-      })),
+      sessions: Array.from(sessionsMap.values()),
     };
   }
 

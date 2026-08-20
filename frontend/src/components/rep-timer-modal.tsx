@@ -56,6 +56,11 @@ function playLoudBeep(freq = 880, type: OscillatorType = "sine", duration = 0.18
     harmonicOsc.start();
     osc.stop(ctx.currentTime + duration);
     harmonicOsc.stop(ctx.currentTime + duration);
+
+    // Close context after playback to release audio focus (prevents background music ducking)
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, duration * 1000 + 150);
   } catch {
     // Web Audio API safety
   }
@@ -138,7 +143,8 @@ export function RepTimerModal({
           const secsRemaining = targetTime - currentElapsedSec;
           if (secsRemaining <= 0 && !targetChimeTriggeredRef.current) {
             targetChimeTriggeredRef.current = true;
-            triggerSetTimerCompletion(exerciseName, setNumber);
+            const skipSound = secsRemaining < -2;
+            triggerSetTimerCompletion(exerciseName, setNumber, skipSound);
           }
         }
       }

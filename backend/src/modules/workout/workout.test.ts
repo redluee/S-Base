@@ -99,17 +99,63 @@ describe("WorkoutService", () => {
   it("provides exercise suggestions and progress tracking", () => {
     workoutService.createTemplate(adminId, {
       name: "Suggest Test",
-      exercises: [{ exerciseName: "Overhead Press", sets: 3, reps: 10 }],
+      exercises: [{ exerciseName: "Overhead Press", sets: 3, reps: 10, weight: 40 }],
     });
 
     const suggestions = workoutService.suggestExercises(adminId, "Overhead");
-    expect(suggestions.some((s) => s.value === "Overhead Press")).toBe(true);
+    expect(suggestions.filter((s) => s.value.toLowerCase() === "overhead press").length).toBe(1);
+    expect(suggestions[0].value).toBe("Overhead Press");
+    expect(suggestions[0].defaultSets).toBe(3);
+    expect(suggestions[0].defaultReps).toBe(10);
+    expect(suggestions[0].defaultWeight).toBe(40);
+
+    // Create completed session 1 with 50kg
+    const s1 = workoutService.createSession(adminId);
+    workoutService.updateSession(s1.sessionId, adminId, {
+      exercises: [
+        {
+          exerciseName: "Overhead Press",
+          category: "Free Weights",
+          equipment: "barbell",
+          sets: [{ setNumber: 1, reps: 8, weight: 50, completed: 1 }],
+        },
+      ],
+    });
+    workoutService.completeSession(s1.sessionId, adminId);
+
+    // Create completed session 2 with 55kg (more recent)
+    const s2 = workoutService.createSession(adminId);
+    workoutService.updateSession(s2.sessionId, adminId, {
+      exercises: [
+        {
+          exerciseName: "Overhead Press",
+          category: "Free Weights",
+          equipment: "dumbbell",
+          sets: [
+            { setNumber: 1, reps: 6, weight: 55, completed: 1 },
+            { setNumber: 2, reps: 6, weight: 55, completed: 1 },
+          ],
+        },
+      ],
+    });
+    workoutService.completeSession(s2.sessionId, adminId);
+
+    // Ensure suggestExercises only returns ONE entry for Overhead Press and uses the latest session data
+    const suggestionsAfter = workoutService.suggestExercises(adminId, "Overhead");
+    const ohMatches = suggestionsAfter.filter((s) => s.value.toLowerCase() === "overhead press");
+    expect(ohMatches.length).toBe(1);
+    expect(ohMatches[0].defaultSets).toBe(2);
+    expect(ohMatches[0].defaultReps).toBe(6);
+    expect(ohMatches[0].defaultWeight).toBe(55);
+    expect(ohMatches[0].lastSets?.length).toBe(2);
+    expect(ohMatches[0].lastSets?.[0].weight).toBe(55);
 
     const searchSuggestions = workoutService.suggestWorkoutSearch(adminId, "Suggest");
     expect(searchSuggestions.length).toBeGreaterThan(0);
 
     const progress = workoutService.exerciseProgress(adminId, "Overhead Press");
     expect(progress).toBeDefined();
-    expect(progress.sessions).toBeArray();
+    expect(progress.sessions.length).toBe(2);
+    expect(progress.sessions[1].sets[0].weight).toBe(55);
   });
 });

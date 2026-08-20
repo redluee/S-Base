@@ -258,7 +258,22 @@ export function unlockAudio(): void {
   // Unlock Web Audio API
   const ctx = getAudioContext();
   if (ctx && ctx.state === "suspended") {
-    ctx.resume().catch(() => {});
+    ctx.resume().then(() => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.001);
+
+      // Release audio focus shortly after unlocking
+      setTimeout(() => {
+        if (ctx.state === "running") {
+          ctx.suspend().catch(() => {});
+        }
+      }, 500);
+    }).catch(() => {});
   }
 }
 
@@ -350,6 +365,13 @@ function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0): void 
     harmonicOsc.start(noteStart);
     harmonicOsc.stop(noteEnd + 0.05);
   });
+
+  // Release audio focus after chime sequence
+  setTimeout(() => {
+    if (ctx.state === "running") {
+      ctx.suspend().catch(() => {});
+    }
+  }, (startTimeOffsetSeconds + 1.5) * 1000);
 }
 
 export function resetTimerTriggerState(): void {
@@ -455,15 +477,17 @@ export function cancelScheduledSound(): void {
 /**
  * Triggers the rest timer completion actions ONCE (sound, vibrate, notification).
  */
-export function triggerRestTimerCompletion(): void {
+export function triggerRestTimerCompletion(skipSound = false): void {
   if (hasTriggeredCurrentTimer) return;
   hasTriggeredCurrentTimer = true;
 
   cancelScheduledSound();
 
-  playRestTimerEndSound();
-  vibrateDevice();
-  sendRestEndNotification();
+  if (!skipSound) {
+    playRestTimerEndSound();
+    vibrateDevice();
+    sendRestEndNotification();
+  }
 }
 
 export function vibrateDevice(): void {
@@ -490,11 +514,12 @@ async function sendNotification(title: string, body: string, tag: string): Promi
   if (Notification.permission !== "granted") return;
 
   const soundOn = isSoundEnabled();
-  const options: NotificationOptions & { vibrate?: number[]; silent?: boolean } = {
+  const options: NotificationOptions & { vibrate?: number[]; silent?: boolean; requireInteraction?: boolean } = {
     body,
     icon: "/favicon.ico",
     tag,
-    silent: !soundOn,
+    silent: true, // We play our own custom web audio chime, so silence the default OS sound
+    requireInteraction: true, // Ensure it pops up and stays on screen
     ...(soundOn ? { vibrate: [300, 100, 300, 100, 400] } : { vibrate: [] }),
   };
 
@@ -550,15 +575,17 @@ export function sendSetEndNotification(exerciseName?: string, setNumber?: number
 /**
  * Triggers completion actions for set countdown timer ONCE (sound, vibrate, notification).
  */
-export function triggerSetTimerCompletion(exerciseName?: string, setNumber?: number): void {
+export function triggerSetTimerCompletion(exerciseName?: string, setNumber?: number, skipSound = false): void {
   if (hasTriggeredCurrentTimer) return;
   hasTriggeredCurrentTimer = true;
 
   cancelScheduledSound();
 
-  playRestTimerEndSound();
-  vibrateDevice();
-  sendSetEndNotification(exerciseName, setNumber);
+  if (!skipSound) {
+    playRestTimerEndSound();
+    vibrateDevice();
+    sendSetEndNotification(exerciseName, setNumber);
+  }
 }
 
 /**

@@ -217,6 +217,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
 
   function moveExerciseUp(index: number) {
     if (index <= 0) return;
+    const movedId = exercises[index]?.id;
     setExercises((prev) => {
       const next = [...prev];
       const temp = next[index];
@@ -224,9 +225,26 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       next[index - 1] = temp;
       return next;
     });
+    if (movedId) {
+      setTimeout(() => {
+        const el =
+          document.getElementById(`template-exercise-${movedId}`) ||
+          document.querySelector(`[data-exercise-id="${movedId}"]`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const isVeryTall = rect.height > window.innerHeight * 0.75;
+          el.scrollIntoView({
+            behavior: "smooth",
+            block: isVeryTall ? "start" : "center",
+          });
+        }
+      }, 60);
+    }
   }
 
   function moveExerciseDown(index: number) {
+    if (index >= exercises.length - 1) return;
+    const movedId = exercises[index]?.id;
     setExercises((prev) => {
       if (index >= prev.length - 1) return prev;
       const next = [...prev];
@@ -235,6 +253,21 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       next[index + 1] = temp;
       return next;
     });
+    if (movedId) {
+      setTimeout(() => {
+        const el =
+          document.getElementById(`template-exercise-${movedId}`) ||
+          document.querySelector(`[data-exercise-id="${movedId}"]`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const isVeryTall = rect.height > window.innerHeight * 0.75;
+          el.scrollIntoView({
+            behavior: "smooth",
+            block: isVeryTall ? "start" : "center",
+          });
+        }
+      }, 60);
+    }
   }
 
 
