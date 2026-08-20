@@ -360,7 +360,7 @@ export function DashboardClient({
           </Link>
         )}
 
-        {hasModule("minecraft") && (
+        {(hasModule("minecraft") || hasModule("minecraft:monitor")) && (
           <Link
             href="/games/minecraft"
             className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-sky-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-sky-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(14,165,233,0.25)]"
