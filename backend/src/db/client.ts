@@ -7,8 +7,10 @@ const dbPath = process.env.DB_PATH || join(import.meta.dir, "../../..", "sbase.d
 const sqlite = new Database(dbPath);
 if (dbPath !== ":memory:") {
   sqlite.run("PRAGMA journal_mode = WAL");
+  sqlite.run("PRAGMA synchronous = NORMAL");
 }
 sqlite.run("PRAGMA foreign_keys = ON");
+sqlite.run("PRAGMA busy_timeout = 5000");
 
 const db = drizzle(sqlite, { schema });
 

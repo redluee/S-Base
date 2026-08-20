@@ -38,6 +38,7 @@ export const DEFAULT_MODULES = [
   { name: "you", alias: "Voor Jou", description: "Toegang tot stevenheijn.nl/you" },
   { name: "lyric_quotes", alias: "Lyric Quotes", description: "Toegang tot stevenheijn.nl/lyric_quotes" },
   { name: "pulse", alias: "Pulse", description: "Monitoring & admin paneel" },
+  { name: "minecraft", alias: "Lobby Control", description: "Beheer van Minecraft server instances" },
 ];
 
 export async function ensureDefaultModules() {

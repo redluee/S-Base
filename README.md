@@ -25,6 +25,9 @@ bun run db:migrate
 # Seed sample data
 bun run db:seed
 
+# Copy environment variables example
+cp .env.example .env
+
 # Start development (both backend + frontend)
 bun run dev
 ```

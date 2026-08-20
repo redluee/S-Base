@@ -66,7 +66,7 @@ export async function setupTestDb() {
     testerId = existingTester.userId;
   }
 
-  const moduleNames = ["recipes", "workout", "cashflow", "you", "lyric_quotes", "pulse", "measurements", "wines"];
+  const moduleNames = ["recipes", "workout", "cashflow", "you", "lyric_quotes", "pulse", "measurements", "wines", "minecraft"];
   for (const name of moduleNames) {
     let existingMod = db.select().from(modules).where(eq(modules.moduleName, name)).get();
     if (!existingMod) {
