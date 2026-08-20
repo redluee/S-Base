@@ -75,6 +75,7 @@ export default function NewTemplatePage() {
   const [hardcore, setHardcore] = useState(false);
   const [allowFlight, setAllowFlight] = useState(false);
   const [enableCommandBlock, setEnableCommandBlock] = useState(false);
+  const [doFireTick, setDoFireTick] = useState(true);
 
   // World
   const [levelName, setLevelName] = useState("world");
@@ -145,6 +146,7 @@ export default function NewTemplatePage() {
         "hardcore": hardcore ? "true" : "false",
         "allow-flight": allowFlight ? "true" : "false",
         "enable-command-block": enableCommandBlock ? "true" : "false",
+        "do-fire-tick": doFireTick ? "true" : "false",
         "level-name": levelName || "world",
         "level-type": levelType,
         "generate-structures": generateStructures ? "true" : "false",
@@ -442,6 +444,14 @@ export default function NewTemplatePage() {
                     <p className="text-xs text-zinc-500">{t("Enable Command Blocks")}</p>
                   </div>
                   <Switch checked={enableCommandBlock} onCheckedChange={setEnableCommandBlock} />
+                </div>
+
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
+                  <div>
+                    <Label className="cursor-pointer">{t("Fire tick")}</Label>
+                    <p className="text-xs text-zinc-500">Vuur verspreidt zich en dooft uit (doFireTick)</p>
+                  </div>
+                  <Switch checked={doFireTick} onCheckedChange={setDoFireTick} />
                 </div>
               </div>
             )}

@@ -1,9 +1,9 @@
 import { join, resolve, basename } from "path";
 import { homedir } from "os";
-import { existsSync } from "fs";
+import { existsSync, readdirSync, readlinkSync, readFileSync } from "fs";
 import { mkdir, writeFile, readFile, rm, unlink, readdir, copyFile, stat } from "fs/promises";
 import db from "../../db/client";
-import { mc_servers, mc_templates, mc_template_files, mc_player_stats, mc_player_sessions } from "../../db/schema/minecraft";
+import { mc_servers, mc_templates, mc_template_files, mc_player_stats, mc_player_sessions, mc_server_permissions } from "../../db/schema/minecraft";
 import { eq, and, isNull } from "drizzle-orm";
 
 const BASE_DIR = process.env.MC_SERVERS_DIR || process.env.MINECRAFT_DIR || join(homedir(), "minecraft", "servers");
@@ -31,9 +31,43 @@ export class MinecraftService {
     return db.select().from(mc_servers).all();
   }
 
+  listServersForUser(userId: number, hasFullAccess: boolean) {
+    if (hasFullAccess) {
+      return db.select().from(mc_servers).all();
+    }
+    return db
+      .select({
+        serverId: mc_servers.serverId,
+        slug: mc_servers.slug,
+        displayName: mc_servers.displayName,
+        engine: mc_servers.engine,
+        mcVersion: mc_servers.mcVersion,
+        serverDir: mc_servers.serverDir,
+        javaArgs: mc_servers.javaArgs,
+        templateId: mc_servers.templateId,
+        createdAt: mc_servers.createdAt,
+      })
+      .from(mc_servers)
+      .innerJoin(mc_server_permissions, eq(mc_servers.serverId, mc_server_permissions.serverId))
+      .where(eq(mc_server_permissions.userId, userId))
+      .all();
+  }
+
+  canUserAccessServer(userId: number, slug: string, hasFullAccess: boolean): boolean {
+    if (hasFullAccess) return true;
+    const match = db
+      .select({ serverId: mc_servers.serverId })
+      .from(mc_servers)
+      .innerJoin(mc_server_permissions, eq(mc_servers.serverId, mc_server_permissions.serverId))
+      .where(and(eq(mc_server_permissions.userId, userId), eq(mc_servers.slug, slug)))
+      .get();
+    return !!match;
+  }
+
   getServer(slug: string) {
     return db.select().from(mc_servers).where(eq(mc_servers.slug, slug)).get() || null;
   }
+
 
   async createServer(data: { slug: string, displayName: string, engine: string, mcVersion: string, javaArgs?: string, templateId?: number }) {
     validateSlug(data.slug);
@@ -96,6 +130,52 @@ export class MinecraftService {
     return { ...server, onlinePlayers: players, template };
   }
 
+  getServerPids(serverDir: string): number[] {
+    const normTarget = resolve(serverDir);
+    const pids = new Set<number>();
+
+    try {
+      if (existsSync("/proc")) {
+        const entries = readdirSync("/proc");
+        for (const entry of entries) {
+          if (!/^\d+$/.test(entry)) continue;
+          const pid = parseInt(entry, 10);
+          if (pid === process.pid) continue;
+          try {
+            const cwd = readlinkSync(`/proc/${pid}/cwd`);
+            if (resolve(cwd) === normTarget) {
+              pids.add(pid);
+              continue;
+            }
+          } catch {}
+          try {
+            const cmdline = readFileSync(`/proc/${pid}/cmdline`, "utf-8");
+            if (cmdline.includes(normTarget)) {
+              pids.add(pid);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    if (pids.size === 0) {
+      try {
+        const p = Bun.spawnSync(["pgrep", "-f", normTarget]);
+        if (p.exitCode === 0) {
+          const lines = p.stdout.toString().split("\n").filter(Boolean);
+          for (const l of lines) {
+            const pid = parseInt(l.trim(), 10);
+            if (!isNaN(pid) && pid !== process.pid) {
+              pids.add(pid);
+            }
+          }
+        }
+      } catch {}
+    }
+
+    return Array.from(pids);
+  }
+
   async startServer(slug: string) {
     validateSlug(slug);
     const server = this.getServer(slug);
@@ -105,6 +185,13 @@ export class MinecraftService {
     const checkTmux = Bun.spawnSync(["tmux", "has-session", "-t", sessionName]);
     if (checkTmux.exitCode === 0) {
       Bun.spawnSync(["tmux", "kill-session", "-t", sessionName]);
+    }
+
+    const strayPids = this.getServerPids(server.serverDir);
+    for (const pid of strayPids) {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {}
     }
 
     const args = server.javaArgs ? JSON.parse(server.javaArgs) : [];
@@ -179,13 +266,58 @@ export class MinecraftService {
         }
       }
     }
-    Bun.spawnSync(["tmux", "send-keys", "-t", `mc-${slug}`, "stop", "Enter"]);
+
+    const sessionName = `mc-${slug}`;
+    const checkTmux = Bun.spawnSync(["tmux", "has-session", "-t", sessionName]);
+    if (checkTmux.exitCode === 0) {
+      Bun.spawnSync(["tmux", "send-keys", "-t", sessionName, "stop", "C-m"]);
+    }
+
+    const serverDir = server?.serverDir;
+    const startTime = Date.now();
+    const maxGracefulMs = 8000;
+
+    while (Date.now() - startTime < maxGracefulMs) {
+      const isTmuxAlive = Bun.spawnSync(["tmux", "has-session", "-t", sessionName]).exitCode === 0;
+      const pids = serverDir ? this.getServerPids(serverDir) : [];
+      if (!isTmuxAlive && pids.length === 0) {
+        return { ok: true };
+      }
+      await new Promise(r => setTimeout(r, 400));
+    }
+
+    // Terminate remaining processes and tmux session if still active after timeout
+    if (serverDir) {
+      const pids = this.getServerPids(serverDir);
+      for (const pid of pids) {
+        try {
+          process.kill(pid, "SIGTERM");
+        } catch {}
+      }
+    }
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    if (serverDir) {
+      const pids = this.getServerPids(serverDir);
+      for (const pid of pids) {
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {}
+      }
+    }
+
+    const checkTmuxFinal = Bun.spawnSync(["tmux", "has-session", "-t", sessionName]);
+    if (checkTmuxFinal.exitCode === 0) {
+      Bun.spawnSync(["tmux", "kill-session", "-t", sessionName]);
+    }
+
     return { ok: true };
   }
 
   async restartServer(slug: string) {
     await this.stopServer(slug);
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 1000));
     return this.startServer(slug);
   }
 
@@ -197,8 +329,18 @@ export class MinecraftService {
 
   isRunning(slug: string): boolean {
     validateSlug(slug);
+    const server = this.getServer(slug);
     const check = Bun.spawnSync(["tmux", "has-session", "-t", `mc-${slug}`]);
-    return check.exitCode === 0;
+    if (check.exitCode === 0) {
+      return true;
+    }
+    if (server?.serverDir) {
+      const pids = this.getServerPids(server.serverDir);
+      if (pids.length > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   async getConsoleLogs(slug: string, lines = 100) {
@@ -216,7 +358,7 @@ export class MinecraftService {
   async sendCommand(slug: string, command: string) {
     validateSlug(slug);
     const safeCmd = sanitizeCommand(command);
-    Bun.spawnSync(["tmux", "send-keys", "-t", `mc-${slug}`, safeCmd, "Enter"]);
+    Bun.spawnSync(["tmux", "send-keys", "-t", `mc-${slug}`, safeCmd, "C-m"]);
   }
 
   async readProperties(slug: string) {
@@ -296,6 +438,10 @@ export class MinecraftService {
       }
       if (props["player-idle-timeout"] !== undefined) {
         await this.sendCommand(slug, `setidletimeout ${props["player-idle-timeout"] || "0"}`);
+      }
+      if (props["do-fire-tick"] !== undefined || props["doFireTick"] !== undefined) {
+        const val = props["do-fire-tick"] ?? props["doFireTick"];
+        await this.sendCommand(slug, `gamerule doFireTick ${val === "false" ? "false" : "true"}`);
       }
     }
   }

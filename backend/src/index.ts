@@ -30,8 +30,8 @@ const cashflow = new CashflowService();
 const pulse = new PulseService();
 const minecraft = new MinecraftService();
 
-function createAuthPlugin(moduleName: string) {
-  return new Elysia({ name: `auth-${moduleName}` })
+function createAuthPlugin(moduleName: string | string[]) {
+  return new Elysia({ name: `auth-${Array.isArray(moduleName) ? moduleName.join("-") : moduleName}` })
     .derive({ as: "scoped" }, ({ cookie: { session_id }, request }) => {
       let sid = typeof session_id?.value === "string" ? session_id.value : "";
       if (!sid) {
@@ -50,7 +50,11 @@ function createAuthPlugin(moduleName: string) {
           headers: { "Content-Type": "application/json" },
         });
       }
-      if (!auth.moduleAccessCheck(user.userId, moduleName)) {
+      
+      const modules = Array.isArray(moduleName) ? moduleName : [moduleName];
+      const hasAccess = modules.some(mod => auth.moduleAccessCheck(user.userId, mod));
+      
+      if (!hasAccess) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { "Content-Type": "application/json" },
@@ -67,7 +71,16 @@ const workoutAuth = createAuthPlugin("workout");
 const measurementsAuth = workoutAuth;
 const cashflowAuth = createAuthPlugin("cashflow");
 const pulseAuth = createAuthPlugin("pulse");
-const minecraftAuth = createAuthPlugin("minecraft");
+const minecraftAuth = createAuthPlugin(["minecraft", "minecraft:monitor"]);
+
+const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
+  if (!auth.moduleAccessCheck(userId, "minecraft")) {
+    return new Response(JSON.stringify({ error: "Forbidden: Full access required" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+};
 
 export const app = new Elysia()
   .use(cors({ origin: true, credentials: true }))
@@ -631,6 +644,12 @@ export const app = new Elysia()
         if (!u) return new Response("Not Found", { status: 404 });
         return u;
       })
+      .put("/users/:id/servers", ({ params: { id }, body }) => {
+        const { servers } = (body ?? {}) as { servers?: string[] };
+        const u = pulse.updateServerPermissions(Number(id), Array.isArray(servers) ? servers : []);
+        if (!u) return new Response("Not Found", { status: 404 });
+        return u;
+      })
       .post("/users/:id/impersonate", ({ params: { id }, userId, cookie: { session_id } }) => {
         const targetUserId = Number(id);
         const res = auth.impersonateUser(userId, targetUserId);
@@ -669,6 +688,27 @@ export const app = new Elysia()
   .group("/api/minecraft", (app) =>
     app
       .use(minecraftAuth)
+      .onBeforeHandle((ctx) => {
+        const path = new URL(ctx.request.url).pathname;
+        const method = ctx.request.method;
+        const userId = (ctx as any).userId ?? 0;
+        const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
+
+        const serverMatch = path.match(/\/api\/minecraft\/servers\/([^\/]+)/);
+        if (serverMatch) {
+          const slug = serverMatch[1];
+          if (!minecraft.canUserAccessServer(userId, slug, hasFullAccess)) {
+            return new Response(JSON.stringify({ error: "Forbidden: No access to this server" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        if (method === "GET") return;
+        if (path.match(/\/servers\/[^\/]+\/start$/)) return;
+        return requireFullMinecraftAccess({ userId });
+      })
       .get("/versions", async () => minecraft.listAvailableVersions())
       .get("/import/scan", async () => minecraft.scanUnregisteredServers())
       .post("/import/inspect", async ({ body }) => {
@@ -683,7 +723,10 @@ export const app = new Elysia()
         }
         return minecraft.importServer({ slug, displayName, engine, mcVersion, serverDir, javaArgs });
       })
-      .get("/servers", () => minecraft.listServers())
+      .get("/servers", ({ userId }) => {
+        const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
+        return minecraft.listServersForUser(userId, hasFullAccess);
+      })
       .post("/servers", async ({ body }) => {
         const { slug, displayName, engine, mcVersion, javaArgs, templateId } = (body ?? {}) as any;
         return minecraft.createServer({ slug, displayName, engine, mcVersion, javaArgs, templateId });

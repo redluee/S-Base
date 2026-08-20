@@ -32,7 +32,7 @@ import Link from "next/link";
 
 type TabKey = "all" | "general" | "gameplay" | "world" | "performance" | "custom";
 
-const LIVE_PROPERTIES = new Set(["difficulty", "gamemode", "white-list", "player-idle-timeout"]);
+const LIVE_PROPERTIES = new Set(["difficulty", "gamemode", "white-list", "player-idle-timeout", "do-fire-tick", "doFireTick"]);
 
 const KNOWN_KEYS = new Set([
   // General
@@ -53,6 +53,8 @@ const KNOWN_KEYS = new Set([
   "pvp",
   "allow-flight",
   "enable-command-block",
+  "do-fire-tick",
+  "doFireTick",
   // World
   "level-name",
   "level-seed",
@@ -247,7 +249,7 @@ export default function PropertiesPage() {
           <div>
             <p className="font-bold text-amber-200">Server is running</p>
             <p className="mt-0.5 text-amber-300/80">
-              The server is active. Only dynamic properties (Game Mode, Difficulty, Whitelist, Idle Timeout) can be modified in real-time via console commands. Stop the server to edit other properties.
+              The server is active. Only dynamic properties (Game Mode, Difficulty, Whitelist, Idle Timeout, Fire Tick) can be modified in real-time via console commands. Stop the server to edit other properties.
             </p>
           </div>
         </div>
@@ -637,6 +639,23 @@ export default function PropertiesPage() {
                     checked={props["force-gamemode"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("force-gamemode", v ? "true" : "false")}
+                  />
+                </div>
+              )}
+
+              {matchesSearch("do-fire-tick", "Fire Tick (doFireTick)") && (
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-zinc-200 cursor-pointer">Fire Tick</Label>
+                      {renderStatusBadge("do-fire-tick")}
+                    </div>
+                    <p className="text-[11px] text-zinc-400">Allow fire to spread and naturally extinguish (gamerule doFireTick)</p>
+                    <p className="text-[10px] text-zinc-500 font-mono">do-fire-tick={(props["do-fire-tick"] ?? props["doFireTick"]) !== "false" ? "true" : "false"}</p>
+                  </div>
+                  <Switch
+                    checked={(props["do-fire-tick"] ?? props["doFireTick"]) !== "false"}
+                    onCheckedChange={(v) => handleToggle("do-fire-tick", v ? "true" : "false")}
                   />
                 </div>
               )}

@@ -499,6 +499,11 @@ export const api = {
         method: "PUT",
         body: JSON.stringify({ modules }),
       }),
+    updateServers: (id: number, servers: string[]) =>
+      request<PulseUser>(`/pulse/users/${id}/servers`, {
+        method: "PUT",
+        body: JSON.stringify({ servers }),
+      }),
     impersonate: (id: number) =>
       request<{ ok: boolean; user: AuthUser }>(`/pulse/users/${id}/impersonate`, {
         method: "POST",
@@ -678,6 +683,7 @@ export interface PulseUser {
   lastLoginAt: string | null;
   createdAt: string | null;
   modules: string[];
+  mcServers?: string[];
 }
 
 export interface PulseModuleInfo {

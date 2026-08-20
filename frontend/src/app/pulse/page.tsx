@@ -1,6 +1,7 @@
 import { serverApi, getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { PulseClient } from "./client";
+import type { McServer } from "@/lib/api";
 
 export default async function PulsePage() {
   const user = await getCurrentUser();
@@ -8,10 +9,11 @@ export default async function PulsePage() {
     redirect("/dashboard");
   }
 
-  const [initialUsers, initialModules, initialStats] = await Promise.all([
+  const [initialUsers, initialModules, initialStats, initialServers] = await Promise.all([
     serverApi.pulse.users(),
     serverApi.pulse.modules(),
     serverApi.pulse.stats(),
+    serverApi.minecraft.servers.list().catch(() => [] as McServer[]),
   ]);
 
   return (
@@ -20,6 +22,8 @@ export default async function PulsePage() {
       initialUsers={initialUsers}
       initialModules={initialModules}
       initialStats={initialStats}
+      initialServers={initialServers}
     />
   );
 }
+

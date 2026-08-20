@@ -1,6 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import db from "../../db/client";
-import { users, modules, usermodulepermissions } from "../../db/schema";
+import { users, modules, usermodulepermissions, mc_servers, mc_server_permissions } from "../../db/schema";
 
 export interface PulseUser {
   userId: number;
@@ -10,6 +10,7 @@ export interface PulseUser {
   lastLoginAt: string | null;
   createdAt: string | null;
   modules: string[];
+  mcServers: string[];
 }
 
 export interface PulseModuleInfo {
@@ -56,9 +57,26 @@ export class PulseService {
       permsByUser.set(p.userId, list);
     }
 
+    const allServerPerms = db
+      .select({
+        userId: mc_server_permissions.userId,
+        slug: mc_servers.slug,
+      })
+      .from(mc_server_permissions)
+      .innerJoin(mc_servers, eq(mc_server_permissions.serverId, mc_servers.serverId))
+      .all();
+
+    const mcServersByUser = new Map<number, string[]>();
+    for (const p of allServerPerms) {
+      const list = mcServersByUser.get(p.userId) ?? [];
+      list.push(p.slug);
+      mcServersByUser.set(p.userId, list);
+    }
+
     return allUsers.map((u) => ({
       ...u,
       modules: permsByUser.get(u.userId) ?? [],
+      mcServers: mcServersByUser.get(u.userId) ?? [],
     }));
   }
 
@@ -119,6 +137,29 @@ export class PulseService {
     return user ?? null;
   }
 
+  updateServerPermissions(userId: number, serverSlugs: string[]): PulseUser | null {
+    db.delete(mc_server_permissions)
+      .where(eq(mc_server_permissions.userId, userId))
+      .run();
+
+    if (serverSlugs.length > 0) {
+      const targetServers = db
+        .select({ serverId: mc_servers.serverId, slug: mc_servers.slug })
+        .from(mc_servers)
+        .where(inArray(mc_servers.slug, serverSlugs))
+        .all();
+
+      for (const s of targetServers) {
+        db.insert(mc_server_permissions)
+          .values({ userId, serverId: s.serverId })
+          .run();
+      }
+    }
+
+    const user = this.listUsers().find((u) => u.userId === userId);
+    return user ?? null;
+  }
+
   getStats(): PulseStats {
     const usersList = this.listUsers();
     const totalUsers = usersList.length;
@@ -134,3 +175,4 @@ export class PulseService {
     };
   }
 }
+

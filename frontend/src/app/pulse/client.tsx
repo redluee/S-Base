@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
-import { api, type PulseUser, type PulseModuleInfo, type PulseStats } from "@/lib/api";
+import { api, type PulseUser, type PulseModuleInfo, type PulseStats, type McServer } from "@/lib/api";
 import {
   Activity,
   Users,
@@ -20,6 +20,7 @@ import {
   Unlock,
   Sparkles,
   LogIn,
+  Gamepad2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,15 +30,18 @@ export function PulseClient({
   initialUsers,
   initialModules,
   initialStats,
+  initialServers = [],
 }: {
   username: string;
   initialUsers: PulseUser[];
   initialModules: PulseModuleInfo[];
   initialStats: PulseStats;
+  initialServers?: McServer[];
 }) {
   const router = useRouter();
   const [usersList, setUsersList] = useState<PulseUser[]>(initialUsers);
   const [modulesList] = useState<PulseModuleInfo[]>(initialModules);
+  const [serversList] = useState<McServer[]>(initialServers);
   const [stats, setStats] = useState<PulseStats>(initialStats);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingEmailUserId, setEditingEmailUserId] = useState<number | null>(null);
@@ -120,6 +124,27 @@ export function PulseClient({
       showNotification(t("Module toegang bijgewerkt"));
     } catch {
       showNotification(t("Permissies wijzigen mislukt"), "error");
+    } finally {
+      setLoadingUserId(null);
+    }
+  };
+
+  const handleToggleServer = async (user: PulseUser, serverSlug: string) => {
+    const currentServers = user.mcServers || [];
+    const hasServer = currentServers.includes(serverSlug);
+    const updatedServers = hasServer
+      ? currentServers.filter((s) => s !== serverSlug)
+      : [...currentServers, serverSlug];
+
+    setLoadingUserId(user.userId);
+    try {
+      const updated = await api.pulse.updateServers(user.userId, updatedServers);
+      setUsersList((prev) =>
+        prev.map((u) => (u.userId === user.userId ? { ...u, mcServers: updated.mcServers ?? updatedServers } : u))
+      );
+      showNotification(t("Server toegang bijgewerkt"));
+    } catch {
+      showNotification(t("Server toegang wijzigen mislukt"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -432,6 +457,55 @@ export function PulseClient({
                         );
                       })}
                     </div>
+
+                    {/* Minecraft Server Specific Monitor Permissions */}
+                    {u.modules.includes("minecraft:monitor") && (
+                      <div className="mt-3.5 pt-3.5 border-t border-white/5 bg-zinc-950/40 rounded-xl p-3 border border-dashed border-white/10">
+                        <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                            <Gamepad2 className="size-3 text-sky-400" />
+                            {t("Minecraft Server Monitor-toegang")}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono">
+                            {(u.mcServers || []).length} {t("servers geselecteerd")}
+                          </span>
+                        </div>
+
+                        {serversList.length === 0 ? (
+                          <p className="text-xs text-zinc-500 italic">{t("Geen Minecraft servers gevonden.")}</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {serversList.map((srv) => {
+                              const hasAccess = (u.mcServers || []).includes(srv.slug);
+                              return (
+                                <button
+                                  key={srv.serverId}
+                                  onClick={() => handleToggleServer(u, srv.slug)}
+                                  disabled={isLoading}
+                                  className={`group flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 ${
+                                    hasAccess
+                                      ? "bg-sky-500/15 border-sky-500/40 text-sky-300 shadow-[0_0_1rem_-0.25rem_rgba(14,165,233,0.3)]"
+                                      : "bg-zinc-800/30 border-white/5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 hover:border-white/10"
+                                  }`}
+                                >
+                                  <div
+                                    className={`size-3 rounded-sm flex items-center justify-center border transition-colors ${
+                                      hasAccess
+                                        ? "bg-sky-500 border-sky-400 text-zinc-950"
+                                        : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
+                                    }`}
+                                  >
+                                    {hasAccess && <Check className="size-2 stroke-[3]" />}
+                                  </div>
+                                  <span>{srv.displayName}</span>
+                                  <span className="text-[10px] opacity-60 font-mono">({srv.slug})</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

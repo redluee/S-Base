@@ -1,5 +1,6 @@
-import { sqliteTable, integer, text, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, text, unique, primaryKey, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { users } from "./auth";
 
 export const mc_servers = sqliteTable("mc_servers", {
   serverId: integer("serverId").primaryKey({ autoIncrement: true }),
@@ -51,3 +52,18 @@ export const mc_player_sessions = sqliteTable("mc_player_sessions", {
   joinedAt: text("joinedAt").notNull(),
   leftAt: text("leftAt"),
 });
+
+export const mc_server_permissions = sqliteTable(
+  "mc_server_permissions",
+  {
+    userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    serverId: integer("server_id").notNull().references(() => mc_servers.serverId, { onDelete: "cascade" }),
+    grantedAt: text("granted_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.serverId] }),
+    userIdx: index("idx_mc_server_user_permissions").on(table.userId),
+    serverIdx: index("idx_mc_server_server_permissions").on(table.serverId),
+  }),
+);
+

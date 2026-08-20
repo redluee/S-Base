@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "bun:test";
+import { eq, and } from "drizzle-orm";
 import { setupTestDb } from "./test-utils";
 import { app } from "./index";
 
@@ -166,5 +167,72 @@ describe("Elysia API Routes", () => {
     const finalMeJson = await finalMeRes.json();
     expect(finalMeJson.user.username).toBe("admin");
     expect(finalMeJson.user.isImpersonated).toBe(false);
+
+    // Test Server-specific monitor access
+    // Give tester only "minecraft:monitor" and grant access only to "route-test-srv"
+    const { modules: modulesTable, usermodulepermissions: permsTable, mc_servers: srvTable } = await import("./db/schema");
+    const fullMcMod = db.select().from(modulesTable).where(eq(modulesTable.moduleName, "minecraft")).get();
+    if (fullMcMod) {
+      db.delete(permsTable).where(and(eq(permsTable.userId, testerId), eq(permsTable.moduleId, fullMcMod.moduleId))).run();
+    }
+    const monitorMod = db.select().from(modulesTable).where(eq(modulesTable.moduleName, "minecraft:monitor")).get();
+    if (monitorMod) {
+      db.insert(permsTable).values({ userId: testerId, moduleId: monitorMod.moduleId }).run();
+    }
+
+    db.insert(srvTable).values({
+      slug: "other-private-srv",
+      displayName: "Private Server",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+      serverDir: "/tmp/other-srv",
+    }).run();
+
+    // Admin updates tester's server permissions to only allow route-test-srv
+    const setServersRes = await app.handle(new Request(`http://localhost/api/pulse/users/${testerId}/servers`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Cookie: restoredAdminCookie },
+      body: JSON.stringify({ servers: ["route-test-srv"] }),
+    }));
+    expect(setServersRes.status).toBe(200);
+
+    // Login as tester
+    const testerLoginRes = await app.handle(new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "tester", password: "tester" }),
+    }));
+    expect(testerLoginRes.status).toBe(200);
+    const testerCookieHeader = testerLoginRes.headers.get("set-cookie") || "";
+    const testerMatch = testerCookieHeader.match(/session_id=([^;]+)/);
+    const testerCookie = `session_id=${testerMatch ? testerMatch[1] : ""}`;
+
+    // Tester lists servers -> only route-test-srv should be returned
+    const testerServersRes = await app.handle(new Request("http://localhost/api/minecraft/servers", {
+      headers: { Cookie: testerCookie },
+    }));
+    expect(testerServersRes.status).toBe(200);
+    const testerServers = await testerServersRes.json();
+    expect(testerServers.length).toBe(1);
+    expect(testerServers[0].slug).toBe("route-test-srv");
+
+    // Tester accesses allowed server
+    const allowedSrvRes = await app.handle(new Request("http://localhost/api/minecraft/servers/route-test-srv", {
+      headers: { Cookie: testerCookie },
+    }));
+    expect(allowedSrvRes.status).toBe(200);
+
+    // Tester accesses unauthorized server -> 403 Forbidden
+    const unauthSrvRes = await app.handle(new Request("http://localhost/api/minecraft/servers/other-private-srv", {
+      headers: { Cookie: testerCookie },
+    }));
+    expect(unauthSrvRes.status).toBe(403);
+
+    // Tester attempts admin action (e.g. stop server) -> 403 Forbidden
+    const unauthStopRes = await app.handle(new Request("http://localhost/api/minecraft/servers/route-test-srv/stop", {
+      method: "POST",
+      headers: { Cookie: testerCookie },
+    }));
+    expect(unauthStopRes.status).toBe(403);
   });
 });

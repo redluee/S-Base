@@ -1,4 +1,4 @@
-import { serverApi } from "@/lib/server-api";
+import { serverApi, getCurrentUser } from "@/lib/server-api";
 import { type McServer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
@@ -12,48 +12,59 @@ export default async function MinecraftPage() {
     console.error("Failed to load servers", error);
   }
 
+  const user = await getCurrentUser();
+  const hasFullAccess = user?.modules?.includes("minecraft") ?? false;
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="font-display text-4xl text-brand font-black">{t("Lobby Control")}</h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/games/minecraft/import"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-white/10 hover:border-brand/40 transition-colors text-sm font-semibold text-zinc-200"
-          >
-            <FolderDown className="size-4 text-brand" />
-            {t("Import Server")}
-          </Link>
-          <Link
-            href="/games/minecraft/templates"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-white/10 hover:border-brand/40 transition-colors text-sm font-semibold text-zinc-200"
-          >
-            <Box className="size-4" />
-            {t("Templates")}
-          </Link>
-          <Link
-            href="/games/minecraft/new"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand text-zinc-950 font-bold hover:bg-brand/90 transition-colors text-sm"
-          >
-            <Plus className="size-4" />
-            {t("New Server")}
-          </Link>
-        </div>
+        {hasFullAccess && (
+          <div className="flex items-center gap-3">
+            <Link
+              href="/games/minecraft/import"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-white/10 hover:border-brand/40 transition-colors text-sm font-semibold text-zinc-200"
+            >
+              <FolderDown className="size-4 text-brand" />
+              {t("Import Server")}
+            </Link>
+            <Link
+              href="/games/minecraft/templates"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-white/10 hover:border-brand/40 transition-colors text-sm font-semibold text-zinc-200"
+            >
+              <Box className="size-4" />
+              {t("Templates")}
+            </Link>
+            <Link
+              href="/games/minecraft/new"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand text-zinc-950 font-bold hover:bg-brand/90 transition-colors text-sm"
+            >
+              <Plus className="size-4" />
+              {t("New Server")}
+            </Link>
+          </div>
+        )}
       </div>
 
       {servers.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 bg-zinc-900/50 border border-white/10 rounded-2xl text-center">
           <Gamepad2 className="size-12 text-zinc-600 mb-4" />
-          <p className="text-zinc-400 font-medium">{t("No servers yet.")}</p>
-          <div className="flex items-center gap-3 mt-3">
-            <Link href="/games/minecraft/new" className="text-brand hover:underline text-sm font-semibold">
-              {t("Create your first server")}
-            </Link>
-            <span className="text-zinc-600">•</span>
-            <Link href="/games/minecraft/import" className="text-brand hover:underline text-sm font-semibold">
-              {t("Import Server")}
-            </Link>
-          </div>
+          <p className="text-zinc-400 font-medium">
+            {hasFullAccess
+              ? t("No servers yet.")
+              : t("Je hebt momenteel geen toegang tot specifieke servers. Neem contact op met de beheerder.")}
+          </p>
+          {hasFullAccess && (
+            <div className="flex items-center gap-3 mt-3">
+              <Link href="/games/minecraft/new" className="text-brand hover:underline text-sm font-semibold">
+                {t("Create your first server")}
+              </Link>
+              <span className="text-zinc-600">•</span>
+              <Link href="/games/minecraft/import" className="text-brand hover:underline text-sm font-semibold">
+                {t("Import Server")}
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

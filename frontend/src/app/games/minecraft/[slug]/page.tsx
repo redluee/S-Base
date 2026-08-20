@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api, McServer, McServerStatus, McPlayerStat, McBannedPlayer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
-import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, Trash2, ArrowLeft } from "lucide-react";
+import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, Trash2, ArrowLeft, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -37,8 +37,38 @@ export default function ServerDashboardPage() {
   const [errorLines, setErrorLines] = useState<string[]>([]);
   const [loadingAction, setLoadingAction] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [copiedPath, setCopiedPath] = useState(false);
+  const [hasFullAccess, setHasFullAccess] = useState(true);
+
+  useEffect(() => {
+    api.me().then(res => setHasFullAccess(res?.user?.modules?.includes("minecraft") ?? false)).catch(() => {});
+  }, []);
 
   const consoleRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyPath = async () => {
+    if (!server?.serverDir) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(server.serverDir);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = server.serverDir;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedPath(true);
+      setTimeout(() => {
+        setCopiedPath(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy server path:", err);
+    }
+  };
 
   const refreshStatus = useCallback(async () => {
     if (!slug || notFound) return;
@@ -107,7 +137,7 @@ export default function ServerDashboardPage() {
     setLoadingAction(action);
     try {
       await api.minecraft.servers[action](slug);
-      setTimeout(refreshStatus, 2000);
+      await refreshStatus();
     } catch (e: unknown) {
       alert((e as Error).message);
     } finally {
@@ -212,17 +242,47 @@ export default function ServerDashboardPage() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-black text-zinc-100">{server.displayName}</h1>
-            <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1">
+            <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1 flex-wrap">
               <span>{server.slug}</span>
               <span>•</span>
               <span className="uppercase text-brand font-bold">v{server.mcVersion}</span>
               <span>•</span>
               <span className="uppercase">{server.engine}</span>
+              {server.serverDir && (
+                <>
+                  <span>•</span>
+                  <span className="font-mono text-zinc-500 truncate max-w-[200px] sm:max-w-xs md:max-w-md" title={server.serverDir}>
+                    {server.serverDir}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-3 flex-wrap">
+          {server.serverDir && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopyPath}
+              title={`${t("Copy server path")}: ${server.serverDir}`}
+              className="gap-1.5 border-white/10 hover:bg-zinc-800"
+            >
+              {copiedPath ? (
+                <>
+                  <Check className="size-4 text-emerald-400" />
+                  <span className="text-emerald-400 font-medium">{t("Copied!")}</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="size-4" />
+                  <span>{t("Copy server path")}</span>
+                </>
+              )}
+            </Button>
+          )}
+
           <div className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${status.online ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-zinc-800 text-zinc-400 border border-white/10"}`}>
             <div className={`size-2 rounded-full ${status.online ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
             {status.online ? t("Online") : t("Offline")}
@@ -230,14 +290,18 @@ export default function ServerDashboardPage() {
           
           {status.online ? (
             <>
-              <Button size="sm" variant="destructive" onClick={() => handleAction("stop")} disabled={!!loadingAction}>
-                {loadingAction === "stop" ? <Loader2 className="size-4 animate-spin" /> : <Square className="size-4 mr-1.5 fill-current" />}
-                {t("Stop")}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleAction("restart")} disabled={!!loadingAction}>
-                {loadingAction === "restart" ? <Loader2 className="size-4 animate-spin" /> : <RotateCw className="size-4 mr-1.5" />}
-                {t("Restart")}
-              </Button>
+              {hasFullAccess && (
+                <>
+                  <Button size="sm" variant="destructive" onClick={() => handleAction("stop")} disabled={!!loadingAction}>
+                    {loadingAction === "stop" ? <Loader2 className="size-4 animate-spin" /> : <Square className="size-4 mr-1.5 fill-current" />}
+                    {t("Stop")}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAction("restart")} disabled={!!loadingAction}>
+                    {loadingAction === "restart" ? <Loader2 className="size-4 animate-spin" /> : <RotateCw className="size-4 mr-1.5" />}
+                    {t("Restart")}
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => handleAction("start")} disabled={!!loadingAction}>
@@ -246,9 +310,11 @@ export default function ServerDashboardPage() {
             </Button>
           )}
 
-          <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/20" onClick={handleDelete} disabled={deleting}>
-            {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-          </Button>
+          {hasFullAccess && (
+            <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/20" onClick={handleDelete} disabled={deleting} title={t("Delete Server")}>
+              {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -257,12 +323,16 @@ export default function ServerDashboardPage() {
         <Link href={`/games/minecraft/${slug}`} className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-100 text-sm font-semibold whitespace-nowrap">
           {t("Server Dashboard")}
         </Link>
-        <Link href={`/games/minecraft/${slug}/properties`} className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors text-sm font-semibold flex items-center gap-2 whitespace-nowrap border border-white/5">
-          <FileText className="size-4" /> {t("Properties")}
-        </Link>
-        <Link href={`/games/minecraft/${slug}/files`} className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors text-sm font-semibold flex items-center gap-2 whitespace-nowrap border border-white/5">
-          <Folder className="size-4" /> {t("File Manager")}
-        </Link>
+        {hasFullAccess && (
+          <>
+            <Link href={`/games/minecraft/${slug}/properties`} className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors text-sm font-semibold flex items-center gap-2 whitespace-nowrap border border-white/5">
+              <FileText className="size-4" /> {t("Properties")}
+            </Link>
+            <Link href={`/games/minecraft/${slug}/files`} className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors text-sm font-semibold flex items-center gap-2 whitespace-nowrap border border-white/5">
+              <Folder className="size-4" /> {t("File Manager")}
+            </Link>
+          </>
+        )}
       </div>
 
       {/* Crash report alert */}
@@ -296,7 +366,7 @@ export default function ServerDashboardPage() {
               onChange={(e) => setCmd(e.target.value)}
               placeholder={t("Type a command...")}
               className="bg-black/50 border-white/10 font-mono text-sm focus-visible:ring-sky-500"
-              disabled={!status.online}
+              disabled={!status.online || !hasFullAccess}
             />
           </form>
         </div>
@@ -334,17 +404,19 @@ export default function ServerDashboardPage() {
                       <div className="text-[10px] text-zinc-500">{formatPlaytime(p.totalPlaytime)} {t("Total playtime")}</div>
                     </div>
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" className="size-7 text-sky-400 hover:bg-sky-500/20" title={t("Op")} onClick={() => api.minecraft.servers.players.op(slug, p.playerUuid)}>
-                      <Shield className="size-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="size-7 text-amber-400 hover:bg-amber-500/20" title={t("Kick")} onClick={() => api.minecraft.servers.players.kick(slug, p.playerUuid)}>
-                      <UserMinus className="size-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:bg-red-500/20" title={t("Ban")} onClick={() => handleBan(p.playerUuid, p.playerName)}>
-                      <Ban className="size-3.5" />
-                    </Button>
-                  </div>
+                  {hasFullAccess && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="size-7 text-sky-400 hover:bg-sky-500/20" title={t("Op")} onClick={() => api.minecraft.servers.players.op(slug, p.playerUuid)}>
+                        <Shield className="size-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="size-7 text-amber-400 hover:bg-amber-500/20" title={t("Kick")} onClick={() => api.minecraft.servers.players.kick(slug, p.playerUuid)}>
+                        <UserMinus className="size-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:bg-red-500/20" title={t("Ban")} onClick={() => handleBan(p.playerUuid, p.playerName)}>
+                        <Ban className="size-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -372,15 +444,17 @@ export default function ServerDashboardPage() {
                         <div className="min-w-0">
                           <div className="text-xs font-semibold text-zinc-300 truncate">{p.playerName || p.playerUuid}</div>
                           <div className="text-[10px] text-zinc-500">
-                            {formatPlaytime(p.totalPlaytime)} • {t("Last seen")} {p.lastSeen ? new Date(p.lastSeen).toLocaleDateString() : "-"}
+                            {formatPlaytime(p.totalPlaytime)} • {t("Last seen")} {p.lastSeen ? new Date(p.lastSeen).toLocaleString() : "-"}
                           </div>
                         </div>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
-                        <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:bg-red-500/20" title={t("Ban")} onClick={() => handleBan(p.playerUuid, p.playerName)}>
-                          <Ban className="size-3.5" />
-                        </Button>
-                      </div>
+                      {hasFullAccess && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                          <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:bg-red-500/20" title={t("Ban")} onClick={() => handleBan(p.playerUuid, p.playerName)}>
+                            <Ban className="size-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
               </>
@@ -409,16 +483,18 @@ export default function ServerDashboardPage() {
                         <div className="text-[10px] text-red-400/80 truncate">{b.reason || t("Banned")}</div>
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/20 px-2 flex items-center gap-1 shrink-0"
-                      title={t("Unban")}
-                      onClick={() => handleUnban(b.uuid || b.name)}
-                    >
-                      <ShieldCheck className="size-3.5" />
-                      <span>{t("Unban")}</span>
-                    </Button>
+                    {hasFullAccess && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/20 px-2 flex items-center gap-1 shrink-0"
+                        title={t("Unban")}
+                        onClick={() => handleUnban(b.uuid || b.name)}
+                      >
+                        <ShieldCheck className="size-3.5" />
+                        <span>{t("Unban")}</span>
+                      </Button>
+                    )}
                   </div>
                 ))}
               </>

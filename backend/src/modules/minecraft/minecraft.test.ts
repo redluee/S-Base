@@ -171,6 +171,7 @@ describe("MinecraftService", () => {
       gamemode: "creative",
       "white-list": "true",
       "player-idle-timeout": "10",
+      "do-fire-tick": "false",
     }, srvDir);
     expect(commandsSent.length).toBe(0);
 
@@ -181,6 +182,7 @@ describe("MinecraftService", () => {
       gamemode: "creative",
       "white-list": "true",
       "player-idle-timeout": "10",
+      "do-fire-tick": "false",
     }, srvDir);
 
     expect(commandsSent).toContain("difficulty hard");
@@ -188,6 +190,7 @@ describe("MinecraftService", () => {
     expect(commandsSent).toContain("whitelist on");
     expect(commandsSent).toContain("whitelist reload");
     expect(commandsSent).toContain("setidletimeout 10");
+    expect(commandsSent).toContain("gamerule doFireTick false");
 
     // Clean up
     await rm(srvDir, { recursive: true, force: true });

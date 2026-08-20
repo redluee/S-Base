@@ -2,7 +2,7 @@ import { eq, and } from "drizzle-orm";
 import * as readline from "readline/promises";
 import { stdin as input, stdout as output } from "process";
 import db from "./client";
-import { users, usermodulepermissions, modules } from "./schema";
+import { users, usermodulepermissions, modules, mc_servers, mc_server_permissions } from "./schema";
 
 let isInteractive = false;
 
@@ -29,6 +29,9 @@ Acties:
   permissions <username|id>                      Bekijk de module-permissies van een gebruiker
   grant <username|id> <module>                   Koppel een module-permissie aan een gebruiker
   revoke <username|id> <module>                  Trek een module-permissie in van een gebruiker
+  servers <username|id>                          Bekijk de Minecraft server-permissies van een gebruiker
+  grant-server <username|id> <server-slug>       Koppel server monitor-toegang aan een gebruiker
+  revoke-server <username|id> <server-slug>      Trek server monitor-toegang in van een gebruiker
 `;
 
 export const DEFAULT_MODULES = [
@@ -39,6 +42,7 @@ export const DEFAULT_MODULES = [
   { name: "lyric_quotes", alias: "Lyric Quotes", description: "Toegang tot stevenheijn.nl/lyric_quotes" },
   { name: "pulse", alias: "Pulse", description: "Monitoring & admin paneel" },
   { name: "minecraft", alias: "Lobby Control", description: "Beheer van Minecraft server instances" },
+  { name: "minecraft:monitor", alias: "Minecraft (Monitor)", description: "Alleen server starten en monitoren, niet aanpassen of stoppen" },
 ];
 
 export async function ensureDefaultModules() {
@@ -160,6 +164,34 @@ async function main() {
       await revokePermission(identifier, moduleName);
       break;
     }
+    case "servers":
+    case "server-permissions": {
+      if (args.length < 2) {
+        handleError("Fout: Gebruik: bun run db:user servers <username|id>");
+        break;
+      }
+      const [, identifier] = args;
+      await listServerPermissions(identifier);
+      break;
+    }
+    case "grant-server": {
+      if (args.length < 3) {
+        handleError("Fout: Gebruik: bun run db:user grant-server <username|id> <server-slug>");
+        break;
+      }
+      const [, identifier, serverSlug] = args;
+      await grantServerPermission(identifier, serverSlug);
+      break;
+    }
+    case "revoke-server": {
+      if (args.length < 3) {
+        handleError("Fout: Gebruik: bun run db:user revoke-server <username|id> <server-slug>");
+        break;
+      }
+      const [, identifier, serverSlug] = args;
+      await revokeServerPermission(identifier, serverSlug);
+      break;
+    }
     case "--help":
     case "-h":
     case "help": {
@@ -192,11 +224,14 @@ async function interactiveMenu() {
       console.log("  7) Bekijk module-permissies van een gebruiker");
       console.log("  8) Koppel een module-permissie aan een gebruiker");
       console.log("  9) Trek een module-permissie in van een gebruiker");
-      console.log("  10) Afsluiten");
+      console.log("  10) Bekijk Minecraft server-permissies van een gebruiker");
+      console.log("  11) Koppel server monitor-toegang aan een gebruiker");
+      console.log("  12) Trek server monitor-toegang in van een gebruiker");
+      console.log("  13) Afsluiten");
 
-      const choice = (await rl.question("\nKies een optie (1-10): ")).trim();
+      const choice = (await rl.question("\nKies een optie (1-13): ")).trim();
 
-      if (choice === "10" || choice.toLowerCase() === "exit" || choice.toLowerCase() === "quit") {
+      if (choice === "13" || choice.toLowerCase() === "exit" || choice.toLowerCase() === "quit") {
         console.log("Tot ziens!");
         break;
       }
@@ -333,8 +368,45 @@ async function interactiveMenu() {
           await revokePermission(identifier, mod);
           break;
         }
+        case "10": {
+          const identifier = (await rl.question("Voer gebruikersnaam of ID in: ")).trim();
+          if (!identifier) {
+            console.log("Geen gebruiker opgegeven. Actie geannuleerd.");
+            break;
+          }
+          await listServerPermissions(identifier);
+          break;
+        }
+        case "11": {
+          const identifier = (await rl.question("Voer gebruikersnaam of ID in: ")).trim();
+          if (!identifier) {
+            console.log("Geen gebruiker opgegeven. Actie geannuleerd.");
+            break;
+          }
+          const serverSlug = (await rl.question("Voer server slug, naam of ID in: ")).trim();
+          if (!serverSlug) {
+            console.log("Geen server opgegeven. Actie geannuleerd.");
+            break;
+          }
+          await grantServerPermission(identifier, serverSlug);
+          break;
+        }
+        case "12": {
+          const identifier = (await rl.question("Voer gebruikersnaam of ID in: ")).trim();
+          if (!identifier) {
+            console.log("Geen gebruiker opgegeven. Actie geannuleerd.");
+            break;
+          }
+          const serverSlug = (await rl.question("Voer server slug, naam of ID in: ")).trim();
+          if (!serverSlug) {
+            console.log("Geen server opgegeven. Actie geannuleerd.");
+            break;
+          }
+          await revokeServerPermission(identifier, serverSlug);
+          break;
+        }
         default:
-          console.log("Ongeldige keuze. Kies een getal van 1 t/m 10.");
+          console.log("Ongeldige keuze. Kies een getal van 1 t/m 13.");
       }
     }
   } finally {
@@ -755,6 +827,162 @@ async function revokePermission(identifier: string, targetModule: string) {
     );
   } catch (error) {
     handleError(`Er is een fout opgetreden bij het intrekken van de permissie: ${error}`);
+  }
+}
+
+function findServer(targetServer: string) {
+  const allServers = db.select().from(mc_servers).all();
+  const isNumeric = /^\d+$/.test(targetServer);
+  if (isNumeric) {
+    const srvIdNum = parseInt(targetServer, 10);
+    const srvById = allServers.find((s) => s.serverId === srvIdNum);
+    if (srvById) return { server: srvById, allServers };
+  }
+
+  const srv = allServers.find(
+    (s) =>
+      s.slug.toLowerCase() === targetServer.toLowerCase() ||
+      s.displayName.toLowerCase() === targetServer.toLowerCase()
+  );
+  return { server: srv, allServers };
+}
+
+async function listServerPermissions(identifier: string) {
+  try {
+    const user = findUser(identifier);
+    if (!user) {
+      handleError(`Fout: Gebruiker '${identifier}' bestaat niet.`);
+      return;
+    }
+
+    const allServers = db.select().from(mc_servers).all();
+    const userServerPerms = db
+      .select()
+      .from(mc_server_permissions)
+      .where(eq(mc_server_permissions.userId, user.userId))
+      .all();
+
+    const grantedServerIds = new Set(userServerPerms.map((p) => p.serverId));
+
+    console.log(`\nMinecraft server monitor-permissies voor gebruiker '${user.username}' (ID: ${user.userId}):`);
+    if (allServers.length === 0) {
+      console.log("  (Geen servers gevonden in de database)");
+      return;
+    }
+
+    for (const srv of allServers) {
+      const hasAccess = grantedServerIds.has(srv.serverId);
+      const status = hasAccess ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
+      console.log(
+        `  ${status} ID: ${srv.serverId} | ${srv.displayName} (${srv.slug})`
+      );
+    }
+  } catch (error) {
+    handleError(`Er is een fout opgetreden bij het ophalen van server-permissies: ${error}`);
+  }
+}
+
+async function grantServerPermission(identifier: string, targetServer: string) {
+  try {
+    const user = findUser(identifier);
+    if (!user) {
+      handleError(`Fout: Gebruiker '${identifier}' bestaat niet.`);
+      return;
+    }
+
+    const { server, allServers } = findServer(targetServer);
+    if (!server) {
+      handleError(
+        `Fout: Server '${targetServer}' bestaat niet.\nBeschikbare servers: ${allServers
+          .map((s) => `${s.slug} (ID: ${s.serverId})`)
+          .join(", ")}`
+      );
+      return;
+    }
+
+    const existingPerm = db
+      .select()
+      .from(mc_server_permissions)
+      .where(
+        and(
+          eq(mc_server_permissions.userId, user.userId),
+          eq(mc_server_permissions.serverId, server.serverId)
+        )
+      )
+      .get();
+
+    if (existingPerm) {
+      console.log(
+        `Gebruiker '${user.username}' heeft al monitor-toegang tot server '${server.displayName}' (${server.slug}).`
+      );
+      return;
+    }
+
+    db.insert(mc_server_permissions)
+      .values({
+        userId: user.userId,
+        serverId: server.serverId,
+      })
+      .run();
+
+    console.log(
+      `Monitor-toegang tot server '${server.displayName}' (${server.slug}) succesvol toegekend aan '${user.username}'.`
+    );
+  } catch (error) {
+    handleError(`Er is een fout opgetreden bij het toekennen van de server-permissie: ${error}`);
+  }
+}
+
+async function revokeServerPermission(identifier: string, targetServer: string) {
+  try {
+    const user = findUser(identifier);
+    if (!user) {
+      handleError(`Fout: Gebruiker '${identifier}' bestaat niet.`);
+      return;
+    }
+
+    const { server, allServers } = findServer(targetServer);
+    if (!server) {
+      handleError(
+        `Fout: Server '${targetServer}' bestaat niet.\nBeschikbare servers: ${allServers
+          .map((s) => `${s.slug} (ID: ${s.serverId})`)
+          .join(", ")}`
+      );
+      return;
+    }
+
+    const existingPerm = db
+      .select()
+      .from(mc_server_permissions)
+      .where(
+        and(
+          eq(mc_server_permissions.userId, user.userId),
+          eq(mc_server_permissions.serverId, server.serverId)
+        )
+      )
+      .get();
+
+    if (!existingPerm) {
+      console.log(
+        `Gebruiker '${user.username}' heeft geen monitor-toegang tot server '${server.displayName}' (${server.slug}).`
+      );
+      return;
+    }
+
+    db.delete(mc_server_permissions)
+      .where(
+        and(
+          eq(mc_server_permissions.userId, user.userId),
+          eq(mc_server_permissions.serverId, server.serverId)
+        )
+      )
+      .run();
+
+    console.log(
+      `Monitor-toegang tot server '${server.displayName}' (${server.slug}) succesvol ingetrokken van '${user.username}'.`
+    );
+  } catch (error) {
+    handleError(`Er is een fout opgetreden bij het intrekken van de server-permissie: ${error}`);
   }
 }
 

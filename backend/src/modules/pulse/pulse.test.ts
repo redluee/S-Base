@@ -45,4 +45,34 @@ describe("PulseService", () => {
     expect(stats.activeUsers).toBeGreaterThan(0);
     expect(stats.totalPermissions).toBeGreaterThan(0);
   });
+
+  it("updates user minecraft server monitor permissions", async () => {
+    const { default: db } = await import("../../db/client");
+    const { mc_servers } = await import("../../db/schema");
+    db.insert(mc_servers).values({
+      slug: "srv-alpha",
+      displayName: "Server Alpha",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+      serverDir: "/tmp/srv-alpha",
+    }).run();
+    db.insert(mc_servers).values({
+      slug: "srv-beta",
+      displayName: "Server Beta",
+      engine: "fabric",
+      mcVersion: "1.21.1",
+      serverDir: "/tmp/srv-beta",
+    }).run();
+
+    const updated = pulse.updateServerPermissions(testerId, ["srv-alpha"]);
+    expect(updated?.mcServers).toContain("srv-alpha");
+    expect(updated?.mcServers).not.toContain("srv-beta");
+
+    const users = pulse.listUsers();
+    const tester = users.find((u) => u.userId === testerId);
+    expect(tester?.mcServers).toEqual(["srv-alpha"]);
+
+    const cleared = pulse.updateServerPermissions(testerId, []);
+    expect(cleared?.mcServers).toEqual([]);
+  });
 });
