@@ -98,4 +98,40 @@ describe("AuthService", () => {
     const notFound = authService.findUserByEmail("missing@example.com");
     expect(notFound).toBeNull();
   });
+
+  it("handles impersonation flow properly", () => {
+    // Admin impersonates tester
+    const impRes = authService.impersonateUser(adminId, testerId);
+    expect(impRes.ok).toBe(true);
+    if (!impRes.ok) return;
+
+    expect(impRes.targetUser.id).toBe(testerId);
+    expect(impRes.targetUser.username).toBe("tester");
+
+    // Validate impersonated session
+    const validated = authService.validateSession(impRes.newSessionId);
+    expect(validated).not.toBeNull();
+    expect(validated?.userId).toBe(testerId);
+    expect(validated?.username).toBe("tester");
+    expect(validated?.isImpersonated).toBe(true);
+    expect(validated?.impersonatedBy).toBe("admin");
+    expect(validated?.impersonatorUserId).toBe(adminId);
+
+    // Stop impersonation
+    const stopRes = authService.stopImpersonation(impRes.newSessionId);
+    expect(stopRes.ok).toBe(true);
+    if (!stopRes.ok) return;
+
+    expect(stopRes.adminUserId).toBe(adminId);
+    expect(stopRes.adminUsername).toBe("admin");
+
+    // Impersonated session should now be deleted
+    expect(authService.verifySession(impRes.newSessionId)).toBe(false);
+
+    // New admin session should be valid and not impersonated
+    const adminSession = authService.validateSession(stopRes.newSessionId);
+    expect(adminSession?.userId).toBe(adminId);
+    expect(adminSession?.username).toBe("admin");
+    expect(adminSession?.isImpersonated).toBe(false);
+  });
 });

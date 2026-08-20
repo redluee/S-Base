@@ -35,6 +35,7 @@ export const usermodulepermissions = sqliteTable(
 export const sessions = sqliteTable("sessions", {
   sessionId: text("session_id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  impersonatorUserId: integer("impersonator_user_id").references(() => users.userId, { onDelete: "cascade" }),
   expiresAt: text("expires_at").notNull(),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

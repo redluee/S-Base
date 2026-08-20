@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import { api, type PulseUser, type PulseModuleInfo, type PulseStats } from "@/lib/api";
@@ -18,6 +19,7 @@ import {
   Lock,
   Unlock,
   Sparkles,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,7 @@ export function PulseClient({
   initialModules: PulseModuleInfo[];
   initialStats: PulseStats;
 }) {
+  const router = useRouter();
   const [usersList, setUsersList] = useState<PulseUser[]>(initialUsers);
   const [modulesList] = useState<PulseModuleInfo[]>(initialModules);
   const [stats, setStats] = useState<PulseStats>(initialStats);
@@ -118,6 +121,20 @@ export function PulseClient({
     } catch {
       showNotification(t("Permissies wijzigen mislukt"), "error");
     } finally {
+      setLoadingUserId(null);
+    }
+  };
+
+  const handleImpersonate = async (user: PulseUser) => {
+    if (user.username.toLowerCase() === username.toLowerCase()) return;
+    setLoadingUserId(user.userId);
+    try {
+      showNotification(t("Switching user..."));
+      await api.pulse.impersonate(user.userId);
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      showNotification(t("Login failed. Please try again."), "error");
       setLoadingUserId(null);
     }
   };
@@ -337,7 +354,21 @@ export function PulseClient({
                     </div>
 
                     {/* Account Controls & Actions */}
-                    <div className="flex items-center gap-3 self-end lg:self-center shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 self-end lg:self-center shrink-0 flex-wrap">
+                      {u.username.toLowerCase() !== username.toLowerCase() && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleImpersonate(u)}
+                          disabled={isLoading || isPaused}
+                          className="h-9 px-3 text-xs font-bold rounded-xl transition-all border bg-teal-500/10 border-teal-500/30 text-teal-400 hover:bg-teal-500/20 disabled:opacity-40"
+                          title={t("Impersonate user")}
+                        >
+                          <LogIn className="size-3.5 mr-1.5" />
+                          {t("Login as user")}
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         variant="outline"
