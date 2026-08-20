@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Measurement, Wine } from "./api";
+import { Measurement, Wine, type AuthUser } from "./api";
 import type {
   Recipe,
   FullRecipe,
@@ -43,7 +43,7 @@ export async function getCurrentUser() {
 }
 
 export const serverApi = {
-  me: () => serverFetch<{ user: { id: number; username: string; email: string | null; modules?: string[] } }>("/auth/me"),
+  me: () => serverFetch<{ user: AuthUser }>("/auth/me"),
 
   recipes: {
     list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {
@@ -159,5 +159,19 @@ export const serverApi = {
     users: () => serverFetch<import("./api").PulseUser[]>("/pulse/users"),
     modules: () => serverFetch<import("./api").PulseModuleInfo[]>("/pulse/modules"),
     stats: () => serverFetch<import("./api").PulseStats>("/pulse/stats"),
+  },
+
+  minecraft: {
+    servers: {
+      list: () => serverFetch<import("./api").McServer[]>("/minecraft/servers"),
+      get: (slug: string) => serverFetch<import("./api").McServer>(`/minecraft/servers/${slug}`),
+    },
+    templates: {
+      list: () => serverFetch<import("./api").McTemplate[]>("/minecraft/templates"),
+      get: (id: number) => serverFetch<import("./api").McTemplate>(`/minecraft/templates/${id}`),
+    },
+    import: {
+      scan: () => serverFetch<import("./api").McUnregisteredServerScan[]>("/minecraft/import/scan"),
+    },
   },
 };

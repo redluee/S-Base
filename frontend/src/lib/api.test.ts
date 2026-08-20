@@ -11,6 +11,9 @@ describe("Frontend API client", () => {
     expect(api.cashflow.clients.list).toBeFunction();
     expect(api.pulse.users).toBeFunction();
     expect(api.measurements.list).toBeFunction();
+    expect(api.minecraft.import.scan).toBeFunction();
+    expect(api.minecraft.import.inspect).toBeFunction();
+    expect(api.minecraft.import.submit).toBeFunction();
   });
 
   it("calls fetch API with appropriate endpoints", async () => {

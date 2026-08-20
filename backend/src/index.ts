@@ -7,6 +7,7 @@ import { MeasurementService } from "./modules/measurements";
 import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
 import { PulseService } from "./modules/pulse";
+import { MinecraftService } from "./modules/minecraft";
 import db from "./db/client";
 import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
@@ -27,11 +28,17 @@ const measurements = new MeasurementService();
 const wineService = new WineService();
 const cashflow = new CashflowService();
 const pulse = new PulseService();
+const minecraft = new MinecraftService();
 
 function createAuthPlugin(moduleName: string) {
   return new Elysia({ name: `auth-${moduleName}` })
-    .derive({ as: "scoped" }, ({ cookie: { session_id } }) => {
-      const sid = typeof session_id?.value === "string" ? session_id.value : "";
+    .derive({ as: "scoped" }, ({ cookie: { session_id }, request }) => {
+      let sid = typeof session_id?.value === "string" ? session_id.value : "";
+      if (!sid) {
+        const cookieHeader = request.headers.get("cookie") || "";
+        const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
+        if (match) sid = match[1];
+      }
       if (!sid) return { user: null };
       const sessionInfo = auth.validateSession(sid);
       return { user: sessionInfo };
@@ -60,10 +67,23 @@ const workoutAuth = createAuthPlugin("workout");
 const measurementsAuth = workoutAuth;
 const cashflowAuth = createAuthPlugin("cashflow");
 const pulseAuth = createAuthPlugin("pulse");
+const minecraftAuth = createAuthPlugin("minecraft");
 
 export const app = new Elysia()
   .use(cors({ origin: true, credentials: true }))
   .onError(({ code, error }) => {
+    if (code === "NOT_FOUND") {
+      return new Response(JSON.stringify({ error: "Not Found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (code === "VALIDATION") {
+      return new Response(JSON.stringify({ error: (error as any)?.message || "Validation Error" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     console.error(`Error ${code}:`, error);
     const message = error && typeof error === "object" && "message" in error ? (error as { message: string }).message : String(error);
     return new Response(JSON.stringify({ error: message }), {
@@ -159,15 +179,25 @@ export const app = new Elysia()
     });
   })
 
-  .get("/api/auth/logout", ({ cookie: { session_id } }) => {
-    const sid = typeof session_id?.value === "string" ? session_id.value : "";
+  .get("/api/auth/logout", ({ cookie: { session_id }, request }) => {
+    let sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (!sid) {
+      const cookieHeader = request.headers.get("cookie") || "";
+      const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
+      if (match) sid = match[1];
+    }
     if (sid) auth.deleteSession(sid);
     session_id?.set({ value: "", maxAge: 0, path: "/", secure: process.env.NODE_ENV === "production" });
     return { ok: true };
   })
 
-  .get("/api/auth/me", ({ cookie: { session_id } }) => {
-    const sid = typeof session_id?.value === "string" ? session_id.value : "";
+  .get("/api/auth/me", ({ cookie: { session_id }, request }) => {
+    let sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (!sid) {
+      const cookieHeader = request.headers.get("cookie") || "";
+      const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
+      if (match) sid = match[1];
+    }
     if (!sid) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -181,7 +211,62 @@ export const app = new Elysia()
         headers: { "Content-Type": "application/json" },
       });
     }
-    return { user: { id: user.userId, username: user.username, email: user.email, modules: auth.getUserModules(user.userId) } };
+    return {
+      user: {
+        id: user.userId,
+        username: user.username,
+        email: user.email,
+        modules: auth.getUserModules(user.userId),
+        isImpersonated: user.isImpersonated,
+        impersonatorUserId: user.impersonatorUserId ?? null,
+        impersonatedBy: user.impersonatedBy ?? null,
+      },
+    };
+  })
+
+  .post("/api/auth/stop-impersonate", ({ cookie: { session_id }, request }) => {
+    let sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (!sid) {
+      const cookieHeader = request.headers.get("cookie") || "";
+      const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
+      if (match) sid = match[1];
+    }
+    if (!sid) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const res = auth.stopImpersonation(sid);
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: res.reason }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const isSecure = process.env.NODE_ENV === "production";
+    session_id?.set({ value: res.newSessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
+    const cookieValue = `session_id=${res.newSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        user: {
+          id: res.adminUserId,
+          username: res.adminUsername,
+          modules: auth.getUserModules(res.adminUserId),
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": cookieValue,
+        },
+      }
+    );
   })
 
   // --- Ingredient routes ---
@@ -415,8 +500,13 @@ export const app = new Elysia()
   )
 
   // Serve uploads
-  .get("/api/uploads/:filename", async ({ params: { filename }, cookie: { session_id } }) => {
-    const sid = typeof session_id?.value === "string" ? session_id.value : "";
+  .get("/api/uploads/:filename", async ({ params: { filename }, cookie: { session_id }, request }) => {
+    let sid = typeof session_id?.value === "string" ? session_id.value : "";
+    if (!sid) {
+      const cookieHeader = request.headers.get("cookie") || "";
+      const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
+      if (match) sid = match[1];
+    }
     if (!sid || !auth.validateSession(sid)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -540,6 +630,187 @@ export const app = new Elysia()
         const u = pulse.updateModules(Number(id), Array.isArray(modules) ? modules : []);
         if (!u) return new Response("Not Found", { status: 404 });
         return u;
+      })
+      .post("/users/:id/impersonate", ({ params: { id }, userId, cookie: { session_id } }) => {
+        const targetUserId = Number(id);
+        const res = auth.impersonateUser(userId, targetUserId);
+        if (!res.ok) {
+          const status = res.reason === "forbidden" ? 403 : res.reason === "user_not_found" ? 404 : 400;
+          return new Response(JSON.stringify({ error: res.reason }), {
+            status,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        const isSecure = process.env.NODE_ENV === "production";
+        session_id?.set({ value: res.newSessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
+        const cookieValue = `session_id=${res.newSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
+
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            user: {
+              ...res.targetUser,
+              modules: auth.getUserModules(res.targetUser.id),
+              isImpersonated: true,
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": cookieValue,
+            },
+          }
+        );
+      })
+  )
+
+  .group("/api/minecraft", (app) =>
+    app
+      .use(minecraftAuth)
+      .get("/versions", async () => minecraft.listAvailableVersions())
+      .get("/import/scan", async () => minecraft.scanUnregisteredServers())
+      .post("/import/inspect", async ({ body }) => {
+        const { serverDir } = (body ?? {}) as any;
+        if (!serverDir) return new Response("Missing serverDir", { status: 400 });
+        return minecraft.inspectServerDirectory(serverDir);
+      })
+      .post("/import", async ({ body }) => {
+        const { slug, displayName, engine, mcVersion, serverDir, javaArgs } = (body ?? {}) as any;
+        if (!slug || !displayName || !engine || !mcVersion || !serverDir) {
+          return new Response("Missing required fields", { status: 400 });
+        }
+        return minecraft.importServer({ slug, displayName, engine, mcVersion, serverDir, javaArgs });
+      })
+      .get("/servers", () => minecraft.listServers())
+      .post("/servers", async ({ body }) => {
+        const { slug, displayName, engine, mcVersion, javaArgs, templateId } = (body ?? {}) as any;
+        return minecraft.createServer({ slug, displayName, engine, mcVersion, javaArgs, templateId });
+      })
+      .get("/servers/:slug", ({ params: { slug } }) => {
+        const s = minecraft.getServerDetail(slug);
+        if (!s) return new Response("Not Found", { status: 404 });
+        return s;
+      })
+      .delete("/servers/:slug", async ({ params: { slug }, query }) => {
+        const deleteDisk = (query as any)?.deleteDisk === "true";
+        return minecraft.deleteServer(slug, deleteDisk);
+      })
+      .post("/servers/:slug/start", async ({ params: { slug } }) => minecraft.startServer(slug))
+      .post("/servers/:slug/stop", async ({ params: { slug } }) => minecraft.stopServer(slug))
+      .post("/servers/:slug/restart", async ({ params: { slug } }) => minecraft.restartServer(slug))
+      .get("/servers/:slug/status", async ({ params: { slug } }) => minecraft.getStatus(slug))
+      .get("/servers/:slug/console", async ({ params: { slug }, query }) => {
+        const lines = (query as any)?.lines ? Number((query as any).lines) : 100;
+        return { lines: await minecraft.getConsoleLogs(slug, lines) };
+      })
+      .post("/servers/:slug/console", async ({ params: { slug }, body }) => {
+        const { command } = (body ?? {}) as { command?: string };
+        if (!command) return new Response("Bad Request", { status: 400 });
+        await minecraft.sendCommand(slug, command);
+        return { ok: true };
+      })
+      .get("/servers/:slug/properties", ({ params: { slug } }) => minecraft.readProperties(slug))
+      .patch("/servers/:slug/properties", async ({ params: { slug }, body }) => {
+        await minecraft.writeProperties(slug, (body ?? {}) as any);
+        return { ok: true };
+      })
+      .get("/servers/:slug/files/:type", ({ params: { slug, type } }) => minecraft.listFiles(slug, type))
+      .post("/servers/:slug/files/:type", async ({ params: { slug, type }, body }) => {
+        const bodyObj = (body ?? {}) as Record<string, any>;
+        const rawFiles = [
+          ...(Array.isArray(bodyObj.files) ? bodyObj.files : bodyObj.files ? [bodyObj.files] : []),
+          ...(Array.isArray(bodyObj.file) ? bodyObj.file : bodyObj.file ? [bodyObj.file] : []),
+        ];
+        const files = rawFiles.filter((f): f is File => !!f && typeof f.name === "string" && typeof f.arrayBuffer === "function");
+        if (files.length === 0) return new Response("No files provided", { status: 400 });
+        for (const file of files) {
+          const buffer = await file.arrayBuffer();
+          await minecraft.uploadFile(slug, type, file.name, buffer);
+        }
+        return { ok: true, count: files.length };
+      })
+      .delete("/servers/:slug/files/:type/:filename", async ({ params: { slug, type, filename } }) => {
+        await minecraft.deleteFile(slug, type, filename);
+        return { ok: true };
+      })
+      .post("/servers/:slug/files/:type/copy", async ({ params: { slug, type }, body }) => {
+        const { sourceSlug, filename } = (body ?? {}) as any;
+        await minecraft.copyFileFromServer(slug, type, sourceSlug, filename);
+        return { ok: true };
+      })
+      .get("/servers/:slug/players", async ({ params: { slug } }) => minecraft.getPlayers(slug))
+      .post("/servers/:slug/players/:uuid/op", async ({ params: { slug, uuid } }) => {
+        const player = minecraft.getPlayerName(slug, uuid);
+        await minecraft.opPlayer(slug, player);
+        return { ok: true };
+      })
+      .post("/servers/:slug/players/:uuid/deop", async ({ params: { slug, uuid } }) => {
+        const player = minecraft.getPlayerName(slug, uuid);
+        await minecraft.deopPlayer(slug, player);
+        return { ok: true };
+      })
+      .post("/servers/:slug/players/:uuid/kick", async ({ params: { slug, uuid }, body }) => {
+        const { reason } = (body ?? {}) as any;
+        const player = minecraft.getPlayerName(slug, uuid);
+        await minecraft.kickPlayer(slug, player, reason);
+        return { ok: true };
+      })
+      .post("/servers/:slug/players/:uuid/ban", async ({ params: { slug, uuid }, body }) => {
+        const { reason } = (body ?? {}) as any;
+        const player = minecraft.getPlayerName(slug, uuid);
+        await minecraft.banPlayer(slug, player, reason);
+        return { ok: true };
+      })
+      .post("/servers/:slug/players/:uuid/unban", async ({ params: { slug, uuid } }) => {
+        await minecraft.unbanPlayer(slug, uuid);
+        return { ok: true };
+      })
+      .get("/servers/:slug/error", ({ params: { slug } }) => minecraft.getStartupError(slug))
+      .get("/templates", () => minecraft.listTemplates())
+      .post("/templates", async ({ body }) => {
+        const bodyObj = (body ?? {}) as any;
+        if (bodyObj.slug) {
+          return minecraft.saveAsTemplate(bodyObj.slug, bodyObj.name, bodyObj.notes);
+        }
+        return minecraft.createCustomTemplate({
+          name: bodyObj.name,
+          engine: bodyObj.engine,
+          mcVersion: bodyObj.mcVersion,
+          properties: bodyObj.properties,
+          notes: bodyObj.notes,
+          javaArgs: bodyObj.javaArgs,
+        });
+      })
+      .get("/templates/:id", ({ params: { id } }) => {
+        const t = minecraft.getTemplate(Number(id));
+        if (!t) return new Response("Not Found", { status: 404 });
+        return t;
+      })
+      .delete("/templates/:id", async ({ params: { id } }) => minecraft.deleteTemplate(Number(id)))
+      .get("/templates/:id/files/:type", ({ params: { id, type } }) => minecraft.listTemplateFiles(Number(id), type))
+      .post("/templates/:id/files/:type", async ({ params: { id, type }, body }) => {
+        const bodyObj = (body ?? {}) as Record<string, any>;
+        const rawFiles = [
+          ...(Array.isArray(bodyObj.files) ? bodyObj.files : bodyObj.files ? [bodyObj.files] : []),
+          ...(Array.isArray(bodyObj.file) ? bodyObj.file : bodyObj.file ? [bodyObj.file] : []),
+        ];
+        const files = rawFiles.filter((f): f is File => !!f && typeof f.name === "string" && typeof f.arrayBuffer === "function");
+        if (files.length === 0) return new Response("No files provided", { status: 400 });
+        for (const file of files) {
+          const buffer = await file.arrayBuffer();
+          await minecraft.uploadTemplateFile(Number(id), type, file.name, buffer);
+        }
+        return { ok: true, count: files.length };
+      })
+      .delete("/templates/:id/files/:type/:filename", async ({ params: { id, type, filename } }) => {
+        await minecraft.deleteTemplateFile(Number(id), type, filename);
+        return { ok: true };
+      })
+      .post("/templates/:id/speedrun", async ({ params: { id }, body }) => {
+        const { slug, displayName } = (body ?? {}) as any;
+        return minecraft.speedrunFromTemplate(Number(id), slug, displayName);
       })
   )
 

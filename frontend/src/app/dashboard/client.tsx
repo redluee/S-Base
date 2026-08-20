@@ -7,6 +7,7 @@ import { compressImage } from "@/lib/image";
 import { api } from "@/lib/api";
 import type { WorkoutSession } from "@backend/types/shared";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import {
   Dumbbell,
   ChefHat,
@@ -21,6 +22,7 @@ import {
   Image as ImageIcon,
   Sliders,
   Activity,
+  Gamepad2,
 } from "lucide-react";
 
 const DEFAULT_BG = "/karp-350.jpg";
@@ -30,9 +32,13 @@ const DEFAULT_BRIGHTNESS = 80;
 export function DashboardClient({
   username,
   userModules,
+  isImpersonated,
+  impersonatedBy,
 }: {
   username: string;
   userModules?: string[];
+  isImpersonated?: boolean;
+  impersonatedBy?: string | null;
 }) {
   const [blur, setBlur] = useState<number>(DEFAULT_BLUR);
   const [brightness, setBrightness] = useState<number>(DEFAULT_BRIGHTNESS);
@@ -117,6 +123,13 @@ export function DashboardClient({
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-6 py-12 relative overflow-hidden bg-zinc-950 text-foreground w-full">
+      {/* Impersonation Banner */}
+      {isImpersonated && impersonatedBy && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <ImpersonationBanner username={username} impersonatedBy={impersonatedBy} />
+        </div>
+      )}
+
       {/* Background Image Container */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none scale-105 transition-[filter,background-image] duration-300"
@@ -134,14 +147,12 @@ export function DashboardClient({
       <div className="fixed -bottom-40 -right-40 size-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none z-0" />
 
       {/* Account Circle Header */}
-      {process.env.NODE_ENV === "development" && (
-        <header className="absolute top-6 right-6 z-30 flex items-center gap-2 p-1.5 px-3 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-md">
-          <div className="size-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
-            <User className="size-4" />
-          </div>
-          <span className="text-xs font-semibold text-zinc-300 inline">{username}</span>
-        </header>
-      )}
+      <header className={`absolute ${isImpersonated ? "top-14" : "top-6"} right-6 z-30 flex items-center gap-2 p-1.5 px-3 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-md`}>
+        <div className="size-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+          <User className="size-4" />
+        </div>
+        <span className="text-xs font-semibold text-zinc-300 inline">{username}</span>
+      </header>
 
       {/* Main Title Section */}
       <section className="text-center mb-16 max-w-xl relative z-10">
@@ -344,6 +355,27 @@ export function DashboardClient({
             </div>
             <div className="flex items-center gap-1.5 text-xs text-red-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Monitoring")}</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+            </div>
+          </Link>
+        )}
+
+        {hasModule("minecraft") && (
+          <Link
+            href="/games/minecraft"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-sky-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-sky-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(14,165,233,0.25)]"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="flex items-center gap-3.5 relative z-10">
+              <div className="size-11 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(14,165,233,0.4)] group-hover:scale-110 transition-transform duration-300">
+                <Gamepad2 className="size-5" />
+              </div>
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-sky-400 transition-colors">
+                {t("Lobby Control")}
+              </h2>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+              <span>{t("Game servers")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>
