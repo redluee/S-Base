@@ -6,8 +6,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceSummary, CashflowClient, CashflowProject } from "@/lib/api";
-import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Download, Filter, X, Eye } from "lucide-react";
+import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Filter, X, Eye, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { CashflowPDFButton } from "@/components/cashflow-pdf";
+
+type SortField = "number" | "client" | "date" | "dueDate" | "total";
+type SortOrder = "asc" | "desc";
 
 function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
@@ -16,6 +19,17 @@ function formatEuro(n: number) {
 function formatDate(ts: number | null | undefined) {
   if (!ts) return "—";
   return new Date(ts).toLocaleDateString("nl-NL");
+}
+
+function SortHeaderIcon({ field, sortBy, sortOrder }: { field: SortField; sortBy: SortField; sortOrder: SortOrder }) {
+  if (sortBy === field) {
+    return sortOrder === "asc" ? (
+      <ArrowUp className="size-3 text-blue-400 shrink-0" />
+    ) : (
+      <ArrowDown className="size-3 text-blue-400 shrink-0" />
+    );
+  }
+  return <ArrowUpDown className="size-3 text-zinc-600 opacity-40 group-hover:opacity-100 transition-opacity shrink-0" />;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -34,6 +48,8 @@ export default function InvoicesPage() {
   const selectedProjectId = searchParams.get("projectId") ? Number(searchParams.get("projectId")) : undefined;
   const selectedYear = searchParams.get("year") || "";
   const filterStatus = searchParams.get("status") || "";
+  const sortBy = (searchParams.get("sortBy") as SortField) || "date";
+  const sortOrder = (searchParams.get("sortOrder") as SortOrder) || "desc";
 
   const [invoices, setInvoices] = useState<CashflowInvoiceSummary[]>([]);
   const [clients, setClients] = useState<CashflowClient[]>([]);
@@ -57,8 +73,6 @@ export default function InvoicesPage() {
     loadMetadata();
   }, []);
 
-
-
   useEffect(() => {
     async function loadInvoices() {
       setLoading(true);
@@ -71,12 +85,18 @@ export default function InvoicesPage() {
     loadInvoices();
   }, [selectedProjectId, selectedClientId]);
 
-  function updateUrl(cId?: number, pId?: number, yr?: string, st?: string) {
+  function updateUrl(cId?: number, pId?: number, yr?: string, st?: string, sBy?: string, sOrder?: string) {
     const params = new URLSearchParams();
     if (cId) params.set("clientId", String(cId));
     if (pId) params.set("projectId", String(pId));
     if (yr) params.set("year", yr);
     if (st) params.set("status", st);
+    const effectiveSortBy = sBy !== undefined ? sBy : sortBy;
+    const effectiveSortOrder = sOrder !== undefined ? sOrder : sortOrder;
+    if (effectiveSortBy && (effectiveSortBy !== "date" || effectiveSortOrder !== "desc")) {
+      params.set("sortBy", effectiveSortBy);
+      params.set("sortOrder", effectiveSortOrder);
+    }
     const qs = params.toString();
     router.replace(qs ? `/cashflow/invoices?${qs}` : "/cashflow/invoices", { scroll: false });
   }
@@ -115,6 +135,20 @@ export default function InvoicesPage() {
 
   function handleResetFilters() {
     updateUrl(undefined, undefined, "", "");
+  }
+
+  function handleSortChange(newBy: SortField, newOrder: SortOrder) {
+    updateUrl(selectedClientId, selectedProjectId, selectedYear, filterStatus, newBy, newOrder);
+  }
+
+  function handleHeaderSort(field: SortField) {
+    if (sortBy === field) {
+      const newOrder = sortOrder === "asc" ? "desc" : "asc";
+      updateUrl(selectedClientId, selectedProjectId, selectedYear, filterStatus, field, newOrder);
+    } else {
+      const defaultOrder: SortOrder = (field === "date" || field === "total" || field === "dueDate") ? "desc" : "asc";
+      updateUrl(selectedClientId, selectedProjectId, selectedYear, filterStatus, field, defaultOrder);
+    }
   }
 
   async function handleMarkPaid(id: number) {
@@ -160,6 +194,36 @@ export default function InvoicesPage() {
     }
 
     return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === "number") {
+      cmp = (a.invoiceNumber || "").localeCompare(b.invoiceNumber || "", undefined, { numeric: true, sensitivity: "base" });
+    } else if (sortBy === "client") {
+      const aClient = (a.clientName || "").trim();
+      const bClient = (b.clientName || "").trim();
+      cmp = aClient.localeCompare(bClient, "nl", { sensitivity: "base" });
+      if (cmp === 0) {
+        const aProj = (a.projectName || a.name || "").trim();
+        const bProj = (b.projectName || b.name || "").trim();
+        cmp = aProj.localeCompare(bProj, "nl", { sensitivity: "base" });
+      }
+    } else if (sortBy === "dueDate") {
+      const aVal = a.paymentDueDate ?? (sortOrder === "asc" ? Infinity : -Infinity);
+      const bVal = b.paymentDueDate ?? (sortOrder === "asc" ? Infinity : -Infinity);
+      cmp = aVal - bVal;
+    } else if (sortBy === "total") {
+      cmp = (a.total ?? 0) - (b.total ?? 0);
+    } else {
+      cmp = (a.dateCreated ?? 0) - (b.dateCreated ?? 0);
+    }
+
+    if (cmp === 0) {
+      return (b.dateCreated ?? 0) - (a.dateCreated ?? 0);
+    }
+
+    return sortOrder === "desc" ? -cmp : cmp;
   });
 
   const totalVisible = filtered.reduce((s, i) => s + i.total, 0);
@@ -257,6 +321,31 @@ export default function InvoicesPage() {
               </button>
             )}
           </div>
+
+          {/* Sort Selector */}
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+            <ArrowUpDown className="size-3.5 text-blue-400 shrink-0" />
+            <span className="shrink-0">{t("Sorteer op")}:</span>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={e => {
+                const [newBy, newOrder] = e.target.value.split("-") as [SortField, SortOrder];
+                handleSortChange(newBy, newOrder);
+              }}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs leading-none text-white focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              <option value="date-desc">{t("Datum (nieuwste eerst)")}</option>
+              <option value="date-asc">{t("Datum (oudste eerst)")}</option>
+              <option value="number-desc">{t("Factuurnummer (aflopend)")}</option>
+              <option value="number-asc">{t("Factuurnummer (oplopend)")}</option>
+              <option value="client-asc">{t("Klant (A - Z)")}</option>
+              <option value="client-desc">{t("Klant (Z - A)")}</option>
+              <option value="dueDate-asc">{t("Vervaldatum (eerst)")}</option>
+              <option value="dueDate-desc">{t("Vervaldatum (laatst)")}</option>
+              <option value="total-desc">{t("Totaal (hoog - laag)")}</option>
+              <option value="total-asc">{t("Totaal (laag - hoog)")}</option>
+            </select>
+          </div>
         </div>
 
         {/* Status Pills */}
@@ -279,7 +368,7 @@ export default function InvoicesPage() {
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="size-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" /></div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="text-center py-16 text-zinc-500">
           <FileText className="size-8 mx-auto mb-3 opacity-30" />
           <p className="text-sm">{t("Geen facturen gevonden.")}</p>
@@ -288,16 +377,51 @@ export default function InvoicesPage() {
       ) : (
         <div className="space-y-2">
           {/* Desktop table header */}
-          <div className="hidden sm:grid sm:grid-cols-[170px_1.5fr_1fr_1fr_110px_120px] gap-4 px-4 pb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
-            <div>{t("Nummer")}</div>
-            <div>{t("Klant / Project")}</div>
-            <div>{t("Datum")}</div>
-            <div>{t("Vervaldatum")}</div>
-            <div className="text-right">{t("Totaal")}</div>
+          <div className="hidden sm:grid sm:grid-cols-[170px_1.5fr_1fr_1fr_110px_120px] gap-4 px-4 pb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider select-none">
+            <button
+              type="button"
+              onClick={() => handleHeaderSort("number")}
+              className={`flex items-center gap-1 hover:text-zinc-300 transition-colors text-left cursor-pointer group ${sortBy === "number" ? "text-blue-400 font-bold" : ""}`}
+            >
+              <span>{t("Nummer")}</span>
+              <SortHeaderIcon field="number" sortBy={sortBy} sortOrder={sortOrder} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleHeaderSort("client")}
+              className={`flex items-center gap-1 hover:text-zinc-300 transition-colors text-left cursor-pointer group ${sortBy === "client" ? "text-blue-400 font-bold" : ""}`}
+            >
+              <span>{t("Klant / Project")}</span>
+              <SortHeaderIcon field="client" sortBy={sortBy} sortOrder={sortOrder} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleHeaderSort("date")}
+              className={`flex items-center gap-1 hover:text-zinc-300 transition-colors text-left cursor-pointer group ${sortBy === "date" ? "text-blue-400 font-bold" : ""}`}
+            >
+              <span>{t("Datum")}</span>
+              <SortHeaderIcon field="date" sortBy={sortBy} sortOrder={sortOrder} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleHeaderSort("dueDate")}
+              className={`flex items-center gap-1 hover:text-zinc-300 transition-colors text-left cursor-pointer group ${sortBy === "dueDate" ? "text-blue-400 font-bold" : ""}`}
+            >
+              <span>{t("Vervaldatum")}</span>
+              <SortHeaderIcon field="dueDate" sortBy={sortBy} sortOrder={sortOrder} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleHeaderSort("total")}
+              className={`flex items-center justify-end gap-1 hover:text-zinc-300 transition-colors text-right cursor-pointer group ${sortBy === "total" ? "text-blue-400 font-bold" : ""}`}
+            >
+              <span>{t("Totaal")}</span>
+              <SortHeaderIcon field="total" sortBy={sortBy} sortOrder={sortOrder} />
+            </button>
             <div className="text-right">{t("Acties")}</div>
           </div>
 
-          {filtered.map(inv => {
+          {sorted.map(inv => {
             const cfg = statusConfig[inv.status] ?? statusConfig.draft;
             const StatusIcon = cfg.icon;
             const isOverdue = inv.status !== "paid" && Boolean(inv.paymentDueDate && inv.paymentDueDate < now);
