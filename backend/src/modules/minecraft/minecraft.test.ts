@@ -1,6 +1,6 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
-import { MinecraftService, parseJavaArgs, formatJavaLaunchCommand } from "./index";
+import { MinecraftService, parseJavaArgs, formatJavaLaunchCommand, AIKAR_FLAGS, ZGC_FLAGS } from "./index";
 import { join } from "path";
 import { tmpdir } from "os";
 import { mkdir, writeFile, rm } from "fs/promises";
@@ -320,13 +320,21 @@ describe("MinecraftService", () => {
     expect(parseJavaArgs("-Xms2G -Xmx4G -XX:+UseG1GC")).toEqual(["-Xms2G", "-Xmx4G", "-XX:+UseG1GC"]);
     expect(parseJavaArgs('["-Xms1G", "-Xmx2G"]')).toEqual(["-Xms1G", "-Xmx2G"]);
 
-    // Test formatJavaLaunchCommand with default memory
+    // Test formatJavaLaunchCommand with default memory and modern Aikar GC flags
     const defaultCmd = formatJavaLaunchCommand("vanilla", testDir, null);
-    expect(defaultCmd).toBe("java -Xms512M -Xmx2G -jar server.jar nogui");
+    expect(defaultCmd).toContain("-Xms2G -Xmx2G");
+    expect(defaultCmd).toContain("-XX:+UseG1GC");
+    expect(defaultCmd).toContain("-XX:+ParallelRefProcEnabled");
+    expect(defaultCmd).toContain("-Dusing.aikars.flags=https://mcflags.emc.gs");
+    expect(defaultCmd).toBe(`java -Xms2G -Xmx2G ${AIKAR_FLAGS.join(" ")} -jar server.jar nogui`);
 
-    // Test formatJavaLaunchCommand with custom RAM flags
+    // Test formatJavaLaunchCommand with custom RAM flags and G1GC
     const customMemCmd = formatJavaLaunchCommand("vanilla", testDir, "-Xms4G -Xmx8G -XX:+UseG1GC");
     expect(customMemCmd).toBe("java -Xms4G -Xmx8G -XX:+UseG1GC -jar server.jar nogui");
+
+    // Test formatJavaLaunchCommand with Generational ZGC flags
+    const zgcCmd = formatJavaLaunchCommand("vanilla", testDir, `-Xms8G -Xmx8G ${ZGC_FLAGS.join(" ")}`);
+    expect(zgcCmd).toBe(`java -Xms8G -Xmx8G ${ZGC_FLAGS.join(" ")} -jar server.jar nogui`);
 
     // Test formatJavaLaunchCommand with only -Xmx
     const onlyXmxCmd = formatJavaLaunchCommand("vanilla", testDir, "-Xmx6G");
