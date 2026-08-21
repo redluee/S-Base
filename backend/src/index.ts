@@ -137,7 +137,7 @@ export const app = new Elysia()
 
     const sessionId = auth.createSession(result.userId);
     const isSecure = process.env.NODE_ENV === "production";
-    session_id?.set({ value: sessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
+    session_id?.set({ value: sessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 604800, secure: isSecure });
 
     return { user: { id: result.userId, username, email: result.email, modules: auth.getUserModules(result.userId) } };
   })
@@ -179,10 +179,10 @@ export const app = new Elysia()
       );
     }
 
-    auth.logLastLogin(user.userId);
+    auth.logLastLogin(user.userId, false);
     const sessionId = auth.createSession(user.userId);
     const isSecure = process.env.NODE_ENV === "production";
-    const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
+    const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${isSecure ? "; Secure" : ""}`;
     return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email, modules: auth.getUserModules(user.userId) } }), {
       status: 200,
       headers: {

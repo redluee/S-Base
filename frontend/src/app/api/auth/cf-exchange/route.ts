@@ -65,6 +65,18 @@ export async function GET(request: NextRequest) {
 
   const destination = getAbsoluteUrl(redirect.startsWith("/") ? redirect : "/dashboard", request);
   const response = NextResponse.redirect(destination);
-  response.headers.set("Set-Cookie", setCookie);
+
+  const match = setCookie.match(/session_id=([^;]+)/);
+  if (match) {
+    response.cookies.set("session_id", match[1], {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 604800,
+      secure: process.env.NODE_ENV === "production",
+    });
+  } else {
+    response.headers.set("Set-Cookie", setCookie);
+  }
   return response;
 }

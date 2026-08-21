@@ -22,7 +22,17 @@ export class AuthService {
     return { ok: true, userId: user.userId, email: user.email ?? null };
   }
 
-  logLastLogin(userId: number): void {
+  logLastLogin(userId: number, force = true): void {
+    if (!force) {
+      const user = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, userId)).get();
+      if (user?.lastLoginAt) {
+        const last = new Date(user.lastLoginAt).getTime();
+        const now = Date.now();
+        if (!isNaN(last) && now - last < 12 * 60 * 60 * 1000) {
+          return;
+        }
+      }
+    }
     const now = new Date().toISOString();
     db.update(users).set({ lastLoginAt: now }).where(eq(users.userId, userId)).run();
   }

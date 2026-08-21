@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAbsoluteUrl } from "@/lib/request-url";
 
-const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow", "/games"];
+const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow", "/games", "/pulse"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -42,5 +42,13 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*", "/recipes/:path*", "/workouts/:path*", "/cashflow/:path*", "/games/:path*"],
+  matcher: [
+    "/",
+    "/dashboard/:path*",
+    "/recipes/:path*",
+    "/workouts/:path*",
+    "/cashflow/:path*",
+    "/games/:path*",
+    "/pulse/:path*",
+  ],
 };

@@ -134,4 +134,30 @@ describe("AuthService", () => {
     expect(adminSession?.username).toBe("admin");
     expect(adminSession?.isImpersonated).toBe(false);
   });
+
+  it("updates and preserves lastLoginAt based on force flag", () => {
+    const fixedTime = "2026-08-20T10:00:00.000Z";
+    db.update(users).set({ lastLoginAt: fixedTime }).where(eq(users.userId, adminId)).run();
+
+    // With force = false and recent timestamp, lastLoginAt is preserved
+    const recentTime = new Date(Date.now() - 3600 * 1000).toISOString(); // 1 hour ago
+    db.update(users).set({ lastLoginAt: recentTime }).where(eq(users.userId, adminId)).run();
+    authService.logLastLogin(adminId, false);
+
+    const userAfterUnforced = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    expect(userAfterUnforced?.lastLoginAt).toBe(recentTime);
+
+    // With force = true, lastLoginAt is updated immediately
+    authService.logLastLogin(adminId, true);
+    const userAfterForced = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    expect(userAfterForced?.lastLoginAt).not.toBe(recentTime);
+    expect(new Date(userAfterForced!.lastLoginAt!).getTime()).toBeGreaterThan(new Date(recentTime).getTime());
+
+    // With force = false and timestamp older than 12 hours, lastLoginAt is updated
+    const oldTime = new Date(Date.now() - 15 * 3600 * 1000).toISOString(); // 15 hours ago
+    db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, adminId)).run();
+    authService.logLastLogin(adminId, false);
+    const userAfterOld = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    expect(userAfterOld?.lastLoginAt).not.toBe(oldTime);
+  });
 });
