@@ -792,7 +792,6 @@ const nl: Record<string, string> = {
   "Minimaal": "Minimaal",
   "Standaard": "Standaard",
   "Aanbevolen": "Aanbevolen",
-  "Mods": "Mods",
   "Zwaar": "Zwaar",
 };
 
