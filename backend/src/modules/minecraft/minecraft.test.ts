@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
-import { MinecraftService } from "./index";
+import { MinecraftService, parseJavaArgs, formatJavaLaunchCommand } from "./index";
 import { join } from "path";
 import { tmpdir } from "os";
 import { mkdir, writeFile, rm } from "fs/promises";
@@ -311,6 +311,45 @@ describe("MinecraftService", () => {
     // Clean up
     await minecraft.deleteTemplate(templateId);
     await minecraft.deleteServer("tmpl-speedrun-test", true);
+  });
+
+  it("parses Java arguments and handles custom RAM allocation correctly", async () => {
+    // Test parseJavaArgs
+    expect(parseJavaArgs(null)).toEqual([]);
+    expect(parseJavaArgs("")).toEqual([]);
+    expect(parseJavaArgs("-Xms2G -Xmx4G -XX:+UseG1GC")).toEqual(["-Xms2G", "-Xmx4G", "-XX:+UseG1GC"]);
+    expect(parseJavaArgs('["-Xms1G", "-Xmx2G"]')).toEqual(["-Xms1G", "-Xmx2G"]);
+
+    // Test formatJavaLaunchCommand with default memory
+    const defaultCmd = formatJavaLaunchCommand("vanilla", testDir, null);
+    expect(defaultCmd).toBe("java -Xms512M -Xmx2G -jar server.jar nogui");
+
+    // Test formatJavaLaunchCommand with custom RAM flags
+    const customMemCmd = formatJavaLaunchCommand("vanilla", testDir, "-Xms4G -Xmx8G -XX:+UseG1GC");
+    expect(customMemCmd).toBe("java -Xms4G -Xmx8G -XX:+UseG1GC -jar server.jar nogui");
+
+    // Test formatJavaLaunchCommand with only -Xmx
+    const onlyXmxCmd = formatJavaLaunchCommand("vanilla", testDir, "-Xmx6G");
+    expect(onlyXmxCmd).toBe("java -Xms512M -Xmx6G -jar server.jar nogui");
+
+    // Create server and test updateServer with custom javaArgs
+    const s = await minecraft.createServer({
+      slug: "test-java-args",
+      displayName: "Java Args Server",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+      javaArgs: "-Xms2G -Xmx4G",
+    });
+    expect(s?.javaArgs).toBe("-Xms2G -Xmx4G");
+
+    // Update javaArgs
+    const updated = await minecraft.updateServer("test-java-args", {
+      javaArgs: "-Xms4G -Xmx8G -XX:+UseG1GC",
+    });
+    expect(updated?.javaArgs).toBe("-Xms4G -Xmx8G -XX:+UseG1GC");
+
+    // Clean up
+    await minecraft.deleteServer("test-java-args", true);
   });
 });
 

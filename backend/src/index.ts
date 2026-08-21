@@ -736,6 +736,9 @@ export const app = new Elysia()
         if (!s) return new Response("Not Found", { status: 404 });
         return s;
       })
+      .patch("/servers/:slug", async ({ params: { slug }, body }) => {
+        return minecraft.updateServer(slug, (body ?? {}) as any);
+      })
       .delete("/servers/:slug", async ({ params: { slug }, query }) => {
         const deleteDisk = (query as any)?.deleteDisk === "true";
         return minecraft.deleteServer(slug, deleteDisk);

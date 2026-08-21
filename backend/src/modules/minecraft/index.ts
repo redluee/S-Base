@@ -26,6 +26,37 @@ function validateFilename(filename: string): void {
   if (filename.includes("/") || filename.includes("..")) throw new Error("Invalid filename");
 }
 
+export function parseJavaArgs(rawArgs?: string | null): string[] {
+  if (!rawArgs) return [];
+  const trimmed = rawArgs.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.map((x) => String(x).trim()).filter(Boolean);
+      }
+    } catch {}
+  }
+  return trimmed.split(/\s+/).map((x) => x.trim()).filter(Boolean);
+}
+
+export function formatJavaLaunchCommand(engine: string, serverDir: string, rawJavaArgs?: string | null): string {
+  const parsedArgs = parseJavaArgs(rawJavaArgs);
+  const hasXmx = parsedArgs.some((a) => /^-Xmx/i.test(a));
+  const hasXms = parsedArgs.some((a) => /^-Xms/i.test(a));
+
+  const memFlags: string[] = [];
+  if (!hasXms) memFlags.push("-Xms512M");
+  if (!hasXmx) memFlags.push("-Xmx2G");
+
+  const fullArgs = [...memFlags, ...parsedArgs];
+  const hasFabricJar = existsSync(join(serverDir, "fabric-server-launch.jar"));
+  const jarFile = engine === "fabric" && hasFabricJar ? "fabric-server-launch.jar" : "server.jar";
+
+  return `java ${fullArgs.join(" ")} -jar ${jarFile} nogui`.replace(/\s+/g, " ").trim();
+}
+
 export class MinecraftService {
   listServers() {
     return db.select().from(mc_servers).all();
@@ -66,6 +97,30 @@ export class MinecraftService {
 
   getServer(slug: string) {
     return db.select().from(mc_servers).where(eq(mc_servers.slug, slug)).get() || null;
+  }
+
+  async updateServer(slug: string, data: { displayName?: string; javaArgs?: string | null }) {
+    validateSlug(slug);
+    const server = this.getServer(slug);
+    if (!server) throw new Error("Server not found");
+
+    const updates: Partial<{ displayName: string; javaArgs: string | null }> = {};
+    if (data.displayName !== undefined) {
+      if (!data.displayName.trim()) throw new Error("Display name cannot be empty");
+      updates.displayName = data.displayName.trim();
+    }
+    if (data.javaArgs !== undefined) {
+      updates.javaArgs = data.javaArgs && data.javaArgs.trim() ? data.javaArgs.trim() : null;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      db.update(mc_servers)
+        .set(updates)
+        .where(eq(mc_servers.slug, slug))
+        .run();
+    }
+
+    return this.getServer(slug);
   }
 
 
@@ -194,10 +249,7 @@ export class MinecraftService {
       } catch {}
     }
 
-    const args = server.javaArgs ? JSON.parse(server.javaArgs) : [];
-    const hasFabricJar = existsSync(join(server.serverDir, "fabric-server-launch.jar"));
-    const jarFile = server.engine === "fabric" && hasFabricJar ? "fabric-server-launch.jar" : "server.jar";
-    const cmdStr = `java -Xms512M -Xmx2G ${args.join(" ")} -jar ${jarFile} nogui`;
+    const cmdStr = formatJavaLaunchCommand(server.engine, server.serverDir, server.javaArgs);
     
     Bun.spawnSync(["tmux", "new-session", "-d", "-s", sessionName, "-c", server.serverDir, cmdStr]);
     
@@ -275,7 +327,7 @@ export class MinecraftService {
 
     const serverDir = server?.serverDir;
     const startTime = Date.now();
-    const maxGracefulMs = 8000;
+    const maxGracefulMs = 20000;
 
     while (Date.now() - startTime < maxGracefulMs) {
       const isTmuxAlive = Bun.spawnSync(["tmux", "has-session", "-t", sessionName]).exitCode === 0;
