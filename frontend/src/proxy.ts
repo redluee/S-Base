@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getAbsoluteUrl } from "@/lib/request-url";
 
 const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow", "/games"];
 
@@ -15,7 +16,7 @@ export function proxy(request: NextRequest) {
   // If user arrives at root '/'
   if (pathname === "/") {
     if (cfEmail && !sessionId) {
-      const exchangeUrl = new URL("/api/auth/cf-exchange", request.url);
+      const exchangeUrl = getAbsoluteUrl("/api/auth/cf-exchange", request);
       exchangeUrl.searchParams.set("redirect", "/dashboard");
       return NextResponse.redirect(exchangeUrl);
     }
@@ -32,12 +33,12 @@ export function proxy(request: NextRequest) {
   }
 
   if (cfEmail) {
-    const exchangeUrl = new URL("/api/auth/cf-exchange", request.url);
+    const exchangeUrl = getAbsoluteUrl("/api/auth/cf-exchange", request);
     exchangeUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(exchangeUrl);
   }
 
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.redirect(getAbsoluteUrl("/", request));
 }
 
 export const config = {

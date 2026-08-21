@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getAbsoluteUrl } from "@/lib/request-url";
 
 const BACKEND_URL = process.env.API_URL ?? "http://127.0.0.1:3001/api";
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   const redirect = request.nextUrl.searchParams.get("redirect") ?? "/dashboard";
 
   if (!cfEmail) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(getAbsoluteUrl("/", request));
   }
 
   let resp: Response;
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse("No session returned from backend", { status: 502 });
   }
 
-  const destination = new URL(redirect.startsWith("/") ? redirect : "/dashboard", request.url);
+  const destination = getAbsoluteUrl(redirect.startsWith("/") ? redirect : "/dashboard", request);
   const response = NextResponse.redirect(destination);
   response.headers.set("Set-Cookie", setCookie);
   return response;
