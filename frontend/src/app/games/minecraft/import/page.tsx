@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JavaMemorySelector } from "@/components/minecraft/JavaMemorySelector";
 
 export default function ImportServerPage() {
   const router = useRouter();
@@ -435,14 +436,8 @@ export default function ImportServerPage() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>{t("Java Arguments")} <span className="text-zinc-500 text-xs">({t("Optional")})</span></Label>
-          <Input
-            value={javaArgs}
-            onChange={(e) => setJavaArgs(e.target.value)}
-            placeholder='-Xms1G -Xmx4G'
-            className="font-mono text-xs"
-          />
+        <div className="pt-2 border-t border-white/5">
+          <JavaMemorySelector value={javaArgs} onChange={setJavaArgs} engine={engine} />
         </div>
 
         <div className="space-y-2">

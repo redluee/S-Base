@@ -517,6 +517,8 @@ export const api = {
       get: (slug: string) => request<McServer>(`/minecraft/servers/${slug}`),
       create: (data: { slug: string; displayName: string; engine: string; mcVersion: string; javaArgs?: string; templateId?: number }) =>
         request<McServer>("/minecraft/servers", { method: "POST", body: JSON.stringify(data) }),
+      update: (slug: string, data: { displayName?: string; javaArgs?: string | null }) =>
+        request<McServer>(`/minecraft/servers/${slug}`, { method: "PATCH", body: JSON.stringify(data) }),
       delete: (slug: string, deleteDisk?: boolean) =>
         request<{ ok: boolean }>(`/minecraft/servers/${slug}${deleteDisk ? "?deleteDisk=true" : ""}`, { method: "DELETE" }),
       start: (slug: string) => request<{ ok: boolean }>(`/minecraft/servers/${slug}/start`, { method: "POST" }),

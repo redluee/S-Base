@@ -767,6 +767,22 @@ const nl: Record<string, string> = {
   "Return to {admin}": "Terugkeren naar {admin}",
   "Returning to admin...": "Terugschakelen...",
   "Test mode active": "Testmodus actief",
+
+  "RAM Allocation": "RAM-geheugentoewijzing",
+  "Memory & Java": "Geheugen & Java",
+  "Memory & Performance": "Geheugen & Prestaties",
+  "Select standard memory allocation or customize Java arguments for optimal server performance.": "Kies een standaard geheugentoewijzing of stel aangepaste Java-argumenten in voor optimale serverprestaties.",
+  "Custom": "Aangepast",
+  "Custom Java Args": "Aangepaste Java-args",
+  "Custom Java Arguments": "Aangepaste Java-argumenten",
+  "Additional Java Arguments": "Extra Java-argumenten",
+  "Include -Xms and -Xmx memory flags and any custom JVM parameters.": "Voeg -Xms en -Xmx geheugenvlaggen en eventuele custom JVM-parameters toe.",
+  "RAM flags are configured automatically. Add extra JVM or GC flags here.": "RAM-vlaggen worden automatisch geconfigureerd. Voeg hier eventuele extra JVM- of GC-vlaggen toe.",
+  "Launch Command Preview": "Voorbeeld van startopdracht",
+  "Minimaal": "Minimaal",
+  "Standaard": "Standaard",
+  "Aanbevolen": "Aanbevolen",
+  "Zwaar": "Zwaar",
 };
 
 

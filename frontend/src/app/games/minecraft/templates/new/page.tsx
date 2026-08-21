@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JavaMemorySelector } from "@/components/minecraft/JavaMemorySelector";
 import Link from "next/link";
 
 interface StagedFile {
@@ -54,9 +55,10 @@ export default function NewTemplatePage() {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Step 2: Engine & Version
+  // Step 2: Engine & Version & Memory
   const [mcVersion, setMcVersion] = useState("");
   const [engine, setEngine] = useState<"vanilla" | "fabric">("fabric");
+  const [javaArgs, setJavaArgs] = useState<string>("-Xms1G -Xmx2G");
 
   // Step 3: Properties (Categorized)
   const [activeSettingsTab, setActiveSettingsTab] = useState<"general" | "gameplay" | "world" | "performance">("general");
@@ -163,6 +165,7 @@ export default function NewTemplatePage() {
         mcVersion,
         properties,
         notes: notes || undefined,
+        javaArgs: javaArgs.trim() || undefined,
       });
 
       if (created && created.templateId && stagedFiles.length > 0) {
@@ -516,8 +519,10 @@ export default function NewTemplatePage() {
             )}
 
             {activeSettingsTab === "performance" && (
-              <div className="space-y-4 animate-in fade-in">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-6 animate-in fade-in">
+                <JavaMemorySelector value={javaArgs} onChange={setJavaArgs} engine={engine} />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
                   <div className="space-y-2">
                     <Label>{t("View Distance (chunks)")}</Label>
                     <Input

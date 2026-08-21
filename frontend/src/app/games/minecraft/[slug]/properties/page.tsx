@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JavaMemorySelector } from "@/components/minecraft/JavaMemorySelector";
 import Link from "next/link";
 
 type TabKey = "all" | "general" | "gameplay" | "world" | "performance" | "custom";
@@ -80,6 +81,8 @@ export default function PropertiesPage() {
   const slug = params?.slug || "";
 
   const [props, setProps] = useState<Record<string, string>>({});
+  const [javaArgs, setJavaArgs] = useState<string>("");
+  const [serverEngine, setServerEngine] = useState<string>("vanilla");
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,10 +98,15 @@ export default function PropertiesPage() {
     if (!slug) return;
     Promise.all([
       api.minecraft.servers.properties.get(slug),
+      api.minecraft.servers.get(slug).catch(() => null),
       api.minecraft.servers.status(slug).catch(() => ({ online: false })),
     ])
-      .then(([propsRes, statusRes]) => {
+      .then(([propsRes, serverRes, statusRes]) => {
         setProps(propsRes || {});
+        if (serverRes) {
+          setJavaArgs(serverRes.javaArgs || "");
+          setServerEngine(serverRes.engine || "vanilla");
+        }
         setIsRunning(Boolean(statusRes?.online));
         setLoading(false);
       })
@@ -155,7 +163,10 @@ export default function PropertiesPage() {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      await api.minecraft.servers.properties.update(slug, props);
+      await Promise.all([
+        api.minecraft.servers.properties.update(slug, props),
+        !isRunning ? api.minecraft.servers.update(slug, { javaArgs: javaArgs.trim() || null }) : Promise.resolve(),
+      ]);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (e: unknown) {
@@ -847,12 +858,30 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {/* Section 4: Performance & View Distance */}
+        {/* Section 4: Performance & Memory */}
         {(activeTab === "all" || activeTab === "performance") && (
           <div className="p-6 rounded-2xl bg-zinc-900 border border-white/10 space-y-6">
-            <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
-              <Gauge className="size-5 text-indigo-400" />
-              <h2 className="font-display text-lg font-bold text-zinc-100">Performance & View Distance</h2>
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <Gauge className="size-5 text-indigo-400" />
+                <h2 className="font-display text-lg font-bold text-zinc-100">Performance & Memory</h2>
+              </div>
+              {renderStatusBadge("performance")}
+            </div>
+
+            {/* RAM & Java Arguments Selector */}
+            <div className="p-4 rounded-xl bg-black/30 border border-white/10">
+              <JavaMemorySelector
+                value={javaArgs}
+                onChange={(v) => {
+                  if (!isRunning) {
+                    setJavaArgs(v);
+                    setSaveSuccess(false);
+                  }
+                }}
+                disabled={isRunning}
+                engine={serverEngine}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
