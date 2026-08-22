@@ -15,13 +15,13 @@ else
 fi
 
 if [ "$IS_MAIN_PUSH" = true ]; then
-  echo "🔍 [Pre-Push Hook] Verifying backend & frontend test suites before push to main..."
+  echo "🔍 [Pre-Push Hook] Verifying test suites, linting, and production build before push to main..."
   
-  if bun run test:all; then
-    echo "✅ [Pre-Push Hook] All tests and lint checks passed cleanly! Proceeding with push."
+  if bun run test:all && bun run build; then
+    echo "✅ [Pre-Push Hook] All tests, lint checks, and production build passed cleanly! Proceeding with push."
     exit 0
   else
-    echo "❌ [Pre-Push Hook] Test or lint check failed! Push to main aborted."
+    echo "❌ [Pre-Push Hook] Validation or build failed! Push to main aborted."
     exit 1
   fi
 else

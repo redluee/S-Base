@@ -11,7 +11,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 | `bun run dev:frontend` | Frontend only on `:3000` |
 | `bun run test` | Run backend and frontend test suites |
 | `bun run test:all` | Run all unit tests and frontend ESLint |
-| `bun run pre-push` | Pre-push checks (`test:all`) |
+| `bun run pre-push` | Pre-push checks (`test:all` + `build`) |
 | `bun run db:migrate` | Run Drizzle SQLite migrations |
 | `bun run db:seed` | Seed sample data (admin/admin, tester/tester) |
 | `bun run db:user` | User management CLI (`user-manager.ts` - create, pause, edit permissions) |
