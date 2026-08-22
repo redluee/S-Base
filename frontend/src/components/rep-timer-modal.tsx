@@ -134,7 +134,7 @@ export function RepTimerModal({
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && isRunning && startTimeRef.current !== null) {
-        const now = performance.now();
+        const now = Date.now();
         const currentTotalMs = accumulatedMsRef.current + (now - startTimeRef.current);
         setElapsedMs(currentTotalMs);
 
@@ -159,11 +159,11 @@ export function RepTimerModal({
   // High precision timer loop via requestAnimationFrame
   useEffect(() => {
     if (isRunning) {
-      startTimeRef.current = performance.now();
+      startTimeRef.current = Date.now();
 
       const updateLoop = () => {
         if (startTimeRef.current !== null) {
-          const now = performance.now();
+          const now = Date.now();
           const currentTotalMs = accumulatedMsRef.current + (now - startTimeRef.current);
           setElapsedMs(currentTotalMs);
 
@@ -191,7 +191,7 @@ export function RepTimerModal({
       animFrameRef.current = requestAnimationFrame(updateLoop);
     } else {
       if (startTimeRef.current !== null) {
-        accumulatedMsRef.current += performance.now() - startTimeRef.current;
+        accumulatedMsRef.current += Date.now() - startTimeRef.current;
         startTimeRef.current = null;
       }
       if (animFrameRef.current !== null) {
