@@ -1,14 +1,7 @@
-// Web Audio & HTML5 Audio background rest timer sound utility
+// Web Audio background rest timer sound utility
 
-let audioCtx: AudioContext | null = null;
 let scheduledTimeoutId: ReturnType<typeof setTimeout> | null = null;
-let activeScheduledOscillators: OscillatorNode[] = [];
 let hasTriggeredCurrentTimer = false;
-
-// Audio elements for background-safe playback
-let silentAudioElement: HTMLAudioElement | null = null;
-let chimeAudioElement: HTMLAudioElement | null = null;
-let stopSilentTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // Worker-based background timer
 let backgroundWorker: Worker | null = null;
@@ -27,112 +20,6 @@ export function isSoundEnabled(): boolean {
 export function setSoundEnabled(enabled: boolean): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(SOUND_PREF_KEY, String(enabled));
-}
-
-function createWavDataUri(samples: Float32Array, sampleRate = 44100): string {
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-  const blockAlign = numChannels * (bitsPerSample / 8);
-  const dataSize = samples.length * (bitsPerSample / 8);
-  const buffer = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(buffer);
-
-  function writeString(offset: number, string: string) {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  }
-
-  writeString(0, "RIFF");
-  view.setUint32(4, 36 + dataSize, true);
-  writeString(8, "WAVE");
-  writeString(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitsPerSample, true);
-  writeString(36, "data");
-  view.setUint32(40, dataSize, true);
-
-  let offset = 44;
-  for (let i = 0; i < samples.length; i++) {
-    const s = Math.max(-1, Math.min(1, samples[i]));
-    const int16 = s < 0 ? s * 0x8000 : s * 0x7fff;
-    view.setInt16(offset, int16, true);
-    offset += 2;
-  }
-
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return "data:audio/wav;base64," + btoa(binary);
-}
-
-function getSilentWavUri(): string {
-  // 0.5s of silence at 8000Hz mono = very tiny payload
-  const samples = new Float32Array(4000);
-  return createWavDataUri(samples, 8000);
-}
-
-function getChimeWavUri(): string {
-  // Rich 4-tone chime (E5 -> G#5 -> B5 -> E6)
-  const sampleRate = 44100;
-  const totalDuration = 0.85;
-  const samples = new Float32Array(Math.floor(sampleRate * totalDuration));
-  const notes = [
-    { freq: 659.25, duration: 0.12, delay: 0 },
-    { freq: 830.61, duration: 0.12, delay: 0.1 },
-    { freq: 987.77, duration: 0.12, delay: 0.2 },
-    { freq: 1318.51, duration: 0.45, delay: 0.32 },
-  ];
-
-  notes.forEach((note) => {
-    const startIdx = Math.floor(note.delay * sampleRate);
-    const len = Math.floor(note.duration * sampleRate);
-    for (let i = 0; i < len; i++) {
-      const t = i / sampleRate;
-      const progress = i / len;
-      // Attack and exponential decay envelope
-      const attack = Math.min(1, progress / 0.05);
-      const decay = Math.exp(-progress * 3.5);
-      const env = attack * decay;
-
-      const fundamental = Math.sin(2 * Math.PI * note.freq * t) * 0.7;
-      const harmonic = Math.sin(2 * Math.PI * note.freq * 2 * t) * 0.25;
-      const val = (fundamental + harmonic) * env;
-
-      if (startIdx + i < samples.length) {
-        samples[startIdx + i] += val;
-      }
-    }
-  });
-
-  return createWavDataUri(samples, sampleRate);
-}
-
-function initAudioElements(): void {
-  if (typeof window === "undefined") return;
-
-  if (!silentAudioElement) {
-    try {
-      silentAudioElement = new Audio(getSilentWavUri());
-      silentAudioElement.loop = true;
-      silentAudioElement.volume = 0.01;
-    } catch {}
-  }
-
-  if (!chimeAudioElement) {
-    try {
-      chimeAudioElement = new Audio(getChimeWavUri());
-      chimeAudioElement.volume = 1.0;
-    } catch {}
-  }
 }
 
 function getWorker(): Worker | null {
@@ -174,139 +61,55 @@ function getWorker(): Worker | null {
   return backgroundWorker;
 }
 
-function startAudioKeepAlive(): void {
+/**
+ * Call on user gesture to unlock browser audio if needed.
+ * For one-off AudioContexts, unlocking isn't strictly necessary as long as the gesture occurs,
+ * but this is kept for compatibility.
+ */
+export function unlockAudio(): void {
   if (typeof window === "undefined") return;
-  initAudioElements();
-
-  if (stopSilentTimeoutId) {
-    clearTimeout(stopSilentTimeoutId);
-    stopSilentTimeoutId = null;
-  }
-
-  if (silentAudioElement) {
-    try {
-      silentAudioElement.currentTime = 0;
-      const playPromise = silentAudioElement.play();
-      if (playPromise) {
-        playPromise.catch(() => {});
-      }
-    } catch {}
-  }
-}
-
-function stopAudioKeepAlive(delayMs = 1500): void {
-  if (typeof window === "undefined") return;
-
-  if (stopSilentTimeoutId) {
-    clearTimeout(stopSilentTimeoutId);
-    stopSilentTimeoutId = null;
-  }
-
-  stopSilentTimeoutId = setTimeout(() => {
-    if (silentAudioElement) {
-      try {
-        silentAudioElement.pause();
-        silentAudioElement.currentTime = 0;
-      } catch {}
-    }
-    stopSilentTimeoutId = null;
-  }, delayMs);
-}
-
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!audioCtx) {
+  try {
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (AudioContextClass) {
-      audioCtx = new AudioContextClass();
-    }
-  }
-  if (audioCtx && audioCtx.state === "suspended") {
-    audioCtx.resume().catch(() => {});
-  }
-  return audioCtx;
-}
-
-/**
- * Call on user gesture (click/tap) to unlock browser audio restrictions.
- */
-export function unlockAudio(): void {
-  initAudioElements();
-
-  // Unlock HTML5 Audio
-  if (silentAudioElement) {
-    try {
-      const p = silentAudioElement.play();
-      if (p) {
-        p.then(() => {
-          if (!hasActiveTimer()) {
-            silentAudioElement?.pause();
-          }
+      const ctx = new AudioContextClass();
+      if (ctx.state === "suspended") {
+        ctx.resume().then(() => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          gain.gain.value = 0;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.001);
+          setTimeout(() => ctx.close().catch(() => {}), 100);
         }).catch(() => {});
+      } else {
+        ctx.close().catch(() => {});
       }
-    } catch {}
-  }
-
-  if (chimeAudioElement) {
-    try {
-      chimeAudioElement.load();
-    } catch {}
-  }
-
-  // Unlock Web Audio API
-  const ctx = getAudioContext();
-  if (ctx && ctx.state === "suspended") {
-    ctx.resume().then(() => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      gain.gain.value = 0;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.001);
-
-      // Release audio focus shortly after unlocking
-      setTimeout(() => {
-        if (ctx.state === "running") {
-          ctx.suspend().catch(() => {});
-        }
-      }, 500);
-    }).catch(() => {});
-  }
-}
-
-function hasActiveTimer(): boolean {
-  return scheduledTimeoutId !== null;
+    }
+  } catch {}
 }
 
 /**
- * Plays the 4-tone chime using both HTML5 Audio (background safe) & Web Audio synthesis.
+ * Plays the 4-tone chime using Web Audio synthesis, closing context after to release audio focus (prevents ducking).
  */
 export function playRestTimerEndSound(): void {
   if (!isSoundEnabled()) return;
-
-  // 1. Primary: HTML5 Audio element (works even in background tabs when audio session was alive)
-  if (chimeAudioElement) {
-    try {
-      chimeAudioElement.currentTime = 0;
-      const playPromise = chimeAudioElement.play();
-      if (playPromise) {
-        playPromise.catch(() => {});
-      }
-    } catch {}
-  }
-
-  // 2. Secondary: Web Audio API synthesis for extra richness and low-latency foreground playback
+  
+  if (typeof window === "undefined") return;
   try {
-    const ctx = getAudioContext();
-    if (ctx) {
-      if (ctx.state === "suspended") {
-        ctx.resume().then(() => playChimeSequence(ctx)).catch(() => {});
-      } else {
-        playChimeSequence(ctx);
-      }
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") {
+      ctx.resume().then(() => playChimeSequence(ctx)).catch(() => {});
+    } else {
+      playChimeSequence(ctx);
     }
   } catch {}
 }
@@ -355,23 +158,17 @@ function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0): void 
     harmonicOsc.connect(harmonicGain);
     harmonicGain.connect(masterGain);
 
-    if (startTimeOffsetSeconds > 0) {
-      activeScheduledOscillators.push(osc);
-      activeScheduledOscillators.push(harmonicOsc);
-    }
-
     osc.start(noteStart);
     osc.stop(noteEnd + 0.05);
     harmonicOsc.start(noteStart);
     harmonicOsc.stop(noteEnd + 0.05);
   });
 
-  // Release audio focus after chime sequence
+  // Release audio focus by closing the context after chime sequence
+  const totalDuration = startTimeOffsetSeconds + 1.0;
   setTimeout(() => {
-    if (ctx.state === "running") {
-      ctx.suspend().catch(() => {});
-    }
-  }, (startTimeOffsetSeconds + 1.5) * 1000);
+    ctx.close().catch(() => {});
+  }, totalDuration * 1000);
 }
 
 export function resetTimerTriggerState(): void {
@@ -428,7 +225,6 @@ export function scheduleRestEndSound(delaySeconds: number): void {
   if (delaySeconds <= 0) return;
 
   unlockAudio();
-  startAudioKeepAlive();
 
   const worker = getWorker();
   if (worker) {
@@ -460,16 +256,6 @@ export function cancelScheduledSound(): void {
   if (worker) {
     worker.postMessage({ type: "STOP" });
   }
-
-  stopAudioKeepAlive(0);
-
-  activeScheduledOscillators.forEach((osc) => {
-    try {
-      osc.stop();
-      osc.disconnect();
-    } catch {}
-  });
-  activeScheduledOscillators = [];
 
   notifyServiceWorkerCancel();
 }
@@ -518,8 +304,8 @@ async function sendNotification(title: string, body: string, tag: string): Promi
     body,
     icon: "/favicon.ico",
     tag,
-    silent: true, // We play our own custom web audio chime, so silence the default OS sound
-    requireInteraction: true, // Ensure it pops up and stays on screen
+    silent: true,
+    requireInteraction: true,
     ...(soundOn ? { vibrate: [300, 100, 300, 100, 400] } : { vibrate: [] }),
   };
 
@@ -602,7 +388,6 @@ export function scheduleSetEndSound(
   if (delaySeconds <= 0) return;
 
   unlockAudio();
-  startAudioKeepAlive();
 
   const worker = getWorker();
   if (worker) {
