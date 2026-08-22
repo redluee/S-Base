@@ -14,6 +14,7 @@ import {
   isSoundEnabled,
   setSoundEnabled,
   clearActiveNotifications,
+  playLoudBeep,
 } from "@/lib/sound";
 
 interface RepTimerModalProps {
@@ -22,51 +23,6 @@ interface RepTimerModalProps {
   targetDurationSeconds?: number | null;
   onFinish: (elapsedSeconds: number) => void;
   onClose: () => void;
-}
-
-function playLoudBeep(freq = 880, type: OscillatorType = "sine", duration = 0.18) {
-  if (!isSoundEnabled()) return;
-  try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {});
-    }
-
-    const osc = ctx.createOscillator();
-    const harmonicOsc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    const now = ctx.currentTime + 0.05;
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-
-    harmonicOsc.type = "sine";
-    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
-
-    // Start exactly at 0, then ramp up to prevent initial pop/crack
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.85, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    osc.connect(gain);
-    harmonicOsc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    harmonicOsc.start(now);
-    osc.stop(now + duration);
-    harmonicOsc.stop(now + duration);
-
-    // Close context after playback to release audio focus (prevents background music ducking)
-    setTimeout(() => {
-      ctx.close().catch(() => {});
-    }, duration * 1000 + 150);
-  } catch {
-    // Web Audio API safety
-  }
 }
 
 function formatSecs(secVal: number): string {

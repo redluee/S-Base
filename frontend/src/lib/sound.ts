@@ -1,7 +1,9 @@
 // Web Audio background rest timer sound utility
 
+let audioCtx: AudioContext | null = null;
 let scheduledTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let hasTriggeredCurrentTimer = false;
+let suspendTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // Worker-based background timer
 let backgroundWorker: Worker | null = null;
@@ -61,60 +63,111 @@ function getWorker(): Worker | null {
   return backgroundWorker;
 }
 
-/**
- * Call on user gesture to unlock browser audio if needed.
- * For one-off AudioContexts, unlocking isn't strictly necessary as long as the gesture occurs,
- * but this is kept for compatibility.
- */
-export function unlockAudio(): void {
-  if (typeof window === "undefined") return;
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (AudioContextClass) {
-      const ctx = new AudioContextClass();
-      if (ctx.state === "suspended") {
-        ctx.resume().then(() => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          gain.gain.value = 0;
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.001);
-          setTimeout(() => ctx.close().catch(() => {}), 100);
-        }).catch(() => {});
-      } else {
-        ctx.close().catch(() => {});
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!audioCtx) {
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
       }
+    } catch {}
+  }
+  return audioCtx;
+}
+
+function scheduleSuspend(delayMs = 1500): void {
+  if (suspendTimeoutId) clearTimeout(suspendTimeoutId);
+  suspendTimeoutId = setTimeout(() => {
+    if (audioCtx && audioCtx.state === "running") {
+      audioCtx.suspend().catch(() => {});
     }
-  } catch {}
+  }, delayMs);
 }
 
 /**
- * Plays the 4-tone chime using Web Audio synthesis, closing context after to release audio focus (prevents ducking).
+ * Call on user gesture to unlock browser audio if needed.
+ */
+export function unlockAudio(): void {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().then(() => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.001);
+      scheduleSuspend(500);
+    }).catch(() => {});
+  }
+}
+
+export function playLoudBeep(freq = 880, type: OscillatorType = "sine", duration = 0.18): void {
+  if (!isSoundEnabled()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const play = () => {
+    if (suspendTimeoutId) clearTimeout(suspendTimeoutId);
+
+    const now = ctx.currentTime + 0.05;
+    const osc = ctx.createOscillator();
+    const harmonicOsc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+
+    harmonicOsc.type = "sine";
+    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
+
+    // Start exactly at 0, then ramp up to prevent initial pop/crack
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.85, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    harmonicOsc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    harmonicOsc.start(now);
+    osc.stop(now + duration);
+    harmonicOsc.stop(now + duration);
+
+    scheduleSuspend(duration * 1000 + 500);
+  };
+
+  if (ctx.state === "suspended") {
+    ctx.resume().then(play).catch(() => {});
+  } else {
+    play();
+  }
+}
+
+/**
+ * Plays the 4-tone chime using Web Audio synthesis.
  */
 export function playRestTimerEndSound(): void {
   if (!isSoundEnabled()) return;
   
-  if (typeof window === "undefined") return;
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    
-    const ctx = new AudioContextClass();
-    if (ctx.state === "suspended") {
-      ctx.resume().then(() => playChimeSequence(ctx)).catch(() => {});
-    } else {
-      playChimeSequence(ctx);
-    }
-  } catch {}
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  
+  if (ctx.state === "suspended") {
+    ctx.resume().then(() => playChimeSequence(ctx)).catch(() => {});
+  } else {
+    playChimeSequence(ctx);
+  }
 }
 
 function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0.05): void {
+  if (suspendTimeoutId) clearTimeout(suspendTimeoutId);
+
   // Always schedule slightly in the future to avoid snapping in the middle of an audio frame
   const startTime = ctx.currentTime + Math.max(0.01, startTimeOffsetSeconds);
 
@@ -166,11 +219,9 @@ function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0.05): vo
     harmonicOsc.stop(noteEnd + 0.05);
   });
 
-  // Release audio focus by closing the context after chime sequence
+  // Release audio focus by suspending the context after chime sequence
   const totalDuration = startTimeOffsetSeconds + 1.0;
-  setTimeout(() => {
-    ctx.close().catch(() => {});
-  }, totalDuration * 1000);
+  scheduleSuspend(totalDuration * 1000 + 500);
 }
 
 export function resetTimerTriggerState(): void {
