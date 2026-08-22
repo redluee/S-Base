@@ -477,7 +477,19 @@ export async function requestScreenWakeLock(): Promise<void> {
   if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    wakeLockSentinel = await (navigator as any).wakeLock.request("screen");
+    if (wakeLockSentinel && !(wakeLockSentinel as any).released) {
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sentinel = await (navigator as any).wakeLock.request("screen");
+    wakeLockSentinel = sentinel;
+    if (sentinel) {
+      sentinel.addEventListener("release", () => {
+        if (wakeLockSentinel === sentinel) {
+          wakeLockSentinel = null;
+        }
+      });
+    }
   } catch {}
 }
 

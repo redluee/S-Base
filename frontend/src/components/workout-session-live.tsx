@@ -236,9 +236,10 @@ export function WorkoutSessionLive({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.exercises?.length]);
 
-  // Screen wake lock during active workout
+  // Screen wake lock during active workout or rest timer
   useEffect(() => {
-    if (session?.sessionId && !isPaused && !isSummaryView && !session?.completedAt) {
+    const shouldKeepAwake = (session?.sessionId && !isPaused && !isSummaryView && !session?.completedAt) || restActive;
+    if (shouldKeepAwake) {
       requestScreenWakeLock();
     } else {
       releaseScreenWakeLock();
@@ -246,7 +247,7 @@ export function WorkoutSessionLive({
     return () => {
       releaseScreenWakeLock();
     };
-  }, [session?.sessionId, isPaused, isSummaryView, session?.completedAt]);
+  }, [session?.sessionId, isPaused, isSummaryView, session?.completedAt, restActive]);
 
   // Main timer tick
   useEffect(() => {
@@ -290,20 +291,27 @@ export function WorkoutSessionLive({
     };
   }, [restActive]);
 
-  // Sync rest timer when returning from background / screen off
+  // Sync rest timer and re-acquire wake lock when returning from background / screen off
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && restActive && restEndTimeRef.current) {
-        const now = Date.now();
-        const diffSeconds = Math.ceil((restEndTimeRef.current - now) / 1000);
-        if (diffSeconds <= 0) {
-          setRestSecondsLeft(0);
-          setRestActive(false);
-          restEndTimeRef.current = null;
-          const skipSound = diffSeconds < -2; // Skip sound if it ended more than 2 seconds ago in background
-          triggerRestTimerCompletion(skipSound);
-        } else {
-          setRestSecondsLeft(diffSeconds);
+      if (document.visibilityState === "visible") {
+        const shouldKeepAwake = (session?.sessionId && !isPaused && !isSummaryView && !session?.completedAt) || restActive;
+        if (shouldKeepAwake) {
+          requestScreenWakeLock();
+        }
+
+        if (restActive && restEndTimeRef.current) {
+          const now = Date.now();
+          const diffSeconds = Math.ceil((restEndTimeRef.current - now) / 1000);
+          if (diffSeconds <= 0) {
+            setRestSecondsLeft(0);
+            setRestActive(false);
+            restEndTimeRef.current = null;
+            const skipSound = diffSeconds < -2; // Skip sound if it ended more than 2 seconds ago in background
+            triggerRestTimerCompletion(skipSound);
+          } else {
+            setRestSecondsLeft(diffSeconds);
+          }
         }
       }
     };
@@ -312,7 +320,7 @@ export function WorkoutSessionLive({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [restActive]);
+  }, [restActive, session?.sessionId, isPaused, isSummaryView, session?.completedAt]);
 
   // Cleanup sound and timers on component unmount
   useEffect(() => {

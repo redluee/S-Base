@@ -15,6 +15,8 @@ import {
   setSoundEnabled,
   clearActiveNotifications,
   playLoudBeep,
+  requestScreenWakeLock,
+  releaseScreenWakeLock,
 } from "@/lib/sound";
 
 interface RepTimerModalProps {
@@ -75,6 +77,18 @@ export function RepTimerModal({
     requestNotificationPermission();
   }, []);
 
+  // Screen Wake Lock while set timer is running
+  useEffect(() => {
+    if (isRunning) {
+      requestScreenWakeLock();
+    } else {
+      releaseScreenWakeLock();
+    }
+    return () => {
+      releaseScreenWakeLock();
+    };
+  }, [isRunning]);
+
   // Schedule background sound & vibration notification whenever running state or target changes
   useEffect(() => {
     if (isRunning && targetDurationSeconds && targetDurationSeconds > 0 && !targetChimeTriggeredRef.current) {
@@ -92,18 +106,23 @@ export function RepTimerModal({
   // Handle returning from background / screen off
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && isRunning && startTimeRef.current !== null) {
-        const now = Date.now();
-        const currentTotalMs = accumulatedMsRef.current + (now - startTimeRef.current);
-        setElapsedMs(currentTotalMs);
+      if (document.visibilityState === "visible") {
+        if (isRunning) {
+          requestScreenWakeLock();
+        }
+        if (isRunning && startTimeRef.current !== null) {
+          const now = Date.now();
+          const currentTotalMs = accumulatedMsRef.current + (now - startTimeRef.current);
+          setElapsedMs(currentTotalMs);
 
-        const currentElapsedSec = Math.floor(currentTotalMs / 1000);
-        if (targetDurationSeconds && targetDurationSeconds > 0) {
-          const secsRemaining = targetTime - currentElapsedSec;
-          if (secsRemaining <= 0 && !targetChimeTriggeredRef.current) {
-            targetChimeTriggeredRef.current = true;
-            const skipSound = secsRemaining < -2;
-            triggerSetTimerCompletion(exerciseName, setNumber, skipSound);
+          const currentElapsedSec = Math.floor(currentTotalMs / 1000);
+          if (targetDurationSeconds && targetDurationSeconds > 0) {
+            const secsRemaining = targetTime - currentElapsedSec;
+            if (secsRemaining <= 0 && !targetChimeTriggeredRef.current) {
+              targetChimeTriggeredRef.current = true;
+              const skipSound = secsRemaining < -2;
+              triggerSetTimerCompletion(exerciseName, setNumber, skipSound);
+            }
           }
         }
       }
