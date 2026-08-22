@@ -4,13 +4,10 @@ import { t } from "@/lib/lang";
 import Link from "next/link";
 import { Gamepad2, Plus, Box, FolderDown } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function MinecraftPage() {
-  let servers: McServer[] = [];
-  try {
-    servers = await serverApi.minecraft.servers.list();
-  } catch (error) {
-    console.error("Failed to load servers", error);
-  }
+  const servers: McServer[] = await serverApi.minecraft.servers.list().catch(() => []);
 
   const user = await getCurrentUser();
   const hasFullAccess = user?.modules?.includes("minecraft") ?? false;
