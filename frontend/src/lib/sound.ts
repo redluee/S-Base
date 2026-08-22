@@ -1,9 +1,11 @@
-// Web Audio background rest timer sound utility
+// HTML5 Audio background rest timer sound utility
 
-let audioCtx: AudioContext | null = null;
 let scheduledTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let hasTriggeredCurrentTimer = false;
-let suspendTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+// Audio elements
+let chimeAudioElement: HTMLAudioElement | null = null;
+let beepAudioElement: HTMLAudioElement | null = null;
 
 // Worker-based background timer
 let backgroundWorker: Worker | null = null;
@@ -22,6 +24,126 @@ export function isSoundEnabled(): boolean {
 export function setSoundEnabled(enabled: boolean): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(SOUND_PREF_KEY, String(enabled));
+}
+
+function createWavDataUri(samples: Float32Array, sampleRate = 44100): string {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const dataSize = samples.length * (bitsPerSample / 8);
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  function writeString(offset: number, string: string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    const int16 = s < 0 ? s * 0x8000 : s * 0x7fff;
+    view.setInt16(offset, int16, true);
+    offset += 2;
+  }
+
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return "data:audio/wav;base64," + btoa(binary);
+}
+
+function getChimeWavUri(): string {
+  const sampleRate = 44100;
+  const totalDuration = 0.85;
+  const samples = new Float32Array(Math.floor(sampleRate * totalDuration));
+  const notes = [
+    { freq: 659.25, duration: 0.12, delay: 0 },
+    { freq: 830.61, duration: 0.12, delay: 0.1 },
+    { freq: 987.77, duration: 0.12, delay: 0.2 },
+    { freq: 1318.51, duration: 0.45, delay: 0.32 },
+  ];
+
+  notes.forEach((note) => {
+    const startIdx = Math.floor(note.delay * sampleRate);
+    const len = Math.floor(note.duration * sampleRate);
+    for (let i = 0; i < len; i++) {
+      const t = i / sampleRate;
+      const progress = i / len;
+      const attack = Math.min(1, progress / 0.05);
+      const decay = Math.exp(-progress * 3.5);
+      const env = attack * decay;
+
+      const fundamental = Math.sin(2 * Math.PI * note.freq * t) * 0.7;
+      const harmonic = Math.sin(2 * Math.PI * note.freq * 2 * t) * 0.25;
+      const val = (fundamental + harmonic) * env;
+
+      if (startIdx + i < samples.length) {
+        samples[startIdx + i] += val;
+      }
+    }
+  });
+
+  return createWavDataUri(samples, sampleRate);
+}
+
+function getBeepWavUri(): string {
+  const sampleRate = 44100;
+  const totalDuration = 0.18;
+  const freq = 750;
+  const samples = new Float32Array(Math.floor(sampleRate * totalDuration));
+  
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / sampleRate;
+    const progress = i / samples.length;
+    // Fast attack (10ms), linear decay
+    const attack = Math.min(1, t / 0.01);
+    const decay = 1 - progress;
+    const env = attack * decay;
+
+    const fundamental = Math.sin(2 * Math.PI * freq * t) * 0.7;
+    const harmonic = Math.sin(2 * Math.PI * freq * 2 * t) * 0.25;
+    
+    samples[i] = (fundamental + harmonic) * env;
+  }
+  
+  return createWavDataUri(samples, sampleRate);
+}
+
+function initAudioElements(): void {
+  if (typeof window === "undefined") return;
+
+  if (!chimeAudioElement) {
+    try {
+      chimeAudioElement = new Audio(getChimeWavUri());
+      chimeAudioElement.volume = 1.0;
+    } catch {}
+  }
+  
+  if (!beepAudioElement) {
+    try {
+      beepAudioElement = new Audio(getBeepWavUri());
+      beepAudioElement.volume = 1.0;
+    } catch {}
+  }
 }
 
 function getWorker(): Worker | null {
@@ -63,165 +185,53 @@ function getWorker(): Worker | null {
   return backgroundWorker;
 }
 
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!audioCtx) {
-    try {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-      }
-    } catch {}
-  }
-  return audioCtx;
-}
-
-function scheduleSuspend(delayMs = 1500): void {
-  if (suspendTimeoutId) clearTimeout(suspendTimeoutId);
-  suspendTimeoutId = setTimeout(() => {
-    if (audioCtx && audioCtx.state === "running") {
-      audioCtx.suspend().catch(() => {});
-    }
-  }, delayMs);
-}
-
 /**
  * Call on user gesture to unlock browser audio if needed.
  */
 export function unlockAudio(): void {
-  const ctx = getAudioContext();
-  if (ctx && ctx.state === "suspended") {
-    ctx.resume().then(() => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      gain.gain.value = 0;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.001);
-      scheduleSuspend(500);
-    }).catch(() => {});
+  initAudioElements();
+  if (chimeAudioElement) {
+    try {
+      // Just load it into memory on user gesture
+      chimeAudioElement.load();
+    } catch {}
+  }
+  if (beepAudioElement) {
+    try {
+      beepAudioElement.load();
+    } catch {}
   }
 }
 
-export function playLoudBeep(freq = 880, type: OscillatorType = "sine", duration = 0.18): void {
+export function playLoudBeep(): void {
   if (!isSoundEnabled()) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  const play = () => {
-    if (suspendTimeoutId) clearTimeout(suspendTimeoutId);
-
-    const now = ctx.currentTime + 0.05;
-    const osc = ctx.createOscillator();
-    const harmonicOsc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-
-    harmonicOsc.type = "sine";
-    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
-
-    // Start exactly at 0, then ramp up to prevent initial pop/crack
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.85, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    osc.connect(gain);
-    harmonicOsc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    harmonicOsc.start(now);
-    osc.stop(now + duration);
-    harmonicOsc.stop(now + duration);
-
-    scheduleSuspend(duration * 1000 + 500);
-  };
-
-  if (ctx.state === "suspended") {
-    ctx.resume().then(play).catch(() => {});
-  } else {
-    play();
+  initAudioElements();
+  if (beepAudioElement) {
+    try {
+      beepAudioElement.currentTime = 0;
+      const playPromise = beepAudioElement.play();
+      if (playPromise) {
+        playPromise.catch(() => {});
+      }
+    } catch {}
   }
 }
 
 /**
- * Plays the 4-tone chime using Web Audio synthesis.
+ * Plays the 4-tone chime using HTML5 Audio.
  */
 export function playRestTimerEndSound(): void {
   if (!isSoundEnabled()) return;
-  
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  
-  if (ctx.state === "suspended") {
-    ctx.resume().then(() => playChimeSequence(ctx)).catch(() => {});
-  } else {
-    playChimeSequence(ctx);
+  initAudioElements();
+  if (chimeAudioElement) {
+    try {
+      chimeAudioElement.currentTime = 0;
+      const playPromise = chimeAudioElement.play();
+      if (playPromise) {
+        playPromise.catch(() => {});
+      }
+    } catch {}
   }
-}
-
-function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0.05): void {
-  if (suspendTimeoutId) clearTimeout(suspendTimeoutId);
-
-  // Always schedule slightly in the future to avoid snapping in the middle of an audio frame
-  const startTime = ctx.currentTime + Math.max(0.01, startTimeOffsetSeconds);
-
-  // Notes: E5 (659.25Hz), G#5 (830.61Hz), B5 (987.77Hz), E6 (1318.51Hz)
-  const notes = [
-    { freq: 659.25, duration: 0.12, delay: 0 },
-    { freq: 830.61, duration: 0.12, delay: 0.1 },
-    { freq: 987.77, duration: 0.12, delay: 0.2 },
-    { freq: 1318.51, duration: 0.35, delay: 0.32 },
-  ];
-
-  const masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(0.85, startTime);
-  masterGain.connect(ctx.destination);
-
-  notes.forEach((note) => {
-    const osc = ctx.createOscillator();
-    const noteGain = ctx.createGain();
-
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(note.freq, startTime + note.delay);
-
-    const noteStart = startTime + note.delay;
-    const noteEnd = noteStart + note.duration;
-
-    // Start exactly at 0 to prevent clicking, then ramp up
-    noteGain.gain.setValueAtTime(0, noteStart);
-    noteGain.gain.linearRampToValueAtTime(0.85, noteStart + 0.01);
-    noteGain.gain.exponentialRampToValueAtTime(0.001, noteEnd);
-
-    osc.connect(noteGain);
-    noteGain.connect(masterGain);
-
-    const harmonicOsc = ctx.createOscillator();
-    const harmonicGain = ctx.createGain();
-    harmonicOsc.type = "triangle";
-    harmonicOsc.frequency.setValueAtTime(note.freq * 2, startTime + note.delay);
-
-    harmonicGain.gain.setValueAtTime(0, noteStart);
-    harmonicGain.gain.linearRampToValueAtTime(0.25, noteStart + 0.01);
-    harmonicGain.gain.exponentialRampToValueAtTime(0.001, noteEnd);
-
-    harmonicOsc.connect(harmonicGain);
-    harmonicGain.connect(masterGain);
-
-    osc.start(noteStart);
-    osc.stop(noteEnd + 0.05);
-    harmonicOsc.start(noteStart);
-    harmonicOsc.stop(noteEnd + 0.05);
-  });
-
-  // Release audio focus by suspending the context after chime sequence
-  const totalDuration = startTimeOffsetSeconds + 1.0;
-  scheduleSuspend(totalDuration * 1000 + 500);
 }
 
 export function resetTimerTriggerState(): void {

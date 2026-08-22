@@ -128,12 +128,12 @@ export function RepTimerModal({
 
           const currentElapsedSec = Math.floor(currentTotalMs / 1000);
 
-          // 3, 2, 1 Countdown beeps before reaching targetTime
+            // 3, 2, 1 Countdown beeps before reaching targetTime
           if (targetDurationSeconds && targetDurationSeconds > 0) {
             const secsRemaining = targetTime - currentElapsedSec;
             if (secsRemaining <= 3 && secsRemaining > 0 && last3BeepSecRef.current !== secsRemaining) {
               last3BeepSecRef.current = secsRemaining;
-              playLoudBeep(750, "sine", 0.15);
+              playLoudBeep();
             }
 
             // Completion chime and vibration when target is reached
