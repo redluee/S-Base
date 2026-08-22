@@ -114,8 +114,9 @@ export function playRestTimerEndSound(): void {
   } catch {}
 }
 
-function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0): void {
-  const startTime = ctx.currentTime + Math.max(0, startTimeOffsetSeconds);
+function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0.05): void {
+  // Always schedule slightly in the future to avoid snapping in the middle of an audio frame
+  const startTime = ctx.currentTime + Math.max(0.01, startTimeOffsetSeconds);
 
   // Notes: E5 (659.25Hz), G#5 (830.61Hz), B5 (987.77Hz), E6 (1318.51Hz)
   const notes = [
@@ -139,7 +140,8 @@ function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0): void 
     const noteStart = startTime + note.delay;
     const noteEnd = noteStart + note.duration;
 
-    noteGain.gain.setValueAtTime(0.001, noteStart);
+    // Start exactly at 0 to prevent clicking, then ramp up
+    noteGain.gain.setValueAtTime(0, noteStart);
     noteGain.gain.linearRampToValueAtTime(0.85, noteStart + 0.01);
     noteGain.gain.exponentialRampToValueAtTime(0.001, noteEnd);
 
@@ -151,7 +153,7 @@ function playChimeSequence(ctx: AudioContext, startTimeOffsetSeconds = 0): void 
     harmonicOsc.type = "triangle";
     harmonicOsc.frequency.setValueAtTime(note.freq * 2, startTime + note.delay);
 
-    harmonicGain.gain.setValueAtTime(0.001, noteStart);
+    harmonicGain.gain.setValueAtTime(0, noteStart);
     harmonicGain.gain.linearRampToValueAtTime(0.25, noteStart + 0.01);
     harmonicGain.gain.exponentialRampToValueAtTime(0.001, noteEnd);
 

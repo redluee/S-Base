@@ -38,24 +38,27 @@ function playLoudBeep(freq = 880, type: OscillatorType = "sine", duration = 0.18
     const harmonicOsc = ctx.createOscillator();
     const gain = ctx.createGain();
 
+    const now = ctx.currentTime + 0.05;
+
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.frequency.setValueAtTime(freq, now);
 
     harmonicOsc.type = "sine";
-    harmonicOsc.frequency.setValueAtTime(freq * 2, ctx.currentTime);
+    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
 
-    gain.gain.setValueAtTime(0.01, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    // Start exactly at 0, then ramp up to prevent initial pop/crack
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.85, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
     osc.connect(gain);
     harmonicOsc.connect(gain);
     gain.connect(ctx.destination);
 
-    osc.start();
-    harmonicOsc.start();
-    osc.stop(ctx.currentTime + duration);
-    harmonicOsc.stop(ctx.currentTime + duration);
+    osc.start(now);
+    harmonicOsc.start(now);
+    osc.stop(now + duration);
+    harmonicOsc.stop(now + duration);
 
     // Close context after playback to release audio focus (prevents background music ducking)
     setTimeout(() => {
