@@ -3,7 +3,7 @@ import { setupTestDb } from "../../test-utils";
 import { MinecraftService, parseJavaArgs, formatJavaLaunchCommand, AIKAR_FLAGS, ZGC_FLAGS } from "./index";
 import { join } from "path";
 import { tmpdir } from "os";
-import { mkdir, writeFile, rm } from "fs/promises";
+import { mkdir, writeFile, readFile, rm } from "fs/promises";
 import db from "../../db/client";
 import { mc_servers, mc_templates } from "../../db/schema/minecraft";
 import { eq } from "drizzle-orm";
@@ -358,6 +358,147 @@ describe("MinecraftService", () => {
 
     // Clean up
     await minecraft.deleteServer("test-java-args", true);
+  });
+
+  it("handles datapack storage in world folder and live reload command", async () => {
+    const srvDir = join(testDir, "test-server-datapacks");
+    await mkdir(srvDir, { recursive: true });
+
+    db.insert(mc_servers).values({
+      slug: "test-server-datapacks",
+      displayName: "Datapack Test Server",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+      serverDir: srvDir,
+    }).run();
+
+    const commandsSent: string[] = [];
+    (minecraft as any).sendCommand = async (slug: string, cmd: string) => {
+      commandsSent.push(cmd);
+    };
+
+    // Stopped server upload
+    (minecraft as any).isRunning = () => false;
+    const packBuffer = new TextEncoder().encode("dummy pack content").buffer;
+    await minecraft.uploadFile("test-server-datapacks", "datapacks", "custom-datapack.zip", packBuffer);
+
+    // Verify datapack was placed in world/datapacks
+    const worldPackPath = join(srvDir, "world", "datapacks", "custom-datapack.zip");
+    const worldPackContent = await readFile(worldPackPath, "utf-8");
+    expect(worldPackContent).toBe("dummy pack content");
+    expect(commandsSent.length).toBe(0);
+
+    // List datapacks
+    const listed = await minecraft.listFiles("test-server-datapacks", "datapacks");
+    expect(listed.length).toBe(1);
+    expect(listed[0].name).toBe("custom-datapack.zip");
+
+    // Running server upload sends reload
+    (minecraft as any).isRunning = () => true;
+    await minecraft.uploadFile("test-server-datapacks", "datapacks", "second-datapack.zip", packBuffer);
+    expect(commandsSent).toContain("reload");
+
+    // Running server delete sends reload
+    await minecraft.deleteFile("test-server-datapacks", "datapacks", "second-datapack.zip");
+    expect(commandsSent.filter(c => c === "reload").length).toBe(2);
+
+    const listedAfter = await minecraft.listFiles("test-server-datapacks", "datapacks");
+    expect(listedAfter.length).toBe(1);
+    expect(listedAfter[0].name).toBe("custom-datapack.zip");
+
+    // Clean up
+    await rm(srvDir, { recursive: true, force: true });
+    db.delete(mc_servers).where(eq(mc_servers.slug, "test-server-datapacks")).run();
+  });
+
+  it("safely migrates legacy datapacks to world folder while strictly preserving existing world and player data", async () => {
+    const srvDir = join(testDir, "test-legacy-server");
+    await mkdir(join(srvDir, "world", "playerdata"), { recursive: true });
+    await mkdir(join(srvDir, "world", "stats"), { recursive: true });
+    await mkdir(join(srvDir, "world", "region"), { recursive: true });
+    await mkdir(join(srvDir, "datapacks"), { recursive: true });
+
+    // Existing production world & player files
+    const player1DatContent = "PLAYER_1_SAVED_DATA_HEX_BYTES_12345";
+    const player1StatsContent = JSON.stringify({ "minecraft:custom": { "minecraft:jump": 142 } });
+    const chunkMcaContent = "MCA_CHUNK_HEADER_REGION_DATA_0_0";
+
+    await writeFile(join(srvDir, "world", "playerdata", "player1.dat"), player1DatContent);
+    await writeFile(join(srvDir, "world", "stats", "player1.json"), player1StatsContent);
+    await writeFile(join(srvDir, "world", "region", "r.0.0.mca"), chunkMcaContent);
+    await writeFile(join(srvDir, "datapacks", "legacy-pack.zip"), "LEGACY_DATAPACK_ZIP_CONTENT");
+
+    db.insert(mc_servers).values({
+      slug: "test-legacy-server",
+      displayName: "Legacy Production Server",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+      serverDir: srvDir,
+    }).run();
+
+    // Listing files triggers safe migration
+    const files = await minecraft.listFiles("test-legacy-server", "datapacks");
+    expect(files.some(f => f.name === "legacy-pack.zip")).toBe(true);
+
+    // Verify file is now present in world/datapacks
+    const migratedContent = await readFile(join(srvDir, "world", "datapacks", "legacy-pack.zip"), "utf-8");
+    expect(migratedContent).toBe("LEGACY_DATAPACK_ZIP_CONTENT");
+
+    // Strictly verify world and player data were completely unchanged
+    const checkPlayerDat = await readFile(join(srvDir, "world", "playerdata", "player1.dat"), "utf-8");
+    const checkPlayerStats = await readFile(join(srvDir, "world", "stats", "player1.json"), "utf-8");
+    const checkChunkMca = await readFile(join(srvDir, "world", "region", "r.0.0.mca"), "utf-8");
+
+    expect(checkPlayerDat).toBe(player1DatContent);
+    expect(checkPlayerStats).toBe(player1StatsContent);
+    expect(checkChunkMca).toBe(chunkMcaContent);
+
+    // Clean up
+    await rm(srvDir, { recursive: true, force: true });
+    db.delete(mc_servers).where(eq(mc_servers.slug, "test-legacy-server")).run();
+  });
+
+  it("handles custom level-name and template deployment with datapacks", async () => {
+    const srvDir = join(testDir, "test-custom-level-name");
+    await mkdir(join(srvDir, "custom_world"), { recursive: true });
+    await writeFile(join(srvDir, "server.properties"), "level-name=custom_world\nmotd=Custom Level\n");
+
+    db.insert(mc_servers).values({
+      slug: "test-custom-level-name",
+      displayName: "Custom Level Name Server",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+      serverDir: srvDir,
+    }).run();
+
+    const packBuffer = new TextEncoder().encode("custom level pack content").buffer;
+    await minecraft.uploadFile("test-custom-level-name", "datapacks", "custom-level.zip", packBuffer);
+
+    // Verify it was stored in custom_world/datapacks
+    const targetPath = join(srvDir, "custom_world", "datapacks", "custom-level.zip");
+    const targetContent = await readFile(targetPath, "utf-8");
+    expect(targetContent).toBe("custom level pack content");
+
+    // Save as template
+    const tmpl = await minecraft.saveAsTemplate("test-custom-level-name", "Custom Level Template", "Saved template");
+    expect(tmpl).not.toBeNull();
+    const templateId = tmpl!.templateId;
+
+    const tmplDatapacks = await minecraft.listTemplateFiles(templateId, "datapacks");
+    expect(tmplDatapacks.some(f => f.name === "custom-level.zip")).toBe(true);
+
+    // Speedrun from template
+    const newSrv = await minecraft.speedrunFromTemplate(templateId, "tmpl-speedrun-dp", "Speedrun Datapack Server");
+    expect(newSrv).not.toBeNull();
+
+    const speedrunPacks = await minecraft.listFiles("tmpl-speedrun-dp", "datapacks");
+    expect(speedrunPacks.some(f => f.name === "custom-level.zip")).toBe(true);
+
+    // Clean up
+    await minecraft.deleteTemplate(templateId);
+    await minecraft.deleteServer("tmpl-speedrun-dp", true);
+    await rm(srvDir, { recursive: true, force: true });
+    db.delete(mc_servers).where(eq(mc_servers.slug, "test-custom-level-name")).run();
   });
 });
 

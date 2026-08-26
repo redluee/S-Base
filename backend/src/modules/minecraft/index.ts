@@ -1,7 +1,7 @@
 import { join, resolve, basename } from "path";
 import { homedir } from "os";
 import { existsSync, readdirSync, readlinkSync, readFileSync } from "fs";
-import { mkdir, writeFile, readFile, rm, unlink, readdir, copyFile, stat } from "fs/promises";
+import { mkdir, writeFile, readFile, rm, unlink, readdir, copyFile, stat, lstat } from "fs/promises";
 import db from "../../db/client";
 import { mc_servers, mc_templates, mc_template_files, mc_player_stats, mc_player_sessions, mc_server_permissions } from "../../db/schema/minecraft";
 import { eq, and, isNull } from "drizzle-orm";
@@ -160,6 +160,65 @@ export class MinecraftService {
   }
 
 
+  getServerLevelName(serverDir: string): string {
+    try {
+      const propPath = join(serverDir, "server.properties");
+      if (existsSync(propPath)) {
+        const content = readFileSync(propPath, "utf-8");
+        for (const line of content.split("\n")) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith("#")) continue;
+          const idx = trimmed.indexOf("=");
+          if (idx > -1) {
+            const key = trimmed.substring(0, idx).trim();
+            if (key === "level-name") {
+              const val = trimmed.substring(idx + 1).trim();
+              if (val) return val;
+            }
+          }
+        }
+      }
+    } catch {}
+    return "world";
+  }
+
+  async ensureDatapacksDir(serverDir: string): Promise<string> {
+    const levelName = this.getServerLevelName(serverDir);
+    const worldDir = join(serverDir, levelName);
+    const worldDatapacksDir = join(worldDir, "datapacks");
+    await mkdir(worldDatapacksDir, { recursive: true });
+
+    const rootDatapacksDir = join(serverDir, "datapacks");
+    if (existsSync(rootDatapacksDir)) {
+      try {
+        const rootStat = await lstat(rootDatapacksDir);
+        if (rootStat.isDirectory() && !rootStat.isSymbolicLink()) {
+          const files = await readdir(rootDatapacksDir);
+          for (const f of files) {
+            const srcPath = join(rootDatapacksDir, f);
+            const dstPath = join(worldDatapacksDir, f);
+            if (!existsSync(dstPath)) {
+              try {
+                await copyFile(srcPath, dstPath);
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    }
+
+    return worldDatapacksDir;
+  }
+
+  async getServerSubdir(serverDir: string, type: string): Promise<string> {
+    if (type === "datapacks") {
+      return this.ensureDatapacksDir(serverDir);
+    }
+    const targetDir = join(serverDir, type);
+    await mkdir(targetDir, { recursive: true });
+    return targetDir;
+  }
+
   async createServer(data: { slug: string, displayName: string, engine: string, mcVersion: string, javaArgs?: string, templateId?: number }) {
     validateSlug(data.slug);
     const serverDir = join(BASE_DIR, data.slug);
@@ -168,10 +227,10 @@ export class MinecraftService {
     
     // Scaffolding dirs
     await mkdir(join(serverDir, "mods"), { recursive: true });
-    await mkdir(join(serverDir, "datapacks"), { recursive: true });
     await mkdir(join(serverDir, "resourcepacks"), { recursive: true });
     await mkdir(join(serverDir, "logs"), { recursive: true });
     await mkdir(join(serverDir, "world"), { recursive: true });
+    await this.ensureDatapacksDir(serverDir);
 
     if (data.engine === "vanilla") {
       await this.downloadVanillaJar(data.mcVersion, serverDir);
@@ -284,6 +343,8 @@ export class MinecraftService {
         process.kill(pid, "SIGKILL");
       } catch {}
     }
+
+    await this.ensureDatapacksDir(server.serverDir);
 
     const cmdStr = formatJavaLaunchCommand(server.engine, server.serverDir, server.javaArgs);
     
@@ -549,7 +610,7 @@ export class MinecraftService {
     const server = this.getServer(slug);
     if (!server) throw new Error("Server not found");
     try {
-      const dirPath = join(server.serverDir, type);
+      const dirPath = await this.getServerSubdir(server.serverDir, type);
       const files = await readdir(dirPath);
       const results: { name: string; size: number; modified: string }[] = [];
       for (const f of files) {
@@ -575,7 +636,11 @@ export class MinecraftService {
     validateFilename(filename);
     const server = this.getServer(slug);
     if (!server) throw new Error("Server not found");
-    await writeFile(join(server.serverDir, type, filename), Buffer.from(buffer));
+    const dirPath = await this.getServerSubdir(server.serverDir, type);
+    await writeFile(join(dirPath, filename), Buffer.from(buffer));
+    if (type === "datapacks" && this.isRunning(slug)) {
+      await this.sendCommand(slug, "reload");
+    }
   }
 
   async deleteFile(slug: string, type: string, filename: string) {
@@ -583,7 +648,14 @@ export class MinecraftService {
     validateFilename(filename);
     const server = this.getServer(slug);
     if (!server) throw new Error("Server not found");
-    await unlink(join(server.serverDir, type, filename)).catch(() => {});
+    const dirPath = await this.getServerSubdir(server.serverDir, type);
+    await unlink(join(dirPath, filename)).catch(() => {});
+    if (type === "datapacks") {
+      await unlink(join(server.serverDir, "datapacks", filename)).catch(() => {});
+    }
+    if (type === "datapacks" && this.isRunning(slug)) {
+      await this.sendCommand(slug, "reload");
+    }
   }
 
   async copyFileFromServer(slug: string, type: string, sourceSlug: string, filename: string) {
@@ -593,7 +665,12 @@ export class MinecraftService {
     const target = this.getServer(slug);
     const source = this.getServer(sourceSlug);
     if (!target || !source) throw new Error("Server not found");
-    await copyFile(join(source.serverDir, type, filename), join(target.serverDir, type, filename));
+    const sourceDir = await this.getServerSubdir(source.serverDir, type);
+    const targetDir = await this.getServerSubdir(target.serverDir, type);
+    await copyFile(join(sourceDir, filename), join(targetDir, filename));
+    if (type === "datapacks" && this.isRunning(slug)) {
+      await this.sendCommand(slug, "reload");
+    }
   }
 
   async downloadVanillaJar(mcVersion: string, destDir: string) {
@@ -855,13 +932,14 @@ export class MinecraftService {
 
     for (const type of ["mods", "datapacks", "resourcepacks"]) {
       try {
-        const files = await readdir(join(server.serverDir, type));
+        const sourceDir = await this.getServerSubdir(server.serverDir, type);
+        const files = await readdir(sourceDir);
         for (const f of files) {
-          const statData = await stat(join(server.serverDir, type, f));
+          const statData = await stat(join(sourceDir, f));
           if (statData.isFile()) {
             db.insert(mc_template_files).values({ templateId: t.templateId, fileType: type, filename: f }).run();
             await mkdir(join(tDir, type), { recursive: true });
-            await copyFile(join(server.serverDir, type, f), join(tDir, type, f));
+            await copyFile(join(sourceDir, f), join(tDir, type, f));
           }
         }
       } catch {}
@@ -985,8 +1063,8 @@ export class MinecraftService {
     const tDir = join(TEMPLATES_DIR, templateId.toString());
     if (s && t.files) {
       for (const f of t.files) {
-        await mkdir(join(s.serverDir, f.fileType), { recursive: true });
-        await copyFile(join(tDir, f.fileType, f.filename), join(s.serverDir, f.fileType, f.filename)).catch(() => {});
+        const destDir = await this.getServerSubdir(s.serverDir, f.fileType);
+        await copyFile(join(tDir, f.fileType, f.filename), join(destDir, f.filename)).catch(() => {});
       }
     }
     return this.getServer(newSlug);
@@ -1255,10 +1333,10 @@ export class MinecraftService {
 
     // Ensure standard subdirectories
     await mkdir(join(resolvedDir, "mods"), { recursive: true });
-    await mkdir(join(resolvedDir, "datapacks"), { recursive: true });
     await mkdir(join(resolvedDir, "resourcepacks"), { recursive: true });
     await mkdir(join(resolvedDir, "logs"), { recursive: true });
     await mkdir(join(resolvedDir, "world"), { recursive: true });
+    await this.ensureDatapacksDir(resolvedDir);
 
     db.insert(mc_servers).values({
       slug: data.slug,
