@@ -640,6 +640,7 @@ const nl: Record<string, string> = {
   "Fullscreen": "Volledig scherm",
   "Exit Fullscreen": "Volledig scherm sluiten",
   "The world map is not generated yet. Start the server with the Pl3xMap mod to generate the map.": "De wereldkaart is nog niet gegenereerd. Start de server met de Pl3xMap mod om de kaart aan te maken.",
+  "The Pl3xMap world map is being initialized by the server. It will appear automatically once ready.": "De Pl3xMap wereldkaart wordt geïnitialiseerd door de server. De kaart verschijnt automatisch zodra deze gereed is.",
   "World map viewer for": "Wereldkaart weergave voor",
   "Crash report": "Crashrapport",
   "Server failed to start": "Server kon niet starten",

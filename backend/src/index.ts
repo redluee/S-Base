@@ -760,11 +760,7 @@ export const app = new Elysia()
       .get("/servers/:slug/map/status", async ({ params: { slug } }) => {
         return minecraft.getMapStatus(slug);
       })
-      .get("/servers/:slug/map", async ({ params: { slug }, request }) => {
-        const url = new URL(request.url);
-        if (!url.pathname.endsWith("/")) {
-          return Response.redirect(`${url.pathname}/${url.search}`, 302);
-        }
+      .get("/servers/:slug/map", async ({ params: { slug } }) => {
         const res = await minecraft.serveMapFile(slug, "index.html");
         if (res.notFound || !res.data) {
           return new Response("World map not found or not yet generated", { status: 404 });

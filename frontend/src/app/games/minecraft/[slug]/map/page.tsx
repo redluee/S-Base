@@ -310,18 +310,21 @@ export default function WorldMapPage() {
               className="w-full h-full border-0 block"
               title={`${server.displayName} ${t("World Map")}`}
               onLoad={() => setIframeLoading(false)}
+              onError={() => setIframeLoading(false)}
               allow="fullscreen"
             />
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-5">
             <div className="size-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <MapIcon className="size-8" />
+              {status.online ? <Loader2 className="size-8 animate-spin" /> : <MapIcon className="size-8" />}
             </div>
             <div className="max-w-md space-y-2">
               <h2 className="font-display text-xl font-bold text-zinc-100">{t("World Map")}</h2>
               <p className="text-sm text-zinc-400 leading-relaxed">
-                {t("The world map is not generated yet. Start the server with the Pl3xMap mod to generate the map.")}
+                {status.online
+                  ? t("The Pl3xMap world map is being initialized by the server. It will appear automatically once ready.")
+                  : t("The world map is not generated yet. Start the server with the Pl3xMap mod to generate the map.")}
               </p>
             </div>
             {!status.online && (

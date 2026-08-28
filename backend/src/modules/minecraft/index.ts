@@ -313,8 +313,10 @@ export class MinecraftService {
   getMapWebDir(serverDir: string): string | null {
     const candidates = [
       join(serverDir, "config", "pl3xmap", "web"),
+      join(serverDir, "config", "Pl3xMap", "web"),
       join(serverDir, "plugins", "Pl3xMap", "web"),
       join(serverDir, "plugins", "pl3xmap", "web"),
+      join(serverDir, "pl3xmap", "web"),
       join(serverDir, "web"),
     ];
     for (const c of candidates) {
@@ -327,7 +329,7 @@ export class MinecraftService {
 
   hasMapMod(serverDir: string): boolean {
     if (this.getMapWebDir(serverDir) !== null) return true;
-    if (existsSync(join(serverDir, "config", "pl3xmap"))) return true;
+    if (existsSync(join(serverDir, "config", "pl3xmap")) || existsSync(join(serverDir, "config", "Pl3xMap"))) return true;
     if (existsSync(join(serverDir, "plugins", "Pl3xMap")) || existsSync(join(serverDir, "plugins", "pl3xmap"))) return true;
 
     try {
@@ -408,7 +410,7 @@ export class MinecraftService {
     }
 
     try {
-      const data = await readFile(targetFile);
+      let data = await readFile(targetFile);
       const isGzip = targetFile.endsWith(".gz");
       let contentType = "application/octet-stream";
       let contentEncoding: string | undefined = undefined;
@@ -423,6 +425,17 @@ export class MinecraftService {
       } else {
         const ext = targetFile.slice(targetFile.lastIndexOf(".")).toLowerCase();
         contentType = MIME_TYPES[ext] || "application/octet-stream";
+      }
+
+      if (cleanSubpath.endsWith("index.html") && contentType.includes("text/html")) {
+        const htmlStr = data.toString("utf-8");
+        if (!htmlStr.includes("<base ")) {
+          const withBase = htmlStr.replace(
+            /<head([^>]*)>/i,
+            `<head$1>\n    <base href="/api/minecraft/servers/${slug}/map/">`
+          );
+          data = Buffer.from(withBase, "utf-8");
+        }
       }
 
       const headers: Record<string, string> = {
