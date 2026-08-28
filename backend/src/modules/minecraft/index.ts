@@ -93,6 +93,28 @@ export function formatJavaLaunchCommand(engine: string, serverDir: string, rawJa
   return `java ${fullArgs.join(" ")} -jar ${jarFile} nogui`.replace(/\s+/g, " ").trim();
 }
 
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".htm": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+};
+
 export class MinecraftService {
   listServers() {
     return db.select().from(mc_servers).all();
@@ -135,18 +157,37 @@ export class MinecraftService {
     return db.select().from(mc_servers).where(eq(mc_servers.slug, slug)).get() || null;
   }
 
-  async updateServer(slug: string, data: { displayName?: string; javaArgs?: string | null }) {
+  async updateServer(slug: string, data: { displayName?: string; javaArgs?: string | null; engine?: string; mcVersion?: string }) {
     validateSlug(slug);
     const server = this.getServer(slug);
     if (!server) throw new Error("Server not found");
 
-    const updates: Partial<{ displayName: string; javaArgs: string | null }> = {};
+    const updates: Partial<{ displayName: string; javaArgs: string | null; engine: string; mcVersion: string }> = {};
     if (data.displayName !== undefined) {
       if (!data.displayName.trim()) throw new Error("Display name cannot be empty");
       updates.displayName = data.displayName.trim();
     }
     if (data.javaArgs !== undefined) {
       updates.javaArgs = data.javaArgs && data.javaArgs.trim() ? data.javaArgs.trim() : null;
+    }
+    if (data.engine !== undefined && data.engine !== server.engine) {
+      if (data.engine !== "vanilla" && data.engine !== "fabric") {
+        throw new Error("Unsupported engine: must be vanilla or fabric");
+      }
+      updates.engine = data.engine;
+    }
+    if (data.mcVersion !== undefined && data.mcVersion.trim() && data.mcVersion !== server.mcVersion) {
+      updates.mcVersion = data.mcVersion.trim();
+    }
+
+    if (updates.engine || updates.mcVersion) {
+      const targetEngine = updates.engine || server.engine;
+      const targetVersion = updates.mcVersion || server.mcVersion;
+      if (targetEngine === "vanilla") {
+        await this.downloadVanillaJar(targetVersion, server.serverDir);
+      } else if (targetEngine === "fabric") {
+        await this.downloadFabricJar(targetVersion, server.serverDir);
+      }
     }
 
     if (Object.keys(updates).length > 0) {
@@ -269,6 +310,139 @@ export class MinecraftService {
     return { ok: true };
   }
 
+  getMapWebDir(serverDir: string): string | null {
+    const candidates = [
+      join(serverDir, "config", "pl3xmap", "web"),
+      join(serverDir, "plugins", "Pl3xMap", "web"),
+      join(serverDir, "plugins", "pl3xmap", "web"),
+      join(serverDir, "web"),
+    ];
+    for (const c of candidates) {
+      if (existsSync(c)) {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  hasMapMod(serverDir: string): boolean {
+    if (this.getMapWebDir(serverDir) !== null) return true;
+    if (existsSync(join(serverDir, "config", "pl3xmap"))) return true;
+    if (existsSync(join(serverDir, "plugins", "Pl3xMap")) || existsSync(join(serverDir, "plugins", "pl3xmap"))) return true;
+
+    try {
+      const modsDir = join(serverDir, "mods");
+      if (existsSync(modsDir)) {
+        const modFiles = readdirSync(modsDir);
+        if (modFiles.some((f) => f.toLowerCase().includes("pl3x"))) {
+          return true;
+        }
+      }
+    } catch {}
+
+    try {
+      const pluginsDir = join(serverDir, "plugins");
+      if (existsSync(pluginsDir)) {
+        const pluginFiles = readdirSync(pluginsDir);
+        if (pluginFiles.some((f) => f.toLowerCase().includes("pl3x"))) {
+          return true;
+        }
+      }
+    } catch {}
+
+    return false;
+  }
+
+  async getMapStatus(slug: string) {
+    validateSlug(slug);
+    const server = this.getServer(slug);
+    if (!server) throw new Error("Server not found");
+    const hasMap = this.hasMapMod(server.serverDir);
+    const webDir = this.getMapWebDir(server.serverDir);
+    const webExists = webDir !== null && existsSync(join(webDir, "index.html"));
+    return { hasMap, webExists };
+  }
+
+  async serveMapFile(slug: string, subpath: string): Promise<{
+    data?: Buffer | Uint8Array;
+    contentType?: string;
+    contentEncoding?: string;
+    headers?: Record<string, string>;
+    status?: number;
+    notFound?: boolean;
+  }> {
+    validateSlug(slug);
+    const server = this.getServer(slug);
+    if (!server) return { notFound: true };
+
+    const webDir = this.getMapWebDir(server.serverDir);
+    if (!webDir || !existsSync(webDir)) {
+      return { notFound: true };
+    }
+
+    const resolvedWebDir = resolve(webDir);
+    let cleanSubpath = (subpath || "").replace(/^\/+/, "");
+    if (!cleanSubpath || cleanSubpath === "") {
+      cleanSubpath = "index.html";
+    }
+
+    let targetFile = resolve(resolvedWebDir, cleanSubpath);
+    if (!targetFile.startsWith(resolvedWebDir)) {
+      return { status: 403 };
+    }
+
+    if (existsSync(targetFile)) {
+      try {
+        const s = await stat(targetFile);
+        if (s.isDirectory()) {
+          targetFile = join(targetFile, "index.html");
+          if (!existsSync(targetFile)) {
+            return { notFound: true };
+          }
+        }
+      } catch {
+        return { notFound: true };
+      }
+    } else {
+      return { notFound: true };
+    }
+
+    try {
+      const data = await readFile(targetFile);
+      const isGzip = targetFile.endsWith(".gz");
+      let contentType = "application/octet-stream";
+      let contentEncoding: string | undefined = undefined;
+
+      if (isGzip) {
+        contentEncoding = "gzip";
+        if (targetFile.endsWith(".pl3xmap.gz")) {
+          contentType = "application/octet-stream";
+        } else {
+          contentType = "application/json; charset=utf-8";
+        }
+      } else {
+        const ext = targetFile.slice(targetFile.lastIndexOf(".")).toLowerCase();
+        contentType = MIME_TYPES[ext] || "application/octet-stream";
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": contentType,
+      };
+      if (contentEncoding) {
+        headers["Content-Encoding"] = contentEncoding;
+      }
+      if (cleanSubpath.endsWith(".html") || cleanSubpath.endsWith(".json")) {
+        headers["Cache-Control"] = "no-cache";
+      } else {
+        headers["Cache-Control"] = "public, max-age=3600";
+      }
+
+      return { data, contentType, contentEncoding, headers, status: 200 };
+    } catch {
+      return { notFound: true };
+    }
+  }
+
   getServerDetail(slug: string) {
     const server = this.getServer(slug);
     if (!server) return null;
@@ -277,7 +451,8 @@ export class MinecraftService {
     if (server.templateId) {
       template = db.select().from(mc_templates).where(eq(mc_templates.templateId, server.templateId)).get();
     }
-    return { ...server, onlinePlayers: players, template };
+    const hasMap = this.hasMapMod(server.serverDir);
+    return { ...server, onlinePlayers: players, template, hasMap };
   }
 
   getServerPids(serverDir: string): number[] {

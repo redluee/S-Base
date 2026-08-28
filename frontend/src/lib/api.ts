@@ -19,6 +19,7 @@ export interface McServer {
   javaArgs: string | null;
   templateId: number | null;
   createdAt: string;
+  hasMap?: boolean;
 }
 
 export interface McServerStatus {
@@ -533,6 +534,9 @@ export const api = {
         get: (slug: string) => request<Record<string, string>>(`/minecraft/servers/${slug}/properties`),
         update: (slug: string, props: Record<string, string>) =>
           request<{ ok: boolean }>(`/minecraft/servers/${slug}/properties`, { method: "PATCH", body: JSON.stringify(props) }),
+      },
+      map: {
+        status: (slug: string) => request<{ hasMap: boolean; webExists: boolean }>(`/minecraft/servers/${slug}/map/status`),
       },
       files: {
         list: (slug: string, type: string) => request<{ name: string; size: number; modified: string }[]>(`/minecraft/servers/${slug}/files/${type}`),

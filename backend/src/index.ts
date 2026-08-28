@@ -757,6 +757,39 @@ export const app = new Elysia()
         await minecraft.sendCommand(slug, command);
         return { ok: true };
       })
+      .get("/servers/:slug/map/status", async ({ params: { slug } }) => {
+        return minecraft.getMapStatus(slug);
+      })
+      .get("/servers/:slug/map", async ({ params: { slug }, request }) => {
+        const url = new URL(request.url);
+        if (!url.pathname.endsWith("/")) {
+          return Response.redirect(`${url.pathname}/${url.search}`, 302);
+        }
+        const res = await minecraft.serveMapFile(slug, "index.html");
+        if (res.notFound || !res.data) {
+          return new Response("World map not found or not yet generated", { status: 404 });
+        }
+        if (res.status === 403) {
+          return new Response("Forbidden", { status: 403 });
+        }
+        return new Response(res.data, {
+          status: res.status || 200,
+          headers: res.headers,
+        });
+      })
+      .get("/servers/:slug/map/*", async ({ params: { slug, "*": subpath } }) => {
+        const res = await minecraft.serveMapFile(slug, subpath);
+        if (res.notFound || !res.data) {
+          return new Response("Not Found", { status: 404 });
+        }
+        if (res.status === 403) {
+          return new Response("Forbidden", { status: 403 });
+        }
+        return new Response(res.data, {
+          status: res.status || 200,
+          headers: res.headers,
+        });
+      })
       .get("/servers/:slug/properties", ({ params: { slug } }) => minecraft.readProperties(slug))
       .patch("/servers/:slug/properties", async ({ params: { slug }, body }) => {
         await minecraft.writeProperties(slug, (body ?? {}) as any);

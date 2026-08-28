@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api, McServer, McServerStatus, McPlayerStat, McBannedPlayer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
-import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, Trash2, ArrowLeft, Copy, Check } from "lucide-react";
+import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, Trash2, ArrowLeft, Copy, Check, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -332,6 +332,11 @@ export default function ServerDashboardPage() {
               <Folder className="size-4" /> {t("File Manager")}
             </Link>
           </>
+        )}
+        {server.hasMap && (
+          <Link href={`/games/minecraft/${slug}/map`} className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors text-sm font-semibold flex items-center gap-2 whitespace-nowrap border border-white/5">
+            <Map className="size-4 text-emerald-400" /> {t("World Map")}
+          </Link>
         )}
       </div>
 

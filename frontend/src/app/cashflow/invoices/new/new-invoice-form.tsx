@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, ChevronDown, ChevronUp, UserPlus, Building2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, UserPlus } from "lucide-react";
 import { ClientAutocomplete } from "@/components/client-autocomplete";
 
 type LineType = "hours" | "service" | "travel_costs" | "discount";
