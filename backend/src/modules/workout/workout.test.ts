@@ -158,4 +158,32 @@ describe("WorkoutService", () => {
     expect(progress.sessions.length).toBe(2);
     expect(progress.sessions[1].sets[0].weight).toBe(55);
   });
+
+  it("handles perSide toggles properly across session creation and updates", () => {
+    const tmpl = workoutService.createTemplate(adminId, {
+      name: "Per Side Test Template",
+      exercises: [
+        { exerciseName: "Single Leg Press", sets: 3, reps: 10, weight: 60, perSide: 1 },
+      ],
+    });
+    expect(tmpl.exercises[0].perSide).toBe(1);
+
+    const s = workoutService.createSession(adminId, tmpl.templateId);
+    expect(s?.exercises?.[0].perSide).toBe(1);
+
+    // Disable perSide on this session exercise
+    const updated = workoutService.updateSession(s!.sessionId, adminId, {
+      exercises: [
+        {
+          sessionExerciseId: s!.exercises![0].sessionExerciseId,
+          exerciseName: "Single Leg Press",
+          sortOrder: 0,
+          perSide: 0,
+          sets: [{ setNumber: 1, reps: 10, weight: 60, completed: 1 }],
+        },
+      ],
+    });
+    expect(updated?.exercises?.[0].perSide).toBe(0);
+  });
 });
+

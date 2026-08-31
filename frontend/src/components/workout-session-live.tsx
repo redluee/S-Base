@@ -472,7 +472,7 @@ export function WorkoutSessionLive({
             sortOrder: ex.sortOrder,
             category: ex.category ?? "resistance",
             equipment: ex.equipment ?? "none",
-            perSide: ex.perSide ?? (ex.templateExercise?.perSide ? 1 : 0),
+            perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
             sets: ex.sets?.map((s: SessionSet) => ({
               setId: s.setId,
               setNumber: s.setNumber,
@@ -1001,7 +1001,7 @@ export function WorkoutSessionLive({
     const distance = firstSet?.distance != null ? String(firstSet.distance) : (ex.templateExercise?.defaultDistance?.toString() ?? "");
     const duration = firstSet?.duration != null ? formatDuration(firstSet.duration) : formatDuration(ex.templateExercise?.defaultDuration);
     const defaultRestTime = formatDuration(ex.templateExercise?.defaultRestTime ?? 90);
-    const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
+    const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
 
     const hasReps = ex.sets?.some((s) => s.reps != null && s.reps > 0) ?? (cat !== "Cardio");
     const hasTime = ex.sets?.some((s) => s.duration != null && s.duration > 0) ?? (cat === "Cardio");
@@ -1275,7 +1275,7 @@ export function WorkoutSessionLive({
             sortOrder: ex.sortOrder,
             category: ex.category ?? "resistance",
             equipment: ex.equipment ?? "none",
-            perSide: ex.perSide ?? (ex.templateExercise?.perSide ? 1 : 0),
+            perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
             sets: ex.sets?.map((st: SessionSet) => ({
               setId: st.setId,
               setNumber: st.setNumber,

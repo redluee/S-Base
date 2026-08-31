@@ -254,7 +254,7 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
                     <table className="w-full text-xs sm:text-sm">
                       <thead>
                         {(() => {
-                          const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
+                          const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
 
                           return (
                             <tr className="border-b border-border/50">

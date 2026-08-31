@@ -102,7 +102,7 @@ export async function syncOfflineSession(sessionId: number): Promise<FullWorkout
         sortOrder: ex.sortOrder,
         category: ex.category ?? "resistance",
         equipment: ex.equipment ?? "none",
-        perSide: ex.perSide ?? (ex.templateExercise?.perSide ? 1 : 0),
+        perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
         sets: ex.sets?.map((set: SessionSet) => ({
           setId: set.setId,
           setNumber: set.setNumber,

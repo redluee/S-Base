@@ -409,7 +409,7 @@ export function WorkoutExerciseCard({
       {/* Sets Table */}
       {ex.sets?.length > 0 && (() => {
         const isTimed = isTimedExercise(ex, previousSetsMap);
-        const perSide = Boolean(ex.perSide || ex.templateExercise?.perSide);
+        const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
 
         return (
           <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60">
