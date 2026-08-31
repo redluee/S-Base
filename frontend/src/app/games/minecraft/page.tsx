@@ -83,10 +83,20 @@ export default async function MinecraftPage() {
                     <p className="text-xs text-zinc-400">{server.slug}</p>
                   </div>
                 </div>
-                {/* Status indicator (neutral in server comp) */}
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-800 text-[10px] font-semibold text-zinc-300 border border-white/5">
-                  <div className="size-1.5 rounded-full bg-zinc-500" />
-                  {t("Online")}/{t("Offline")}
+                {/* Status indicator */}
+                <div
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold border ${
+                    server.online
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : "bg-zinc-800 text-zinc-400 border-white/5"
+                  }`}
+                >
+                  <div
+                    className={`size-1.5 rounded-full ${
+                      server.online ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"
+                    }`}
+                  />
+                  {server.online ? t("Online") : t("Offline")}
                 </div>
               </div>
 

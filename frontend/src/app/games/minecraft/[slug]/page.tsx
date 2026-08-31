@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { api, McServer, McServerStatus, McPlayerStat, McBannedPlayer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
-import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, Trash2, ArrowLeft, Copy, Check, Map } from "lucide-react";
+import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, ArrowLeft, Copy, Check, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -25,7 +25,6 @@ function formatPlaytime(seconds?: number | null) {
 export default function ServerDashboardPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";
-  const router = useRouter();
 
   const [server, setServer] = useState<McServer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +35,6 @@ export default function ServerDashboardPage() {
   const [players, setPlayers] = useState<{ online: McPlayerStat[]; history: McPlayerStat[]; banned: McBannedPlayer[] }>({ online: [], history: [], banned: [] });
   const [errorLines, setErrorLines] = useState<string[]>([]);
   const [loadingAction, setLoadingAction] = useState("");
-  const [deleting, setDeleting] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
   const [hasFullAccess, setHasFullAccess] = useState(true);
 
@@ -183,20 +181,6 @@ export default function ServerDashboardPage() {
     return players.banned?.some((b) => b.uuid === uuid || (name && b.name?.toLowerCase() === name.toLowerCase()));
   };
 
-  const handleDelete = async () => {
-    if (!slug) return;
-    const alsoDisk = confirm(t("Also delete files from disk") + "?");
-    if (!confirm(t("Delete Server") + " " + slug + "?")) return;
-    setDeleting(true);
-    try {
-      await api.minecraft.servers.delete(slug, alsoDisk);
-      router.push("/games/minecraft");
-    } catch (e: unknown) {
-      alert((e as Error).message);
-      setDeleting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="p-12 text-center text-zinc-500 flex items-center justify-center gap-2">
@@ -309,12 +293,6 @@ export default function ServerDashboardPage() {
               {t("Start")}
             </Button>
           )}
-
-          {hasFullAccess && (
-            <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/20" onClick={handleDelete} disabled={deleting} title={t("Delete Server")}>
-              {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-            </Button>
-          )}
         </div>
       </div>
 
@@ -383,7 +361,7 @@ export default function ServerDashboardPage() {
               <Users className="size-4" />
               {t("Players")}
             </div>
-            <span className="text-xs bg-zinc-800 px-2 py-0.5 rounded text-zinc-300">{status.playerCount} {t("online")}</span>
+            <span className="text-xs bg-zinc-800 px-2 py-0.5 rounded text-zinc-300">{status.playerCount} {t("Online").toLowerCase()}</span>
           </div>
           
           <div className="flex-1 overflow-y-auto p-2 space-y-1">

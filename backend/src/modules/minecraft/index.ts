@@ -117,14 +117,18 @@ const MIME_TYPES: Record<string, string> = {
 
 export class MinecraftService {
   listServers() {
-    return db.select().from(mc_servers).all();
+    const servers = db.select().from(mc_servers).all();
+    return servers.map((s) => ({
+      ...s,
+      online: this.isRunning(s.slug),
+    }));
   }
 
   listServersForUser(userId: number, hasFullAccess: boolean) {
     if (hasFullAccess) {
-      return db.select().from(mc_servers).all();
+      return this.listServers();
     }
-    return db
+    const servers = db
       .select({
         serverId: mc_servers.serverId,
         slug: mc_servers.slug,
@@ -140,6 +144,11 @@ export class MinecraftService {
       .innerJoin(mc_server_permissions, eq(mc_servers.serverId, mc_server_permissions.serverId))
       .where(eq(mc_server_permissions.userId, userId))
       .all();
+
+    return servers.map((s) => ({
+      ...s,
+      online: this.isRunning(s.slug),
+    }));
   }
 
   canUserAccessServer(userId: number, slug: string, hasFullAccess: boolean): boolean {

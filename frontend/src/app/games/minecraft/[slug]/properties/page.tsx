@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { t } from "@/lib/lang";
 import {
   Loader2,
   Save,
@@ -79,6 +80,7 @@ const KNOWN_KEYS = new Set([
 export default function PropertiesPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";
+  const router = useRouter();
 
   const [props, setProps] = useState<Record<string, string>>({});
   const [javaArgs, setJavaArgs] = useState<string>("");
@@ -89,10 +91,30 @@ export default function PropertiesPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [hasFullAccess, setHasFullAccess] = useState(true);
 
   // Custom key/value inputs
   const [newKey, setNewKey] = useState("");
   const [newVal, setNewVal] = useState("");
+
+  useEffect(() => {
+    api.me().then(res => setHasFullAccess(res?.user?.modules?.includes("minecraft") ?? false)).catch(() => {});
+  }, []);
+
+  const handleDeleteServer = async () => {
+    if (!slug) return;
+    const alsoDisk = confirm(t("Also delete files from disk") + "?");
+    if (!confirm(t("Delete Server") + " " + slug + "?")) return;
+    setDeleting(true);
+    try {
+      await api.minecraft.servers.delete(slug, alsoDisk);
+      router.push("/games/minecraft");
+    } catch (e: unknown) {
+      alert((e as Error).message);
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -1067,6 +1089,43 @@ export default function PropertiesPage() {
                   ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Section: Danger Zone */}
+        {hasFullAccess && (
+          <div className="p-6 rounded-2xl bg-rose-950/20 border border-rose-500/30 space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-rose-500/20">
+              <AlertTriangle className="size-5 text-rose-400" />
+              <div>
+                <h2 className="font-display text-lg font-bold text-rose-200">{t("Danger Zone")}</h2>
+                <p className="text-xs text-rose-300/70">
+                  {t("Irreversible actions that affect this server.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-zinc-200">{t("Delete Server")}</p>
+                <p className="text-xs text-zinc-400">
+                  {t("Permanently remove this server from the overview and optionally delete world and configuration files.")}
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteServer}
+                disabled={deleting}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold shrink-0 gap-2"
+              >
+                {deleting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+                {t("Delete Server")}
+              </Button>
+            </div>
           </div>
         )}
       </div>

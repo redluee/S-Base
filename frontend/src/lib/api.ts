@@ -20,6 +20,7 @@ export interface McServer {
   templateId: number | null;
   createdAt: string;
   hasMap?: boolean;
+  online?: boolean;
 }
 
 export interface McServerStatus {
