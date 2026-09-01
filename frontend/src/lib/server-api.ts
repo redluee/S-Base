@@ -174,4 +174,17 @@ export const serverApi = {
       scan: () => serverFetch<import("./api").McUnregisteredServerScan[]>("/minecraft/import/scan"),
     },
   },
+  minor: {
+    dashboard: () => serverFetch<import("./api").MinorDashboardStats>("/minor/dashboard"),
+    sprints: {
+      list: () => serverFetch<import("./api").MinorSprint[]>("/minor/sprints"),
+      get: (id: number) => serverFetch<import("./api").MinorSprintFull>(`/minor/sprints/${id}`),
+    },
+    vacations: {
+      list: () => serverFetch<import("./api").MinorVacation[]>("/minor/vacations"),
+    },
+    peerHelp: {
+      list: () => serverFetch<import("./api").MinorPeerHelp[]>("/minor/peer-help"),
+    },
+  },
 };
