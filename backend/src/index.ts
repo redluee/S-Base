@@ -8,6 +8,7 @@ import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
 import { PulseService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
+import { MinorService } from "./modules/minor";
 import db from "./db/client";
 import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
@@ -29,6 +30,7 @@ const wineService = new WineService();
 const cashflow = new CashflowService();
 const pulse = new PulseService();
 const minecraft = new MinecraftService();
+const minor = new MinorService();
 
 function createAuthPlugin(moduleName: string | string[]) {
   return new Elysia({ name: `auth-${Array.isArray(moduleName) ? moduleName.join("-") : moduleName}` })
@@ -72,6 +74,7 @@ const measurementsAuth = workoutAuth;
 const cashflowAuth = createAuthPlugin("cashflow");
 const pulseAuth = createAuthPlugin("pulse");
 const minecraftAuth = createAuthPlugin(["minecraft", "minecraft:monitor"]);
+const minorAuth = createAuthPlugin("minor");
 
 const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
   if (!auth.moduleAccessCheck(userId, "minecraft")) {
@@ -617,6 +620,116 @@ export const app = new Elysia()
         return inv;
       })
       .get("/dashboard", ({ userId, query }) => cashflow.getDashboardStats(userId, (query as any)?.year ? Number((query as any).year) : undefined))
+  )
+
+  // --- Minor App / Sprint & Portfolio routes ---
+  .group("/api/minor", (app) =>
+    app
+      .use(minorAuth)
+      .get("/dashboard", ({ userId }) => minor.getDashboardStats(userId))
+      .get("/sprints/next-number", ({ userId }) => minor.getNextSprintNumber(userId))
+      .get("/sprints/calculate-dates", ({ userId, query }) => {
+        const startDate = (query as any)?.startDate || new Date().toISOString().slice(0, 10);
+        const durationDays = (query as any)?.durationDays ? Number((query as any).durationDays) : 14;
+        return minor.calculateSprintDates(userId, startDate, durationDays);
+      })
+      .get("/sprints", ({ userId }) => minor.listSprints(userId))
+      .post("/sprints", ({ userId, body }) => minor.createSprint(userId, (body ?? {}) as any))
+      .get("/sprints/:id", ({ params: { id }, userId }) => {
+        const s = minor.getSprintById(Number(id), userId);
+        if (!s) return new Response("Not Found", { status: 404 });
+        return s;
+      })
+      .put("/sprints/:id", ({ params: { id }, userId, body }) => {
+        const s = minor.updateSprint(Number(id), userId, (body ?? {}) as any);
+        if (!s) return new Response("Not Found", { status: 404 });
+        return s;
+      })
+      .delete("/sprints/:id", ({ params: { id }, userId }) => {
+        const r = minor.deleteSprint(Number(id), userId);
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.createStory(userId, Number(id), (body ?? {}) as any))
+      .put("/stories/:id", ({ params: { id }, userId, body }) => {
+        const s = minor.updateStory(Number(id), userId, (body ?? {}) as any);
+        if (!s) return new Response("Not Found", { status: 404 });
+        return s;
+      })
+      .delete("/stories/:id", ({ params: { id }, userId }) => {
+        const r = minor.deleteStory(Number(id), userId);
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .patch("/criteria/:id/toggle", ({ params: { id }, body }) => {
+        const isCompleted = Boolean((body as any)?.isCompleted);
+        const c = minor.toggleCriterion(Number(id), isCompleted);
+        if (!c) return new Response("Not Found", { status: 404 });
+        return c;
+      })
+      .post("/sprints/:id/self-evaluations/auto", ({ params: { id }, userId }) => minor.autoGenerateSelfEvaluations(Number(id), userId))
+      .put("/sprints/:id/self-evaluations", ({ params: { id }, userId, body }) => minor.saveSelfEvaluations(Number(id), userId, (body as any)?.evaluations || []))
+      .put("/sprints/:id/teacher-assessments", ({ params: { id }, userId, body }) => minor.saveTeacherAssessments(Number(id), userId, (body as any)?.assessments || []))
+      .get("/sprints/:id/feedback", ({ params: { id } }) => minor.listFeedback(Number(id)))
+      .post("/sprints/:id/feedback", ({ params: { id }, body }) => minor.addFeedback(Number(id), (body ?? {}) as any))
+      .put("/feedback/:id", ({ params: { id }, body }) => {
+        const fb = minor.updateFeedback(Number(id), (body ?? {}) as any);
+        if (!fb) return new Response("Not Found", { status: 404 });
+        return fb;
+      })
+      .delete("/feedback/:id", ({ params: { id } }) => {
+        const r = minor.deleteFeedback(Number(id));
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .get("/sprints/:id/reflection", ({ params: { id } }) => minor.getReflection(Number(id)))
+      .put("/sprints/:id/reflection", ({ params: { id }, body }) => minor.saveReflection(Number(id), (body ?? {}) as any))
+      .get("/vacations", ({ userId }) => minor.listVacations(userId))
+      .post("/vacations", ({ userId, body }) => minor.createVacation(userId, (body ?? {}) as any))
+      .put("/vacations/:id", ({ params: { id }, userId, body }) => {
+        const v = minor.updateVacation(Number(id), userId, (body ?? {}) as any);
+        if (!v) return new Response("Not Found", { status: 404 });
+        return v;
+      })
+      .delete("/vacations/:id", ({ params: { id }, userId }) => {
+        const r = minor.deleteVacation(Number(id), userId);
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .get("/story-types", ({ userId }) => minor.listStoryTypes(userId))
+      .post("/story-types", ({ userId, body }) => minor.createStoryType(userId, (body ?? {}) as any))
+      .delete("/story-types/:id", ({ params: { id }, userId }) => {
+        const r = minor.deleteStoryType(Number(id), userId);
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .get("/peer-help", ({ userId }) => minor.listPeerHelp(userId))
+      .post("/peer-help", ({ userId, body }) => minor.createPeerHelp(userId, (body ?? {}) as any))
+      .put("/peer-help/:id", ({ params: { id }, userId, body }) => {
+        const p = minor.updatePeerHelp(Number(id), userId, (body ?? {}) as any);
+        if (!p) return new Response("Not Found", { status: 404 });
+        return p;
+      })
+      .delete("/peer-help/:id", ({ params: { id }, userId }) => {
+        const r = minor.deletePeerHelp(Number(id), userId);
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
+      .post("/upload", async ({ body }) => {
+        const { file } = (body ?? {}) as any;
+        if (!file) {
+          return new Response("No file uploaded", { status: 400 });
+        }
+        const uploadsDir = join(import.meta.dir, "../uploads");
+        await mkdir(uploadsDir, { recursive: true });
+
+        const ext = file.name ? file.name.split(".").pop() : "pdf";
+        const filename = `minor_${crypto.randomUUID()}.${ext}`;
+        const filePath = join(uploadsDir, filename);
+
+        await Bun.write(filePath, file);
+        return { filePath: `/api/uploads/${filename}`, originalName: file.name };
+      })
   )
 
   // --- Pulse Admin / Monitoring routes ---

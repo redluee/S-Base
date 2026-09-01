@@ -43,6 +43,7 @@ export const DEFAULT_MODULES = [
   { name: "pulse", alias: "Pulse", description: "Monitoring & admin paneel" },
   { name: "minecraft", alias: "Lobby Control", description: "Beheer van Minecraft server instances" },
   { name: "minecraft:monitor", alias: "Minecraft (Monitor)", description: "Alleen server starten en monitoren, niet aanpassen of stoppen" },
+  { name: "minor", alias: "Minor Tracker", description: "Module voor sprintbeheer, leeruitkomsten, bewijslast en Show & Grow portfolio" },
 ];
 
 export async function ensureDefaultModules() {
