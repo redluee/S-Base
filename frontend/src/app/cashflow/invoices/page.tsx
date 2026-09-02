@@ -377,7 +377,7 @@ export default function InvoicesPage() {
       ) : (
         <div className="space-y-2">
           {/* Desktop table header */}
-          <div className="hidden sm:grid sm:grid-cols-[170px_1.5fr_1fr_1fr_110px_120px] gap-4 px-4 pb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider select-none">
+          <div className="hidden sm:grid sm:grid-cols-[160px_1.5fr_1fr_1fr_110px_165px] gap-4 px-4 pb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider select-none">
             <button
               type="button"
               onClick={() => handleHeaderSort("number")}
@@ -431,7 +431,7 @@ export default function InvoicesPage() {
                 {/* Desktop view row */}
                 <div
                   onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
-                  className={`hidden sm:grid sm:grid-cols-[170px_1.5fr_1fr_1fr_110px_120px] gap-4 items-center px-4 py-3 bg-zinc-900 border rounded-xl transition-colors cursor-pointer ${
+                  className={`hidden sm:grid sm:grid-cols-[160px_1.5fr_1fr_1fr_110px_165px] gap-4 items-center px-4 py-3 bg-zinc-900 border rounded-xl transition-colors cursor-pointer ${
                     isOverdue ? "border-rose-500/30 hover:border-rose-500/50" : "border-zinc-800 hover:border-zinc-700"
                   }`}
                 >
