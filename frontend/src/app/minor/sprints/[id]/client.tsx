@@ -20,6 +20,9 @@ import {
   Save,
   CheckCircle2,
   Upload,
+  CornerDownRight,
+  Copy,
+  Check,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import {
@@ -32,6 +35,7 @@ import {
 } from "@/lib/api";
 import { downloadSprintPDF } from "@/components/minor-pdf";
 import { downloadSprintExcel } from "@/lib/minor-excel";
+import { StoryTypeBadge } from "@/components/minor-story-type-badge";
 
 interface MinorSprintDetailClientProps {
   initialSprint: MinorSprintFull;
@@ -54,11 +58,19 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
   const [soThat, setSoThat] = useState("");
   const [selectedLUs, setSelectedLUs] = useState<number[]>([]);
   const [storyStatus, setStoryStatus] = useState<"todo" | "in_progress" | "done">("todo");
-  const [acceptanceCriteria, setAcceptanceCriteria] = useState<{ text: string; isCompleted: boolean }[]>([]);
-  const [qualityCriteria, setQualityCriteria] = useState<{ text: string; isCompleted: boolean }[]>([]);
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
+  const [qualityCriteria, setQualityCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
+  const [focusTarget, setFocusTarget] = useState<{ type: "acceptance" | "quality"; index: number } | null>(null);
   const [evidenceList, setEvidenceList] = useState<{ type: "link" | "github" | "document" | "app"; title: string; url: string }[]>([]);
   const [savingStory, setSavingStory] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [copiedExport, setCopiedExport] = useState(false);
+
+  // Story Import Modal State
+  const [isImportStoryModalOpen, setIsImportStoryModalOpen] = useState(false);
+  const [importJsonText, setImportJsonText] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImportingStory, setIsImportingStory] = useState(false);
 
   // Dynamic Feedback Row State
   const [fbDate, setFbDate] = useState(new Date().toISOString().slice(0, 10));
@@ -116,8 +128,8 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
     setSoThat("");
     setSelectedLUs([1, 2]);
     setStoryStatus("todo");
-    setAcceptanceCriteria([{ text: "", isCompleted: false }]);
-    setQualityCriteria([{ text: "", isCompleted: false }]);
+    setAcceptanceCriteria([{ text: "", isCompleted: false, indent: 0 }]);
+    setQualityCriteria([{ text: "", isCompleted: false, indent: 0 }]);
     setEvidenceList([]);
     setIsStoryModalOpen(true);
   }
@@ -133,19 +145,35 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
     setSelectedLUs(st.learningOutcomes);
     setStoryStatus(st.status);
     setAcceptanceCriteria(
-      st.criteria?.filter((c) => c.type === "acceptance").map((c) => ({ text: c.text, isCompleted: c.isCompleted })) || [
-        { text: "", isCompleted: false },
+      st.criteria?.filter((c) => c.type === "acceptance").map((c) => ({ text: c.text, isCompleted: c.isCompleted, indent: c.indent || 0 })) || [
+        { text: "", isCompleted: false, indent: 0 },
       ]
     );
     setQualityCriteria(
-      st.criteria?.filter((c) => c.type === "quality").map((c) => ({ text: c.text, isCompleted: c.isCompleted })) || [
-        { text: "", isCompleted: false },
+      st.criteria?.filter((c) => c.type === "quality").map((c) => ({ text: c.text, isCompleted: c.isCompleted, indent: c.indent || 0 })) || [
+        { text: "", isCompleted: false, indent: 0 },
       ]
     );
     setEvidenceList(
       st.evidence?.map((e) => ({ type: e.type as "link" | "github" | "document" | "app", title: e.title, url: e.url })) || []
     );
     setIsStoryModalOpen(true);
+  }
+
+  function addAcceptanceCriterion(indent: number = 0) {
+    setAcceptanceCriteria((prev) => {
+      const next = [...prev, { text: "", isCompleted: false, indent }];
+      setFocusTarget({ type: "acceptance", index: next.length - 1 });
+      return next;
+    });
+  }
+
+  function addQualityCriterion(indent: number = 0) {
+    setQualityCriteria((prev) => {
+      const next = [...prev, { text: "", isCompleted: false, indent }];
+      setFocusTarget({ type: "quality", index: next.length - 1 });
+      return next;
+    });
   }
 
   async function handleSaveStory(e: React.FormEvent) {
@@ -187,6 +215,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
     try {
       await api.minor.sprints.stories.delete(storyId);
       await reloadSprint();
+      setIsStoryModalOpen(false);
     } catch (err) {
       console.error("Failed to delete story:", err);
     }
@@ -223,6 +252,212 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
       console.error("File upload failed:", err);
     } finally {
       setUploadingFile(false);
+    }
+  }
+
+  function handleExportStoryJson() {
+    const payload = {
+      storyTypeCode,
+      storyNumber: storyNumber.trim() || undefined,
+      title: storyTitle.trim(),
+      asA: asA.trim() || undefined,
+      iWant: iWant.trim() || undefined,
+      soThat: soThat.trim() || undefined,
+      learningOutcomes: selectedLUs,
+      status: storyStatus,
+      acceptanceCriteria: acceptanceCriteria
+        .filter((c) => c.text.trim())
+        .map((c) => ({ text: c.text.trim(), isCompleted: c.isCompleted, indent: c.indent || 0 })),
+      qualityCriteria: qualityCriteria
+        .filter((c) => c.text.trim())
+        .map((c) => ({ text: c.text.trim(), isCompleted: c.isCompleted, indent: c.indent || 0 })),
+      evidence: evidenceList
+        .filter((e) => e.title.trim() && e.url.trim())
+        .map((e) => ({ type: e.type, title: e.title.trim(), url: e.url.trim() })),
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(json).then(() => {
+        setCopiedExport(true);
+        setTimeout(() => setCopiedExport(false), 2000);
+      }).catch((err) => {
+        console.error("Clipboard write failed:", err);
+      });
+    }
+  }
+
+  function parseStoryJson(rawJson: string) {
+    let data: unknown;
+    try {
+      data = JSON.parse(rawJson);
+    } catch {
+      throw new Error(t("Ongeldig JSON-formaat. Controleer de syntax."));
+    }
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error(t("Ongeldige JSON structuur."));
+    }
+
+    const obj = data as Record<string, unknown>;
+
+    const rawTitle = obj.title ?? obj.name ?? "";
+    const title = String(rawTitle).trim();
+    if (!title) {
+      throw new Error(t("Titel van de story is verplicht in JSON."));
+    }
+
+    const rawTypeCode = obj.storyTypeCode ?? obj.type ?? obj.storyType ?? "US";
+    const typeCode = String(rawTypeCode).trim().toUpperCase();
+
+    const rawNum = obj.storyNumber ?? obj.number;
+    const num = rawNum != null ? String(rawNum).trim() : undefined;
+
+    const rawAsA = obj.asA ?? obj.as_a ?? obj.role;
+    const asARole = rawAsA != null ? String(rawAsA).trim() : undefined;
+
+    const rawIWant = obj.iWant ?? obj.i_want ?? obj.want;
+    const iWantWens = rawIWant != null ? String(rawIWant).trim() : undefined;
+
+    const rawSoThat = obj.soThat ?? obj.so_that ?? obj.purpose;
+    const soThatDoel = rawSoThat != null ? String(rawSoThat).trim() : undefined;
+
+    let learningOutcomes: number[] = [];
+    const rawLUs = obj.learningOutcomes ?? obj.learning_outcomes ?? obj.lus ?? obj.lu;
+    if (Array.isArray(rawLUs)) {
+      learningOutcomes = rawLUs
+        .map((n: unknown) => Number(n))
+        .filter((n: number) => !isNaN(n) && n >= 1 && n <= 5);
+    } else if (typeof rawLUs === "number" || typeof rawLUs === "string") {
+      const parsed = Number(rawLUs);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) learningOutcomes = [parsed];
+    }
+
+    const statusStr = String(obj.status || "todo");
+    const statusVal = (["todo", "in_progress", "done"].includes(statusStr) ? statusStr : "todo") as "todo" | "in_progress" | "done";
+
+    let acceptance: { text: string; isCompleted?: boolean; indent?: number }[] = [];
+    const rawAcceptance = obj.acceptanceCriteria ?? obj.acceptance_criteria;
+    if (Array.isArray(rawAcceptance)) {
+      acceptance = rawAcceptance
+        .map((item: unknown) => {
+          if (typeof item === "string") return { text: item.trim(), isCompleted: false, indent: 0 };
+          if (item && typeof item === "object") {
+            const crit = item as Record<string, unknown>;
+            const textVal = String(crit.text ?? crit.title ?? "").trim();
+            return {
+              text: textVal,
+              isCompleted: Boolean(crit.isCompleted),
+              indent: crit.indent ? 1 : 0,
+            };
+          }
+          return null;
+        })
+        .filter((item): item is { text: string; isCompleted: boolean; indent: number } => Boolean(item && item.text));
+    }
+
+    let quality: { text: string; isCompleted?: boolean; indent?: number }[] = [];
+    const rawQuality = obj.qualityCriteria ?? obj.quality_criteria;
+    if (Array.isArray(rawQuality)) {
+      quality = rawQuality
+        .map((item: unknown) => {
+          if (typeof item === "string") return { text: item.trim(), isCompleted: false, indent: 0 };
+          if (item && typeof item === "object") {
+            const crit = item as Record<string, unknown>;
+            const textVal = String(crit.text ?? crit.title ?? "").trim();
+            return {
+              text: textVal,
+              isCompleted: Boolean(crit.isCompleted),
+              indent: crit.indent ? 1 : 0,
+            };
+          }
+          return null;
+        })
+        .filter((item): item is { text: string; isCompleted: boolean; indent: number } => Boolean(item && item.text));
+    }
+
+    if (Array.isArray(obj.criteria)) {
+      obj.criteria.forEach((c: unknown) => {
+        if (!c || typeof c !== "object") return;
+        const crit = c as Record<string, unknown>;
+        const textVal = String(crit.text ?? crit.title ?? "").trim();
+        if (!textVal) return;
+        const critObj = { text: textVal, isCompleted: Boolean(crit.isCompleted), indent: crit.indent ? 1 : 0 };
+        if (crit.type === "quality") {
+          quality.push(critObj);
+        } else {
+          acceptance.push(critObj);
+        }
+      });
+    }
+
+    let evidence: { type: "link" | "github" | "document" | "app"; title: string; url: string }[] = [];
+    const rawEvidence = obj.evidence ?? obj.evidenceList;
+    if (Array.isArray(rawEvidence)) {
+      evidence = rawEvidence
+        .map((e: unknown) => {
+          if (!e || typeof e !== "object") return null;
+          const ev = e as Record<string, unknown>;
+          const evTitle = String(ev.title ?? "").trim();
+          const evUrl = String(ev.url ?? "").trim();
+          const evTypeStr = String(ev.type ?? "link");
+          const evType = (["link", "github", "document", "app"].includes(evTypeStr) ? evTypeStr : "link") as "link" | "github" | "document" | "app";
+          return { type: evType, title: evTitle, url: evUrl };
+        })
+        .filter((e): e is { type: "link" | "github" | "document" | "app"; title: string; url: string } => Boolean(e && e.title && e.url));
+    }
+
+    return {
+      storyTypeCode: typeCode,
+      storyNumber: num,
+      title,
+      asA: asARole,
+      iWant: iWantWens,
+      soThat: soThatDoel,
+      learningOutcomes,
+      status: statusVal,
+      acceptanceCriteria: acceptance,
+      qualityCriteria: quality,
+      evidence,
+    };
+  }
+
+  async function handlePasteClipboardToImport() {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setImportJsonText(text);
+          setImportError(null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to read clipboard:", err);
+    }
+  }
+
+  async function handleImportStory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!importJsonText.trim()) {
+      setImportError(t("Voer JSON in om te importeren."));
+      return;
+    }
+
+    try {
+      const payload = parseStoryJson(importJsonText);
+      setIsImportingStory(true);
+      setImportError(null);
+
+      await api.minor.sprints.stories.create(sprint.id, payload);
+      await reloadSprint();
+      setIsImportStoryModalOpen(false);
+      setImportJsonText("");
+    } catch (err: unknown) {
+      console.error("Story import error:", err);
+      const msg = err instanceof Error ? err.message : t("Fout bij importeren van story.");
+      setImportError(msg);
+    } finally {
+      setIsImportingStory(false);
     }
   }
 
@@ -456,25 +691,55 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
             <h2 className="text-base font-bold text-white tracking-tight">
               {t("Sprintplanning & Stories")} ({sprint.stories.length})
             </h2>
-            <button
-              onClick={openCreateStoryModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer"
-            >
-              <Plus className="size-3.5" />
-              <span>{t("Nieuwe Story")}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setImportJsonText("");
+                  setImportError(null);
+                  setIsImportStoryModalOpen(true);
+                }}
+                title={t("Story importeren (JSON)")}
+                aria-label={t("Story importeren (JSON)")}
+                className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center justify-center"
+              >
+                <Upload className="size-3.5" />
+              </button>
+              <button
+                onClick={openCreateStoryModal}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>{t("Nieuwe Story")}</span>
+              </button>
+            </div>
           </div>
 
           {sprint.stories.length === 0 ? (
             <div className="p-12 rounded-2xl bg-zinc-900/40 border border-white/10 text-center text-zinc-400 text-xs space-y-3">
               <Layers className="size-8 text-zinc-600 mx-auto" />
               <p>{t("Geen stories in deze sprint.")}</p>
-              <button
-                onClick={openCreateStoryModal}
-                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition-all cursor-pointer"
-              >
-                {t("Voeg je eerste story toe")}
-              </button>
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportJsonText("");
+                    setImportError(null);
+                    setIsImportStoryModalOpen(true);
+                  }}
+                  title={t("Story importeren (JSON)")}
+                  aria-label={t("Story importeren (JSON)")}
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer flex items-center justify-center"
+                >
+                  <Upload className="size-3.5" />
+                </button>
+                <button
+                  onClick={openCreateStoryModal}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  {t("Voeg je eerste story toe")}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -486,9 +751,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                   {/* Story Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-brand/10 border border-brand/20 text-brand">
-                        {st.storyTypeCode}
-                      </span>
+                      <StoryTypeBadge code={st.storyTypeCode} storyTypes={storyTypes} showName size="sm" />
                       {st.storyNumber && (
                         <span className="text-xs font-mono font-semibold text-zinc-400">
                           {st.storyNumber}
@@ -538,13 +801,6 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                       >
                         <Edit3 className="size-3.5" />
                       </button>
-                      <button
-                        onClick={() => handleDeleteStory(st.id)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-all cursor-pointer"
-                        title={t("Verwijderen")}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
                     </div>
                   </div>
 
@@ -566,8 +822,8 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                     </div>
                   )}
 
-                  {/* Dual Columns: Acceptatiecriteria & Kwaliteitscriteria */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Criteria Stacked: Acceptatiecriteria & Kwaliteitscriteria */}
+                  <div className="space-y-3 pt-1">
                     {/* Acceptatiecriteria */}
                     <div className="p-3.5 rounded-xl bg-zinc-950/40 border border-white/5 space-y-2">
                       <h4 className="text-xs font-bold text-zinc-200">
@@ -579,22 +835,32 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                         <div className="space-y-1.5">
                           {st.criteria
                             ?.filter((c) => c.type === "acceptance")
-                            .map((crit) => (
-                              <button
-                                key={crit.id}
-                                onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
-                                className="flex items-start gap-2 text-left w-full text-xs text-zinc-300 hover:text-white group cursor-pointer"
-                              >
-                                {crit.isCompleted ? (
-                                  <CheckSquare className="size-3.5 text-brand shrink-0 mt-0.5" />
-                                ) : (
-                                  <Square className="size-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
-                                )}
-                                <span className={crit.isCompleted ? "line-through text-zinc-500" : ""}>
-                                  {crit.orderIndex}. {crit.text}
-                                </span>
-                              </button>
-                            ))}
+                            .map((crit) => {
+                              const isSubtask = (crit.indent ?? 0) > 0;
+                              return (
+                                <button
+                                  key={crit.id}
+                                  onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
+                                  className={`flex items-start gap-2 text-left w-full text-xs text-zinc-300 hover:text-white group cursor-pointer transition-colors ${
+                                    isSubtask ? "pl-5 border-l-2 border-white/10 ml-2" : ""
+                                  }`}
+                                >
+                                  {crit.isCompleted ? (
+                                    <CheckSquare className="size-3.5 text-brand shrink-0 mt-0.5" />
+                                  ) : (
+                                    <Square className="size-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
+                                  )}
+                                  <span className={crit.isCompleted ? "line-through text-zinc-500" : ""}>
+                                    {isSubtask ? (
+                                      <span className="text-zinc-500 mr-1 font-mono text-[11px]">↳</span>
+                                    ) : (
+                                      <span className="text-zinc-400 mr-1 font-medium">{crit.orderIndex}.</span>
+                                    )}
+                                    {crit.text}
+                                  </span>
+                                </button>
+                              );
+                            })}
                         </div>
                       )}
                     </div>
@@ -610,22 +876,32 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                         <div className="space-y-1.5">
                           {st.criteria
                             ?.filter((c) => c.type === "quality")
-                            .map((crit) => (
-                              <button
-                                key={crit.id}
-                                onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
-                                className="flex items-start gap-2 text-left w-full text-xs text-zinc-300 hover:text-white group cursor-pointer"
-                              >
-                                {crit.isCompleted ? (
-                                  <CheckSquare className="size-3.5 text-brand shrink-0 mt-0.5" />
-                                ) : (
-                                  <Square className="size-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
-                                )}
-                                <span className={crit.isCompleted ? "line-through text-zinc-500" : ""}>
-                                  {crit.orderIndex}. {crit.text}
-                                </span>
-                              </button>
-                            ))}
+                            .map((crit) => {
+                              const isSubtask = (crit.indent ?? 0) > 0;
+                              return (
+                                <button
+                                  key={crit.id}
+                                  onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
+                                  className={`flex items-start gap-2 text-left w-full text-xs text-zinc-300 hover:text-white group cursor-pointer transition-colors ${
+                                    isSubtask ? "pl-5 border-l-2 border-white/10 ml-2" : ""
+                                  }`}
+                                >
+                                  {crit.isCompleted ? (
+                                    <CheckSquare className="size-3.5 text-brand shrink-0 mt-0.5" />
+                                  ) : (
+                                    <Square className="size-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
+                                  )}
+                                  <span className={crit.isCompleted ? "line-through text-zinc-500" : ""}>
+                                    {isSubtask ? (
+                                      <span className="text-zinc-500 mr-1 font-mono text-[11px]">↳</span>
+                                    ) : (
+                                      <span className="text-zinc-400 mr-1 font-medium">{crit.orderIndex}.</span>
+                                    )}
+                                    {crit.text}
+                                  </span>
+                                </button>
+                              );
+                            })}
                         </div>
                       )}
                     </div>
@@ -1030,9 +1306,9 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                     onChange={(e) => setStoryTypeCode(e.target.value)}
                     className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
                   >
-                    <option value="US">User Story (US)</option>
-                    <option value="RS">Research Story (RS)</option>
-                    <option value="LS">Learning Story (LS)</option>
+                    <option value="US">{t("US - User Story (Groen)")}</option>
+                    <option value="RS">{t("RS - Research Story (Oranje)")}</option>
+                    <option value="LS">{t("LS - Learning Story (Paars)")}</option>
                     {storyTypes
                       .filter((t) => !["US", "RS", "LS"].includes(t.code))
                       .map((t) => (
@@ -1066,153 +1342,279 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
               </div>
 
               {/* Template fields: Als / Wil ik / Zodat */}
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-white/5 space-y-2.5">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {t("Story Format")}
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="flex items-center gap-2 font-bold text-zinc-200">
+                  <Sparkles className="size-4 text-brand" />
+                  <span>{t("User Story Template")}</span>
+                </div>
+                <div className="space-y-2">
                   <div>
-                    <label className="block text-zinc-500 mb-0.5">{t("Als [rol]")}</label>
+                    <label className="block text-zinc-500 text-[11px] mb-0.5">{t("Als [rol]")}</label>
                     <input
                       type="text"
-                      placeholder="bijv. student"
+                      placeholder="bijv. beheerder, gebruiker..."
                       value={asA}
                       onChange={(e) => setAsA(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
                     />
                   </div>
                   <div>
-                    <label className="block text-zinc-500 mb-0.5">{t("wil ik [wens]")}</label>
+                    <label className="block text-zinc-500 text-[11px] mb-0.5">{t("Wil ik [wens]")}</label>
                     <input
                       type="text"
-                      placeholder="bijv. vakanties kunnen invoeren"
+                      placeholder="bijv. kunnen inloggen met wachtwoord..."
                       value={iWant}
                       onChange={(e) => setIWant(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
                     />
                   </div>
                   <div>
-                    <label className="block text-zinc-500 mb-0.5">{t("zodat [doel]")}</label>
+                    <label className="block text-zinc-500 text-[11px] mb-0.5">{t("Zodat [doel]")}</label>
                     <input
                       type="text"
-                      placeholder="bijv. de planning automatisch verlengt"
+                      placeholder="bijv. alleen geautoriseerde personen toegang hebben..."
                       value={soThat}
                       onChange={(e) => setSoThat(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Learning Outcomes multi-select */}
-              <div className="space-y-1.5">
-                <label className="block text-zinc-400 font-semibold">{t("Gekoppelde Leeruitkomsten")}</label>
-                <div className="flex flex-wrap items-center gap-2">
+              <div>
+                <label className="block text-zinc-400 mb-2">{t("Gekoppelde Leeruitkomsten (1 t/m 5)")}</label>
+                <div className="flex flex-wrap gap-2">
                   {[1, 2, 3, 4, 5].map((lu) => {
-                    const isSelected = selectedLUs.includes(lu);
+                    const isChecked = selectedLUs.includes(lu);
                     return (
                       <button
                         key={lu}
                         type="button"
                         onClick={() => {
                           setSelectedLUs((prev) =>
-                            isSelected ? prev.filter((x) => x !== lu) : [...prev, lu]
+                            isChecked ? prev.filter((x) => x !== lu) : [...prev, lu].sort((a, b) => a - b)
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-brand text-zinc-950 border border-brand"
-                            : "bg-zinc-950 text-zinc-400 border border-white/10 hover:border-white/20"
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-brand/15 border-brand/40 text-brand"
+                            : "bg-zinc-950 border-white/10 text-zinc-400 hover:text-white"
                         }`}
                       >
-                        LU {lu}
+                        {isChecked ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
+                        <span>LU {lu}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Dual Criteria Checklists (Acceptance & Quality) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Status */}
+              <div>
+                <label className="block text-zinc-400 mb-1">{t("Status")}</label>
+                <select
+                  value={storyStatus}
+                  onChange={(e) => setStoryStatus(e.target.value as "todo" | "in_progress" | "done")}
+                  className="w-full sm:w-48 bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
+                >
+                  <option value="todo">{t("To Do")}</option>
+                  <option value="in_progress">{t("Bezig")}</option>
+                  <option value="done">{t("Voltooid")}</option>
+                </select>
+              </div>
+
+              {/* Criteria Checklists Stacked (Acceptance & Quality) */}
+              <div className="space-y-4">
                 {/* Acceptance criteria */}
-                <div className="space-y-2 p-3 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-zinc-300">{t("Acceptatiecriteria")}</span>
-                    <button
-                      type="button"
-                      onClick={() => setAcceptanceCriteria((prev) => [...prev, { text: "", isCompleted: false }])}
-                      className="text-brand hover:underline flex items-center gap-0.5 text-[11px]"
-                    >
-                      <Plus className="size-3" />
-                      <span>{t("Regel")}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-zinc-200 text-sm">{t("Acceptatiecriteria")}</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono">
+                        {acceptanceCriteria.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addAcceptanceCriterion(0)}
+                        className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>{t("Criterium")}</span>
+                      </button>
+                      <span className="text-zinc-700">|</span>
+                      <button
+                        type="button"
+                        onClick={() => addAcceptanceCriterion(1)}
+                        className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                        title={t("Subtaak toevoegen")}
+                      >
+                        <CornerDownRight className="size-3" />
+                        <span>{t("Subtaak")}</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {acceptanceCriteria.map((c, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5">
-                        <span className="text-zinc-500 font-mono text-[10px]">{idx + 1}.</span>
-                        <input
-                          type="text"
-                          value={c.text}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setAcceptanceCriteria((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
-                            );
-                          }}
-                          placeholder="Criterium..."
-                          className="w-full bg-zinc-900 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-brand"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setAcceptanceCriteria((prev) => prev.filter((_, i) => i !== idx))}
-                          className="text-zinc-500 hover:text-red-400"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {acceptanceCriteria.length === 0 ? (
+                      <p className="text-xs text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
+                    ) : (
+                      acceptanceCriteria.map((c, idx) => {
+                        const isSub = (c.indent ?? 0) > 0;
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center gap-2 ${
+                              isSub ? "pl-5 sm:pl-7 border-l-2 border-brand/30 ml-2" : ""
+                            }`}
+                          >
+                            <span className="text-zinc-500 font-mono text-xs w-4 shrink-0 text-center">
+                              {isSub ? "↳" : `${idx + 1}.`}
+                            </span>
+                            <input
+                              ref={(el) => {
+                                if (focusTarget?.type === "acceptance" && focusTarget.index === idx && el) {
+                                  el.focus();
+                                  setFocusTarget(null);
+                                }
+                              }}
+                              type="text"
+                              value={c.text}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAcceptanceCriteria((prev) =>
+                                  prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
+                                );
+                              }}
+                              placeholder={isSub ? "Subtaak omschrijving..." : "Criterium omschrijving..."}
+                              className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAcceptanceCriteria((prev) =>
+                                  prev.map((item, i) => (i === idx ? { ...item, indent: isSub ? 0 : 1 } : item))
+                                );
+                              }}
+                              title={isSub ? t("Terugspringen naar hoofdtaak") : t("Inspringen als subtaak")}
+                              className={`p-1.5 rounded transition-colors cursor-pointer ${
+                                isSub
+                                  ? "text-brand bg-brand/10 hover:bg-brand/20"
+                                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                              }`}
+                            >
+                              <CornerDownRight className="size-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAcceptanceCriteria((prev) => prev.filter((_, i) => i !== idx))}
+                              className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                              title={t("Verwijderen")}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
                 {/* Quality criteria */}
-                <div className="space-y-2 p-3 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-zinc-300">{t("Kwaliteitscriteria")}</span>
-                    <button
-                      type="button"
-                      onClick={() => setQualityCriteria((prev) => [...prev, { text: "", isCompleted: false }])}
-                      className="text-brand hover:underline flex items-center gap-0.5 text-[11px]"
-                    >
-                      <Plus className="size-3" />
-                      <span>{t("Regel")}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-zinc-200 text-sm">{t("Kwaliteitscriteria")}</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono">
+                        {qualityCriteria.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addQualityCriterion(0)}
+                        className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>{t("Criterium")}</span>
+                      </button>
+                      <span className="text-zinc-700">|</span>
+                      <button
+                        type="button"
+                        onClick={() => addQualityCriterion(1)}
+                        className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                        title={t("Subtaak toevoegen")}
+                      >
+                        <CornerDownRight className="size-3" />
+                        <span>{t("Subtaak")}</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {qualityCriteria.map((c, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5">
-                        <span className="text-zinc-500 font-mono text-[10px]">{idx + 1}.</span>
-                        <input
-                          type="text"
-                          value={c.text}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setQualityCriteria((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
-                            );
-                          }}
-                          placeholder="Kwaliteitseis..."
-                          className="w-full bg-zinc-900 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-brand"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setQualityCriteria((prev) => prev.filter((_, i) => i !== idx))}
-                          className="text-zinc-500 hover:text-red-400"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {qualityCriteria.length === 0 ? (
+                      <p className="text-xs text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
+                    ) : (
+                      qualityCriteria.map((c, idx) => {
+                        const isSub = (c.indent ?? 0) > 0;
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center gap-2 ${
+                              isSub ? "pl-5 sm:pl-7 border-l-2 border-brand/30 ml-2" : ""
+                            }`}
+                          >
+                            <span className="text-zinc-500 font-mono text-xs w-4 shrink-0 text-center">
+                              {isSub ? "↳" : `${idx + 1}.`}
+                            </span>
+                            <input
+                              ref={(el) => {
+                                if (focusTarget?.type === "quality" && focusTarget.index === idx && el) {
+                                  el.focus();
+                                  setFocusTarget(null);
+                                }
+                              }}
+                              type="text"
+                              value={c.text}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setQualityCriteria((prev) =>
+                                  prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
+                                );
+                              }}
+                              placeholder={isSub ? "Sub-kwaliteitseis..." : "Kwaliteitseis omschrijving..."}
+                              className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQualityCriteria((prev) =>
+                                  prev.map((item, i) => (i === idx ? { ...item, indent: isSub ? 0 : 1 } : item))
+                                );
+                              }}
+                              title={isSub ? t("Terugspringen naar hoofdtaak") : t("Inspringen als subtaak")}
+                              className={`p-1.5 rounded transition-colors cursor-pointer ${
+                                isSub
+                                  ? "text-brand bg-brand/10 hover:bg-brand/20"
+                                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                              }`}
+                            >
+                              <CornerDownRight className="size-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQualityCriteria((prev) => prev.filter((_, i) => i !== idx))}
+                              className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                              title={t("Verwijderen")}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -1299,20 +1701,118 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  {editingStory && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteStory(editingStory.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors text-xs font-medium cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>{t("Verwijderen")}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleExportStoryJson}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors text-xs font-medium cursor-pointer"
+                    title={t("Exporteer story als JSON naar klembord")}
+                  >
+                    {copiedExport ? <Check className="size-3.5 text-brand" /> : <Copy className="size-3.5" />}
+                    <span>{copiedExport ? t("Gekopieerd!") : t("Exporteer JSON")}</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsStoryModalOpen(false)}
+                    className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    {t("Annuleren")}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingStory}
+                    className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {savingStory ? t("Opslaan...") : t("Opslaan")}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Story Import Modal */}
+      {isImportStoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl my-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Upload className="size-4 text-brand" />
+                <span>{t("Story Importeren (JSON)")}</span>
+              </h2>
+              <button
+                onClick={() => setIsImportStoryModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400">
+              {t("Plak hieronder de JSON van een user story of importeer direct vanuit je klembord.")}
+            </p>
+
+            <form onSubmit={handleImportStory} className="space-y-4 text-xs">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-zinc-400 font-medium">{t("Story JSON")}</label>
+                  <button
+                    type="button"
+                    onClick={handlePasteClipboardToImport}
+                    className="text-brand hover:underline flex items-center gap-1 font-medium cursor-pointer text-xs"
+                  >
+                    <Copy className="size-3" />
+                    <span>{t("Plakken vanuit klembord")}</span>
+                  </button>
+                </div>
+                <textarea
+                  rows={10}
+                  value={importJsonText}
+                  onChange={(e) => {
+                    setImportJsonText(e.target.value);
+                    setImportError(null);
+                  }}
+                  placeholder={`{\n  "storyTypeCode": "US",\n  "storyNumber": "US 1.1",\n  "title": "Voorbeeld story",\n  "asA": "bezoeker",\n  "iWant": "...",\n  "soThat": "...",\n  "learningOutcomes": [1, 2],\n  "acceptanceCriteria": [\n    { "text": "Criterium 1", "isCompleted": false }\n  ]\n}`}
+                  className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-zinc-200 focus:outline-none focus:border-brand"
+                />
+              </div>
+
+              {importError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                  <AlertTriangle className="size-4 shrink-0" />
+                  <span>{importError}</span>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsStoryModalOpen(false)}
+                  onClick={() => setIsImportStoryModalOpen(false)}
                   className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
                 >
                   {t("Annuleren")}
                 </button>
                 <button
                   type="submit"
-                  disabled={savingStory}
-                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                  disabled={isImportingStory || !importJsonText.trim()}
+                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {savingStory ? t("Opslaan...") : t("Opslaan")}
+                  <Upload className="size-3.5" />
+                  <span>{isImportingStory ? t("Importeren...") : t("Importeren")}</span>
                 </button>
               </div>
             </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -16,6 +16,7 @@ import {
   ExternalLink,
   GraduationCap,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorDashboardStats, type MinorSprint } from "@/lib/api";
@@ -37,13 +38,89 @@ interface MinorDashboardClientProps {
 
 export function MinorDashboardClient({ initialStats, initialSprints }: MinorDashboardClientProps) {
   const [stats, setStats] = useState<MinorDashboardStats>(initialStats);
-  const [sprints] = useState<MinorSprint[]>(initialSprints);
+  const [sprints, setSprints] = useState<MinorSprint[]>(initialSprints);
   const [isPeerModalOpen, setIsPeerModalOpen] = useState(false);
   const [peerDate, setPeerDate] = useState(new Date().toISOString().slice(0, 10));
   const [peerName, setPeerName] = useState("");
   const [peerDesc, setPeerDesc] = useState("");
   const [peerLinks, setPeerLinks] = useState("");
   const [savingPeer, setSavingPeer] = useState(false);
+
+  // Sprint Create Modal State
+  const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
+  const [sprintNumber, setSprintNumber] = useState("");
+  const [sprintName, setSprintName] = useState("");
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [durationDays, setDurationDays] = useState(14);
+  const [sprintStatus, setSprintStatus] = useState<"planned" | "active" | "completed" | "archived">("active");
+  const [calculatedDates, setCalculatedDates] = useState<{
+    startDate: string;
+    endDate: string;
+    durationDays: number;
+    extendedDays: number;
+    extensionReason: string | null;
+    showAndGrowDate: string;
+  } | null>(null);
+  const [savingSprint, setSavingSprint] = useState(false);
+
+  useEffect(() => {
+    if (!startDate || durationDays <= 0 || !isSprintModalOpen) return;
+    let isCurrent = true;
+    api.minor.sprints
+      .calculateDates(startDate, durationDays)
+      .then((res) => {
+        if (isCurrent) setCalculatedDates(res);
+      })
+      .catch((err) => console.error("Date calculation error:", err));
+    return () => {
+      isCurrent = false;
+    };
+  }, [startDate, durationDays, isSprintModalOpen]);
+
+  async function openCreateSprintModal() {
+    setSprintNumber("");
+    setSprintName("");
+    setDurationDays(14);
+    setSprintStatus("active");
+    const today = new Date().toISOString().slice(0, 10);
+    setStartDate(today);
+
+    try {
+      const nextNum = await api.minor.sprints.nextNumber();
+      setSprintNumber(nextNum.nextNumber);
+      setSprintName(nextNum.nextName);
+
+      const calc = await api.minor.sprints.calculateDates(today, 14);
+      setCalculatedDates(calc);
+    } catch (err) {
+      console.error("Failed to precalculate sprint:", err);
+    }
+
+    setIsSprintModalOpen(true);
+  }
+
+  async function handleSaveSprint(e: React.FormEvent) {
+    e.preventDefault();
+    if (!sprintNumber.trim() || !sprintName.trim() || !startDate) return;
+    setSavingSprint(true);
+    try {
+      const created = await api.minor.sprints.create({
+        sprintNumber: sprintNumber.trim(),
+        name: sprintName.trim(),
+        startDate,
+        durationDays,
+        status: sprintStatus,
+      });
+      setSprints((prev) => [...prev, created]);
+      const updatedStats = await api.minor.dashboard();
+      setStats(updatedStats);
+      setIsSprintModalOpen(false);
+    } catch (err) {
+      console.error("Failed to create sprint:", err);
+    } finally {
+      setSavingSprint(false);
+    }
+  }
 
   async function handleAddPeerHelp(e: React.FormEvent) {
     e.preventDefault();
@@ -371,13 +448,24 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
             <h2 className="text-base font-bold text-white tracking-tight">
               {t("Sprintoverzicht")}
             </h2>
-            <Link
-              href="/minor/sprints"
-              className="text-xs text-brand hover:underline flex items-center gap-1 font-semibold"
-            >
-              <span>{t("Beheer sprints")}</span>
-              <ArrowRight className="size-3" />
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={openCreateSprintModal}
+                className="text-xs text-zinc-300 hover:text-brand flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>{t("Sprint toevoegen")}</span>
+              </button>
+              <span className="text-zinc-600 text-xs">·</span>
+              <Link
+                href="/minor/sprints"
+                className="text-xs text-brand hover:underline flex items-center gap-1 font-semibold"
+              >
+                <span>{t("Beheer sprints")}</span>
+                <ArrowRight className="size-3" />
+              </Link>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -562,6 +650,131 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                   className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingPeer ? t("Opslaan...") : t("Opslaan")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Sprint Modal */}
+      {isSprintModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="size-4 text-brand" />
+                <span>{t("Nieuwe Sprint Aanmaken")}</span>
+              </h2>
+              <button
+                onClick={() => setIsSprintModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSprint} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1">{t("Sprintnummer")}</label>
+                  <input
+                    type="text"
+                    placeholder="bijv. 1 of 2b"
+                    value={sprintNumber}
+                    onChange={(e) => setSprintNumber(e.target.value)}
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-brand"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1">{t("Sprintnaam")}</label>
+                  <input
+                    type="text"
+                    placeholder="bijv. Sprint 1"
+                    value={sprintName}
+                    onChange={(e) => setSprintName(e.target.value)}
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1">{t("Startdatum")}</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1">{t("Sprintlengte (dagen)")}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-brand"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Real-time Calculation Summary Box */}
+              {calculatedDates && (
+                <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2 text-xs">
+                  <div className="flex justify-between items-center text-zinc-300">
+                    <span className="text-zinc-500">{t("Berekende Einddatum")}:</span>
+                    <strong className="text-white font-mono">{calculatedDates.endDate}</strong>
+                  </div>
+                  <div className="flex justify-between items-center text-zinc-300">
+                    <span className="text-zinc-500">{t("Show & Grow Datum (woensdag)")}:</span>
+                    <strong className="text-brand font-mono">{calculatedDates.showAndGrowDate}</strong>
+                  </div>
+                  {calculatedDates.extendedDays > 0 && (
+                    <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] pt-1 border-t border-white/5">
+                      <Calendar className="size-3 shrink-0" />
+                      <span>
+                        {t("Verlengd met {days} vakantiedagen", { days: String(calculatedDates.extendedDays) })} ({calculatedDates.extensionReason})
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-zinc-400 mb-1">{t("Status")}</label>
+                <select
+                  value={sprintStatus}
+                  onChange={(e) => setSprintStatus(e.target.value as "planned" | "active" | "completed" | "archived")}
+                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
+                >
+                  <option value="active">{t("Actief")}</option>
+                  <option value="planned">{t("Gepland")}</option>
+                  <option value="completed">{t("Voltooid")}</option>
+                  <option value="archived">{t("Gearchiveerd")}</option>
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSprintModalOpen(false)}
+                  className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
+                >
+                  {t("Annuleren")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSprint}
+                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {savingSprint ? t("Opslaan...") : t("Opslaan")}
                 </button>
               </div>
             </form>

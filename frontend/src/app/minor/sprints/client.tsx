@@ -7,7 +7,7 @@ import {
   Calendar,
   Layers,
   Clock,
-  ArrowRight,
+  ChevronRight,
   Trash2,
   Edit2,
   Sparkles,
@@ -125,6 +125,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     try {
       await api.minor.sprints.delete(id);
       setSprints((prev) => prev.filter((s) => s.id !== id));
+      setIsModalOpen(false);
     } catch (err) {
       console.error("Failed to delete sprint:", err);
     }
@@ -181,9 +182,9 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
       </div>
 
       {/* Sprints List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-3">
         {filteredSprints.length === 0 ? (
-          <div className="md:col-span-2 p-12 rounded-2xl bg-zinc-900/40 border border-white/10 text-center text-zinc-400 text-xs space-y-3">
+          <div className="p-12 rounded-2xl bg-zinc-900/40 border border-white/10 text-center text-zinc-400 text-xs space-y-3">
             <Layers className="size-8 text-zinc-600 mx-auto" />
             <p>{t("Geen sprints gevonden voor dit filter.")}</p>
             <button
@@ -197,81 +198,75 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           filteredSprints.map((s) => (
             <div
               key={s.id}
-              className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-brand/40 transition-all flex flex-col justify-between group relative"
+              className="p-4 sm:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-brand/40 hover:bg-zinc-900 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group relative"
             >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="min-w-9 h-9 px-2.5 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center font-mono font-bold text-xs text-white shrink-0 whitespace-nowrap">
-                      {s.sprintNumber}
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-base font-bold text-white group-hover:text-brand transition-colors truncate">
-                        {s.name}
-                      </h2>
-                      <span className="text-[11px] text-zinc-400 font-mono block truncate">
-                        {s.startDate} → {s.endDate}
-                      </span>
-                    </div>
-                  </div>
+              <Link
+                href={`/minor/sprints/${s.id}`}
+                className="absolute inset-0 z-0 rounded-2xl"
+                aria-label={s.name}
+              />
 
-                  <span
-                    className={`text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded ${
-                      s.status === "active"
-                        ? "bg-brand/10 text-brand border border-brand/20"
-                        : s.status === "completed"
-                        ? "bg-zinc-800 text-zinc-400 border border-white/5"
-                        : "bg-zinc-800 text-zinc-300 border border-white/5"
-                    }`}
-                  >
-                    {s.status}
-                  </span>
+              <div className="flex items-center gap-3.5 min-w-0 z-10 pointer-events-none">
+                <div className="min-w-10 h-10 px-2.5 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center font-mono font-bold text-xs text-white shrink-0 whitespace-nowrap">
+                  {s.sprintNumber}
                 </div>
-
-                <div className="text-xs text-zinc-300 space-y-1 pt-2 border-t border-white/5">
-                  <div className="flex items-center gap-1.5 text-zinc-400">
-                    <Clock className="size-3.5 text-brand" />
-                    <span>
-                      {t("Show & Grow")}: <strong className="text-white">{s.showAndGrowDate}</strong>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-white group-hover:text-brand transition-colors truncate">
+                      {s.name}
+                    </h2>
+                    <span
+                      className={`text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded shrink-0 ${
+                        s.status === "active"
+                          ? "bg-brand/10 text-brand border border-brand/20"
+                          : s.status === "completed"
+                          ? "bg-zinc-800 text-zinc-400 border border-white/5"
+                          : "bg-zinc-800 text-zinc-300 border border-white/5"
+                      }`}
+                    >
+                      {s.status}
                     </span>
                   </div>
-
-                  {s.extendedDays > 0 && (
-                    <div className="flex items-center gap-1.5 text-emerald-400">
-                      <Calendar className="size-3.5" />
-                      <span>
-                        {t("Verlengd met {days} vakantiedagen", { days: String(s.extendedDays) })} ({s.extensionReason})
-                      </span>
-                    </div>
-                  )}
+                  <span className="text-xs text-zinc-400 font-mono block truncate mt-0.5">
+                    {s.startDate} → {s.endDate}
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openEditModal(s)}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
-                    title={t("Bewerken")}
-                  >
-                    <Edit2 className="size-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSprint(s.id)}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-all cursor-pointer"
-                    title={t("Verwijderen")}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-6 text-xs text-zinc-300 z-10">
+                <div className="flex items-center gap-1.5 text-zinc-400 pointer-events-none">
+                  <Clock className="size-3.5 text-brand shrink-0" />
+                  <span>
+                    {t("Show & Grow")}: <strong className="text-white">{s.showAndGrowDate}</strong>
+                  </span>
                 </div>
 
-                <Link
-                  href={`/minor/sprints/${s.id}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-brand hover:text-zinc-950 text-zinc-200 transition-all cursor-pointer"
-                >
-                  <span>{t("Details & Planning")}</span>
-                  <ArrowRight className="size-3.5" />
-                </Link>
+                {s.extendedDays > 0 && (
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs pointer-events-none">
+                    <Calendar className="size-3.5 shrink-0" />
+                    <span>
+                      +{s.extendedDays}d ({s.extensionReason})
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openEditModal(s);
+                    }}
+                    className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
+                    title={t("Bewerken")}
+                  >
+                    <Edit2 className="size-4" />
+                  </button>
+                  <div className="text-zinc-500 group-hover:text-brand group-hover:translate-x-0.5 transition-all pointer-events-none">
+                    <ChevronRight className="size-5" />
+                  </div>
+                </div>
               </div>
             </div>
           ))
@@ -382,21 +377,35 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                 </select>
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
-                >
-                  {t("Annuleren")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {saving ? t("Opslaan...") : t("Opslaan")}
-                </button>
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                {editingSprint ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSprint(editingSprint.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors text-xs font-medium cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>{t("Verwijderen")}</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    {t("Annuleren")}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {saving ? t("Opslaan...") : t("Opslaan")}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
