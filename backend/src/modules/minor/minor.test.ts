@@ -5,10 +5,12 @@ import { MinorService } from "./index";
 describe("MinorService", () => {
   let minor: MinorService;
   let adminId: number;
+  let testerId: number;
 
   beforeEach(async () => {
     const ids = await setupTestDb();
     adminId = ids.adminId;
+    testerId = ids.testerId;
     minor = new MinorService();
   });
 
@@ -198,31 +200,67 @@ describe("MinorService", () => {
   });
 
   it("validates learning outcomes and generates dashboard stats & warnings", () => {
-    const sprint = minor.createSprint(adminId, {
+    const sprint = minor.createSprint(testerId, {
       startDate: "2026-09-01",
       status: "active",
     });
 
     // Story with only LU 1 (less than 3 LUs, missing LU 5)
-    minor.createStory(adminId, sprint.id, {
+    minor.createStory(testerId, sprint.id, {
       title: "Klein onderdeel",
       learningOutcomes: [1],
     });
 
-    const stats = minor.getDashboardStats(adminId);
+    const stats = minor.getDashboardStats(testerId);
     expect(stats.activeSprint).not.toBeNull();
     expect(stats.activeSprintWarnings?.fewLearningOutcomes).toBe(true);
     expect(stats.activeSprintWarnings?.missingLU5).toBe(true);
     expect(stats.activeSprintWarnings?.uniqueLUsCount).toBe(1);
 
     // Record official teacher assessment for LU 1 as 'V'
-    minor.saveTeacherAssessments(sprint.id, adminId, [
+    minor.saveTeacherAssessments(sprint.id, testerId, [
       { learningOutcome: 1, assessment: "V", notes: "Goed gedaan!" },
     ]);
 
-    const updatedStats = minor.getDashboardStats(adminId);
+    const updatedStats = minor.getDashboardStats(testerId);
     expect(updatedStats.officialPasses[1]).toBe(1);
     expect(updatedStats.officialPasses[2]).toBe(0);
+
+    // If teacher updates assessment to award 'V' on LU 2, LU 1 must be reset to '-' (max 1 V per sprint)
+    const reAssessed = minor.saveTeacherAssessments(sprint.id, testerId, [
+      { learningOutcome: 2, assessment: "V", notes: "Nu LU 2 behaald" },
+    ]);
+    const lu1Assess = reAssessed.find((a) => a.learningOutcome === 1);
+    const lu2Assess = reAssessed.find((a) => a.learningOutcome === 2);
+    expect(lu1Assess?.assessment).toBe("-");
+    expect(lu2Assess?.assessment).toBe("V");
+
+    const reAssessedStats = minor.getDashboardStats(testerId);
+    expect(reAssessedStats.officialPasses[1]).toBe(0);
+    expect(reAssessedStats.officialPasses[2]).toBe(1);
+
+    // Prognosis with a new planned sprint with multiple stories covering multiple LUs:
+    // Should allocate at most 1 projected pass for the whole sprint, not per story
+    const sprint2 = minor.createSprint(testerId, {
+      startDate: "2026-09-21",
+      status: "planned",
+    });
+    minor.createStory(testerId, sprint2.id, {
+      title: "Story A",
+      learningOutcomes: [1, 2, 3],
+    });
+    minor.createStory(testerId, sprint2.id, {
+      title: "Story B",
+      learningOutcomes: [4, 5],
+    });
+
+    const progStats = minor.getDashboardStats(testerId);
+    const totalOfficial = Object.values(progStats.officialPasses).reduce((a, b) => a + b, 0);
+    const totalProjected = Object.values(progStats.projectedPasses).reduce((a, b) => a + b, 0);
+
+    // Sprint 1 has 1 official V (on LU 2), sprint 2 adds at most 1 projected V
+    expect(totalOfficial).toBe(1);
+    expect(totalProjected).toBe(2);
   });
 
   it("manages dynamic feedback rows, reflections, and peer help", () => {
