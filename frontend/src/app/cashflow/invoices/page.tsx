@@ -9,6 +9,8 @@ import type { CashflowInvoiceSummary, CashflowClient, CashflowProject } from "@/
 import { Plus, FileText, Check, Clock, AlertCircle, Pencil, Trash2, Filter, X, Eye, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { CashflowPDFButton } from "@/components/cashflow-pdf";
 
+import { parseDateString } from "@/lib/utils";
+
 type SortField = "number" | "client" | "date" | "dueDate" | "total";
 type SortOrder = "asc" | "desc";
 
@@ -19,6 +21,24 @@ function formatEuro(n: number) {
 function formatDate(ts: number | null | undefined) {
   if (!ts) return "—";
   return new Date(ts).toLocaleDateString("nl-NL");
+}
+
+function getInvoiceCreationTimestamp(inv: CashflowInvoiceSummary): number {
+  if (inv.createdAt) {
+    const t = parseDateString(inv.createdAt).getTime();
+    if (!isNaN(t)) return t;
+  }
+  return inv.id;
+}
+
+function getInvoiceYear(inv: CashflowInvoiceSummary, now: number): number {
+  if (inv.datePaid) return new Date(inv.datePaid).getFullYear();
+  if (inv.dateCreated) return new Date(inv.dateCreated).getFullYear();
+  if (inv.createdAt) {
+    const d = parseDateString(inv.createdAt);
+    if (!isNaN(d.getTime())) return d.getFullYear();
+  }
+  return new Date(now).getFullYear();
 }
 
 function SortHeaderIcon({ field, sortBy, sortOrder }: { field: SortField; sortBy: SortField; sortOrder: SortOrder }) {
@@ -169,7 +189,7 @@ export default function InvoicesPage() {
   }
 
   const yearsInInvoices = Array.from(
-    new Set(invoices.map(i => new Date(i.datePaid ?? i.dateCreated ?? now).getFullYear()))
+    new Set(invoices.map(i => getInvoiceYear(i, now)))
   ).sort((a, b) => b - a);
 
   const currentYr = new Date(now).getFullYear();
@@ -189,7 +209,7 @@ export default function InvoicesPage() {
     }
 
     if (selectedYear) {
-      const invYear = new Date(i.datePaid ?? i.dateCreated ?? now).getFullYear();
+      const invYear = getInvoiceYear(i, now);
       if (invYear !== Number(selectedYear)) return false;
     }
 
@@ -216,11 +236,11 @@ export default function InvoicesPage() {
     } else if (sortBy === "total") {
       cmp = (a.total ?? 0) - (b.total ?? 0);
     } else {
-      cmp = (a.dateCreated ?? 0) - (b.dateCreated ?? 0);
+      cmp = getInvoiceCreationTimestamp(a) - getInvoiceCreationTimestamp(b);
     }
 
     if (cmp === 0) {
-      return (b.dateCreated ?? 0) - (a.dateCreated ?? 0);
+      return b.id - a.id;
     }
 
     return sortOrder === "desc" ? -cmp : cmp;
@@ -334,8 +354,8 @@ export default function InvoicesPage() {
               }}
               className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs leading-none text-white focus:outline-none focus:border-blue-500 transition-colors"
             >
-              <option value="date-desc">{t("Datum (nieuwste eerst)")}</option>
-              <option value="date-asc">{t("Datum (oudste eerst)")}</option>
+              <option value="date-desc">{t("Aanmaakdatum (nieuwste eerst)")}</option>
+              <option value="date-asc">{t("Aanmaakdatum (oudste eerst)")}</option>
               <option value="number-desc">{t("Factuurnummer (aflopend)")}</option>
               <option value="number-asc">{t("Factuurnummer (oplopend)")}</option>
               <option value="client-asc">{t("Klant (A - Z)")}</option>

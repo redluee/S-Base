@@ -1005,6 +1005,7 @@ export interface CashflowInvoiceSummary {
   clientName: string;
   tradeNameDisplay: string | null;
   total: number;
+  createdAt: string;
 }
 
 export interface CashflowInvoiceFull extends CashflowInvoiceSummary {
