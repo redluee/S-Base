@@ -651,6 +651,7 @@ export const app = new Elysia()
         return r;
       })
       .get("/stories", ({ userId }) => minor.listAllStories(userId))
+      .post("/stories", ({ userId, body }) => minor.createStory(userId, (body as any)?.sprintId ?? null, (body ?? {}) as any))
       .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.createStory(userId, Number(id), (body ?? {}) as any))
       .put("/stories/:id", ({ params: { id }, userId, body }) => {
         const s = minor.updateStory(Number(id), userId, (body ?? {}) as any);
@@ -699,6 +700,11 @@ export const app = new Elysia()
       })
       .get("/story-types", ({ userId }) => minor.listStoryTypes(userId))
       .post("/story-types", ({ userId, body }) => minor.createStoryType(userId, (body ?? {}) as any))
+      .put("/story-types/:id", ({ params: { id }, userId, body }) => {
+        const t = minor.updateStoryType(Number(id), userId, (body ?? {}) as any);
+        if (!t) return new Response("Not Found", { status: 404 });
+        return t;
+      })
       .delete("/story-types/:id", ({ params: { id }, userId }) => {
         const r = minor.deleteStoryType(Number(id), userId);
         if (!r) return new Response("Not Found", { status: 404 });

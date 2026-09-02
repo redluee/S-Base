@@ -75,22 +75,58 @@ describe("MinorService", () => {
     expect(full?.reflection).not.toBeNull();
   });
 
-  it("manages story types (defaults + custom)", () => {
+  it("manages story types (defaults + custom with default quality criteria)", () => {
     const types = minor.listStoryTypes(adminId);
-    expect(types.some((t) => t.code === "US")).toBe(true);
-    expect(types.some((t) => t.code === "RS")).toBe(true);
-    expect(types.some((t) => t.code === "LS")).toBe(true);
+    const us = types.find((t) => t.code === "US");
+    expect(us).toBeDefined();
+    expect(us?.defaultQualityCriteria?.length).toBeGreaterThanOrEqual(1);
+    expect(us?.defaultQualityCriteria?.some((c) => c.text.includes("Definition of Done"))).toBe(true);
 
+    const rs = types.find((t) => t.code === "RS");
+    expect(rs).toBeDefined();
+    expect(rs?.defaultQualityCriteria?.length).toBeGreaterThanOrEqual(1);
+
+    // Create custom story type with default quality criteria
     const custom = minor.createStoryType(adminId, {
       code: "TS",
       name: "Tech Story",
       description: "Architectuur en tooling",
       color: "amber",
+      defaultQualityCriteria: [
+        { text: "Unit tests geschreven met >80% coverage", indent: 0 },
+        { text: "Architectuur diagram bijgewerkt", indent: 1 },
+      ],
     });
     expect(custom.code).toBe("TS");
+    expect(custom.defaultQualityCriteria?.length).toBe(2);
+    expect(custom.defaultQualityCriteria?.[1].indent).toBe(1);
 
-    const updatedTypes = minor.listStoryTypes(adminId);
-    expect(updatedTypes.some((t) => t.code === "TS")).toBe(true);
+    // Update custom story type
+    const updatedCustom = minor.updateStoryType(custom.id, adminId, {
+      name: "Technical Story",
+      defaultQualityCriteria: [
+        { text: "CI pipeline slaagt zonder warnings", indent: 0 },
+      ],
+    });
+    expect(updatedCustom?.name).toBe("Technical Story");
+    expect(updatedCustom?.defaultQualityCriteria?.length).toBe(1);
+    expect(updatedCustom?.defaultQualityCriteria?.[0].text).toBe("CI pipeline slaagt zonder warnings");
+
+    // Update default story type (e.g. US)
+    const updatedUs = minor.updateStoryType(us!.id, adminId, {
+      name: "Functionele User Story",
+      defaultQualityCriteria: [
+        { text: "Aangepast US kwaliteitscriterium 1", indent: 0 },
+      ],
+    });
+    expect(updatedUs?.name).toBe("Functionele User Story");
+    expect(updatedUs?.defaultQualityCriteria?.length).toBe(1);
+    expect(updatedUs?.defaultQualityCriteria?.[0].text).toBe("Aangepast US kwaliteitscriterium 1");
+
+    const reloadedTypes = minor.listStoryTypes(adminId);
+    const reloadedUs = reloadedTypes.find((t) => t.code === "US");
+    expect(reloadedUs?.name).toBe("Functionele User Story");
+    expect(reloadedUs?.defaultQualityCriteria?.[0].text).toBe("Aangepast US kwaliteitscriterium 1");
 
     minor.deleteStoryType(custom.id, adminId);
   });

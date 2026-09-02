@@ -129,6 +129,11 @@ export interface MinorVacation {
   createdAt: string;
 }
 
+export interface MinorDefaultQualityCriterion {
+  text: string;
+  indent?: number;
+}
+
 export interface MinorStoryType {
   id: number;
   userId: number;
@@ -137,6 +142,7 @@ export interface MinorStoryType {
   description: string | null;
   color: string | null;
   isDefault: boolean;
+  defaultQualityCriteria?: MinorDefaultQualityCriterion[];
   createdAt: string;
 }
 
@@ -161,7 +167,7 @@ export interface MinorStoryEvidence {
 
 export interface MinorStory {
   id: number;
-  sprintId: number;
+  sprintId: number | null;
   userId: number;
   storyTypeCode: string;
   storyNumber: string | null;

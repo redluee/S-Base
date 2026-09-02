@@ -26,15 +26,78 @@ import type {
   MinorReflection,
   MinorVacation,
   MinorStoryType,
+  MinorDefaultQualityCriterion,
   MinorPeerHelp,
   MinorDashboardStats,
 } from "../../types/shared";
 
-export const DEFAULT_STORY_TYPES = [
-  { code: "US", name: "User Story", description: "Standaard functionele user story", color: "#10b981", isDefault: true },
-  { code: "RS", name: "Research Story", description: "Onderzoek en analyse story", color: "#f97316", isDefault: true },
-  { code: "LS", name: "Learning Story", description: "Persoonlijk leertraject story", color: "#a855f7", isDefault: true },
+export const DEFAULT_STORY_TYPES: Array<{
+  code: string;
+  name: string;
+  description: string;
+  color: string;
+  isDefault: boolean;
+  defaultQualityCriteria: MinorDefaultQualityCriterion[];
+}> = [
+  {
+    code: "US",
+    name: "User Story",
+    description: "Standaard functionele user story",
+    color: "#10b981",
+    isDefault: true,
+    defaultQualityCriteria: [
+      { text: "Definition of Done gehaald", indent: 0 },
+      { text: "Getest volgens acceptatiecriteria", indent: 0 },
+      { text: "Code en documentatie gedocumenteerd met bewijslast", indent: 0 },
+    ],
+  },
+  {
+    code: "RS",
+    name: "Research Story",
+    description: "Onderzoek en analyse story",
+    color: "#f97316",
+    isDefault: true,
+    defaultQualityCriteria: [
+      { text: "Onderzoeksvraag en methodiek helder gedefinieerd", indent: 0 },
+      { text: "Resultaten en conclusies onderbouwd met bronnen", indent: 0 },
+      { text: "Aanbevelingen of vervolgstappen geformuleerd", indent: 0 },
+    ],
+  },
+  {
+    code: "LS",
+    name: "Learning Story",
+    description: "Persoonlijk leertraject story",
+    color: "#a855f7",
+    isDefault: true,
+    defaultQualityCriteria: [
+      { text: "Leerdoelen en leeractiviteiten geëxpliceerd", indent: 0 },
+      { text: "Reflectie op opgedane kennis en vaardigheden", indent: 0 },
+      { text: "Bewijsstukken gekoppeld aan leeruitkomsten", indent: 0 },
+    ],
+  },
 ];
+
+function parseDefaultQualityCriteria(raw: string | null | undefined): MinorDefaultQualityCriterion[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => {
+          if (typeof item === "string") return { text: item.trim(), indent: 0 };
+          if (item && typeof item === "object") {
+            return {
+              text: String(item.text || "").trim(),
+              indent: item.indent ? 1 : 0,
+            };
+          }
+          return null;
+        })
+        .filter((item): item is MinorDefaultQualityCriterion => Boolean(item && item.text));
+    }
+  } catch {}
+  return [];
+}
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -160,38 +223,174 @@ export class MinorService {
   // --- Story Types ---
 
   listStoryTypes(userId: number): MinorStoryType[] {
-    const customTypes = db.select().from(minorStoryTypes).where(eq(minorStoryTypes.userId, userId)).all();
-    const defaults: MinorStoryType[] = DEFAULT_STORY_TYPES.map((d, idx) => ({
-      id: -(idx + 1),
-      userId,
-      code: d.code,
-      name: d.name,
-      description: d.description,
-      color: d.color,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-    }));
+    const dbTypes = db.select().from(minorStoryTypes).where(eq(minorStoryTypes.userId, userId)).all();
+    const dbCodeMap = new Map<string, typeof dbTypes[0]>();
+    dbTypes.forEach((t) => dbCodeMap.set(t.code, t));
+
+    const defaults: MinorStoryType[] = DEFAULT_STORY_TYPES.map((d, idx) => {
+      const override = dbCodeMap.get(d.code);
+      if (override) {
+        return {
+          id: override.id,
+          userId: override.userId,
+          code: override.code,
+          name: override.name,
+          description: override.description,
+          color: override.color,
+          isDefault: true,
+          defaultQualityCriteria: parseDefaultQualityCriteria(override.defaultQualityCriteria),
+          createdAt: override.createdAt,
+        };
+      }
+      return {
+        id: -(idx + 1),
+        userId,
+        code: d.code,
+        name: d.name,
+        description: d.description,
+        color: d.color,
+        isDefault: true,
+        defaultQualityCriteria: d.defaultQualityCriteria,
+        createdAt: new Date().toISOString(),
+      };
+    });
+
+    const customTypes: MinorStoryType[] = dbTypes
+      .filter((t) => !DEFAULT_STORY_TYPES.some((d) => d.code === t.code))
+      .map((t) => ({
+        id: t.id,
+        userId: t.userId,
+        code: t.code,
+        name: t.name,
+        description: t.description,
+        color: t.color,
+        isDefault: Boolean(t.isDefault),
+        defaultQualityCriteria: parseDefaultQualityCriteria(t.defaultQualityCriteria),
+        createdAt: t.createdAt,
+      }));
 
     return [...defaults, ...customTypes];
   }
 
-  createStoryType(userId: number, data: { code: string; name: string; description?: string; color?: string }) {
+  createStoryType(userId: number, data: {
+    code: string;
+    name: string;
+    description?: string;
+    color?: string;
+    defaultQualityCriteria?: ({ text: string; indent?: number } | string)[];
+  }): MinorStoryType {
     if (!data.code?.trim() || !data.name?.trim()) {
       throw new Error("Code and name are required");
     }
     const cleanCode = data.code.trim().toUpperCase();
-    return db.insert(minorStoryTypes).values({
+    const criteriaJson = data.defaultQualityCriteria
+      ? JSON.stringify(
+          data.defaultQualityCriteria
+            .map((c) => (typeof c === "string" ? { text: c.trim(), indent: 0 } : { text: c.text.trim(), indent: c.indent ? 1 : 0 }))
+            .filter((c) => c.text)
+        )
+      : "[]";
+
+    const row = db.insert(minorStoryTypes).values({
       userId,
       code: cleanCode,
       name: data.name.trim(),
       description: data.description?.trim() || null,
       color: data.color || "brand",
       isDefault: false,
+      defaultQualityCriteria: criteriaJson,
     }).returning().get();
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      code: row.code,
+      name: row.name,
+      description: row.description,
+      color: row.color,
+      isDefault: Boolean(row.isDefault),
+      defaultQualityCriteria: parseDefaultQualityCriteria(row.defaultQualityCriteria),
+      createdAt: row.createdAt,
+    };
+  }
+
+  updateStoryType(id: number, userId: number, data: {
+    code?: string;
+    name?: string;
+    description?: string;
+    color?: string;
+    defaultQualityCriteria?: ({ text: string; indent?: number } | string)[];
+  }): MinorStoryType | null {
+    const criteriaJson = data.defaultQualityCriteria !== undefined
+      ? JSON.stringify(
+          data.defaultQualityCriteria
+            .map((c) => (typeof c === "string" ? { text: c.trim(), indent: 0 } : { text: c.text.trim(), indent: c.indent ? 1 : 0 }))
+            .filter((c) => c.text)
+        )
+      : undefined;
+
+    if (id <= 0) {
+      const defaultIdx = Math.abs(id) - 1;
+      const defaultDef = DEFAULT_STORY_TYPES[defaultIdx] || DEFAULT_STORY_TYPES.find((d) => d.code === data.code?.trim().toUpperCase());
+      if (!defaultDef) throw new Error("Story type not found");
+
+      const code = defaultDef.code;
+      const name = data.name?.trim() || defaultDef.name;
+      const description = data.description !== undefined ? (data.description?.trim() || null) : defaultDef.description;
+      const color = data.color || defaultDef.color;
+      const finalCriteriaJson = criteriaJson !== undefined ? criteriaJson : JSON.stringify(defaultDef.defaultQualityCriteria);
+
+      const row = db.insert(minorStoryTypes).values({
+        userId,
+        code,
+        name,
+        description,
+        color,
+        isDefault: true,
+        defaultQualityCriteria: finalCriteriaJson,
+      }).returning().get();
+
+      return {
+        id: row.id,
+        userId: row.userId,
+        code: row.code,
+        name: row.name,
+        description: row.description,
+        color: row.color,
+        isDefault: true,
+        defaultQualityCriteria: parseDefaultQualityCriteria(row.defaultQualityCriteria),
+        createdAt: row.createdAt,
+      };
+    }
+
+    const existing = db.select().from(minorStoryTypes).where(and(eq(minorStoryTypes.id, id), eq(minorStoryTypes.userId, userId))).get();
+    if (!existing) return null;
+
+    const isDefaultCode = DEFAULT_STORY_TYPES.some((d) => d.code === existing.code);
+
+    const updated = db.update(minorStoryTypes).set({
+      code: data.code && !isDefaultCode ? data.code.trim().toUpperCase() : existing.code,
+      name: data.name?.trim() ?? existing.name,
+      description: data.description !== undefined ? (data.description?.trim() || null) : existing.description,
+      color: data.color ?? existing.color,
+      defaultQualityCriteria: criteriaJson !== undefined ? criteriaJson : existing.defaultQualityCriteria,
+    }).where(eq(minorStoryTypes.id, id)).returning().get();
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      code: updated.code,
+      name: updated.name,
+      description: updated.description,
+      color: updated.color,
+      isDefault: Boolean(updated.isDefault || isDefaultCode),
+      defaultQualityCriteria: parseDefaultQualityCriteria(updated.defaultQualityCriteria),
+      createdAt: updated.createdAt,
+    };
   }
 
   deleteStoryType(id: number, userId: number) {
-    if (id <= 0) return null; // Default types cannot be deleted
+    if (id <= 0) return null; // Default virtual types cannot be deleted
     const existing = db.select().from(minorStoryTypes).where(and(eq(minorStoryTypes.id, id), eq(minorStoryTypes.userId, userId))).get();
     if (!existing) return null;
     db.delete(minorStoryTypes).where(eq(minorStoryTypes.id, id)).run();
@@ -494,7 +693,7 @@ export class MinorService {
     });
   }
 
-  createStory(userId: number, sprintId: number, data: {
+  createStory(userId: number, sprintId: number | null | undefined, data: {
     storyTypeCode?: string;
     storyNumber?: string;
     title: string;
@@ -510,14 +709,18 @@ export class MinorService {
   }): MinorStory {
     if (!data.title?.trim()) throw new Error("Story title is required");
 
-    const sprint = db.select().from(minorSprints).where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId))).get();
-    if (!sprint) throw new Error("Sprint not found");
+    let validSprintId: number | null = null;
+    if (sprintId && sprintId > 0) {
+      const sprint = db.select().from(minorSprints).where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId))).get();
+      if (!sprint) throw new Error("Sprint not found");
+      validSprintId = sprintId;
+    }
 
     const storyTypeCode = data.storyTypeCode?.trim().toUpperCase() || "US";
     const learningOutcomes = Array.isArray(data.learningOutcomes) ? data.learningOutcomes : [];
 
     const storyRow = db.insert(minorStories).values({
-      sprintId,
+      sprintId: validSprintId,
       userId,
       storyTypeCode,
       storyNumber: data.storyNumber?.trim() || null,
@@ -621,6 +824,7 @@ export class MinorService {
   }
 
   updateStory(storyId: number, userId: number, data: {
+    sprintId?: number | null;
     storyTypeCode?: string;
     storyNumber?: string;
     title?: string;
@@ -637,10 +841,22 @@ export class MinorService {
     const existing = db.select().from(minorStories).where(and(eq(minorStories.id, storyId), eq(minorStories.userId, userId))).get();
     if (!existing) return null;
 
+    let newSprintId = existing.sprintId;
+    if (data.sprintId !== undefined) {
+      if (data.sprintId === null || data.sprintId <= 0) {
+        newSprintId = null;
+      } else {
+        const sprint = db.select().from(minorSprints).where(and(eq(minorSprints.id, data.sprintId), eq(minorSprints.userId, userId))).get();
+        if (!sprint) throw new Error("Sprint not found");
+        newSprintId = data.sprintId;
+      }
+    }
+
     const storyTypeCode = data.storyTypeCode !== undefined ? data.storyTypeCode.trim().toUpperCase() : existing.storyTypeCode;
     const learningOutcomes = data.learningOutcomes !== undefined ? data.learningOutcomes : JSON.parse(existing.learningOutcomes);
 
     db.update(minorStories).set({
+      sprintId: newSprintId,
       storyTypeCode,
       storyNumber: data.storyNumber !== undefined ? (data.storyNumber?.trim() || null) : existing.storyNumber,
       title: data.title?.trim() ?? existing.title,

@@ -19,6 +19,7 @@ export const minorStoryTypes = sqliteTable("minor_story_types", {
   description: text("description"),
   color: text("color"),
   isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+  defaultQualityCriteria: text("default_quality_criteria"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -40,7 +41,7 @@ export const minorSprints = sqliteTable("minor_sprints", {
 
 export const minorStories = sqliteTable("minor_stories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  sprintId: integer("sprint_id").notNull().references(() => minorSprints.id, { onDelete: "cascade" }),
+  sprintId: integer("sprint_id").references(() => minorSprints.id, { onDelete: "set null" }),
   userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
   storyTypeCode: text("story_type_code").notNull().default("US"),
   storyNumber: text("story_number"),
