@@ -180,6 +180,9 @@ export const serverApi = {
       list: () => serverFetch<import("./api").MinorSprint[]>("/minor/sprints"),
       get: (id: number) => serverFetch<import("./api").MinorSprintFull>(`/minor/sprints/${id}`),
     },
+    stories: {
+      list: () => serverFetch<import("./api").MinorStoryWithSprint[]>("/minor/stories"),
+    },
     vacations: {
       list: () => serverFetch<import("./api").MinorVacation[]>("/minor/vacations"),
     },

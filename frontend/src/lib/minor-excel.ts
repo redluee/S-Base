@@ -37,11 +37,11 @@ function buildSprintWorksheetData(sprint: MinorSprintFull): CellValue[][] {
   } else {
     for (const story of sprint.stories) {
       const acceptanceStr = (story.criteria?.filter((c) => c.type === "acceptance") || [])
-        .map((c) => `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`)
+        .map((c) => ((c.indent ?? 0) > 0 ? `   ↳ ${c.isCompleted ? "[x]" : "[ ]"} ${c.text}` : `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`))
         .join("\n");
 
       const qualityStr = (story.criteria?.filter((c) => c.type === "quality") || [])
-        .map((c) => `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`)
+        .map((c) => ((c.indent ?? 0) > 0 ? `   ↳ ${c.isCompleted ? "[x]" : "[ ]"} ${c.text}` : `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`))
         .join("\n");
 
       const evidenceStr = (story.evidence || [])

@@ -9,6 +9,7 @@ import type {
   MinorSprint,
   MinorSprintFull,
   MinorStory,
+  MinorStoryWithSprint,
   MinorStoryCriterion,
   MinorStoryEvidence,
   MinorSelfEvaluation,
@@ -746,6 +747,7 @@ export const api = {
         delete: (id: number) => request<{ success: boolean }>(`/minor/feedback/${id}`, { method: "DELETE" }),
       },
       stories: {
+        listAll: () => request<MinorStoryWithSprint[]>("/minor/stories"),
         create: (sprintId: number, data: {
           storyTypeCode?: string;
           storyNumber?: string;
@@ -756,8 +758,8 @@ export const api = {
           learningOutcomes?: number[];
           status?: "todo" | "in_progress" | "done";
           orderIndex?: number;
-          acceptanceCriteria?: { text: string; isCompleted?: boolean }[];
-          qualityCriteria?: { text: string; isCompleted?: boolean }[];
+          acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
+          qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
           evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
         }) => request<MinorStory>(`/minor/sprints/${sprintId}/stories`, { method: "POST", body: JSON.stringify(data) }),
         update: (id: number, data: {
@@ -770,14 +772,17 @@ export const api = {
           learningOutcomes?: number[];
           status?: "todo" | "in_progress" | "done";
           orderIndex?: number;
-          acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean }[];
-          qualityCriteria?: { id?: number; text: string; isCompleted?: boolean }[];
+          acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
+          qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
           evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
         }) => request<MinorStory>(`/minor/stories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
         delete: (id: number) => request<{ success: boolean }>(`/minor/stories/${id}`, { method: "DELETE" }),
         toggleCriterion: (criterionId: number, isCompleted: boolean) =>
           request<MinorStoryCriterion>(`/minor/criteria/${criterionId}/toggle`, { method: "PATCH", body: JSON.stringify({ isCompleted }) }),
       },
+    },
+    stories: {
+      list: () => request<MinorStoryWithSprint[]>("/minor/stories"),
     },
     vacations: {
       list: () => request<MinorVacation[]>("/minor/vacations"),
@@ -821,6 +826,7 @@ export type {
   MinorSprint,
   MinorSprintFull,
   MinorStory,
+  MinorStoryWithSprint,
   MinorStoryCriterion,
   MinorStoryEvidence,
   MinorSelfEvaluation,

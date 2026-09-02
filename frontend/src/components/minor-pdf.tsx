@@ -148,6 +148,12 @@ const styles = StyleSheet.create({
     color: textDark,
     marginBottom: 1.5,
   },
+  criterionSubItem: {
+    fontSize: 7,
+    color: textMuted,
+    marginBottom: 1.5,
+    marginLeft: 8,
+  },
   evidenceItem: {
     fontSize: 7,
     color: "#0284c7",
@@ -232,11 +238,14 @@ function SprintPdfPage({ sprint }: SprintPageProps) {
                 {(story.criteria?.filter((c) => c.type === "acceptance") || []).length === 0 ? (
                   <Text style={styles.tdMuted}>Geen criteria</Text>
                 ) : (
-                  story.criteria?.filter((c) => c.type === "acceptance").map((c) => (
-                    <Text key={c.id} style={styles.criterionItem}>
-                      {c.isCompleted ? "[x]" : "[ ]"} {c.orderIndex}. {c.text}
-                    </Text>
-                  ))
+                  story.criteria?.filter((c) => c.type === "acceptance").map((c) => {
+                    const isSub = (c.indent ?? 0) > 0;
+                    return (
+                      <Text key={c.id} style={isSub ? styles.criterionSubItem : styles.criterionItem}>
+                        {isSub ? `  ↳ ${c.isCompleted ? "[x]" : "[ ]"} ${c.text}` : `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`}
+                      </Text>
+                    );
+                  })
                 )}
               </View>
 
@@ -245,11 +254,14 @@ function SprintPdfPage({ sprint }: SprintPageProps) {
                 {(story.criteria?.filter((c) => c.type === "quality") || []).length === 0 ? (
                   <Text style={styles.tdMuted}>Geen criteria</Text>
                 ) : (
-                  story.criteria?.filter((c) => c.type === "quality").map((c) => (
-                    <Text key={c.id} style={styles.criterionItem}>
-                      {c.isCompleted ? "[x]" : "[ ]"} {c.orderIndex}. {c.text}
-                    </Text>
-                  ))
+                  story.criteria?.filter((c) => c.type === "quality").map((c) => {
+                    const isSub = (c.indent ?? 0) > 0;
+                    return (
+                      <Text key={c.id} style={isSub ? styles.criterionSubItem : styles.criterionItem}>
+                        {isSub ? `  ↳ ${c.isCompleted ? "[x]" : "[ ]"} ${c.text}` : `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`}
+                      </Text>
+                    );
+                  })
                 )}
               </View>
             </View>
