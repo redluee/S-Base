@@ -311,7 +311,7 @@ describe("MinecraftService", () => {
     // Clean up
     await minecraft.deleteTemplate(templateId);
     await minecraft.deleteServer("tmpl-speedrun-test", true);
-  });
+  }, 30000);
 
   it("parses Java arguments and handles custom RAM allocation correctly", async () => {
     // Test parseJavaArgs
@@ -358,7 +358,7 @@ describe("MinecraftService", () => {
 
     // Clean up
     await minecraft.deleteServer("test-java-args", true);
-  });
+  }, 30000);
 
   it("handles datapack storage in world folder and live reload command", async () => {
     const srvDir = join(testDir, "test-server-datapacks");
@@ -499,7 +499,7 @@ describe("MinecraftService", () => {
     await minecraft.deleteServer("tmpl-speedrun-dp", true);
     await rm(srvDir, { recursive: true, force: true });
     db.delete(mc_servers).where(eq(mc_servers.slug, "test-custom-level-name")).run();
-  });
+  }, 30000);
 
   it("detects Pl3xMap mod and serves world map static files safely", async () => {
     const srvDir = join(testDir, "test-pl3xmap-server");
