@@ -8,6 +8,8 @@ export interface StoryTypeDetails {
   bgClass: string;
   textClass: string;
   borderClass: string;
+  hoverBorderClass: string;
+  hoverTextClass: string;
 }
 
 export function getStoryTypeDetails(code: string = "US", customTypes: MinorStoryType[] = []): StoryTypeDetails {
@@ -24,6 +26,8 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
       bgClass: "bg-emerald-500/15",
       textClass: "text-emerald-400",
       borderClass: "border-emerald-500/30",
+      hoverBorderClass: "hover:border-emerald-500/50",
+      hoverTextClass: "group-hover:text-emerald-400",
     };
   }
 
@@ -35,6 +39,8 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
       bgClass: "bg-orange-500/15",
       textClass: "text-orange-400",
       borderClass: "border-orange-500/30",
+      hoverBorderClass: "hover:border-orange-500/50",
+      hoverTextClass: "group-hover:text-orange-400",
     };
   }
 
@@ -46,6 +52,8 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
       bgClass: "bg-purple-500/15",
       textClass: "text-purple-400",
       borderClass: "border-purple-500/30",
+      hoverBorderClass: "hover:border-purple-500/50",
+      hoverTextClass: "group-hover:text-purple-400",
     };
   }
 
@@ -57,6 +65,8 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
       bgClass: "bg-zinc-800",
       textClass: "text-white",
       borderClass: "border-white/10",
+      hoverBorderClass: "hover:border-[var(--story-type-color)]",
+      hoverTextClass: "group-hover:text-[var(--story-type-color)]",
     };
   }
 
@@ -67,6 +77,8 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
     bgClass: "bg-zinc-800",
     textClass: "text-zinc-300",
     borderClass: "border-zinc-700",
+    hoverBorderClass: "hover:border-zinc-500/50",
+    hoverTextClass: "group-hover:text-zinc-300",
   };
 }
 

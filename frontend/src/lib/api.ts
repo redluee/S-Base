@@ -18,6 +18,7 @@ import type {
   MinorReflection,
   MinorVacation,
   MinorStoryType,
+  MinorDefaultQualityCriterion,
   MinorPeerHelp,
   MinorDashboardStats,
 } from "@backend/types/shared";
@@ -748,7 +749,7 @@ export const api = {
       },
       stories: {
         listAll: () => request<MinorStoryWithSprint[]>("/minor/stories"),
-        create: (sprintId: number, data: {
+        create: (sprintId: number | null | undefined, data: {
           storyTypeCode?: string;
           storyNumber?: string;
           title: string;
@@ -761,8 +762,12 @@ export const api = {
           acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
           qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
           evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
-        }) => request<MinorStory>(`/minor/sprints/${sprintId}/stories`, { method: "POST", body: JSON.stringify(data) }),
+        }) =>
+          sprintId
+            ? request<MinorStory>(`/minor/sprints/${sprintId}/stories`, { method: "POST", body: JSON.stringify(data) })
+            : request<MinorStory>("/minor/stories", { method: "POST", body: JSON.stringify({ ...data, sprintId: null }) }),
         update: (id: number, data: {
+          sprintId?: number | null;
           storyTypeCode?: string;
           storyNumber?: string;
           title?: string;
@@ -783,6 +788,39 @@ export const api = {
     },
     stories: {
       list: () => request<MinorStoryWithSprint[]>("/minor/stories"),
+      create: (data: {
+        sprintId?: number | null;
+        storyTypeCode?: string;
+        storyNumber?: string;
+        title: string;
+        asA?: string;
+        iWant?: string;
+        soThat?: string;
+        learningOutcomes?: number[];
+        status?: "todo" | "in_progress" | "done";
+        orderIndex?: number;
+        acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
+        qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
+        evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
+      }) => request<MinorStory>("/minor/stories", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: {
+        sprintId?: number | null;
+        storyTypeCode?: string;
+        storyNumber?: string;
+        title?: string;
+        asA?: string | null;
+        iWant?: string | null;
+        soThat?: string | null;
+        learningOutcomes?: number[];
+        status?: "todo" | "in_progress" | "done";
+        orderIndex?: number;
+        acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
+        qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
+        evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
+      }) => request<MinorStory>(`/minor/stories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      delete: (id: number) => request<{ success: boolean }>(`/minor/stories/${id}`, { method: "DELETE" }),
+      toggleCriterion: (criterionId: number, isCompleted: boolean) =>
+        request<MinorStoryCriterion>(`/minor/criteria/${criterionId}/toggle`, { method: "PATCH", body: JSON.stringify({ isCompleted }) }),
     },
     vacations: {
       list: () => request<MinorVacation[]>("/minor/vacations"),
@@ -794,8 +832,10 @@ export const api = {
     },
     storyTypes: {
       list: () => request<MinorStoryType[]>("/minor/story-types"),
-      create: (data: { code: string; name: string; description?: string; color?: string }) =>
+      create: (data: { code: string; name: string; description?: string; color?: string; defaultQualityCriteria?: ({ text: string; indent?: number } | string)[] }) =>
         request<MinorStoryType>("/minor/story-types", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: { code?: string; name?: string; description?: string; color?: string; defaultQualityCriteria?: ({ text: string; indent?: number } | string)[] }) =>
+        request<MinorStoryType>(`/minor/story-types/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ success: boolean }>(`/minor/story-types/${id}`, { method: "DELETE" }),
     },
     peerHelp: {
@@ -835,6 +875,7 @@ export type {
   MinorReflection,
   MinorVacation,
   MinorStoryType,
+  MinorDefaultQualityCriterion,
   MinorPeerHelp,
   MinorDashboardStats,
 };

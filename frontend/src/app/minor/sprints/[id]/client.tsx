@@ -20,6 +20,10 @@ import {
   Save,
   CheckCircle2,
   Upload,
+  Download,
+  Link2,
+  Unlink,
+  Search,
   CornerDownRight,
   Copy,
   Check,
@@ -27,28 +31,31 @@ import {
 import { t } from "@/lib/lang";
 import {
   api,
+  type MinorSprint,
   type MinorSprintFull,
   type MinorStory,
+  type MinorStoryWithSprint,
   type MinorStoryType,
   type MinorSelfEvaluation,
   type MinorTeacherAssessment,
 } from "@/lib/api";
 import { downloadSprintPDF } from "@/components/minor-pdf";
 import { downloadSprintExcel } from "@/lib/minor-excel";
-import { StoryTypeBadge } from "@/components/minor-story-type-badge";
+import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
 
 interface MinorSprintDetailClientProps {
   initialSprint: MinorSprintFull;
   initialStoryTypes: MinorStoryType[];
 }
 
-export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClientProps) {
+export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: MinorSprintDetailClientProps) {
   const [sprint, setSprint] = useState<MinorSprintFull>(initialSprint);
   const [activeTab, setActiveTab] = useState<"planning" | "feedback" | "self_eval" | "reflection">("planning");
-  const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>([]);
+  const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
 
-  // Story Modal State
+  // Story Modal & View State
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [viewingStoryId, setViewingStoryId] = useState<number | null>(null);
   const [editingStory, setEditingStory] = useState<MinorStory | null>(null);
   const [storyTypeCode, setStoryTypeCode] = useState("US");
   const [storyNumber, setStoryNumber] = useState("");
@@ -65,6 +72,22 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
   const [savingStory, setSavingStory] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [copiedExport, setCopiedExport] = useState(false);
+
+  // Story Unlink / Move Modal State
+  const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
+  const [storyToUnlink, setStoryToUnlink] = useState<MinorStory | null>(null);
+  const [targetSprintIdForUnlink, setTargetSprintIdForUnlink] = useState<string>("");
+  const [allSprints, setAllSprints] = useState<MinorSprint[]>([]);
+  const [unlinkingStory, setUnlinkingStory] = useState(false);
+
+  const viewingStory = sprint.stories.find((s) => s.id === viewingStoryId) || null;
+
+  // Link Concept Story Modal State
+  const [isLinkStoryModalOpen, setIsLinkStoryModalOpen] = useState(false);
+  const [availableConceptStories, setAvailableConceptStories] = useState<MinorStoryWithSprint[]>([]);
+  const [loadingConceptStories, setLoadingConceptStories] = useState(false);
+  const [linkingStoryId, setLinkingStoryId] = useState<number | null>(null);
+  const [linkSearchQuery, setLinkSearchQuery] = useState("");
 
   // Story Import Modal State
   const [isImportStoryModalOpen, setIsImportStoryModalOpen] = useState(false);
@@ -98,7 +121,20 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
 
   useEffect(() => {
     api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
+    api.minor.sprints.list().then(setAllSprints).catch(() => {});
   }, []);
+
+  function getDefaultQualityCriteriaForType(code: string, customTypes: MinorStoryType[] = storyTypes) {
+    const found = customTypes.find((t) => t.code.toUpperCase() === code.toUpperCase());
+    if (found && found.defaultQualityCriteria && found.defaultQualityCriteria.length > 0) {
+      return found.defaultQualityCriteria.map((c) => ({
+        text: c.text,
+        isCompleted: false,
+        indent: c.indent || 0,
+      }));
+    }
+    return [{ text: "", isCompleted: false, indent: 0 }];
+  }
 
   async function reloadSprint() {
     try {
@@ -129,7 +165,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
     setSelectedLUs([1, 2]);
     setStoryStatus("todo");
     setAcceptanceCriteria([{ text: "", isCompleted: false, indent: 0 }]);
-    setQualityCriteria([{ text: "", isCompleted: false, indent: 0 }]);
+    setQualityCriteria(getDefaultQualityCriteriaForType("US"));
     setEvidenceList([]);
     setIsStoryModalOpen(true);
   }
@@ -213,11 +249,95 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
   async function handleDeleteStory(storyId: number) {
     if (!confirm(t("Weet je zeker dat je deze story wilt verwijderen?"))) return;
     try {
-      await api.minor.sprints.stories.delete(storyId);
+      await api.minor.stories.delete(storyId);
       await reloadSprint();
       setIsStoryModalOpen(false);
+      setViewingStoryId(null);
     } catch (err) {
       console.error("Failed to delete story:", err);
+    }
+  }
+
+  async function openLinkStoryModal() {
+    setIsLinkStoryModalOpen(true);
+    setLoadingConceptStories(true);
+    setLinkSearchQuery("");
+    try {
+      const all = await api.minor.stories.list();
+      // Unassigned stories (sprintId is null or != current sprint id)
+      const unassigned = all.filter((s) => !s.sprintId);
+      setAvailableConceptStories(unassigned);
+    } catch (err) {
+      console.error("Failed to load concept stories:", err);
+    } finally {
+      setLoadingConceptStories(false);
+    }
+  }
+
+  async function handleLinkStory(storyId: number) {
+    setLinkingStoryId(storyId);
+    try {
+      await api.minor.stories.update(storyId, { sprintId: sprint.id });
+      await reloadSprint();
+      setAvailableConceptStories((prev) => prev.filter((s) => s.id !== storyId));
+      setIsLinkStoryModalOpen(false);
+    } catch (err) {
+      console.error("Failed to link story:", err);
+    } finally {
+      setLinkingStoryId(null);
+    }
+  }
+
+  function openUnlinkStoryModal(st: MinorStory) {
+    setStoryToUnlink(st);
+    setTargetSprintIdForUnlink("");
+    setIsUnlinkModalOpen(true);
+  }
+
+  async function handleConfirmUnlinkOrMove() {
+    if (!storyToUnlink) return;
+    setUnlinkingStory(true);
+    try {
+      const targetSprintId = targetSprintIdForUnlink ? Number(targetSprintIdForUnlink) : null;
+      await api.minor.stories.update(storyToUnlink.id, { sprintId: targetSprintId });
+      setIsUnlinkModalOpen(false);
+      setStoryToUnlink(null);
+      setViewingStoryId(null);
+      await reloadSprint();
+    } catch (err) {
+      console.error("Failed to unlink or move story:", err);
+    } finally {
+      setUnlinkingStory(false);
+    }
+  }
+
+  function handleExportStoryDirect(st: MinorStory) {
+    const payload = {
+      storyTypeCode: st.storyTypeCode,
+      storyNumber: st.storyNumber || undefined,
+      title: st.title,
+      asA: st.asA || undefined,
+      iWant: st.iWant || undefined,
+      soThat: st.soThat || undefined,
+      learningOutcomes: st.learningOutcomes,
+      status: st.status,
+      acceptanceCriteria: st.criteria
+        ?.filter((c) => c.type === "acceptance")
+        .map((c) => ({ text: c.text, isCompleted: c.isCompleted, indent: c.indent || 0 })) || [],
+      qualityCriteria: st.criteria
+        ?.filter((c) => c.type === "quality")
+        .map((c) => ({ text: c.text, isCompleted: c.isCompleted, indent: c.indent || 0 })) || [],
+      evidence: st.evidence?.map((e) => ({ type: e.type, title: e.title, url: e.url })) || [],
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(json).then(() => {
+        setCopiedExport(true);
+        setTimeout(() => setCopiedExport(false), 2000);
+      }).catch((err) => {
+        console.error("Clipboard write failed:", err);
+      });
     }
   }
 
@@ -694,6 +814,15 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={openLinkStoryModal}
+                title={t("Bestaande concept story koppelen")}
+                aria-label={t("Bestaande concept story koppelen")}
+                className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center justify-center"
+              >
+                <Link2 className="size-3.5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   setImportJsonText("");
                   setImportError(null);
@@ -703,7 +832,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                 aria-label={t("Story importeren (JSON)")}
                 className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center justify-center"
               >
-                <Upload className="size-3.5" />
+                <Download className="size-3.5" />
               </button>
               <button
                 onClick={openCreateStoryModal}
@@ -722,6 +851,15 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
               <div className="flex items-center justify-center gap-2">
                 <button
                   type="button"
+                  onClick={openLinkStoryModal}
+                  title={t("Bestaande concept story koppelen")}
+                  aria-label={t("Bestaande concept story koppelen")}
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer flex items-center justify-center"
+                >
+                  <Link2 className="size-3.5" />
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setImportJsonText("");
                     setImportError(null);
@@ -731,7 +869,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                   aria-label={t("Story importeren (JSON)")}
                   className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer flex items-center justify-center"
                 >
-                  <Upload className="size-3.5" />
+                  <Download className="size-3.5" />
                 </button>
                 <button
                   onClick={openCreateStoryModal}
@@ -741,38 +879,63 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {sprint.stories.map((st) => (
-                <div
-                  key={st.id}
-                  className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-white/20 transition-all space-y-4"
-                >
-                  {/* Story Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
+          ) : (            <div className="space-y-2.5">
+              {sprint.stories.map((st) => {
+                const totalCriteria = st.criteria?.length || 0;
+                const completedCriteria = st.criteria?.filter((c) => c.isCompleted).length || 0;
+                const typeDetails = getStoryTypeDetails(st.storyTypeCode, storyTypes);
+
+                return (
+                  <div
+                    key={st.id}
+                    onClick={() => setViewingStoryId(st.id)}
+                    style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
+                    className={`p-3.5 sm:p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/50 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-wrap sm:flex-nowrap">
                       <StoryTypeBadge code={st.storyTypeCode} storyTypes={storyTypes} showName size="sm" />
                       {st.storyNumber && (
-                        <span className="text-xs font-mono font-semibold text-zinc-400">
+                        <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950 px-2 py-0.5 rounded border border-white/5 shrink-0">
                           {st.storyNumber}
                         </span>
                       )}
-                      <h3 className="text-sm font-bold text-white tracking-tight">
+                      <h3 className={`text-sm font-semibold text-white tracking-tight truncate ${typeDetails.hoverTextClass} transition-colors`}>
                         {st.title}
                       </h3>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        {st.learningOutcomes.map((lu) => (
-                          <span
-                            key={lu}
-                            className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5"
-                          >
-                            LU {lu}
+                    <div
+                      className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap sm:flex-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {st.learningOutcomes && st.learningOutcomes.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {st.learningOutcomes.map((lu) => (
+                            <span
+                              key={lu}
+                              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-white/5"
+                            >
+                              LU {lu}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {totalCriteria > 0 && (
+                        <div
+                          className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${
+                            completedCriteria === totalCriteria
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-zinc-950 text-zinc-400 border-white/5"
+                          }`}
+                          title={`${completedCriteria} van ${totalCriteria} criteria voltooid`}
+                        >
+                          <CheckSquare className="size-3 shrink-0" />
+                          <span>
+                            {completedCriteria}/{totalCriteria}
                           </span>
-                        ))}
-                      </div>
+                        </div>
+                      )}
 
                       <select
                         value={st.status}
@@ -803,132 +966,8 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                       </button>
                     </div>
                   </div>
-
-                  {/* Template description: Als / Wil ik / Zodat */}
-                  {(st.asA || st.iWant || st.soThat) && (
-                    <div className="p-3 rounded-xl bg-zinc-950/60 border border-white/5 text-xs text-zinc-300 space-y-0.5">
-                      <p>
-                        <span className="text-zinc-500 font-semibold">{t("Als [rol]")}: </span>
-                        {st.asA || "-"}
-                      </p>
-                      <p>
-                        <span className="text-zinc-500 font-semibold">{t("wil ik [wens]")}: </span>
-                        {st.iWant || "-"}
-                      </p>
-                      <p>
-                        <span className="text-zinc-500 font-semibold">{t("zodat [doel]")}: </span>
-                        {st.soThat || "-"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Criteria Stacked: Acceptatiecriteria & Kwaliteitscriteria */}
-                  <div className="space-y-3 pt-1">
-                    {/* Acceptatiecriteria */}
-                    <div className="p-3.5 rounded-xl bg-zinc-950/40 border border-white/5 space-y-2">
-                      <h4 className="text-xs font-bold text-zinc-200">
-                        {t("Acceptatiecriteria")}
-                      </h4>
-                      {st.criteria?.filter((c) => c.type === "acceptance").length === 0 ? (
-                        <p className="text-[11px] text-zinc-500 italic">{t("Geen criteria opgegeven.")}</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {st.criteria
-                            ?.filter((c) => c.type === "acceptance")
-                            .map((crit) => {
-                              const isSubtask = (crit.indent ?? 0) > 0;
-                              return (
-                                <button
-                                  key={crit.id}
-                                  onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
-                                  className={`flex items-start gap-2 text-left w-full text-xs text-zinc-300 hover:text-white group cursor-pointer transition-colors ${
-                                    isSubtask ? "pl-5 border-l-2 border-white/10 ml-2" : ""
-                                  }`}
-                                >
-                                  {crit.isCompleted ? (
-                                    <CheckSquare className="size-3.5 text-brand shrink-0 mt-0.5" />
-                                  ) : (
-                                    <Square className="size-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
-                                  )}
-                                  <span className={crit.isCompleted ? "line-through text-zinc-500" : ""}>
-                                    {isSubtask ? (
-                                      <span className="text-zinc-500 mr-1 font-mono text-[11px]">↳</span>
-                                    ) : (
-                                      <span className="text-zinc-400 mr-1 font-medium">{crit.orderIndex}.</span>
-                                    )}
-                                    {crit.text}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Kwaliteitscriteria */}
-                    <div className="p-3.5 rounded-xl bg-zinc-950/40 border border-white/5 space-y-2">
-                      <h4 className="text-xs font-bold text-zinc-200">
-                        {t("Kwaliteitscriteria")}
-                      </h4>
-                      {st.criteria?.filter((c) => c.type === "quality").length === 0 ? (
-                        <p className="text-[11px] text-zinc-500 italic">{t("Geen criteria opgegeven.")}</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {st.criteria
-                            ?.filter((c) => c.type === "quality")
-                            .map((crit) => {
-                              const isSubtask = (crit.indent ?? 0) > 0;
-                              return (
-                                <button
-                                  key={crit.id}
-                                  onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
-                                  className={`flex items-start gap-2 text-left w-full text-xs text-zinc-300 hover:text-white group cursor-pointer transition-colors ${
-                                    isSubtask ? "pl-5 border-l-2 border-white/10 ml-2" : ""
-                                  }`}
-                                >
-                                  {crit.isCompleted ? (
-                                    <CheckSquare className="size-3.5 text-brand shrink-0 mt-0.5" />
-                                  ) : (
-                                    <Square className="size-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
-                                  )}
-                                  <span className={crit.isCompleted ? "line-through text-zinc-500" : ""}>
-                                    {isSubtask ? (
-                                      <span className="text-zinc-500 mr-1 font-mono text-[11px]">↳</span>
-                                    ) : (
-                                      <span className="text-zinc-400 mr-1 font-medium">{crit.orderIndex}.</span>
-                                    )}
-                                    {crit.text}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* External Evidence Links */}
-                  {st.evidence && st.evidence.length > 0 && (
-                    <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-2">
-                      <span className="text-[11px] text-zinc-500 font-semibold">{t("Bewijslast")}:</span>
-                      {st.evidence.map((ev) => (
-                        <a
-                          key={ev.id}
-                          href={ev.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-950/80 border border-white/10 text-sky-400 hover:text-sky-300 hover:border-sky-500/40 text-[11px] transition-all cursor-pointer"
-                        >
-                          <ExternalLink className="size-3" />
-                          <span>
-                            ({ev.type}) {ev.title}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1280,35 +1319,341 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
         </form>
       )}
 
+      {/* Story View Modal */}
+      {viewingStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl my-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <StoryTypeBadge code={viewingStory.storyTypeCode} storyTypes={storyTypes} showName size="md" />
+                {viewingStory.storyNumber && (
+                  <span className="text-xs sm:text-sm font-mono font-bold text-zinc-300 bg-zinc-950 px-2.5 py-1 rounded-lg border border-white/5">
+                    {viewingStory.storyNumber}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setViewingStoryId(null)}
+                  className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                  aria-label={t("Sluiten")}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-5 text-sm">
+              {/* Header Title & Status */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="space-y-1">
+                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                    {viewingStory.title}
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    {storyTypes.find((t) => t.code === viewingStory.storyTypeCode)?.name || viewingStory.storyTypeCode}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-zinc-400 text-xs font-medium">{t("Status")}:</span>
+                  <select
+                    value={viewingStory.status}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value as "todo" | "in_progress" | "done";
+                      await api.minor.sprints.stories.update(viewingStory.id, { status: newStatus });
+                      await reloadSprint();
+                    }}
+                    className={`text-xs font-semibold uppercase px-3 py-1.5 rounded-lg border cursor-pointer ${
+                      viewingStory.status === "done"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                        : viewingStory.status === "in_progress"
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                        : "bg-zinc-900 border-white/10 text-zinc-300"
+                    }`}
+                  >
+                    <option value="todo">{t("To Do")}</option>
+                    <option value="in_progress">{t("Bezig")}</option>
+                    <option value="done">{t("Voltooid")}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Template: Als / Wil ik / Zodat */}
+              {(viewingStory.asA || viewingStory.iWant || viewingStory.soThat) && (
+                <div className="space-y-2.5 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
+                  <div className="flex items-center gap-2 font-bold text-zinc-200 text-sm">
+                    <Sparkles className="size-4 text-brand" />
+                    <span>{t("User Story Template")}</span>
+                  </div>
+                  <div className="space-y-2 text-sm text-zinc-200 leading-relaxed">
+                    <p className="break-words">
+                      <span className="text-zinc-400 font-semibold">{t("Als [rol]")}: </span>
+                      {viewingStory.asA || "-"}
+                    </p>
+                    <p className="break-words">
+                      <span className="text-zinc-400 font-semibold">{t("wil ik [wens]")}: </span>
+                      {viewingStory.iWant || "-"}
+                    </p>
+                    <p className="break-words">
+                      <span className="text-zinc-400 font-semibold">{t("zodat [doel]")}: </span>
+                      {viewingStory.soThat || "-"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Learning Outcomes */}
+              {viewingStory.learningOutcomes?.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                    {t("Gekoppelde Leeruitkomsten")}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingStory.learningOutcomes.map((lu) => (
+                      <span
+                        key={lu}
+                        className="px-3 py-1.5 rounded-lg border border-brand/30 bg-brand/10 text-brand text-xs sm:text-sm font-semibold flex items-center gap-2"
+                      >
+                        <CheckSquare className="size-4" />
+                        <span>LU {lu}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Criteria Checklists Stacked (Acceptance & Quality) */}
+              <div className="space-y-4">
+                {/* Acceptance criteria */}
+                <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-zinc-100 text-sm">{t("Acceptatiecriteria")}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono font-medium">
+                      {viewingStory.criteria?.filter((c) => c.type === "acceptance" && c.isCompleted).length || 0}
+                      /
+                      {viewingStory.criteria?.filter((c) => c.type === "acceptance").length || 0}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-72 overflow-y-auto overflow-x-hidden pr-2">
+                    {viewingStory.criteria?.filter((c) => c.type === "acceptance").length === 0 ? (
+                      <p className="text-sm text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
+                    ) : (
+                      viewingStory.criteria
+                        ?.filter((c) => c.type === "acceptance")
+                        .map((crit) => {
+                          const isSub = (crit.indent ?? 0) > 0;
+                          return (
+                            <button
+                              key={crit.id}
+                              type="button"
+                              onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
+                              className={`flex items-start gap-2.5 text-left w-full text-sm text-zinc-300 hover:text-white group cursor-pointer transition-colors py-0.5 ${
+                                isSub ? "pl-4 sm:pl-6 border-l-2 border-brand/40 ml-2" : ""
+                              }`}
+                            >
+                              {crit.isCompleted ? (
+                                <CheckSquare className="size-4.5 text-brand shrink-0 mt-0.5" />
+                              ) : (
+                                <Square className="size-4.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
+                              )}
+                              <span className={`flex-1 min-w-0 break-words leading-relaxed ${crit.isCompleted ? "line-through text-zinc-500" : ""}`}>
+                                {isSub ? (
+                                  <span className="text-zinc-500 mr-1.5 font-mono text-xs">↳</span>
+                                ) : (
+                                  <span className="text-zinc-400 mr-1.5 font-medium">{crit.orderIndex}.</span>
+                                )}
+                                {crit.text}
+                              </span>
+                            </button>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+
+                {/* Quality criteria */}
+                <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-zinc-100 text-sm">{t("Kwaliteitscriteria")}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono font-medium">
+                      {viewingStory.criteria?.filter((c) => c.type === "quality" && c.isCompleted).length || 0}
+                      /
+                      {viewingStory.criteria?.filter((c) => c.type === "quality").length || 0}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-72 overflow-y-auto overflow-x-hidden pr-2">
+                    {viewingStory.criteria?.filter((c) => c.type === "quality").length === 0 ? (
+                      <p className="text-sm text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
+                    ) : (
+                      viewingStory.criteria
+                        ?.filter((c) => c.type === "quality")
+                        .map((crit) => {
+                          const isSub = (crit.indent ?? 0) > 0;
+                          return (
+                            <button
+                              key={crit.id}
+                              type="button"
+                              onClick={() => handleToggleCriterion(crit.id, crit.isCompleted)}
+                              className={`flex items-start gap-2.5 text-left w-full text-sm text-zinc-300 hover:text-white group cursor-pointer transition-colors py-0.5 ${
+                                isSub ? "pl-4 sm:pl-6 border-l-2 border-brand/40 ml-2" : ""
+                              }`}
+                            >
+                              {crit.isCompleted ? (
+                                <CheckSquare className="size-4.5 text-brand shrink-0 mt-0.5" />
+                              ) : (
+                                <Square className="size-4.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5" />
+                              )}
+                              <span className={`flex-1 min-w-0 break-words leading-relaxed ${crit.isCompleted ? "line-through text-zinc-500" : ""}`}>
+                                {isSub ? (
+                                  <span className="text-zinc-500 mr-1.5 font-mono text-xs">↳</span>
+                                ) : (
+                                  <span className="text-zinc-400 mr-1.5 font-medium">{crit.orderIndex}.</span>
+                                )}
+                                {crit.text}
+                              </span>
+                            </button>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bewijslast */}
+              {viewingStory.evidence && viewingStory.evidence.length > 0 && (
+                <div className="space-y-2.5 p-4 rounded-xl bg-zinc-950 border border-white/5">
+                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijslast")}</span>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {viewingStory.evidence.map((ev) => (
+                      <a
+                        key={ev.id}
+                        href={ev.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-zinc-900 border border-white/10 text-sky-400 hover:text-sky-300 hover:border-sky-500/40 text-xs sm:text-sm font-medium transition-all cursor-pointer"
+                      >
+                        <ExternalLink className="size-3.5 shrink-0" />
+                        <span className="break-all">
+                          ({ev.type}) {ev.title}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteStory(viewingStory.id)}
+                    className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                    title={t("Verwijderen")}
+                    aria-label={t("Verwijderen")}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openUnlinkStoryModal(viewingStory)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors text-xs sm:text-sm font-medium cursor-pointer"
+                    title={t("Ontkoppel of verplaats story")}
+                  >
+                    <Unlink className="size-4" />
+                    <span>{t("Loskoppelen")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportStoryDirect(viewingStory)}
+                    className="flex items-center justify-center p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    title={t("Exporteer story als JSON naar klembord")}
+                    aria-label={t("Exporteer story als JSON naar klembord")}
+                  >
+                    {copiedExport ? <Check className="size-4 text-brand" /> : <Upload className="size-4" />}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewingStoryId(null)}
+                    className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs sm:text-sm cursor-pointer"
+                  >
+                    {t("Sluiten")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const stToEdit = viewingStory;
+                      setViewingStoryId(null);
+                      openEditStoryModal(stToEdit);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer shadow-sm"
+                  >
+                    <Edit3 className="size-4" />
+                    <span>{t("Story Bewerken")}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Story Create / Edit Modal */}
       {isStoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl my-8">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl my-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="size-4 text-brand" />
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Sparkles className="size-4.5 text-brand" />
                 <span>{editingStory ? t("Story Bewerken") : t("Nieuwe Story Aanmaken")}</span>
               </h2>
               <button
                 onClick={() => setIsStoryModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveStory} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveStory} className="space-y-5 text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-zinc-400 mb-1">{t("Story Type")}</label>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Story Type")}</label>
                   <select
                     value={storyTypeCode}
-                    onChange={(e) => setStoryTypeCode(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
+                    onChange={(e) => {
+                      const newCode = e.target.value;
+                      const oldCode = storyTypeCode;
+                      setStoryTypeCode(newCode);
+
+                      if (!editingStory) {
+                        if (storyNumber.startsWith(oldCode)) {
+                          setStoryNumber(storyNumber.replace(oldCode, newCode));
+                        }
+
+                        const prevDefaults = getDefaultQualityCriteriaForType(oldCode);
+                        const isUntouchedOrEmpty =
+                          qualityCriteria.length === 0 ||
+                          (qualityCriteria.length === 1 && !qualityCriteria[0].text.trim()) ||
+                          JSON.stringify(qualityCriteria.map((c) => ({ text: c.text.trim(), indent: c.indent || 0 }))) ===
+                            JSON.stringify(prevDefaults.map((c) => ({ text: c.text.trim(), indent: c.indent || 0 })));
+
+                        if (isUntouchedOrEmpty) {
+                          setQualityCriteria(getDefaultQualityCriteriaForType(newCode));
+                        }
+                      }
+                    }}
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand cursor-pointer"
                   >
-                    <option value="US">{t("US - User Story (Groen)")}</option>
-                    <option value="RS">{t("RS - Research Story (Oranje)")}</option>
-                    <option value="LS">{t("LS - Learning Story (Paars)")}</option>
+                    <option value="US">{t("US - User Story")}</option>
+                    <option value="RS">{t("RS - Research Story")}</option>
+                    <option value="LS">{t("LS - Learning Story")}</option>
                     {storyTypes
                       .filter((t) => !["US", "RS", "LS"].includes(t.code))
                       .map((t) => (
@@ -1319,63 +1664,63 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                   </select>
                 </div>
                 <div>
-                  <label className="block text-zinc-400 mb-1">{t("Story nummer")}</label>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Story nummer")}</label>
                   <input
                     type="text"
                     placeholder="bijv. US 1.1"
                     value={storyNumber}
                     onChange={(e) => setStoryNumber(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-brand"
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-brand"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 mb-1">{t("Titel")}</label>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Titel")}</label>
                   <input
                     type="text"
                     placeholder="Korte omschrijving"
                     value={storyTitle}
                     onChange={(e) => setStoryTitle(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
                     required
                   />
                 </div>
               </div>
 
               {/* Template fields: Als / Wil ik / Zodat */}
-              <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
-                <div className="flex items-center gap-2 font-bold text-zinc-200">
+              <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="flex items-center gap-2 font-bold text-zinc-200 text-sm">
                   <Sparkles className="size-4 text-brand" />
                   <span>{t("User Story Template")}</span>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div>
-                    <label className="block text-zinc-500 text-[11px] mb-0.5">{t("Als [rol]")}</label>
+                    <label className="block text-zinc-400 text-xs font-medium mb-1">{t("Als [rol]")}</label>
                     <input
                       type="text"
                       placeholder="bijv. beheerder, gebruiker..."
                       value={asA}
                       onChange={(e) => setAsA(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
                     />
                   </div>
                   <div>
-                    <label className="block text-zinc-500 text-[11px] mb-0.5">{t("Wil ik [wens]")}</label>
+                    <label className="block text-zinc-400 text-xs font-medium mb-1">{t("Wil ik [wens]")}</label>
                     <input
                       type="text"
                       placeholder="bijv. kunnen inloggen met wachtwoord..."
                       value={iWant}
                       onChange={(e) => setIWant(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
                     />
                   </div>
                   <div>
-                    <label className="block text-zinc-500 text-[11px] mb-0.5">{t("Zodat [doel]")}</label>
+                    <label className="block text-zinc-400 text-xs font-medium mb-1">{t("Zodat [doel]")}</label>
                     <input
                       type="text"
                       placeholder="bijv. alleen geautoriseerde personen toegang hebben..."
                       value={soThat}
                       onChange={(e) => setSoThat(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
                     />
                   </div>
                 </div>
@@ -1383,7 +1728,9 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
 
               {/* Learning Outcomes multi-select */}
               <div>
-                <label className="block text-zinc-400 mb-2">{t("Gekoppelde Leeruitkomsten (1 t/m 5)")}</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                  {t("Gekoppelde Leeruitkomsten (1 t/m 5)")}
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {[1, 2, 3, 4, 5].map((lu) => {
                     const isChecked = selectedLUs.includes(lu);
@@ -1396,13 +1743,13 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                             isChecked ? prev.filter((x) => x !== lu) : [...prev, lu].sort((a, b) => a - b)
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                        className={`px-3 py-1.5 rounded-lg border text-xs sm:text-sm font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
                           isChecked
                             ? "bg-brand/15 border-brand/40 text-brand"
                             : "bg-zinc-950 border-white/10 text-zinc-400 hover:text-white"
                         }`}
                       >
-                        {isChecked ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
+                        {isChecked ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
                         <span>LU {lu}</span>
                       </button>
                     );
@@ -1412,11 +1759,11 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
 
               {/* Status */}
               <div>
-                <label className="block text-zinc-400 mb-1">{t("Status")}</label>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Status")}</label>
                 <select
                   value={storyStatus}
                   onChange={(e) => setStoryStatus(e.target.value as "todo" | "in_progress" | "done")}
-                  className="w-full sm:w-48 bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
+                  className="w-full sm:w-56 bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand cursor-pointer"
                 >
                   <option value="todo">{t("To Do")}</option>
                   <option value="in_progress">{t("Bezig")}</option>
@@ -1427,39 +1774,39 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
               {/* Criteria Checklists Stacked (Acceptance & Quality) */}
               <div className="space-y-4">
                 {/* Acceptance criteria */}
-                <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-zinc-200 text-sm">{t("Acceptatiecriteria")}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono">
+                      <span className="font-bold text-zinc-100 text-sm">{t("Acceptatiecriteria")}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono font-medium">
                         {acceptanceCriteria.length}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => addAcceptanceCriterion(0)}
-                        className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                        className="text-brand hover:underline flex items-center gap-1 text-xs sm:text-sm font-medium cursor-pointer"
                       >
-                        <Plus className="size-3.5" />
+                        <Plus className="size-4" />
                         <span>{t("Criterium")}</span>
                       </button>
                       <span className="text-zinc-700">|</span>
                       <button
                         type="button"
                         onClick={() => addAcceptanceCriterion(1)}
-                        className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                        className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs sm:text-sm font-medium cursor-pointer"
                         title={t("Subtaak toevoegen")}
                       >
-                        <CornerDownRight className="size-3" />
+                        <CornerDownRight className="size-3.5" />
                         <span>{t("Subtaak")}</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-72 overflow-y-auto overflow-x-hidden pr-2">
                     {acceptanceCriteria.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
+                      <p className="text-sm text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
                     ) : (
                       acceptanceCriteria.map((c, idx) => {
                         const isSub = (c.indent ?? 0) > 0;
@@ -1467,10 +1814,10 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                           <div
                             key={idx}
                             className={`flex items-center gap-2 ${
-                              isSub ? "pl-5 sm:pl-7 border-l-2 border-brand/30 ml-2" : ""
+                              isSub ? "pl-4 sm:pl-6 border-l-2 border-brand/40 ml-2" : ""
                             }`}
                           >
-                            <span className="text-zinc-500 font-mono text-xs w-4 shrink-0 text-center">
+                            <span className="text-zinc-500 font-mono text-xs w-5 shrink-0 text-center">
                               {isSub ? "↳" : `${idx + 1}.`}
                             </span>
                             <input
@@ -1489,7 +1836,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                                 );
                               }}
                               placeholder={isSub ? "Subtaak omschrijving..." : "Criterium omschrijving..."}
-                              className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
+                              className="flex-1 min-w-0 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
                             />
                             <button
                               type="button"
@@ -1499,18 +1846,18 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                                 );
                               }}
                               title={isSub ? t("Terugspringen naar hoofdtaak") : t("Inspringen als subtaak")}
-                              className={`p-1.5 rounded transition-colors cursor-pointer ${
+                              className={`p-2 rounded transition-colors cursor-pointer shrink-0 ${
                                 isSub
                                   ? "text-brand bg-brand/10 hover:bg-brand/20"
                                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
                               }`}
                             >
-                              <CornerDownRight className="size-3.5" />
+                              <CornerDownRight className="size-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => setAcceptanceCriteria((prev) => prev.filter((_, i) => i !== idx))}
-                              className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                              className="text-zinc-500 hover:text-red-400 p-2 rounded hover:bg-white/5 transition-colors cursor-pointer shrink-0"
                               title={t("Verwijderen")}
                             >
                               ✕
@@ -1523,39 +1870,47 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                 </div>
 
                 {/* Quality criteria */}
-                <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-zinc-200 text-sm">{t("Kwaliteitscriteria")}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono">
+                      <span className="font-bold text-zinc-100 text-sm">{t("Kwaliteitscriteria")}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono font-medium">
                         {qualityCriteria.length}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setQualityCriteria(getDefaultQualityCriteriaForType(storyTypeCode))}
+                        className="text-xs text-zinc-400 hover:text-brand hover:underline transition-colors cursor-pointer mr-1"
+                        title={t("Herlaad de standaard kwaliteitscriteria voor dit story type")}
+                      >
+                        {t("Standaard herladen")}
+                      </button>
                       <button
                         type="button"
                         onClick={() => addQualityCriterion(0)}
-                        className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                        className="text-brand hover:underline flex items-center gap-1 text-xs sm:text-sm font-medium cursor-pointer"
                       >
-                        <Plus className="size-3.5" />
+                        <Plus className="size-4" />
                         <span>{t("Criterium")}</span>
                       </button>
                       <span className="text-zinc-700">|</span>
                       <button
                         type="button"
                         onClick={() => addQualityCriterion(1)}
-                        className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                        className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs sm:text-sm font-medium cursor-pointer"
                         title={t("Subtaak toevoegen")}
                       >
-                        <CornerDownRight className="size-3" />
+                        <CornerDownRight className="size-3.5" />
                         <span>{t("Subtaak")}</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-72 overflow-y-auto overflow-x-hidden pr-2">
                     {qualityCriteria.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
+                      <p className="text-sm text-zinc-500 italic py-1">{t("Geen criteria opgegeven.")}</p>
                     ) : (
                       qualityCriteria.map((c, idx) => {
                         const isSub = (c.indent ?? 0) > 0;
@@ -1563,10 +1918,10 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                           <div
                             key={idx}
                             className={`flex items-center gap-2 ${
-                              isSub ? "pl-5 sm:pl-7 border-l-2 border-brand/30 ml-2" : ""
+                              isSub ? "pl-4 sm:pl-6 border-l-2 border-brand/40 ml-2" : ""
                             }`}
                           >
-                            <span className="text-zinc-500 font-mono text-xs w-4 shrink-0 text-center">
+                            <span className="text-zinc-500 font-mono text-xs w-5 shrink-0 text-center">
                               {isSub ? "↳" : `${idx + 1}.`}
                             </span>
                             <input
@@ -1585,7 +1940,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                                 );
                               }}
                               placeholder={isSub ? "Sub-kwaliteitseis..." : "Kwaliteitseis omschrijving..."}
-                              className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
+                              className="flex-1 min-w-0 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
                             />
                             <button
                               type="button"
@@ -1595,18 +1950,18 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                                 );
                               }}
                               title={isSub ? t("Terugspringen naar hoofdtaak") : t("Inspringen als subtaak")}
-                              className={`p-1.5 rounded transition-colors cursor-pointer ${
+                              className={`p-2 rounded transition-colors cursor-pointer shrink-0 ${
                                 isSub
                                   ? "text-brand bg-brand/10 hover:bg-brand/20"
                                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
                               }`}
                             >
-                              <CornerDownRight className="size-3.5" />
+                              <CornerDownRight className="size-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => setQualityCriteria((prev) => prev.filter((_, i) => i !== idx))}
-                              className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                              className="text-zinc-500 hover:text-red-400 p-2 rounded hover:bg-white/5 transition-colors cursor-pointer shrink-0"
                               title={t("Verwijderen")}
                             >
                               ✕
@@ -1620,12 +1975,12 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
               </div>
 
               {/* Evidence Links & Document Uploads */}
-              <div className="space-y-2 p-3 rounded-xl bg-zinc-950 border border-white/5">
+              <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-zinc-300">{t("Bewijslast (GitHub, Live URL, Document)")}</span>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-brand hover:underline cursor-pointer flex items-center gap-1">
-                      <Upload className="size-3" />
+                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijslast (GitHub, Live URL, Document)")}</span>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs sm:text-sm text-brand hover:underline cursor-pointer flex items-center gap-1.5">
+                      <Upload className="size-3.5" />
                       <span>{uploadingFile ? t("Uploaden...") : t("Document")}</span>
                       <input
                         type="file"
@@ -1639,17 +1994,17 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                     <button
                       type="button"
                       onClick={() => setEvidenceList((prev) => [...prev, { type: "github", title: "", url: "" }])}
-                      className="text-brand hover:underline flex items-center gap-0.5 text-[11px]"
+                      className="text-brand hover:underline flex items-center gap-1 text-xs sm:text-sm cursor-pointer font-medium"
                     >
-                      <Plus className="size-3" />
+                      <Plus className="size-3.5" />
                       <span>{t("Link")}</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-48 overflow-y-auto overflow-x-hidden pr-2">
                   {evidenceList.map((ev, idx) => (
-                    <div key={idx} className="grid grid-cols-4 gap-2 items-center">
+                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
                       <select
                         value={ev.type}
                         onChange={(e) => {
@@ -1658,7 +2013,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                             prev.map((item, i) => (i === idx ? { ...item, type: val } : item))
                           );
                         }}
-                        className="bg-zinc-900 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none"
+                        className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
                       >
                         <option value="github">GitHub</option>
                         <option value="document">Document</option>
@@ -1675,7 +2030,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                             prev.map((item, i) => (i === idx ? { ...item, title: val } : item))
                           );
                         }}
-                        className="bg-zinc-900 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none"
+                        className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
                       />
                       <input
                         type="text"
@@ -1687,56 +2042,60 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                             prev.map((item, i) => (i === idx ? { ...item, url: val } : item))
                           );
                         }}
-                        className="col-span-1 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none font-mono"
+                        className="sm:col-span-1 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none font-mono"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setEvidenceList((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-zinc-500 hover:text-red-400 text-right pr-1"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setEvidenceList((prev) => prev.filter((_, i) => i !== idx))}
+                          className="text-zinc-400 hover:text-red-400 p-2 rounded hover:bg-white/5 cursor-pointer transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
+              <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   {editingStory && (
                     <button
                       type="button"
                       onClick={() => handleDeleteStory(editingStory.id)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors text-xs font-medium cursor-pointer"
+                      className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                      title={t("Verwijderen")}
+                      aria-label={t("Verwijderen")}
                     >
-                      <Trash2 className="size-3.5" />
-                      <span>{t("Verwijderen")}</span>
+                      <Trash2 className="size-4" />
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={handleExportStoryJson}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors text-xs font-medium cursor-pointer"
+                    className="flex items-center justify-center p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors cursor-pointer"
                     title={t("Exporteer story als JSON naar klembord")}
+                    aria-label={t("Exporteer story als JSON naar klembord")}
                   >
-                    {copiedExport ? <Check className="size-3.5 text-brand" /> : <Copy className="size-3.5" />}
-                    <span>{copiedExport ? t("Gekopieerd!") : t("Exporteer JSON")}</span>
+                    {copiedExport ? <Check className="size-4 text-brand" /> : <Upload className="size-4" />}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setIsStoryModalOpen(false)}
-                    className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
+                    className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs sm:text-sm cursor-pointer"
                   >
                     {t("Annuleren")}
                   </button>
                   <button
                     type="submit"
                     disabled={savingStory}
-                    className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer shadow-sm disabled:opacity-50"
                   >
-                    {savingStory ? t("Opslaan...") : t("Opslaan")}
+                    <Check className="size-4" />
+                    <span>{savingStory ? t("Opslaan...") : editingStory ? t("Opslaan") : t("Story Aanmaken")}</span>
                   </button>
                 </div>
               </div>
@@ -1751,7 +2110,7 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl my-8">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Upload className="size-4 text-brand" />
+                <Download className="size-4 text-brand" />
                 <span>{t("Story Importeren (JSON)")}</span>
               </h2>
               <button
@@ -1811,11 +2170,223 @@ export function MinorSprintDetailClient({ initialSprint }: MinorSprintDetailClie
                   disabled={isImportingStory || !importJsonText.trim()}
                   className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  <Upload className="size-3.5" />
+                  <Download className="size-3.5" />
                   <span>{isImportingStory ? t("Importeren...") : t("Importeren")}</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Link Concept Story Modal */}
+      {isLinkStoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl my-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Link2 className="size-4 text-brand" />
+                <span>{t("Concept Story Koppelen")}</span>
+              </h2>
+              <button
+                onClick={() => setIsLinkStoryModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400">
+              {t("Koppel een bestaande concept story of backlog item aan")} <span className="text-white font-semibold">{sprint.sprintNumber}: {sprint.name}</span>.
+            </p>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
+              <input
+                type="text"
+                value={linkSearchQuery}
+                onChange={(e) => setLinkSearchQuery(e.target.value)}
+                placeholder={t("Zoek op titel, nummer of rol...")}
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-brand transition-colors"
+              />
+            </div>
+
+            {/* Stories List */}
+            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+              {loadingConceptStories ? (
+                <div className="p-8 text-center text-xs text-zinc-500">{t("Concept stories laden...")}</div>
+              ) : availableConceptStories.filter((st) => {
+                  if (!linkSearchQuery.trim()) return true;
+                  const q = linkSearchQuery.toLowerCase();
+                  return (
+                    st.title.toLowerCase().includes(q) ||
+                    (st.storyNumber || "").toLowerCase().includes(q) ||
+                    (st.storyTypeCode || "").toLowerCase().includes(q) ||
+                    (st.asA || "").toLowerCase().includes(q) ||
+                    (st.iWant || "").toLowerCase().includes(q)
+                  );
+                }).length === 0 ? (
+                <div className="p-8 rounded-xl bg-zinc-950/60 border border-white/5 text-center space-y-3">
+                  <p className="text-xs text-zinc-400">
+                    {linkSearchQuery
+                      ? t("Geen concept stories gevonden voor deze zoekopdracht.")
+                      : t("Er zijn momenteel geen losse concept stories beschikbaar.")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLinkStoryModalOpen(false);
+                      openCreateStoryModal();
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>{t("Nieuwe story aanmaken")}</span>
+                  </button>
+                </div>
+              ) : (
+                availableConceptStories
+                  .filter((st) => {
+                    if (!linkSearchQuery.trim()) return true;
+                    const q = linkSearchQuery.toLowerCase();
+                    return (
+                      st.title.toLowerCase().includes(q) ||
+                      (st.storyNumber || "").toLowerCase().includes(q) ||
+                      (st.storyTypeCode || "").toLowerCase().includes(q) ||
+                      (st.asA || "").toLowerCase().includes(q) ||
+                      (st.iWant || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .map((st) => (
+                    <div
+                      key={st.id}
+                      className="p-3.5 rounded-xl bg-zinc-950 border border-white/5 hover:border-white/10 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <StoryTypeBadge code={st.storyTypeCode} storyTypes={storyTypes} showName size="sm" />
+                          {st.storyNumber && (
+                            <span className="text-[11px] font-mono font-bold text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-white/5">
+                              {st.storyNumber}
+                            </span>
+                          )}
+                          <span className="text-xs font-semibold text-white tracking-tight truncate">
+                            {st.title}
+                          </span>
+                        </div>
+                        {(st.asA || st.iWant) && (
+                          <p className="text-[11px] text-zinc-400 truncate">
+                            {st.asA ? `Als ${st.asA}, ` : ""}{st.iWant ? `wil ik ${st.iWant}` : ""}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={linkingStoryId === st.id}
+                        onClick={() => handleLinkStory(st.id)}
+                        className="px-3 py-1.5 rounded-lg bg-brand text-zinc-950 hover:bg-brand-hover text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer disabled:opacity-50 self-end sm:self-auto"
+                      >
+                        <Link2 className="size-3.5" />
+                        <span>{linkingStoryId === st.id ? t("Koppelen...") : t("Koppelen")}</span>
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            <div className="pt-2 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setIsLinkStoryModalOpen(false)}
+                className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
+              >
+                {t("Sluiten")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Story Unlink / Move Modal */}
+      {isUnlinkModalOpen && storyToUnlink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl my-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                <Unlink className="size-5 text-amber-400" />
+                <span>{t("Story loskoppelen")}</span>
+              </h2>
+              <button
+                onClick={() => setIsUnlinkModalOpen(false)}
+                className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                aria-label={t("Sluiten")}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm text-zinc-300">
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-white/5 space-y-1">
+                <div className="text-xs text-zinc-400 font-medium">{t("Story")}:</div>
+                <div className="font-semibold text-white">
+                  {storyToUnlink.storyNumber ? `${storyToUnlink.storyNumber} - ` : ""}
+                  {storyToUnlink.title}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-zinc-300">
+                  {t("Koppel aan andere sprint of bewaar als concept")}:
+                </label>
+                <select
+                  value={targetSprintIdForUnlink}
+                  onChange={(e) => setTargetSprintIdForUnlink(e.target.value)}
+                  className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-brand cursor-pointer"
+                >
+                  <option value="">{t("Geen sprint (Concept / Backlog)")}</option>
+                  {allSprints
+                    .filter((sp) => sp.id !== sprint.id)
+                    .map((sp) => (
+                      <option key={sp.id} value={String(sp.id)}>
+                        {sp.sprintNumber}: {sp.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-zinc-500">
+                  {targetSprintIdForUnlink
+                    ? t("De story wordt verplaatst naar de geselecteerde sprint.")
+                    : t("De story wordt losgekoppeld en bewaard als concept story.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-3 flex items-center justify-end gap-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setIsUnlinkModalOpen(false)}
+                disabled={unlinkingStory}
+                className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs sm:text-sm cursor-pointer disabled:opacity-50"
+              >
+                {t("Annuleren")}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmUnlinkOrMove}
+                disabled={unlinkingStory}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold bg-amber-500 text-zinc-950 hover:bg-amber-400 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              >
+                <Unlink className="size-4" />
+                <span>
+                  {unlinkingStory
+                    ? t("Bezig...")
+                    : targetSprintIdForUnlink
+                    ? t("Verplaatsen")
+                    : t("Loskoppelen")}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

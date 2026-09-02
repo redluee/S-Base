@@ -183,6 +183,9 @@ export const serverApi = {
     stories: {
       list: () => serverFetch<import("./api").MinorStoryWithSprint[]>("/minor/stories"),
     },
+    storyTypes: {
+      list: () => serverFetch<import("./api").MinorStoryType[]>("/minor/story-types"),
+    },
     vacations: {
       list: () => serverFetch<import("./api").MinorVacation[]>("/minor/vacations"),
     },

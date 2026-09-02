@@ -804,11 +804,13 @@ const nl: Record<string, string> = {
   "Aanbevolen": "Aanbevolen",
   "Zwaar": "Zwaar",
 
+  "Minor": "Minor",
   "Minor Tracker": "Minor Tracker",
   "Minor App": "Minor App",
   "Minor Portfolio": "Minor Portfolio",
   "Future-proof met AI overview": "Future-proof met AI overview",
   "Sprintbeheer & Portfolio": "Sprintbeheer & Portfolio",
+  "Sprints & LU's": "Sprints & LU's",
   "Sprints": "Sprints",
   "Nieuwe Sprint": "Nieuwe Sprint",
   "Sprint": "Sprint",

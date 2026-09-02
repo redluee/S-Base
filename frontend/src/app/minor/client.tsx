@@ -213,22 +213,23 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
 
       {/* Hero: Active Sprint & Show & Grow Countdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 p-6 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-zinc-900/90 to-zinc-900/60 border border-emerald-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-          <div className="space-y-3 relative z-10">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider font-semibold text-brand bg-brand/10 border border-brand/20 px-2.5 py-1 rounded-full">
-                {t("Actieve Sprint")}
-              </span>
-              {activeSprint && (
+        {activeSprint ? (
+          <Link
+            href={`/minor/sprints/${activeSprint.id}`}
+            className="group lg:col-span-2 p-6 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-zinc-900/90 to-zinc-900/60 border border-emerald-500/20 hover:border-emerald-500/50 shadow-xl relative overflow-hidden flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_2rem_-0.5rem_rgba(16,185,129,0.2)] block cursor-pointer"
+          >
+            <div className="space-y-3 relative z-10">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider font-semibold text-brand bg-brand/10 border border-brand/20 px-2.5 py-1 rounded-full">
+                  {t("Actieve Sprint")}
+                </span>
                 <span className="text-xs text-zinc-400 font-mono">
                   {activeSprint.startDate} → {activeSprint.endDate}
                 </span>
-              )}
-            </div>
+              </div>
 
-            {activeSprint ? (
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
                   {activeSprint.name}
                 </h2>
                 {activeSprint.extendedDays > 0 && (
@@ -240,7 +241,39 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                   </p>
                 )}
               </div>
-            ) : (
+            </div>
+
+            <div className="pt-6 mt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-2 text-xs text-zinc-300">
+                <Clock className="size-4 text-brand shrink-0" />
+                <span>
+                  {t("Show & Grow op woensdag")}:{" "}
+                  <strong className="text-white">
+                    {stats.nextShowAndGrowDate || "-"}
+                  </strong>
+                </span>
+                {stats.daysUntilShowAndGrow !== null && (
+                  <span className="ml-1 text-[11px] font-mono text-zinc-400">
+                    ({stats.daysUntilShowAndGrow > 0 ? `${stats.daysUntilShowAndGrow} ${t("dagen te gaan")}` : stats.daysUntilShowAndGrow === 0 ? t("Vandaag!") : t("Verstreken")})
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-brand group-hover:text-brand-hover">
+                <span>{t("Sprintplanning openen")}</span>
+                <ArrowRight className="size-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="lg:col-span-2 p-6 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-zinc-900/90 to-zinc-900/60 border border-emerald-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="space-y-3 relative z-10">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider font-semibold text-brand bg-brand/10 border border-brand/20 px-2.5 py-1 rounded-full">
+                  {t("Actieve Sprint")}
+                </span>
+              </div>
+
               <div>
                 <h2 className="text-xl font-semibold text-zinc-300">
                   {t("Geen actieve sprint gevonden")}
@@ -249,36 +282,26 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                   {t("Maak je eerste sprint aan om je planning en Show & Grow cyclus te starten.")}
                 </p>
               </div>
-            )}
-          </div>
-
-          <div className="pt-6 mt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-            <div className="flex items-center gap-2 text-xs text-zinc-300">
-              <Clock className="size-4 text-brand shrink-0" />
-              <span>
-                {t("Show & Grow op woensdag")}:{" "}
-                <strong className="text-white">
-                  {stats.nextShowAndGrowDate || "-"}
-                </strong>
-              </span>
-              {stats.daysUntilShowAndGrow !== null && (
-                <span className="ml-1 text-[11px] font-mono text-zinc-400">
-                  ({stats.daysUntilShowAndGrow > 0 ? `${stats.daysUntilShowAndGrow} ${t("dagen te gaan")}` : stats.daysUntilShowAndGrow === 0 ? t("Vandaag!") : t("Verstreken")})
-                </span>
-              )}
             </div>
 
-            {activeSprint && (
-              <Link
-                href={`/minor/sprints/${activeSprint.id}`}
-                className="flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover hover:underline cursor-pointer"
-              >
-                <span>{t("Sprintplanning openen")}</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
-            )}
+            <div className="pt-6 mt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-2 text-xs text-zinc-300">
+                <Clock className="size-4 text-brand shrink-0" />
+                <span>
+                  {t("Show & Grow op woensdag")}:{" "}
+                  <strong className="text-white">
+                    {stats.nextShowAndGrowDate || "-"}
+                  </strong>
+                </span>
+                {stats.daysUntilShowAndGrow !== null && (
+                  <span className="ml-1 text-[11px] font-mono text-zinc-400">
+                    ({stats.daysUntilShowAndGrow > 0 ? `${stats.daysUntilShowAndGrow} ${t("dagen te gaan")}` : stats.daysUntilShowAndGrow === 0 ? t("Vandaag!") : t("Verstreken")})
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quick Stats Column */}
         <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md flex flex-col justify-between">

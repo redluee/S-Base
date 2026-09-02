@@ -382,7 +382,7 @@ export function DashboardClient({
           </Link>
         )}
 
-        {/* Minor Tracker Card */}
+        {/* Minor Card */}
         {hasModule("minor") && (
           <Link
             href="/minor"
@@ -394,11 +394,11 @@ export function DashboardClient({
                 <GraduationCap className="size-5" />
               </div>
               <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-emerald-400 transition-colors">
-                {t("Minor Tracker")}
+                {t("Minor")}
               </h2>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-              <span>{t("Sprintbeheer & Portfolio")}</span>
+              <span>{t("Sprints & LU's")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>

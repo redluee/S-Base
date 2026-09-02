@@ -7,10 +7,11 @@ export default async function MinorSprintDetailPage({ params }: { params: Promis
   const sprintId = Number(id);
   if (isNaN(sprintId)) notFound();
 
-  const sprint = await serverApi.minor.sprints.get(sprintId).catch(() => null);
+  const [sprint, storyTypes] = await Promise.all([
+    serverApi.minor.sprints.get(sprintId).catch(() => null),
+    serverApi.minor.storyTypes.list().catch(() => []),
+  ]);
   if (!sprint) notFound();
-
-  const storyTypes = await serverApi.me().then(() => []).catch(() => []);
 
   return <MinorSprintDetailClient initialSprint={sprint} initialStoryTypes={storyTypes} />;
 }
