@@ -25,6 +25,7 @@ import {
   type MinorStoryType,
 } from "@/lib/api";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { getLUShortDesc } from "@/lib/minor-constants";
 
 interface MinorStoriesClientProps {
   initialStories: MinorStoryWithSprint[];
@@ -124,6 +125,9 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
 
       setStories((prev) => [storyWithSprint, ...prev]);
       setIsCreateModalOpen(false);
+      if (created?.id) {
+        setViewingStoryId(created.id);
+      }
     } catch (err) {
       console.error("Failed to create story:", err);
     } finally {
@@ -717,10 +721,17 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
                     {viewingStory.learningOutcomes.map((lu) => (
                       <span
                         key={lu}
-                        className="px-3 py-1.5 rounded-lg border border-brand/30 bg-brand/10 text-brand text-xs sm:text-sm font-semibold flex items-center gap-2"
+                        className="px-3 py-1.5 rounded-lg border border-brand/30 bg-brand/10 text-brand text-xs sm:text-sm font-semibold flex items-center gap-1.5"
                       >
                         <CheckSquare className="size-4" />
-                        <span>LU {lu}</span>
+                        <span>
+                          LU {lu}
+                          {getLUShortDesc(lu) && (
+                            <span className="text-brand/80 font-normal ml-1">
+                              · {getLUShortDesc(lu)}
+                            </span>
+                          )}
+                        </span>
                       </span>
                     ))}
                   </div>
@@ -1009,13 +1020,18 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
                             prev.includes(lu) ? prev.filter((x) => x !== lu) : [...prev, lu]
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold cursor-pointer transition-all ${
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
                           selected
                             ? "bg-brand/20 border-brand/40 text-brand"
                             : "bg-zinc-950 border-white/10 text-zinc-400 hover:text-white"
                         }`}
                       >
-                        LU {lu}
+                        <span className="font-mono font-bold">LU {lu}</span>
+                        {getLUShortDesc(lu) && (
+                          <span className={selected ? "text-brand/90 font-medium" : "text-zinc-400 font-normal"}>
+                            · {getLUShortDesc(lu)}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -1167,13 +1183,18 @@ function StoryCard({
           )}
 
           {/* Learning Outcomes */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {story.learningOutcomes.map((lu) => (
               <span
                 key={lu}
                 className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5"
               >
                 LU {lu}
+                {getLUShortDesc(lu) && (
+                  <span className="font-sans font-normal text-zinc-400 ml-1">
+                    · {getLUShortDesc(lu)}
+                  </span>
+                )}
               </span>
             ))}
           </div>

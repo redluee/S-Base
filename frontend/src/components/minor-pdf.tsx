@@ -3,6 +3,7 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import type { MinorSprintFull } from "@/lib/api";
+import { getLUShortDesc } from "@/lib/minor-constants";
 
 const brandGreen = "#00e3a4";
 const textDark = "#111827";
@@ -220,7 +221,9 @@ function SprintPdfPage({ sprint }: SprintPageProps) {
               </View>
               <View style={{ flexDirection: "row", gap: 2 }}>
                 {story.learningOutcomes.map((lu) => (
-                  <Text key={lu} style={styles.luBadge}>LU {lu}</Text>
+                  <Text key={lu} style={styles.luBadge}>
+                    LU {lu}{getLUShortDesc(lu) ? ` · ${getLUShortDesc(lu)}` : ""}
+                  </Text>
                 ))}
               </View>
             </View>
@@ -320,7 +323,9 @@ function SprintPdfPage({ sprint }: SprintPageProps) {
           const assessItem = sprint.teacherAssessments.find((a) => a.learningOutcome === luNum);
           return (
             <View key={luNum} style={[styles.tableRow, idx === 4 ? styles.tableRowLast : {}]} wrap={false}>
-              <Text style={[styles.td, { width: "12%", fontFamily: "Helvetica-Bold" }]}>LU {luNum}</Text>
+              <Text style={[styles.td, { width: "12%", fontFamily: "Helvetica-Bold" }]}>
+                LU {luNum}{getLUShortDesc(luNum) ? `\n(${getLUShortDesc(luNum)})` : ""}
+              </Text>
               <Text style={[styles.td, { width: "12%", fontFamily: "Helvetica-Bold" }]}>{evalItem?.level ?? "-"}</Text>
               <Text style={[styles.td, { width: "60%" }]}>{evalItem?.argumentation || "Geen toelichting"}</Text>
               <Text style={[styles.td, { width: "16%", fontFamily: "Helvetica-Bold", color: assessItem?.assessment === "V" ? "#059669" : textDark }]}>

@@ -42,6 +42,7 @@ import {
 import { downloadSprintPDF } from "@/components/minor-pdf";
 import { downloadSprintExcel } from "@/lib/minor-excel";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { getLUShortDesc } from "@/lib/minor-constants";
 
 interface MinorSprintDetailClientProps {
   initialSprint: MinorSprintFull;
@@ -231,14 +232,20 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
         evidence: evidenceList.filter((e) => e.title.trim() && e.url.trim()),
       };
 
+      let targetStoryId: number | null = null;
       if (editingStory) {
-        await api.minor.sprints.stories.update(editingStory.id, payload);
+        const updated = await api.minor.sprints.stories.update(editingStory.id, payload);
+        targetStoryId = updated?.id ?? editingStory.id;
       } else {
-        await api.minor.sprints.stories.create(sprint.id, payload);
+        const created = await api.minor.sprints.stories.create(sprint.id, payload);
+        targetStoryId = created?.id ?? null;
       }
 
       await reloadSprint();
       setIsStoryModalOpen(false);
+      if (targetStoryId) {
+        setViewingStoryId(targetStoryId);
+      }
     } catch (err) {
       console.error("Failed to save story:", err);
     } finally {
@@ -568,10 +575,13 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
       setIsImportingStory(true);
       setImportError(null);
 
-      await api.minor.sprints.stories.create(sprint.id, payload);
+      const created = await api.minor.sprints.stories.create(sprint.id, payload);
       await reloadSprint();
       setIsImportStoryModalOpen(false);
       setImportJsonText("");
+      if (created?.id) {
+        setViewingStoryId(created.id);
+      }
     } catch (err: unknown) {
       console.error("Story import error:", err);
       const msg = err instanceof Error ? err.message : t("Fout bij importeren van story.");
@@ -909,13 +919,18 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                       onClick={(e) => e.stopPropagation()}
                     >
                       {st.learningOutcomes && st.learningOutcomes.length > 0 && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           {st.learningOutcomes.map((lu) => (
                             <span
                               key={lu}
                               className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-white/5"
                             >
                               LU {lu}
+                              {getLUShortDesc(lu) && (
+                                <span className="font-sans font-normal text-zinc-500 ml-1">
+                                  · {getLUShortDesc(lu)}
+                                </span>
+                              )}
                             </span>
                           ))}
                         </div>
@@ -1123,6 +1138,18 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
             </div>
           </div>
 
+          <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/5 flex items-center justify-between text-xs text-zinc-400">
+            <span className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-brand shrink-0" />
+              <span>{t("Per sprint kan de docent maximaal 1 voldoende (V) toekennen voor de gehele sprint.")}</span>
+            </span>
+            {teacherAssessments.some((a) => a.assessment === "V") && (
+              <span className="text-[11px] font-mono text-brand font-semibold shrink-0">
+                {t("Toegekend: LU {lu}", { lu: String(teacherAssessments.find((a) => a.assessment === "V")?.learningOutcome) })}
+              </span>
+            )}
+          </div>
+
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((luNum) => {
               const evalItem = selfEvals.find((e) => e.learningOutcome === luNum);
@@ -1140,7 +1167,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                       </span>
                       <h3 className="text-sm font-bold text-white">
                         {t(`Leeruitkomst ${luNum}`)}
+                        {getLUShortDesc(luNum) && (
+                          <span className="text-zinc-400 font-normal text-xs ml-2">
+                            ({getLUShortDesc(luNum)})
+                          </span>
+                        )}
                       </h3>
+                      {assessItem?.assessment === "V" && (
+                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand">
+                          {t("Sprint Voldoende")}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4 text-xs">
@@ -1173,9 +1210,16 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                           onChange={(e) => {
                             const newAssess = e.target.value as "V" | "O" | "-";
                             setTeacherAssessments((prev) =>
-                              prev.map((item) =>
-                                item.learningOutcome === luNum ? { ...item, assessment: newAssess } : item
-                              )
+                              prev.map((item) => {
+                                if (item.learningOutcome === luNum) {
+                                  return { ...item, assessment: newAssess };
+                                }
+                                // If selecting 'V' for this LU, reset any other LU from 'V' to '-'
+                                if (newAssess === "V" && item.assessment === "V") {
+                                  return { ...item, assessment: "-" };
+                                }
+                                return item;
+                              })
                             );
                           }}
                           className={`bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer ${
@@ -1413,10 +1457,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     {viewingStory.learningOutcomes.map((lu) => (
                       <span
                         key={lu}
-                        className="px-3 py-1.5 rounded-lg border border-brand/30 bg-brand/10 text-brand text-xs sm:text-sm font-semibold flex items-center gap-2"
+                        className="px-3 py-1.5 rounded-lg border border-brand/30 bg-brand/10 text-brand text-xs sm:text-sm font-semibold flex items-center gap-1.5"
                       >
                         <CheckSquare className="size-4" />
-                        <span>LU {lu}</span>
+                        <span>
+                          LU {lu}
+                          {getLUShortDesc(lu) && (
+                            <span className="text-brand/80 font-normal ml-1">
+                              · {getLUShortDesc(lu)}
+                            </span>
+                          )}
+                        </span>
                       </span>
                     ))}
                   </div>
@@ -1556,15 +1607,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     aria-label={t("Verwijderen")}
                   >
                     <Trash2 className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openUnlinkStoryModal(viewingStory)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors text-xs sm:text-sm font-medium cursor-pointer"
-                    title={t("Ontkoppel of verplaats story")}
-                  >
-                    <Unlink className="size-4" />
-                    <span>{t("Loskoppelen")}</span>
                   </button>
                   <button
                     type="button"
@@ -1749,8 +1791,15 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             : "bg-zinc-950 border-white/10 text-zinc-400 hover:text-white"
                         }`}
                       >
-                        {isChecked ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
-                        <span>LU {lu}</span>
+                        {isChecked ? <CheckSquare className="size-4 shrink-0" /> : <Square className="size-4 shrink-0" />}
+                        <span>
+                          <span className="font-mono font-bold">LU {lu}</span>
+                          {getLUShortDesc(lu) && (
+                            <span className={isChecked ? "text-brand/90 font-medium ml-1" : "text-zinc-400 font-normal ml-1"}>
+                              · {getLUShortDesc(lu)}
+                            </span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}
@@ -2061,15 +2110,30 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   {editingStory && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteStory(editingStory.id)}
-                      className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                      title={t("Verwijderen")}
-                      aria-label={t("Verwijderen")}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteStory(editingStory.id)}
+                        className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                        title={t("Verwijderen")}
+                        aria-label={t("Verwijderen")}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const stToUnlink = editingStory;
+                          setIsStoryModalOpen(false);
+                          openUnlinkStoryModal(stToUnlink);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors text-xs sm:text-sm font-medium cursor-pointer"
+                        title={t("Ontkoppel of verplaats story")}
+                      >
+                        <Unlink className="size-4" />
+                        <span>{t("Loskoppelen")}</span>
+                      </button>
+                    </>
                   )}
                   <button
                     type="button"
@@ -2274,6 +2338,23 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                           <span className="text-xs font-semibold text-white tracking-tight truncate">
                             {st.title}
                           </span>
+                          {st.learningOutcomes && st.learningOutcomes.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {st.learningOutcomes.map((lu) => (
+                                <span
+                                  key={lu}
+                                  className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-white/5"
+                                >
+                                  LU {lu}
+                                  {getLUShortDesc(lu) && (
+                                    <span className="font-sans font-normal text-zinc-500 ml-1">
+                                      · {getLUShortDesc(lu)}
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         {(st.asA || st.iWant) && (
                           <p className="text-[11px] text-zinc-400 truncate">

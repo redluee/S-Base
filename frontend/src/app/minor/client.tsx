@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorDashboardStats, type MinorSprint } from "@/lib/api";
+import { getLUShortDesc } from "@/lib/minor-constants";
 
 const TOTAL_REQUIRED_LUS = 24;
 
@@ -345,6 +346,9 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
               <span className="font-mono text-emerald-400 font-semibold">
                 {totalProjected} / {TOTAL_REQUIRED_LUS} {t("voldoendes verwacht")} ({projectedPercentage}%)
               </span>
+              <span className="text-[11px] text-zinc-500 block mt-0.5">
+                {t("Max. 1 voldoende per sprint")}
+              </span>
             </div>
           </div>
         </div>
@@ -449,7 +453,14 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                       ) : (
                         <span className="size-1.5 rounded-full bg-zinc-600 shrink-0" />
                       )}
-                      <span className="font-semibold font-mono">LU {luNum}</span>
+                      <span className="font-semibold font-mono">
+                        LU {luNum}
+                        {getLUShortDesc(luNum) && (
+                          <span className="text-[10px] font-sans font-normal opacity-70 ml-1">
+                            · {getLUShortDesc(luNum)}
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="font-mono text-[11px]">
                       <span className={isMet ? "font-bold text-brand" : "text-white"}>{count}</span>

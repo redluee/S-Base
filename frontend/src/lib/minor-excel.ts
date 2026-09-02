@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import type { MinorSprintFull } from "@/lib/api";
+import { getLUShortDesc } from "@/lib/minor-constants";
 
 type CellValue = string | number | boolean | null | undefined;
 
@@ -55,7 +56,9 @@ function buildSprintWorksheetData(sprint: MinorSprintFull): CellValue[][] {
         story.asA || "-",
         story.iWant || "-",
         story.soThat || "-",
-        story.learningOutcomes.map((l) => `LU ${l}`).join(", "),
+        story.learningOutcomes
+          .map((l) => (getLUShortDesc(l) ? `LU ${l} (${getLUShortDesc(l)})` : `LU ${l}`))
+          .join(", "),
         acceptanceStr || "-",
         qualityStr || "-",
         evidenceStr || "-",
@@ -86,7 +89,7 @@ function buildSprintWorksheetData(sprint: MinorSprintFull): CellValue[][] {
     const evalItem = sprint.selfEvaluations.find((e) => e.learningOutcome === lu);
     const assessItem = sprint.teacherAssessments.find((a) => a.learningOutcome === lu);
     rows.push([
-      `LU ${lu}`,
+      getLUShortDesc(lu) ? `LU ${lu} - ${getLUShortDesc(lu)}` : `LU ${lu}`,
       evalItem?.level ?? "-",
       evalItem?.argumentation ?? "-",
       assessItem?.assessment ?? "-",
