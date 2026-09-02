@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Layers, Users, Settings, Upload } from "lucide-react";
+import { LayoutDashboard, Layers, ListChecks, Users, Settings, Upload } from "lucide-react";
 import { t } from "@/lib/lang";
 
 const links = [
   { href: "/minor", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/minor/sprints", label: "Sprints", icon: Layers, exact: false },
+  { href: "/minor/stories", label: "User Stories", icon: ListChecks, exact: false },
   { href: "/minor/peer-help", label: "Kennisdeling", icon: Users, exact: false },
   { href: "/minor/settings", label: "Instellingen", icon: Settings, exact: false },
   { href: "/minor/export", label: "Exporteren", icon: Upload, exact: false },
