@@ -17,6 +17,7 @@ import type {
   MinorSprint,
   MinorSprintFull,
   MinorStory,
+  MinorStoryWithSprint,
   MinorStoryCriterion,
   MinorStoryEvidence,
   MinorSelfEvaluation,
@@ -30,9 +31,9 @@ import type {
 } from "../../types/shared";
 
 export const DEFAULT_STORY_TYPES = [
-  { code: "US", name: "User Story", description: "Standaard functionele user story", color: "brand", isDefault: true },
-  { code: "RS", name: "Research Story", description: "Onderzoek en analyse story", color: "blue", isDefault: true },
-  { code: "LS", name: "Learning Story", description: "Persoonlijk leertraject story", color: "purple", isDefault: true },
+  { code: "US", name: "User Story", description: "Standaard functionele user story", color: "#10b981", isDefault: true },
+  { code: "RS", name: "Research Story", description: "Onderzoek en analyse story", color: "#f97316", isDefault: true },
+  { code: "LS", name: "Learning Story", description: "Persoonlijk leertraject story", color: "#a855f7", isDefault: true },
 ];
 
 function formatDate(date: Date): string {
@@ -262,6 +263,7 @@ export class MinorService {
           storyId: c.storyId,
           type: c.type as "acceptance" | "quality",
           orderIndex: c.orderIndex,
+          indent: c.indent ?? 0,
           text: c.text,
           isCompleted: Boolean(c.isCompleted),
         })),
@@ -422,6 +424,76 @@ export class MinorService {
 
   // --- Story Management ---
 
+  listAllStories(userId: number): MinorStoryWithSprint[] {
+    const storiesRaw = db
+      .select({
+        story: minorStories,
+        sprintNumber: minorSprints.sprintNumber,
+        sprintName: minorSprints.name,
+        sprintStatus: minorSprints.status,
+      })
+      .from(minorStories)
+      .leftJoin(minorSprints, eq(minorStories.sprintId, minorSprints.id))
+      .where(eq(minorStories.userId, userId))
+      .orderBy(asc(minorStories.sprintId), asc(minorStories.orderIndex), asc(minorStories.id))
+      .all();
+
+    const storyIds = storiesRaw.map((r) => r.story.id);
+
+    const criteria = storyIds.length > 0
+      ? db.select().from(minorStoryCriteria).where(inArray(minorStoryCriteria.storyId, storyIds)).orderBy(asc(minorStoryCriteria.orderIndex)).all()
+      : [];
+
+    const evidence = storyIds.length > 0
+      ? db.select().from(minorStoryEvidence).where(inArray(minorStoryEvidence.storyId, storyIds)).orderBy(asc(minorStoryEvidence.id)).all()
+      : [];
+
+    return storiesRaw.map((r) => {
+      const s = r.story;
+      let outcomes: number[] = [];
+      try {
+        outcomes = JSON.parse(s.learningOutcomes);
+      } catch {
+        outcomes = [];
+      }
+      return {
+        id: s.id,
+        sprintId: s.sprintId,
+        userId: s.userId,
+        storyTypeCode: s.storyTypeCode,
+        storyNumber: s.storyNumber,
+        title: s.title,
+        asA: s.asA,
+        iWant: s.iWant,
+        soThat: s.soThat,
+        learningOutcomes: outcomes,
+        status: s.status as "todo" | "in_progress" | "done",
+        orderIndex: s.orderIndex,
+        createdAt: s.createdAt,
+        sprintNumber: r.sprintNumber ?? undefined,
+        sprintName: r.sprintName ?? undefined,
+        sprintStatus: r.sprintStatus ?? undefined,
+        criteria: criteria.filter((c) => c.storyId === s.id).map((c) => ({
+          id: c.id,
+          storyId: c.storyId,
+          type: c.type as "acceptance" | "quality",
+          orderIndex: c.orderIndex,
+          indent: c.indent ?? 0,
+          text: c.text,
+          isCompleted: c.isCompleted,
+        })),
+        evidence: evidence.filter((e) => e.storyId === s.id).map((e) => ({
+          id: e.id,
+          storyId: e.storyId,
+          type: e.type as "link" | "github" | "document" | "app",
+          title: e.title,
+          url: e.url,
+          createdAt: e.createdAt,
+        })),
+      };
+    });
+  }
+
   createStory(userId: number, sprintId: number, data: {
     storyTypeCode?: string;
     storyNumber?: string;
@@ -432,8 +504,8 @@ export class MinorService {
     learningOutcomes?: number[];
     status?: "todo" | "in_progress" | "done";
     orderIndex?: number;
-    acceptanceCriteria?: { text: string; isCompleted?: boolean }[];
-    qualityCriteria?: { text: string; isCompleted?: boolean }[];
+    acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
+    qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
     evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
   }): MinorStory {
     if (!data.title?.trim()) throw new Error("Story title is required");
@@ -466,6 +538,7 @@ export class MinorService {
             storyId: storyRow.id,
             type: "acceptance",
             orderIndex: index + 1,
+            indent: crit.indent ? 1 : 0,
             text: crit.text.trim(),
             isCompleted: Boolean(crit.isCompleted),
           }).returning().get();
@@ -474,6 +547,7 @@ export class MinorService {
             storyId: c.storyId,
             type: "acceptance",
             orderIndex: c.orderIndex,
+            indent: c.indent ?? 0,
             text: c.text,
             isCompleted: Boolean(c.isCompleted),
           });
@@ -488,6 +562,7 @@ export class MinorService {
             storyId: storyRow.id,
             type: "quality",
             orderIndex: index + 1,
+            indent: crit.indent ? 1 : 0,
             text: crit.text.trim(),
             isCompleted: Boolean(crit.isCompleted),
           }).returning().get();
@@ -496,6 +571,7 @@ export class MinorService {
             storyId: c.storyId,
             type: "quality",
             orderIndex: c.orderIndex,
+            indent: c.indent ?? 0,
             text: c.text,
             isCompleted: Boolean(c.isCompleted),
           });
@@ -554,8 +630,8 @@ export class MinorService {
     learningOutcomes?: number[];
     status?: "todo" | "in_progress" | "done";
     orderIndex?: number;
-    acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean }[];
-    qualityCriteria?: { id?: number; text: string; isCompleted?: boolean }[];
+    acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
+    qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
     evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
   }): MinorStory | null {
     const existing = db.select().from(minorStories).where(and(eq(minorStories.id, storyId), eq(minorStories.userId, userId))).get();
@@ -586,6 +662,7 @@ export class MinorService {
               storyId,
               type: "acceptance",
               orderIndex: index + 1,
+              indent: crit.indent ? 1 : 0,
               text: crit.text.trim(),
               isCompleted: Boolean(crit.isCompleted),
             }).run();
@@ -600,6 +677,7 @@ export class MinorService {
               storyId,
               type: "quality",
               orderIndex: index + 1,
+              indent: crit.indent ? 1 : 0,
               text: crit.text.trim(),
               isCompleted: Boolean(crit.isCompleted),
             }).run();
@@ -647,6 +725,7 @@ export class MinorService {
         storyId: c.storyId,
         type: c.type as any,
         orderIndex: c.orderIndex,
+        indent: c.indent ?? 0,
         text: c.text,
         isCompleted: Boolean(c.isCompleted),
       })),

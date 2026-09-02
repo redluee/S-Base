@@ -109,11 +109,11 @@ describe("MinorService", () => {
       soThat: "ik grip heb op mijn planning",
       learningOutcomes: [1, 2, 5],
       acceptanceCriteria: [
-        { text: "Sprintnummer wordt automatisch berekend", isCompleted: true },
-        { text: "Gebruiker kan sprintnummer overschrijven", isCompleted: false },
+        { text: "Sprintnummer wordt automatisch berekend", isCompleted: true, indent: 0 },
+        { text: "Gebruiker kan sprintnummer overschrijven", isCompleted: false, indent: 1 },
       ],
       qualityCriteria: [
-        { text: "TypeScript types kloppen 100%", isCompleted: true },
+        { text: "TypeScript types kloppen 100%", isCompleted: true, indent: 0 },
       ],
       evidence: [
         { type: "github", title: "PR #1", url: "https://github.com/example/pr/1" },
@@ -124,6 +124,8 @@ describe("MinorService", () => {
     expect(story.id).toBeDefined();
     expect(story.learningOutcomes).toEqual([1, 2, 5]);
     expect(story.criteria?.length).toBe(3);
+    expect(story.criteria?.[0].indent).toBe(0);
+    expect(story.criteria?.[1].indent).toBe(1);
     expect(story.evidence?.length).toBe(2);
 
     // Toggle criterion
@@ -136,6 +138,14 @@ describe("MinorService", () => {
       status: "done",
     });
     expect(updated?.status).toBe("done");
+
+    // Test listAllStories
+    const allStories = minor.listAllStories(adminId);
+    expect(allStories.length).toBeGreaterThanOrEqual(1);
+    const found = allStories.find((s) => s.id === story.id);
+    expect(found).toBeDefined();
+    expect(found?.sprintNumber).toBe(sprint.sprintNumber);
+    expect(found?.criteria?.length).toBe(3);
 
     // Auto-generate self-evaluations
     const autoEvals = minor.autoGenerateSelfEvaluations(sprint.id, adminId);

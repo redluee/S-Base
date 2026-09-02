@@ -650,6 +650,7 @@ export const app = new Elysia()
         if (!r) return new Response("Not Found", { status: 404 });
         return r;
       })
+      .get("/stories", ({ userId }) => minor.listAllStories(userId))
       .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.createStory(userId, Number(id), (body ?? {}) as any))
       .put("/stories/:id", ({ params: { id }, userId, body }) => {
         const s = minor.updateStory(Number(id), userId, (body ?? {}) as any);

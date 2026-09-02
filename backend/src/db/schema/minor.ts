@@ -59,6 +59,7 @@ export const minorStoryCriteria = sqliteTable("minor_story_criteria", {
   storyId: integer("story_id").notNull().references(() => minorStories.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // acceptance | quality
   orderIndex: integer("order_index").notNull().default(1),
+  indent: integer("indent").notNull().default(0),
   text: text("text").notNull(),
   isCompleted: integer("is_completed", { mode: "boolean" }).notNull().default(false),
 });

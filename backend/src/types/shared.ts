@@ -145,6 +145,7 @@ export interface MinorStoryCriterion {
   storyId: number;
   type: "acceptance" | "quality";
   orderIndex: number;
+  indent?: number;
   text: string;
   isCompleted: boolean;
 }
@@ -174,6 +175,12 @@ export interface MinorStory {
   createdAt: string;
   criteria?: MinorStoryCriterion[];
   evidence?: MinorStoryEvidence[];
+}
+
+export interface MinorStoryWithSprint extends MinorStory {
+  sprintNumber?: string;
+  sprintName?: string;
+  sprintStatus?: string;
 }
 
 export interface MinorSelfEvaluation {
