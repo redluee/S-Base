@@ -53,6 +53,7 @@ export const cashflowInvoices = sqliteTable("cashflow_invoices", {
 export const cashflowInvoiceLines = sqliteTable("cashflow_invoice_lines", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   invoiceId: integer("invoice_id").notNull().references(() => cashflowInvoices.id, { onDelete: "cascade" }),
+  date: integer("date"),
   taskDescription: text("task_description").notNull(),
   quantity: real("quantity").notNull().default(1),
   unitPrice: real("unit_price").notNull().default(0),

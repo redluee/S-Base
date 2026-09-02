@@ -355,6 +355,7 @@ export class CashflowService {
     isKor: boolean;
     lines: {
       taskDescription: string;
+      date?: number | null;
       quantity?: number;
       unitPrice?: number;
       totalCost: number;
@@ -412,6 +413,7 @@ export class CashflowService {
     for (const line of data.lines ?? []) {
       db.insert(cashflowInvoiceLines).values({
         invoiceId: invoice.id,
+        date: line.date ?? null,
         taskDescription: line.taskDescription,
         quantity: Number(line.quantity ?? 1),
         unitPrice: Number(line.unitPrice ?? 0),
@@ -439,6 +441,7 @@ export class CashflowService {
     isKor?: boolean;
     lines?: {
       taskDescription: string;
+      date?: number | null;
       quantity?: number;
       unitPrice?: number;
       totalCost: number;
@@ -517,6 +520,7 @@ export class CashflowService {
       for (const line of data.lines) {
         db.insert(cashflowInvoiceLines).values({
           invoiceId: id,
+          date: line.date ?? null,
           taskDescription: line.taskDescription,
           quantity: Number(line.quantity ?? 1),
           unitPrice: Number(line.unitPrice ?? 0),

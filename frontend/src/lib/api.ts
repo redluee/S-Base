@@ -979,6 +979,7 @@ export interface CashflowProjectDetail {
 export interface CashflowInvoiceLine {
   id: number;
   invoiceId: number;
+  date?: number | null;
   taskDescription: string;
   quantity: number;
   unitPrice: number;

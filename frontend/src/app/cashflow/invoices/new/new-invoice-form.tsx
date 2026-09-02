@@ -17,6 +17,7 @@ type DiscountType = "percentage" | "amount";
 
 interface InvoiceLine {
   localId: string;
+  date: string;
   taskDescription: string;
   quantity: number | "";
   unitPrice: number | "";
@@ -102,6 +103,7 @@ export function NewInvoiceForm() {
   const [lines, setLines] = useState<InvoiceLine[]>([
     {
       localId: crypto.randomUUID(),
+      date: "",
       taskDescription: "",
       quantity: "",
       unitPrice: 0,
@@ -204,6 +206,7 @@ export function NewInvoiceForm() {
           setIsKor(inv.isKor);
           setLines(recalculateLines(inv.lines.map(l => ({
             localId: crypto.randomUUID(),
+            date: toDate(l.date),
             taskDescription: l.taskDescription,
             quantity: l.quantity,
             unitPrice: l.unitPrice,
@@ -234,6 +237,7 @@ export function NewInvoiceForm() {
     const rate = selectedClient?.standardRate ?? 0;
     setLines(prev => recalculateLines([...prev, {
       localId: crypto.randomUUID(),
+      date: "",
       taskDescription: "",
       quantity: "",
       unitPrice: rate,
@@ -317,6 +321,7 @@ export function NewInvoiceForm() {
         isKor,
         lines: lines.map(l => ({
           taskDescription: l.taskDescription,
+          date: toTs(l.date),
           quantity: l.type === "discount" ? 1 : (l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity)),
           unitPrice: l.type === "discount" ? 0 : (l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice)),
           totalCost: l.totalCost,
@@ -561,11 +566,12 @@ export function NewInvoiceForm() {
         )}
 
         {/* Header row (desktop only) */}
-        <div className="hidden sm:grid grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 pb-1 border-b border-zinc-800">
+        <div className="hidden sm:grid grid-cols-[105px_125px_1fr_95px_115px_95px_32px] gap-2 pb-1 border-b border-zinc-800">
           <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Type")}</span>
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Datum")}</span>
           <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Omschrijving")}</span>
           <span className="text-[10px] font-semibold text-zinc-500 uppercase text-center">{t("Aantal")}</span>
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase text-right">{t("Prijs per eenheid (€)")}</span>
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase text-right">{t("Prijs / eenheid (€)")}</span>
           <span className="text-[10px] font-semibold text-zinc-500 uppercase text-right">{t("Totaal (€)")}</span>
           <span />
         </div>
@@ -576,19 +582,7 @@ export function NewInvoiceForm() {
               {/* Mobile View Card (< sm) */}
               <div className="sm:hidden p-3.5 bg-zinc-950/60 border border-zinc-800/80 rounded-lg space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs font-mono font-bold text-zinc-500">#{idx + 1}</span>
-                    <select
-                      value={line.type}
-                      onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
-                      className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-white focus:outline-none focus:border-blue-500 flex-1"
-                    >
-                      <option value="hours">{t("Uren")}</option>
-                      <option value="service">{t("Dienst")}</option>
-                      <option value="travel_costs">{t("Reiskosten")}</option>
-                      <option value="discount">{t("Korting")}</option>
-                    </select>
-                  </div>
+                  <span className="text-xs font-mono font-bold text-zinc-500">#{idx + 1}</span>
                   <button
                     type="button"
                     onClick={() => removeLine(line.localId)}
@@ -596,6 +590,31 @@ export function NewInvoiceForm() {
                   >
                     <Trash2 className="size-4" />
                   </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[11px] text-zinc-400 mb-1 block">{t("Type")}</Label>
+                    <select
+                      value={line.type}
+                      onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
+                      className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="hours">{t("Uren")}</option>
+                      <option value="service">{t("Dienst")}</option>
+                      <option value="travel_costs">{t("Reiskosten")}</option>
+                      <option value="discount">{t("Korting")}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-[11px] text-zinc-400 mb-1 block">{t("Datum")} <span className="text-zinc-500 font-normal">({t("optioneel")})</span></Label>
+                    <Input
+                      type="date"
+                      value={line.date}
+                      onChange={e => updateLine(line.localId, "date", e.target.value)}
+                      className="bg-zinc-800 border-zinc-700 text-xs"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -680,7 +699,7 @@ export function NewInvoiceForm() {
               </div>
 
               {/* Desktop View Row (>= sm) */}
-              <div className="hidden sm:grid sm:grid-cols-[120px_1fr_120px_130px_110px_32px] gap-2 items-center">
+              <div className="hidden sm:grid sm:grid-cols-[105px_125px_1fr_95px_115px_95px_32px] gap-2 items-center">
                 {/* Type dropdown */}
                 <select
                   value={line.type}
@@ -692,6 +711,15 @@ export function NewInvoiceForm() {
                   <option value="travel_costs">{t("Reiskosten")}</option>
                   <option value="discount">{t("Korting")}</option>
                 </select>
+
+                {/* Date input */}
+                <Input
+                  type="date"
+                  value={line.date}
+                  onChange={e => updateLine(line.localId, "date", e.target.value)}
+                  className="bg-zinc-800 border-zinc-700 text-xs px-1.5 py-2 text-white"
+                  title={t("Datum (optioneel)")}
+                />
 
                 {/* Task Description */}
                 <Input

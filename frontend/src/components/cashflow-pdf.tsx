@@ -488,6 +488,7 @@ async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
             <View key={line.id} style={styles.tableRow}>
               <View style={styles.colDesc}>
                 <Text style={styles.td}>{line.taskDescription}</Text>
+                {line.date ? <Text style={styles.tdMuted}>{formatDate(line.date)}</Text> : null}
                 {line.type === "travel_costs" ? <Text style={styles.tdMuted}>Reiskosten</Text> : null}
                 {line.type === "discount" ? (
                   <Text style={[styles.tdMuted, { color: accentColor }]}>

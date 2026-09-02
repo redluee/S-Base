@@ -251,7 +251,14 @@ export default function InvoiceDetailPage() {
           {invoice.lines.map((line) => (
             <div key={line.id} className="p-3.5 space-y-1.5">
               <div className="flex justify-between items-start gap-2">
-                <span className="text-xs text-zinc-200 font-medium">{line.taskDescription}</span>
+                <div className="space-y-0.5">
+                  {line.date && (
+                    <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/60 inline-block mb-0.5">
+                      {formatDate(line.date)}
+                    </span>
+                  )}
+                  <p className="text-xs text-zinc-200 font-medium">{line.taskDescription}</p>
+                </div>
                 <span className={`text-xs font-semibold whitespace-nowrap ${line.totalCost < 0 ? "text-emerald-400" : "text-white"}`}>
                   {formatEuro(line.totalCost)}
                 </span>
@@ -289,8 +296,15 @@ export default function InvoiceDetailPage() {
             {invoice.lines.map((line, i) => (
               <tr key={line.id} className={`${i % 2 === 0 ? "" : "bg-zinc-900/50"} ${i === invoice.lines.length - 1 ? "border-b-2 border-zinc-700" : ""}`}>
                 <td className="px-4 py-2.5 text-zinc-200">
-                  {line.taskDescription}
-                  {line.type === "discount" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t("Korting")} ({line.discountType === "percentage" ? `${line.discountValue}%` : formatEuro(line.discountValue ?? 0)})</span>}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {line.date && (
+                      <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/60 shrink-0">
+                        {formatDate(line.date)}
+                      </span>
+                    )}
+                    <span>{line.taskDescription}</span>
+                    {line.type === "discount" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t("Korting")} ({line.discountType === "percentage" ? `${line.discountValue}%` : formatEuro(line.discountValue ?? 0)})</span>}
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-center text-zinc-400">
                   {line.type === "discount" ? "—" : line.type === "hours" ? `${line.quantity} uur` : line.type === "travel_costs" ? `${line.quantity} km` : line.quantity}

@@ -97,12 +97,13 @@ describe("CashflowService", () => {
     const client = cashflow.createClient(adminId, { name: "Invoice Client" });
     const invNum = cashflow.generateInvoiceNumber(adminId, 2026);
 
+    const lineDate = new Date("2026-03-15").getTime();
     const invoice = cashflow.createInvoice(adminId, {
       clientId: client.id,
       invoiceNumber: invNum,
       isKor: true,
       lines: [
-        { taskDescription: "Development", quantity: 10, unitPrice: 80, totalCost: 800, type: "hours" },
+        { taskDescription: "Development", date: lineDate, quantity: 10, unitPrice: 80, totalCost: 800, type: "hours" },
       ],
     });
 
@@ -110,6 +111,7 @@ describe("CashflowService", () => {
     expect(invoice?.invoiceNumber).toBe(invNum);
     expect(invoice?.total).toBe(800);
     expect(invoice?.lines.length).toBe(1);
+    expect(invoice?.lines[0].date).toBe(lineDate);
 
     // Prevent duplicate invoice numbers
     expect(() =>
@@ -126,11 +128,17 @@ describe("CashflowService", () => {
     expect(paidInv?.status).toBe("paid");
     expect(paidInv?.datePaid).toBeGreaterThan(0);
 
-    // Update invoice
+    // Update invoice with new line date
+    const newLineDate = new Date("2026-03-20").getTime();
     const updated = cashflow.updateInvoice(invoice!.id, {
       name: "Q3 Development Invoice",
+      lines: [
+        { taskDescription: "Development Part 2", date: newLineDate, quantity: 5, unitPrice: 80, totalCost: 400, type: "hours" },
+      ],
     });
     expect(updated?.name).toBe("Q3 Development Invoice");
+    expect(updated?.lines[0].date).toBe(newLineDate);
+    expect(updated?.lines[0].taskDescription).toBe("Development Part 2");
 
     // Dashboard stats
     const stats = cashflow.getDashboardStats(adminId, 2026);
