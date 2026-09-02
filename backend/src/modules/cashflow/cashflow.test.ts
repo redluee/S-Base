@@ -149,4 +149,26 @@ describe("CashflowService", () => {
     const delRes = cashflow.removeInvoice(invoice!.id);
     expect(delRes?.deleted).toBe(true);
   });
+
+  it("lists invoices ordered by creation date (createdAt) descending including drafts", () => {
+    const client = cashflow.createClient(adminId, { name: "Sorting Client" });
+    const inv1 = cashflow.createInvoice(adminId, {
+      clientId: client.id,
+      invoiceNumber: "2026-010",
+      dateCreated: new Date("2026-01-01").getTime(),
+      lines: [{ taskDescription: "Task 1", quantity: 1, unitPrice: 100, totalCost: 100 }],
+    });
+
+    const inv2Draft = cashflow.createInvoice(adminId, {
+      clientId: client.id,
+      invoiceNumber: "2026-011",
+      dateCreated: null,
+      lines: [{ taskDescription: "Draft Task", quantity: 1, unitPrice: 100, totalCost: 100 }],
+    });
+
+    const invoices = cashflow.listInvoices(adminId);
+    expect(invoices.length).toBe(2);
+    expect(invoices[0].id).toBe(inv2Draft!.id);
+    expect(invoices[1].id).toBe(inv1!.id);
+  });
 });

@@ -254,6 +254,7 @@ export class CashflowService {
       clientId: cashflowClients.id,
       clientName: cashflowClients.name,
       tradeNameDisplay: cashflowTradeNames.displayName,
+      createdAt: cashflowInvoices.createdAt,
       total: sql<number>`(SELECT COALESCE(SUM(total_cost), 0) FROM cashflow_invoice_lines WHERE invoice_id = ${cashflowInvoices.id})`,
     })
       .from(cashflowInvoices)
@@ -261,7 +262,7 @@ export class CashflowService {
       .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
       .leftJoin(cashflowTradeNames, eq(sql`COALESCE(${cashflowInvoices.tradeNameId}, ${cashflowProjects.tradeNameId})`, cashflowTradeNames.id))
       .where(and(...conditions))
-      .orderBy(desc(cashflowInvoices.dateCreated))
+      .orderBy(desc(cashflowInvoices.createdAt), desc(cashflowInvoices.id))
       .all();
 
     const now = Date.now();
