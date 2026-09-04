@@ -15,6 +15,7 @@ const SIGNAL_RED = 0xef4444;
 
 const startCooldowns = new Map<string, number>();
 const COOLDOWN_SECONDS = 60;
+const emojiCache = new Map<string, string>();
 
 interface PingResult {
   online: boolean;
@@ -122,6 +123,49 @@ function pingTcpPort(host: string, port: number, timeoutMs = 500): Promise<boole
   });
 }
 
+async function getPlayerAvatarEmoji(client: Client, playerName: string): Promise<string> {
+  const sanitized = playerName.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 28);
+  const emojiName = `mc_${sanitized || "player"}`;
+
+  if (emojiCache.has(emojiName)) {
+    return emojiCache.get(emojiName)!;
+  }
+
+  try {
+    if (!client.application) return "👤";
+
+    // Check if application already has this emoji cached
+    const existing = client.application.emojis.cache.find((e) => e.name === emojiName);
+    if (existing) {
+      const emojiStr = `<:${existing.name}:${existing.id}>`;
+      emojiCache.set(emojiName, emojiStr);
+      return emojiStr;
+    }
+
+    // Fetch avatar from mc-heads
+    const res = await fetch(`https://mc-heads.net/avatar/${encodeURIComponent(playerName)}/32.png`, {
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > 0 && buf.length < 256 * 1024) {
+        const created = await client.application.emojis.create({
+          attachment: buf,
+          name: emojiName,
+        });
+        const emojiStr = `<:${created.name}:${created.id}>`;
+        emojiCache.set(emojiName, emojiStr);
+        return emojiStr;
+      }
+    }
+  } catch (err) {
+    console.error(`[Discord Bot] Kon avatar emoji niet aanmaken voor ${playerName}:`, err);
+  }
+
+  return "👤";
+}
+
 export function createDiscordBot(minecraft: MinecraftService) {
   const token = process.env.DISCORD_BOT_TOKEN?.trim();
   const defaultServerSlug = (process.env.DISCORD_BOT_DEFAULT_SERVER || "hangout").trim().toLowerCase();
@@ -221,6 +265,20 @@ export function createDiscordBot(minecraft: MinecraftService) {
   client.once(Events.ClientReady, async () => {
     console.log(`[Discord Bot] Ingelogd als ${client.user?.tag}`);
 
+    // Pre-cache application emojis
+    try {
+      const existingEmojis = await client.application?.emojis.fetch();
+      if (existingEmojis) {
+        for (const [id, e] of existingEmojis) {
+          if (e.name) {
+            emojiCache.set(e.name, `<:${e.name}:${id}>`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[Discord Bot] Kon bestaande application emojis niet ophalen:", err);
+    }
+
     // Register slash commands globally
     try {
       const statusCommand = new SlashCommandBuilder()
@@ -277,9 +335,16 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
       const { isOnline, maxPlayers, playerNames, playerCount } = await getServerStatusAndPlayers(slug);
 
+      const playerListItems = await Promise.all(
+        playerNames.map(async (name) => {
+          const avatar = await getPlayerAvatarEmoji(client, name);
+          return `${avatar} **${name}**`;
+        }),
+      );
+
       const playerListText =
-        playerNames.length > 0
-          ? playerNames.map((name) => `• **${name}**`).join("\n")
+        playerListItems.length > 0
+          ? playerListItems.join("\n")
           : isOnline
             ? "*Geen spelers momenteel online*"
             : "*Server is offline*";
@@ -350,9 +415,16 @@ export function createDiscordBot(minecraft: MinecraftService) {
       // Check if already running using both process and live network check
       const status = await getServerStatusAndPlayers(slug);
       if (status.isOnline) {
+        const playerListItems = await Promise.all(
+          status.playerNames.map(async (name) => {
+            const avatar = await getPlayerAvatarEmoji(client, name);
+            return `${avatar} **${name}**`;
+          }),
+        );
+
         const playerListText =
-          status.playerNames.length > 0
-            ? status.playerNames.map((name) => `• **${name}**`).join("\n")
+          playerListItems.length > 0
+            ? playerListItems.join("\n")
             : "*Geen spelers momenteel online*";
 
         const alreadyOnEmbed = new EmbedBuilder()
