@@ -7,6 +7,7 @@ import {
   GatewayIntentBits,
   SlashCommandBuilder,
 } from "discord.js";
+import { Socket } from "net";
 import type { MinecraftService } from "./index";
 
 const SIGNAL_GREEN = 0x00e3a4;
@@ -14,6 +15,112 @@ const SIGNAL_RED = 0xef4444;
 
 const startCooldowns = new Map<string, number>();
 const COOLDOWN_SECONDS = 60;
+
+interface PingResult {
+  online: boolean;
+  onlineCount: number;
+  maxCount: number;
+  players: string[];
+}
+
+function pingMinecraftServer(host: string, port: number, timeoutMs = 800): Promise<PingResult | null> {
+  return new Promise((resolve) => {
+    const socket = new Socket();
+    let isResolved = false;
+    let received = Buffer.alloc(0);
+
+    const finish = (result: PingResult | null) => {
+      if (!isResolved) {
+        isResolved = true;
+        socket.destroy();
+        resolve(result);
+      }
+    };
+
+    socket.setTimeout(timeoutMs);
+
+    socket.on("connect", () => {
+      const hostBuf = Buffer.from(host, "utf-8");
+      const hostLen = Buffer.from([hostBuf.length]);
+      const portBuf = Buffer.alloc(2);
+      portBuf.writeUInt16BE(port, 0);
+
+      const handshakeData = Buffer.concat([
+        Buffer.from([0x00]), // packet id 0
+        Buffer.from([0xff, 0xff, 0xff, 0xff, 0x0f]), // protocol -1 as 5-byte varint
+        hostLen,
+        hostBuf,
+        portBuf,
+        Buffer.from([0x01]), // state 1 (status)
+      ]);
+
+      const handshake = Buffer.concat([Buffer.from([handshakeData.length]), handshakeData]);
+      const statusReq = Buffer.from([0x01, 0x00]);
+
+      socket.write(handshake);
+      socket.write(statusReq);
+    });
+
+    socket.on("data", (data) => {
+      received = Buffer.concat([received, data]);
+      try {
+        const str = received.toString("utf-8");
+        const jsonStart = str.indexOf("{");
+        const jsonEnd = str.lastIndexOf("}");
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          const json = JSON.parse(str.slice(jsonStart, jsonEnd + 1));
+          finish({
+            online: true,
+            onlineCount: json.players?.online ?? 0,
+            maxCount: json.players?.max ?? 20,
+            players: (json.players?.sample ?? []).map((p: any) => p.name).filter(Boolean),
+          });
+        }
+      } catch {}
+    });
+
+    socket.on("timeout", () => finish(null));
+    socket.on("error", () => finish(null));
+    socket.on("close", () => finish(null));
+
+    socket.connect(port, host);
+  });
+}
+
+function pingTcpPort(host: string, port: number, timeoutMs = 500): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new Socket();
+    let isResolved = false;
+
+    socket.setTimeout(timeoutMs);
+
+    socket.on("connect", () => {
+      if (!isResolved) {
+        isResolved = true;
+        socket.destroy();
+        resolve(true);
+      }
+    });
+
+    socket.on("timeout", () => {
+      if (!isResolved) {
+        isResolved = true;
+        socket.destroy();
+        resolve(false);
+      }
+    });
+
+    socket.on("error", () => {
+      if (!isResolved) {
+        isResolved = true;
+        socket.destroy();
+        resolve(false);
+      }
+    });
+
+    socket.connect(port, host);
+  });
+}
 
 export function createDiscordBot(minecraft: MinecraftService) {
   const token = process.env.DISCORD_BOT_TOKEN?.trim();
@@ -30,21 +137,58 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
   let presenceInterval: ReturnType<typeof setInterval> | null = null;
 
+  async function getServerPort(slug: string): Promise<number> {
+    try {
+      const props = await minecraft.readProperties(slug);
+      if (props["server-port"]) {
+        const p = parseInt(props["server-port"], 10);
+        if (!isNaN(p) && p > 0) return p;
+      }
+    } catch {}
+    return 25565;
+  }
+
+  async function getServerStatusAndPlayers(slug: string) {
+    const port = await getServerPort(slug);
+    const slp = await pingMinecraftServer("127.0.0.1", port);
+    const processRunning = minecraft.isRunning(slug);
+    const portOpen = slp?.online ?? (await pingTcpPort("127.0.0.1", port));
+    const isOnline = processRunning || portOpen;
+
+    let maxPlayers = slp ? String(slp.maxCount) : "20";
+    try {
+      const props = await minecraft.readProperties(slug);
+      if (props["max-players"]) {
+        maxPlayers = props["max-players"];
+      }
+    } catch {}
+
+    const trackedPlayers = isOnline ? minecraft.getOnlinePlayers(slug).map((p) => p.playerName) : [];
+    const slpPlayers = slp?.players ?? [];
+    const playerNames = Array.from(new Set([...trackedPlayers, ...slpPlayers]));
+    const playerCount = Math.max(playerNames.length, slp?.onlineCount ?? 0);
+
+    return {
+      isOnline,
+      maxPlayers,
+      playerNames,
+      playerCount,
+    };
+  }
+
   async function updatePresence() {
     try {
       if (!client.user) return;
-      const isOnline = minecraft.isRunning(defaultServerSlug);
       const server = minecraft.getServer(defaultServerSlug);
       const serverName = server?.displayName || defaultServerSlug;
+      const { isOnline, playerCount } = await getServerStatusAndPlayers(defaultServerSlug);
 
       if (isOnline) {
-        const players = minecraft.getOnlinePlayers(defaultServerSlug);
-        const count = players.length;
         client.user.setPresence({
           status: "online",
           activities: [
             {
-              name: `${serverName} | ${count} online`,
+              name: `${serverName} | ${playerCount} online`,
               type: ActivityType.Playing,
             },
           ],
@@ -135,22 +279,13 @@ export function createDiscordBot(minecraft: MinecraftService) {
         return;
       }
 
-      const isOnline = minecraft.isRunning(slug);
-      const players = isOnline ? minecraft.getOnlinePlayers(slug) : [];
-      let maxPlayers = "20";
+      await interaction.deferReply();
 
-      try {
-        const props = await minecraft.readProperties(slug);
-        if (props["max-players"]) {
-          maxPlayers = props["max-players"];
-        }
-      } catch {
-        // use default max-players
-      }
+      const { isOnline, maxPlayers, playerNames, playerCount } = await getServerStatusAndPlayers(slug);
 
       const playerListText =
-        players.length > 0
-          ? players.map((p) => `• **${p.playerName}**`).join("\n")
+        playerNames.length > 0
+          ? playerNames.map((name) => `• **${name}**`).join("\n")
           : isOnline
             ? "*Geen spelers momenteel online*"
             : "*Server is offline*";
@@ -166,12 +301,7 @@ export function createDiscordBot(minecraft: MinecraftService) {
           },
           {
             name: "Spelers",
-            value: isOnline ? `👥 **${players.length} / ${maxPlayers}**` : "—",
-            inline: true,
-          },
-          {
-            name: "Versie & Engine",
-            value: `⚙️ ${server.engine} ${server.mcVersion}`,
+            value: isOnline ? `👥 **${playerCount} / ${maxPlayers}**` : "—",
             inline: true,
           },
           {
@@ -187,7 +317,7 @@ export function createDiscordBot(minecraft: MinecraftService) {
         embed.setDescription("De server staat momenteel uit. Gebruik `/start` om hem op te starten!");
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (err: any) {
       console.error(`[Discord Bot] Fout bij /status voor ${slug}:`, err);
       if (interaction.deferred || interaction.replied) {
@@ -213,12 +343,38 @@ export function createDiscordBot(minecraft: MinecraftService) {
         return;
       }
 
-      // Check if already running
-      if (minecraft.isRunning(slug)) {
-        await interaction.reply({
-          content: `🟢 De server **${server.displayName}** draait al! Gebruik \`/status\` om de spelers te bekijken.`,
-          ephemeral: true,
-        });
+      await interaction.deferReply();
+
+      // Check if already running using both process and live network check
+      const status = await getServerStatusAndPlayers(slug);
+      if (status.isOnline) {
+        const playerListText =
+          status.playerNames.length > 0
+            ? status.playerNames.map((name) => `• **${name}**`).join("\n")
+            : "*Geen spelers momenteel online*";
+
+        const alreadyOnEmbed = new EmbedBuilder()
+          .setTitle(`🟢 Server Draait Al: ${server.displayName}`)
+          .setColor(SIGNAL_GREEN)
+          .setDescription(
+            `De server **${server.displayName}** staat al aan!\n\nGebruik \`/status\` om de volledige status te bekijken.`,
+          )
+          .addFields(
+            {
+              name: "Spelers",
+              value: `👥 **${status.playerCount} / ${status.maxPlayers}**`,
+              inline: true,
+            },
+            {
+              name: "Online Spelers",
+              value: playerListText,
+              inline: false,
+            },
+          )
+          .setFooter({ text: "S-Base Minecraft Monitor" })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [alreadyOnEmbed] });
         return;
       }
 
@@ -229,15 +385,11 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
       if (elapsedSeconds < COOLDOWN_SECONDS) {
         const remaining = COOLDOWN_SECONDS - elapsedSeconds;
-        await interaction.reply({
+        await interaction.editReply({
           content: `⏳ Server **${server.displayName}** is recent gestart. Wacht nog **${remaining}s** voor een nieuw startverzoek.`,
-          ephemeral: true,
         });
         return;
       }
-
-      // Acknowledge interaction quickly to avoid Discord 3-second timeout
-      await interaction.deferReply();
 
       // Record start timestamp
       startCooldowns.set(slug, now);
@@ -249,15 +401,8 @@ export function createDiscordBot(minecraft: MinecraftService) {
         .setTitle(`🚀 Server Wordt Opgestart: ${server.displayName}`)
         .setColor(SIGNAL_GREEN)
         .setDescription(
-          `De server **${server.displayName}** wordt nu opgestart!\n\n` +
-            `⏱️ Het opstarten duurt doorgaans **30 tot 60 seconden**.\n` +
-            `🔍 Gebruik over een minuutje \`/status\` om te zien wanneer hij gereed is om te joinen.`,
+          `De server **${server.displayName}** wordt nu opgestart.\n\nGebruik \`/status\` om de status en online spelers te bekijken.`,
         )
-        .addFields({
-          name: "Gestart door",
-          value: `<@${interaction.user.id}>`,
-          inline: true,
-        })
         .setFooter({ text: "S-Base Minecraft Monitor" })
         .setTimestamp();
 
