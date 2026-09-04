@@ -235,13 +235,7 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
       const startCommand = new SlashCommandBuilder()
         .setName("start")
-        .setDescription("Start de Minecraft server op als deze offline is")
-        .addStringOption((option) =>
-          option
-            .setName("server")
-            .setDescription(`De server om te starten (standaard: ${defaultServerSlug})`)
-            .setRequired(false),
-        );
+        .setDescription("Start de Hangout Minecraft server op als deze offline is");
 
       await client.application?.commands.set([statusCommand, startCommand]);
       console.log("[Discord Bot] Slash commands (/status, /start) geregistreerd.");
@@ -258,12 +252,12 @@ export function createDiscordBot(minecraft: MinecraftService) {
     if (!interaction.isChatInputCommand()) return;
 
     const { commandName } = interaction;
-    const requestedSlug = (interaction.options.getString("server") || defaultServerSlug).trim().toLowerCase();
 
     if (commandName === "status") {
+      const requestedSlug = (interaction.options.getString("server") || defaultServerSlug).trim().toLowerCase();
       await handleStatusCommand(interaction, requestedSlug);
     } else if (commandName === "start") {
-      await handleStartCommand(interaction, requestedSlug);
+      await handleStartCommand(interaction, defaultServerSlug);
     }
   });
 
@@ -333,6 +327,14 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
   async function handleStartCommand(interaction: ChatInputCommandInteraction, slug: string) {
     try {
+      if (slug !== defaultServerSlug) {
+        await interaction.reply({
+          content: `❌ Alleen de server **${defaultServerSlug}** mag via Discord worden gestart.`,
+          ephemeral: true,
+        });
+        return;
+      }
+
       const server = minecraft.getServer(slug);
       if (!server) {
         const available = getAvailableServerSlugs().map((s) => `\`${s}\``).join(", ");
