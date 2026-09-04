@@ -253,15 +253,6 @@ export function createDiscordBot(minecraft: MinecraftService) {
     }
   }
 
-  function getAvailableServerSlugs(): string[] {
-    try {
-      const all = minecraft.listServersForUser(0, true);
-      return all.map((s) => s.slug);
-    } catch {
-      return [defaultServerSlug];
-    }
-  }
-
   client.once(Events.ClientReady, async () => {
     console.log(`[Discord Bot] Ingelogd als ${client.user?.tag}`);
 
@@ -283,13 +274,7 @@ export function createDiscordBot(minecraft: MinecraftService) {
     try {
       const statusCommand = new SlashCommandBuilder()
         .setName("status")
-        .setDescription("Bekijk de status en online spelers van de Minecraft server")
-        .addStringOption((option) =>
-          option
-            .setName("server")
-            .setDescription(`De server (standaard: ${defaultServerSlug})`)
-            .setRequired(false),
-        );
+        .setDescription("Bekijk de status en online spelers van de Hangout Minecraft server");
 
       const startCommand = new SlashCommandBuilder()
         .setName("start")
@@ -312,8 +297,7 @@ export function createDiscordBot(minecraft: MinecraftService) {
     const { commandName } = interaction;
 
     if (commandName === "status") {
-      const requestedSlug = (interaction.options.getString("server") || defaultServerSlug).trim().toLowerCase();
-      await handleStatusCommand(interaction, requestedSlug);
+      await handleStatusCommand(interaction, defaultServerSlug);
     } else if (commandName === "start") {
       await handleStartCommand(interaction, defaultServerSlug);
     }
@@ -321,11 +305,18 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
   async function handleStatusCommand(interaction: ChatInputCommandInteraction, slug: string) {
     try {
+      if (slug !== defaultServerSlug) {
+        await interaction.reply({
+          content: `❌ Alleen de status van server **${defaultServerSlug}** mag via Discord worden opgevraagd.`,
+          ephemeral: true,
+        });
+        return;
+      }
+
       const server = minecraft.getServer(slug);
       if (!server) {
-        const available = getAvailableServerSlugs().map((s) => `\`${s}\``).join(", ");
         await interaction.reply({
-          content: `❌ Server \`${slug}\` is niet gevonden.\nBeschikbare servers: ${available || "geen"}`,
+          content: `❌ Server \`${slug}\` is niet gevonden in S-Base.`,
           ephemeral: true,
         });
         return;
@@ -402,9 +393,8 @@ export function createDiscordBot(minecraft: MinecraftService) {
 
       const server = minecraft.getServer(slug);
       if (!server) {
-        const available = getAvailableServerSlugs().map((s) => `\`${s}\``).join(", ");
         await interaction.reply({
-          content: `❌ Server \`${slug}\` is niet gevonden.\nBeschikbare servers: ${available || "geen"}`,
+          content: `❌ Server \`${slug}\` is niet gevonden in S-Base.`,
           ephemeral: true,
         });
         return;
