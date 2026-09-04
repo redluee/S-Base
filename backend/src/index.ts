@@ -8,6 +8,7 @@ import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
 import { PulseService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
+import { createDiscordBot } from "./modules/minecraft/discord-bot";
 import { MinorService } from "./modules/minor";
 import db from "./db/client";
 import { modules, usermodulepermissions, users } from "./db/schema";
@@ -1012,4 +1013,15 @@ export const app = new Elysia()
   .listen({ port: PORT, hostname: "0.0.0.0" });
 
 console.log(`Backend running on http://localhost:${PORT}`);
+
+const discordBot = process.env.NODE_ENV !== "test" ? createDiscordBot(minecraft) : null;
+
+process.on("SIGINT", () => {
+  discordBot?.stop();
+  process.exit(0);
+});
+process.on("SIGTERM", () => {
+  discordBot?.stop();
+  process.exit(0);
+});
 

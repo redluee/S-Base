@@ -5,6 +5,7 @@
     "dev": "bun run --hot src/index.ts",
     "test": "DB_PATH=:memory: bun test",
     "start": "NODE_ENV=production bun run src/index.ts",
+    "bot": "bun run src/modules/minecraft/bot-runner.ts",
     "db:migrate": "bun run src/db/migrate.ts",
     "db:seed": "bun run src/db/seed.ts",
     "db:user": "bun run src/db/user-manager.ts",
@@ -12,9 +13,10 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "elysia": "^1.2.25",
+    "@elysiajs/cors": "^1.2.0",
+    "discord.js": "^14.27.0",
     "drizzle-orm": "^0.40.1",
-    "@elysiajs/cors": "^1.2.0"
+    "elysia": "^1.2.25"
   },
   "devDependencies": {
     "bun-types": "latest",
