@@ -1023,9 +1023,19 @@ export interface CashflowInvoiceFull extends CashflowInvoiceSummary {
   createdAt: string;
 }
 
+export interface CashflowMonthlyIncome {
+  month: string;
+  total: number;
+  paid: number;
+  expected: number;
+  draft?: number;
+  open?: number;
+}
+
 export interface CashflowDashboardStats {
-  monthlyIncome: { month: string; total: number }[];
+  monthlyIncome: CashflowMonthlyIncome[];
   statusTotals: { status: string; count: number; total: number }[];
   totalPaid12m: number;
+  totalExpected12m?: number;
 }
 

@@ -444,7 +444,7 @@ export default function InvoicesPage() {
           {sorted.map(inv => {
             const cfg = statusConfig[inv.status] ?? statusConfig.draft;
             const StatusIcon = cfg.icon;
-            const isOverdue = inv.status !== "paid" && Boolean(inv.paymentDueDate && inv.paymentDueDate < now);
+            const isOverdue = inv.status !== "paid" && inv.status !== "draft" && Boolean(inv.paymentDueDate && inv.paymentDueDate < now);
 
             return (
               <div key={inv.id}>

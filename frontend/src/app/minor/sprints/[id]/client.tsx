@@ -1576,7 +1576,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               {/* Bewijslast */}
               {viewingStory.evidence && viewingStory.evidence.length > 0 && (
                 <div className="space-y-2.5 p-4 rounded-xl bg-zinc-950 border border-white/5">
-                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijslast")}</span>
+                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijsstukken & resultaten")}</span>
                   <div className="flex flex-wrap gap-2 pt-1">
                     {viewingStory.evidence.map((ev) => (
                       <a
@@ -2026,7 +2026,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               {/* Evidence Links & Document Uploads */}
               <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijslast (GitHub, Live URL, Document)")}</span>
+                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijsstukken & resultaten (GitHub, Live URL, Document)")}</span>
                   <div className="flex items-center gap-3">
                     <label className="text-xs sm:text-sm text-brand hover:underline cursor-pointer flex items-center gap-1.5">
                       <Upload className="size-3.5" />

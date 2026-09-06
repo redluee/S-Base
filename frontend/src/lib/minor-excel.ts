@@ -29,7 +29,7 @@ function buildSprintWorksheetData(sprint: MinorSprintFull): CellValue[][] {
     "Leeruitkomsten",
     "Acceptatiecriteria",
     "Kwaliteitscriteria",
-    "Bewijslast / Links",
+    "Bewijsstukken & resultaten",
     "Status",
   ]);
 

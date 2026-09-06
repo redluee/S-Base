@@ -171,4 +171,37 @@ describe("CashflowService", () => {
     expect(invoices[0].id).toBe(inv2Draft!.id);
     expect(invoices[1].id).toBe(inv1!.id);
   });
+
+  it("keeps draft status when dateCreated is filled and calculates expected income in dashboard stats", () => {
+    const client = cashflow.createClient(adminId, { name: "Draft Expected Client" });
+    const draftDate = new Date("2026-10-15").getTime();
+    const pastDueDate = new Date("2026-09-01").getTime();
+
+    const draftInv = cashflow.createInvoice(adminId, {
+      clientId: client.id,
+      invoiceNumber: "2026-099",
+      status: "draft",
+      dateCreated: draftDate,
+      paymentDueDate: pastDueDate,
+      lines: [{ taskDescription: "Future Project", quantity: 1, unitPrice: 1500, totalCost: 1500 }],
+    });
+
+    expect(draftInv?.status).toBe("draft");
+
+    const fetched = cashflow.getInvoiceById(draftInv!.id);
+    expect(fetched?.status).toBe("draft");
+
+    const listed = cashflow.listInvoices(adminId, "draft");
+    const found = listed.find((i) => i.id === draftInv!.id);
+    expect(found).toBeDefined();
+    expect(found?.status).toBe("draft");
+
+    const stats = cashflow.getDashboardStats(adminId, 2026);
+    const octMonth = stats.monthlyIncome.find((m) => m.month === "2026-10");
+    expect(octMonth).toBeDefined();
+    expect(octMonth?.paid).toBe(0);
+    expect(octMonth?.draft).toBe(1500);
+    expect(octMonth?.expected).toBe(1500);
+    expect(stats.totalExpected12m).toBeGreaterThanOrEqual(1500);
+  });
 });

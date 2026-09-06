@@ -305,8 +305,7 @@ export function NewInvoiceForm() {
 
     setSaving(true);
     try {
-      const hasDateCreated = !!dateCreated;
-      const targetStatus = editId ? status : (hasDateCreated ? (status === "draft" ? "sent" : status) : "draft");
+      const targetStatus = status || "draft";
       const body = {
         clientId: Number(clientId),
         projectId: projectId ? Number(projectId) : null,
@@ -508,28 +507,26 @@ export function NewInvoiceForm() {
             <Label className="text-xs text-zinc-400">{t("Vervaldatum")}</Label>
             <Input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className="bg-zinc-800 border-zinc-700" />
           </div>
-          {editId && (
-            <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-400">{t("Status")}</Label>
-              <select
-                value={status}
-                onChange={e => {
-                  const newStatus = e.target.value;
-                  setStatus(newStatus);
-                  if (newStatus !== "paid") {
-                    setDatePaid("");
-                  } else if (!datePaid) {
-                    setDatePaid(new Date().toISOString().split("T")[0]);
-                  }
-                }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="draft">{t("Concept")}</option>
-                <option value="sent">{t("Verzonden / Openstaand")}</option>
-                <option value="paid">{t("Betaald")}</option>
-              </select>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-zinc-400">{t("Status")}</Label>
+            <select
+              value={status}
+              onChange={e => {
+                const newStatus = e.target.value;
+                setStatus(newStatus);
+                if (newStatus !== "paid") {
+                  setDatePaid("");
+                } else if (!datePaid) {
+                  setDatePaid(new Date().toISOString().split("T")[0]);
+                }
+              }}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+            >
+              <option value="draft">{t("Concept")}</option>
+              <option value="sent">{t("Verzonden / Openstaand")}</option>
+              <option value="paid">{t("Betaald")}</option>
+            </select>
+          </div>
           {status === "paid" && (
             <div className="space-y-1.5">
               <Label className="text-xs text-zinc-400">{t("Datum van betaling")}</Label>
@@ -824,25 +821,18 @@ export function NewInvoiceForm() {
         >
           {t("Annuleer")}
         </Button>
-        {editId ? (
-          <Button
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={saving}
-            className="bg-blue-500 hover:bg-blue-400 text-white text-sm shadow-lg shadow-blue-500/20 cursor-pointer"
-          >
-            {saving ? t("Bezig met opslaan...") : t("Opslaan")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={saving}
-            className="bg-blue-500 hover:bg-blue-400 text-white text-sm shadow-lg shadow-blue-500/20 cursor-pointer"
-          >
-            {saving ? t("Bezig met opslaan...") : (dateCreated ? t("Opslaan") : t("Opslaan als concept"))}
-          </Button>
-        )}
+        <Button
+          type="button"
+          onClick={() => handleSubmit()}
+          disabled={saving}
+          className="bg-blue-500 hover:bg-blue-400 text-white text-sm shadow-lg shadow-blue-500/20 cursor-pointer"
+        >
+          {saving
+            ? t("Bezig met opslaan...")
+            : status === "draft"
+            ? t("Opslaan als concept")
+            : t("Opslaan")}
+        </Button>
       </div>
     </div>
   );

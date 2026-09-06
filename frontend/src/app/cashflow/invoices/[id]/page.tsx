@@ -95,7 +95,7 @@ export default function InvoiceDetailPage() {
   }
 
   const cfg = statusConfig[invoice.status] ?? statusConfig.draft;
-  const isOverdue = invoice.status !== "paid" && Boolean(invoice.paymentDueDate && invoice.paymentDueDate < now);
+  const isOverdue = invoice.status !== "paid" && invoice.status !== "draft" && Boolean(invoice.paymentDueDate && invoice.paymentDueDate < now);
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-6">

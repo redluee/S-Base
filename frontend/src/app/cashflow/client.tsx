@@ -72,8 +72,24 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
   }, []);
 
   const months = getMonthsForYear(selectedYear);
-  const incomeMap = new Map((stats?.monthlyIncome ?? []).map((m) => [m.month, m.total]));
-  const maxIncome = Math.max(...months.map((m) => incomeMap.get(m) ?? 0), 1);
+  const monthDataMap = new Map(
+    (stats?.monthlyIncome ?? []).map((m) => [
+      m.month,
+      {
+        paid: m.paid ?? m.total ?? 0,
+        expected: m.expected ?? 0,
+        draft: m.draft ?? 0,
+        open: m.open ?? 0,
+      },
+    ])
+  );
+  const maxIncome = Math.max(
+    ...months.map((m) => {
+      const d = monthDataMap.get(m);
+      return (d?.paid ?? 0) + (d?.expected ?? 0);
+    }),
+    1
+  );
 
   const paid = stats?.statusTotals.find((s) => s.status === "paid");
   const sent = stats?.statusTotals.find((s) => s.status === "sent");
@@ -167,16 +183,38 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
 
       {/* Income Chart */}
       <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-zinc-300">{t("Omzet per maand")}</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <h2 className="text-sm font-semibold text-zinc-300">{t("Omzet per maand")}</h2>
+            <div className="flex items-center gap-3 text-xs text-zinc-400">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm bg-blue-500" />
+                <span>{t("Betaald")}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm bg-blue-500/25 border border-dashed border-blue-400/60" />
+                <span>{t("Verwacht")}</span>
+              </div>
+            </div>
+          </div>
           <YearSelector year={selectedYear} onChange={setSelectedYear} />
         </div>
         <div className={`flex items-end gap-1.5 h-36 transition-opacity duration-200 ${loading ? "opacity-50" : "opacity-100"}`}>
-          {months.map((month) => {
-            const val = incomeMap.get(month) ?? 0;
-            const heightPct = maxIncome > 0 ? (val / maxIncome) * 100 : 0;
+          {months.map((month, idx) => {
+            const data = monthDataMap.get(month) ?? { paid: 0, expected: 0, draft: 0, open: 0 };
+            const paidVal = data.paid;
+            const expectedVal = data.expected;
+            const totalVal = paidVal + expectedVal;
+            const heightPct = maxIncome > 0 ? (totalVal / maxIncome) * 100 : 0;
             const isCurrentMonth = month === currentMonthStr;
             const isTooltipActive = activeMonthTooltip === month;
+            const tooltipPosClass =
+              idx === 0
+                ? "left-0 translate-x-0"
+                : idx === months.length - 1
+                ? "right-0 left-auto translate-x-0"
+                : "left-1/2 -translate-x-1/2";
+
             return (
               <div
                 key={month}
@@ -186,25 +224,75 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                 className="flex flex-col items-center gap-1 flex-1 min-w-0 group relative cursor-pointer select-none touch-manipulation"
               >
                 <div
-                  className={`absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-[10px] text-white whitespace-nowrap transition-opacity pointer-events-none z-10 ${
+                  className={`absolute -top-14 ${tooltipPosClass} bg-zinc-800/95 border border-zinc-700 rounded-md px-2 py-1 text-[10px] text-white whitespace-nowrap transition-opacity pointer-events-none z-20 shadow-xl flex flex-col gap-0.5 ${
                     isTooltipActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
-                  {formatEuro(val)}
+                  {totalVal === 0 ? (
+                    <span className="text-zinc-400">{formatEuro(0)}</span>
+                  ) : (
+                    <>
+                      {paidVal > 0 && (
+                        <div className="flex items-center justify-between gap-2.5">
+                          <span className="text-zinc-400">{t("Betaald")}:</span>
+                          <span className="font-semibold text-white">{formatEuro(paidVal)}</span>
+                        </div>
+                      )}
+                      {expectedVal > 0 && (
+                        <div className="flex items-center justify-between gap-2.5">
+                          <span className="text-blue-300">{t("Verwacht")}:</span>
+                          <span className="font-semibold text-blue-200">{formatEuro(expectedVal)}</span>
+                        </div>
+                      )}
+                      {paidVal > 0 && expectedVal > 0 && (
+                        <div className="flex items-center justify-between gap-2.5 pt-0.5 border-t border-zinc-700 font-bold">
+                          <span className="text-zinc-300">{t("Totaal")}:</span>
+                          <span className="text-white">{formatEuro(totalVal)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="w-full flex items-end" style={{ height: "120px" }}>
-                  <div
-                    className={`w-full rounded-t transition-all duration-300 ${
-                      isCurrentMonth
-                        ? "bg-blue-500"
-                        : val > 0
-                        ? isTooltipActive
-                          ? "bg-blue-500/80"
-                          : "bg-blue-500/40 group-hover:bg-blue-500/60"
-                        : "bg-zinc-800"
-                    }`}
-                    style={{ height: `${Math.max(heightPct, val > 0 ? 4 : 2)}%` }}
-                  />
+                  {totalVal > 0 ? (
+                    <div
+                      className="w-full flex flex-col justify-end transition-all duration-300"
+                      style={{ height: `${Math.max(heightPct, 4)}%` }}
+                    >
+                      {expectedVal > 0 && (
+                        <div
+                          className={`w-full rounded-t border-t border-l border-r border-blue-400/50 border-dashed transition-all duration-300 ${
+                            isCurrentMonth
+                              ? "bg-blue-500/35"
+                              : isTooltipActive
+                              ? "bg-blue-500/30"
+                              : "bg-blue-500/20 group-hover:bg-blue-500/25"
+                          }`}
+                          style={{
+                            height: `${(expectedVal / totalVal) * 100}%`,
+                            backgroundImage:
+                              "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(96, 165, 250, 0.15) 3px, rgba(96, 165, 250, 0.15) 6px)",
+                          }}
+                        />
+                      )}
+                      {paidVal > 0 && (
+                        <div
+                          className={`w-full transition-all duration-300 ${
+                            expectedVal === 0 ? "rounded-t" : ""
+                          } ${
+                            isCurrentMonth
+                              ? "bg-blue-500"
+                              : isTooltipActive
+                              ? "bg-blue-500/80"
+                              : "bg-blue-500/40 group-hover:bg-blue-500/60"
+                          }`}
+                          style={{ height: `${(paidVal / totalVal) * 100}%` }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full rounded-t bg-zinc-800" style={{ height: "2%" }} />
+                  )}
                 </div>
                 <MonthLabel month={month} />
               </div>

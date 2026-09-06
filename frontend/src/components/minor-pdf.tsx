@@ -272,7 +272,7 @@ function SprintPdfPage({ sprint }: SprintPageProps) {
             {/* Evidence */}
             {story.evidence && story.evidence.length > 0 && (
               <View style={{ marginTop: 3, paddingTop: 2, borderTopWidth: 0.5, borderTopColor: borderLight }}>
-                <Text style={styles.criteriaTitle}>Bewijslast / Links:</Text>
+                <Text style={styles.criteriaTitle}>Bewijsstukken & resultaten:</Text>
                 {story.evidence.map((ev) => (
                   <Text key={ev.id} style={styles.evidenceItem}>
                     • ({ev.type}) {ev.title}: {ev.url}

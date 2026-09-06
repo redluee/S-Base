@@ -840,7 +840,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
               {/* Bewijslast */}
               {viewingStory.evidence && viewingStory.evidence.length > 0 && (
                 <div className="space-y-2.5 p-4 rounded-xl bg-zinc-950 border border-white/5">
-                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijslast")}</span>
+                  <span className="font-bold text-zinc-200 text-sm">{t("Bewijsstukken & resultaten")}</span>
                   <div className="flex flex-wrap gap-2 pt-1">
                     {viewingStory.evidence.map((ev) => (
                       <a
@@ -1370,7 +1370,7 @@ function StoryCard({
           {story.evidence && story.evidence.length > 0 && (
             <div className="space-y-2.5 pt-3 border-t border-white/5">
               <div className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
-                {t("Bewijslast & Links")}
+                {t("Bewijsstukken & resultaten")}
               </div>
               <div className="flex flex-wrap gap-2">
                 {story.evidence.map((ev) => (

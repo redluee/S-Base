@@ -274,12 +274,6 @@ export class CashflowService {
         } else if (inv.dateCreated) {
           computedStatus = "sent";
         }
-      } else if (inv.status === "draft" && inv.dateCreated) {
-        if (inv.paymentDueDate && inv.paymentDueDate < now) {
-          computedStatus = "overdue";
-        } else {
-          computedStatus = "sent";
-        }
       }
       return { ...inv, status: computedStatus };
     });
@@ -327,12 +321,6 @@ export class CashflowService {
       if (row.paymentDueDate && row.paymentDueDate < now) {
         computedStatus = "overdue";
       } else if (row.dateCreated) {
-        computedStatus = "sent";
-      }
-    } else if (row.status === "draft" && row.dateCreated) {
-      if (row.paymentDueDate && row.paymentDueDate < now) {
-        computedStatus = "overdue";
-      } else {
         computedStatus = "sent";
       }
     }
@@ -571,23 +559,35 @@ export class CashflowService {
 
     const monthlyIncome = db.select({
       month: monthCol,
-      total: sql<number>`COALESCE(SUM(${cashflowInvoiceLines.totalCost}), 0)`,
+      paid: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+      open: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+      draft: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+      expected: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') OR (${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL) THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+      total: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
     })
       .from(cashflowInvoiceLines)
       .innerJoin(cashflowInvoices, eq(cashflowInvoiceLines.invoiceId, cashflowInvoices.id))
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
       .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
       .where(and(
-        eq(cashflowInvoices.status, "paid"),
         eq(cashflowClients.userId, userId),
+        sql`(${cashflowInvoices.status} != 'draft' OR ${cashflowInvoices.dateCreated} IS NOT NULL OR ${cashflowInvoices.dateService} IS NOT NULL)`,
         dateFilter
       ))
       .groupBy(monthCol)
       .orderBy(monthCol)
       .all();
 
+    const now = Date.now();
+    const computedStatusSql = sql<string>`
+      CASE
+        WHEN ${cashflowInvoices.status} != 'paid' AND ${cashflowInvoices.status} != 'draft' AND ${cashflowInvoices.paymentDueDate} IS NOT NULL AND ${cashflowInvoices.paymentDueDate} < ${now} THEN 'overdue'
+        ELSE ${cashflowInvoices.status}
+      END
+    `;
+
     const statusTotals = db.select({
-      status: cashflowInvoices.status,
+      status: computedStatusSql,
       count: sql<number>`COUNT(DISTINCT ${cashflowInvoices.id})`,
       total: sql<number>`COALESCE(SUM(${cashflowInvoiceLines.totalCost}), 0)`,
     })
@@ -599,11 +599,12 @@ export class CashflowService {
         eq(cashflowClients.userId, userId),
         dateFilter
       ))
-      .groupBy(cashflowInvoices.status)
+      .groupBy(computedStatusSql)
       .all();
 
-    const totalPaid12m = monthlyIncome.reduce((s, m) => s + m.total, 0);
+    const totalPaid12m = monthlyIncome.reduce((s, m) => s + m.paid, 0);
+    const totalExpected12m = monthlyIncome.reduce((s, m) => s + m.expected, 0);
 
-    return { monthlyIncome, statusTotals, totalPaid12m };
+    return { monthlyIncome, statusTotals, totalPaid12m, totalExpected12m };
   }
 }
