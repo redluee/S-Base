@@ -115,7 +115,76 @@ const MIME_TYPES: Record<string, string> = {
   ".otf": "font/otf",
 };
 
+export const DEFAULT_AUTO_SHUTDOWN_MINUTES = 10;
+export const DEFAULT_IDLE_CHECK_INTERVAL_MS = 15000;
+
 export class MinecraftService {
+  private emptySinceMap: Map<string, number> = new Map();
+  private idleCheckInterval: ReturnType<typeof setInterval> | null = null;
+  public autoShutdownMinutes: number = Number(process.env.MC_EMPTY_SHUTDOWN_MINUTES) || DEFAULT_AUTO_SHUTDOWN_MINUTES;
+
+  constructor(autoStartMonitor = process.env.NODE_ENV !== "test") {
+    if (autoStartMonitor) {
+      this.startIdleMonitor();
+    }
+  }
+
+  startIdleMonitor(intervalMs = DEFAULT_IDLE_CHECK_INTERVAL_MS) {
+    if (this.idleCheckInterval) return;
+    this.idleCheckInterval = setInterval(() => {
+      this.checkIdleServers().catch(() => {});
+    }, intervalMs);
+  }
+
+  stopIdleMonitor() {
+    if (this.idleCheckInterval) {
+      clearInterval(this.idleCheckInterval);
+      this.idleCheckInterval = null;
+    }
+  }
+
+  getEmptySince(slug: string): number | null {
+    return this.emptySinceMap.get(slug) ?? null;
+  }
+
+  markEmpty(slug: string, timestamp = Date.now()) {
+    this.emptySinceMap.set(slug, timestamp);
+  }
+
+  clearEmpty(slug: string) {
+    this.emptySinceMap.delete(slug);
+  }
+
+  async checkIdleServers() {
+    const servers = db.select().from(mc_servers).all();
+    const maxIdleMs = Math.max(1, this.autoShutdownMinutes) * 60 * 1000;
+    const now = Date.now();
+
+    for (const server of servers) {
+      const slug = server.slug;
+      if (!this.isRunning(slug)) {
+        this.emptySinceMap.delete(slug);
+        continue;
+      }
+
+      const onlinePlayers = this.getOnlinePlayers(slug);
+      if (onlinePlayers.length === 0) {
+        if (!this.emptySinceMap.has(slug)) {
+          this.emptySinceMap.set(slug, now);
+        } else {
+          const emptySince = this.emptySinceMap.get(slug)!;
+          if (now - emptySince >= maxIdleMs) {
+            console.log(`[Minecraft] Server "${slug}" auto-stopping: no players online for ${this.autoShutdownMinutes} minutes.`);
+            this.emptySinceMap.delete(slug);
+            await this.stopServer(slug);
+          }
+        }
+      } else {
+        this.emptySinceMap.delete(slug);
+      }
+    }
+  }
+
   listServers() {
     const servers = db.select().from(mc_servers).all();
     return servers.map((s) => ({
@@ -549,6 +618,7 @@ export class MinecraftService {
     
     // Background tail logic for tracking
     this.startPlayerTracking(slug, server.serverDir);
+    this.emptySinceMap.set(slug, Date.now());
     
     return { ok: true };
   }
@@ -593,6 +663,7 @@ export class MinecraftService {
 
   async stopServer(slug: string) {
     validateSlug(slug);
+    this.emptySinceMap.delete(slug);
     if (this.trackingProcesses.has(slug)) {
       try {
         this.trackingProcesses.get(slug)?.kill();
@@ -938,6 +1009,8 @@ export class MinecraftService {
       // Close any previous open session for this player to prevent duplicates
       db.update(mc_player_sessions).set({ leftAt: new Date().toISOString() }).where(and(eq(mc_player_sessions.serverId, server.serverId), eq(mc_player_sessions.playerUuid, uuid), isNull(mc_player_sessions.leftAt))).run();
       db.insert(mc_player_sessions).values({ serverId: server.serverId, playerUuid: uuid, joinedAt: new Date().toISOString() }).run();
+      // Server is no longer empty since a player joined
+      this.emptySinceMap.delete(slug);
     }
 
     const leaveMatch = line.match(/(?:^|:\s*|\s)([A-Za-z0-9_]{1,32})\s+(?:left the game|lost connection)/);
@@ -952,6 +1025,11 @@ export class MinecraftService {
           db.update(mc_player_sessions).set({ leftAt }).where(eq(mc_player_sessions.sessionId, session.sessionId)).run();
           const ptime = Math.max(0, Math.floor((new Date(leftAt).getTime() - new Date(session.joinedAt).getTime()) / 1000));
           db.update(mc_player_stats).set({ lastSeen: leftAt, totalPlaytime: (stat.totalPlaytime || 0) + ptime }).where(eq(mc_player_stats.statId, stat.statId)).run();
+        }
+        // If no players are left online, start idle empty timer
+        const remainingPlayers = this.getOnlinePlayers(slug);
+        if (remainingPlayers.length === 0) {
+          this.emptySinceMap.set(slug, Date.now());
         }
       }
     }

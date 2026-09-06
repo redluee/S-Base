@@ -1017,10 +1017,12 @@ console.log(`Backend running on http://localhost:${PORT}`);
 const discordBot = process.env.NODE_ENV !== "test" ? createDiscordBot(minecraft) : null;
 
 process.on("SIGINT", () => {
+  minecraft.stopIdleMonitor();
   discordBot?.stop();
   process.exit(0);
 });
 process.on("SIGTERM", () => {
+  minecraft.stopIdleMonitor();
   discordBot?.stop();
   process.exit(0);
 });

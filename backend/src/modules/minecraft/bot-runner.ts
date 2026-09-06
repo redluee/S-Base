@@ -10,11 +10,13 @@ if (!bot) {
 }
 
 process.on("SIGINT", () => {
+  minecraft.stopIdleMonitor();
   bot.stop();
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
+  minecraft.stopIdleMonitor();
   bot.stop();
   process.exit(0);
 });
