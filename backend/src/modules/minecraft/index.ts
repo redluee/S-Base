@@ -951,6 +951,7 @@ export class MinecraftService {
     const jarUrl = vjson.downloads.server.url;
     
     const buf = await fetch(jarUrl).then(r => r.arrayBuffer());
+    await mkdir(destDir, { recursive: true });
     await writeFile(join(destDir, "server.jar"), Buffer.from(buf));
   }
 
@@ -969,6 +970,7 @@ export class MinecraftService {
     if (!installer) throw new Error("Fabric installer not found");
     
     const buf = await fetch(installer).then(r => r.arrayBuffer());
+    await mkdir(destDir, { recursive: true });
     const instJar = join(destDir, "fabric-installer.jar");
     await writeFile(instJar, Buffer.from(buf));
     
