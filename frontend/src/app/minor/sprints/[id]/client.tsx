@@ -802,7 +802,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
           <button
             type="button"
             onClick={() => setIsPresentationOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer shrink-0"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer shrink-0"
             title={t("Start Show & Tell presentatie")}
             aria-label={t("Presentatie")}
           >
