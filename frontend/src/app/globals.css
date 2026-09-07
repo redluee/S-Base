@@ -16,6 +16,12 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'jetbrains-mono';
+  src: url('/fonts/jetbrains-mono.ttf') format('truetype');
+  font-display: swap;
+}
+
 @theme inline {
   --color-background: #000;
   --color-foreground: #fff;
@@ -26,6 +32,7 @@
   --color-border: rgba(255, 255, 255, 0.2);
   --font-sans: 'epilogue', sans-serif;
   --font-display: 'oatmeal', serif;
+  --font-mono: 'jetbrains-mono', monospace;
   --shadow-glow: 0 0 2rem #00e3a4;
   --shadow-glow-sm: 0 0 1rem #00e3a480;
   --shadow-glow-inner: inset 0 0 2rem #005f4e;
@@ -70,6 +77,10 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+}
+
+.font-workout-title {
+  font-family: 'jetbrains-mono', monospace;
 }
 
 ::selection {

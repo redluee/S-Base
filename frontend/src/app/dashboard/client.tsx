@@ -143,9 +143,11 @@ export function DashboardClient({
       <div className="fixed inset-0 z-0 bg-gradient-to-b from-zinc-950/70 via-zinc-950/40 to-zinc-950/80 pointer-events-none" />
 
       {/* Background Decorative Radial Glows */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,227,164,0.08)_0%,_transparent_70%)] pointer-events-none" />
-      <div className="fixed -top-40 -left-40 size-96 bg-brand/10 blur-[120px] rounded-full pointer-events-none z-0" />
-      <div className="fixed -bottom-40 -right-40 size-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none z-0" />
+      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,227,164,0.06)_0%,_transparent_70%)] pointer-events-none" />
+      <div className="fixed -top-40 -left-40 size-96 bg-[#00e3a4]/10 blur-[140px] rounded-full pointer-events-none z-0" />
+      <div className="fixed -top-40 -right-40 size-96 bg-[#2979ff]/10 blur-[140px] rounded-full pointer-events-none z-0" />
+      <div className="fixed -bottom-40 -left-40 size-96 bg-[#76ff03]/8 blur-[140px] rounded-full pointer-events-none z-0" />
+      <div className="fixed -bottom-40 -right-40 size-96 bg-[#ff9f1c]/8 blur-[140px] rounded-full pointer-events-none z-0" />
 
       {/* Account Circle Header */}
       <header className={`absolute ${isImpersonated ? "top-14" : "top-6"} right-6 z-30 flex items-center gap-2 p-1.5 px-3 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-md`}>
@@ -177,37 +179,37 @@ export function DashboardClient({
 
       {/* Cards Grid */}
       <nav className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-3xl mb-16 relative z-10">
-        {/* Workout Studio Card */}
+        {/* Workout Studio Card (Teal #00e3a4 & JetBrains Mono) */}
         {hasModule("workout") && (
           <Link
             href="/workouts"
-            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-teal-950/40 via-zinc-900/80 to-emerald-950/30 backdrop-blur-md border border-white/10 hover:border-brand/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(0,227,164,0.25)]"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-[#00e3a4]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#00e3a4]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(0,227,164,0.35)]"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#00e3a4]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,227,164,0.4)] group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+              <div className="size-11 rounded-xl bg-[#00e3a4]/15 border border-[#00e3a4]/30 flex items-center justify-center text-[#00e3a4] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,227,164,0.4)] group-hover:scale-110 transition-transform duration-300 overflow-hidden">
                 <Dumbbell className="size-5 anim-dumbbell rotate-90" />
               </div>
-              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-brand transition-colors">
+              <h2 className="font-workout-title font-bold text-xl text-zinc-100 tracking-tight group-hover:text-[#00e3a4] transition-colors">
                 {t("Workout Studio")}
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-brand font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 text-xs text-[#00e3a4] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Start training")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>
         )}
 
-        {/* Taste Tracker Card */}
+        {/* Taste Tracker Card (Yellow #ffeb3b) */}
         {hasModule("recipes") && (
           <Link
             href="/recipes"
-            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-zinc-900/80 to-orange-950/30 backdrop-blur-md border border-white/10 hover:border-amber-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(245,158,11,0.25)]"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-[#ffeb3b]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#ffeb3b]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(255,235,59,0.3)]"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#ffeb3b]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+              <div className="size-11 rounded-xl bg-[#ffeb3b]/15 border border-[#ffeb3b]/30 flex items-center justify-center text-[#ffeb3b] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,235,59,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                 <ChefHat className="size-5 anim-hat" />
                 {/* Tomato SVG icon revealed under hat */}
                 <svg className="absolute size-5 anim-tomato opacity-0 pointer-events-none" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -218,43 +220,43 @@ export function DashboardClient({
                   <ellipse cx="9.5" cy="11.5" rx="1.8" ry="1.2" fill="rgba(255,255,255,0.25)" transform="rotate(-20 9.5 11.5)"/>
                 </svg>
               </div>
-              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-amber-400 transition-colors">
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-[#ffeb3b] transition-colors">
                 {t("Taste tracker")}
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 text-xs text-[#ffeb3b] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Recipes and wines")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>
         )}
 
-        {/* Cashflow Card */}
+        {/* Cashflow Card (Blue #2979ff) */}
         {hasModule("cashflow") && (
           <Link
             href="/cashflow"
-            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(59,130,246,0.25)]"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-[#2979ff]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#2979ff]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(41,121,255,0.35)]"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#2979ff]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+              <div className="size-11 rounded-xl bg-[#2979ff]/15 border border-[#2979ff]/30 flex items-center justify-center text-[#2979ff] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(41,121,255,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                 {/* Back bill — hidden until hover */}
-                <Banknote className="size-4.5 absolute anim-bill-back opacity-0 text-blue-300" aria-hidden="true" />
+                <Banknote className="size-4.5 absolute anim-bill-back opacity-0 text-[#2979ff]/70" aria-hidden="true" />
                 {/* Front bill */}
                 <Banknote className="size-5 relative anim-bill-front" />
               </div>
-              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-blue-400 transition-colors">
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-[#2979ff] transition-colors">
                 {t("Cashflow")}
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 text-xs text-[#2979ff] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Facturatie")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>
         )}
 
-        {/* Combined Lyric Quotes & You Modules Card */}
+        {/* Combined Lyric Quotes & You Modules Card (Blue #2979ff & Red #ff4757) */}
         {(hasModule("lyric_quotes") || hasModule("you")) && (
           <div
             className={`grid gap-2.5 sm:gap-3 ${
@@ -269,22 +271,22 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/lyric_quotes/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-row items-center justify-between p-2.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-950/40 via-zinc-900/80 to-purple-950/30 backdrop-blur-md border border-white/10 hover:border-violet-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(139,92,246,0.25)] h-full min-w-0"
+                className="group relative flex flex-row items-center justify-between p-2.5 sm:p-4 rounded-2xl bg-gradient-to-br from-[#2979ff]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#2979ff]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(41,121,255,0.3)] h-full min-w-0"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#2979ff]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
                 <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
-                  <div className="size-8 sm:size-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(139,92,246,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+                  <div className="size-8 sm:size-10 rounded-xl bg-[#2979ff]/15 border border-[#2979ff]/30 flex items-center justify-center text-[#2979ff] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(41,121,255,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                     <Music className="size-4 sm:size-5" />
                     {/* Dancing music notes */}
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-1 opacity-0 pointer-events-none select-none" aria-hidden="true">♪</span>
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-2 opacity-0 pointer-events-none select-none" aria-hidden="true">♫</span>
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-3 opacity-0 pointer-events-none select-none" aria-hidden="true">♩</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-1 opacity-0 pointer-events-none select-none text-[#2979ff]" aria-hidden="true">♪</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-2 opacity-0 pointer-events-none select-none text-[#2979ff]" aria-hidden="true">♫</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-3 opacity-0 pointer-events-none select-none text-[#2979ff]" aria-hidden="true">♩</span>
                   </div>
-                  <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-violet-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+                  <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-[#2979ff] transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                     {t("Lyric Quotes")}
                   </h2>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-violet-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
+                <div className="flex items-center gap-1 text-xs text-[#2979ff] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
                   <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
                 </div>
               </a>
@@ -296,22 +298,22 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/you"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-row items-center justify-between p-2.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-zinc-900/80 to-pink-950/30 backdrop-blur-md border border-white/10 hover:border-rose-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(244,63,94,0.25)] h-full min-w-0"
+                className="group relative flex flex-row items-center justify-between p-2.5 sm:p-4 rounded-2xl bg-gradient-to-br from-[#ff4757]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#ff4757]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(255,71,87,0.3)] h-full min-w-0"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#ff4757]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
                 <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
-                  <div className="size-8 sm:size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(244,63,94,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+                  <div className="size-8 sm:size-10 rounded-xl bg-[#ff4757]/15 border border-[#ff4757]/30 flex items-center justify-center text-[#ff4757] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,71,87,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                     <Heart className="size-4 sm:size-5" />
                     {/* Floating hearts */}
-                    <Heart className="absolute size-2.5 text-rose-300 anim-heart-1 opacity-0 pointer-events-none" aria-hidden="true" />
-                    <Heart className="absolute size-2 text-pink-400 anim-heart-2 opacity-0 pointer-events-none" aria-hidden="true" />
-                    <Heart className="absolute size-3 text-rose-500 anim-heart-3 opacity-0 pointer-events-none" aria-hidden="true" />
+                    <Heart className="absolute size-2.5 text-[#ff4757]/70 anim-heart-1 opacity-0 pointer-events-none" aria-hidden="true" />
+                    <Heart className="absolute size-2 text-[#ff4757] anim-heart-2 opacity-0 pointer-events-none" aria-hidden="true" />
+                    <Heart className="absolute size-3 text-[#ff4757] anim-heart-3 opacity-0 pointer-events-none" aria-hidden="true" />
                   </div>
-                  <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-rose-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+                  <h2 className="font-display font-black text-sm sm:text-lg text-zinc-100 tracking-tight group-hover:text-[#ff4757] transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                     {t("You")}
                   </h2>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-rose-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
+                <div className="flex items-center gap-1 text-xs text-[#ff4757] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
                   <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
                 </div>
               </a>
@@ -319,15 +321,15 @@ export function DashboardClient({
           </div>
         )}
 
-        {/* Pulse Card */}
+        {/* Pulse Card (Red #ff4757) */}
         {hasModule("pulse") && (
           <Link
             href="/pulse"
-            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-red-950/40 via-zinc-900/80 to-rose-950/30 backdrop-blur-md border border-white/10 hover:border-red-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(239,68,68,0.25)]"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-[#ff4757]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#ff4757]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(255,71,87,0.35)]"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#ff4757]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(239,68,68,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+              <div className="size-11 rounded-xl bg-[#ff4757]/15 border border-[#ff4757]/30 flex items-center justify-center text-[#ff4757] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,71,87,0.4)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                 <Activity className="size-5" />
                 {/* EKG heartrate SVG overlay */}
                 <svg
@@ -340,7 +342,7 @@ export function DashboardClient({
                   <polyline
                     className="anim-ekg"
                     points="0,10 10,10 14,2 18,18 22,2 26,18 30,10 40,10 42,6 44,14 46,10 60,10"
-                    stroke="rgba(239,68,68,0.9)"
+                    stroke="rgba(255,71,87,0.95)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -350,54 +352,55 @@ export function DashboardClient({
                   />
                 </svg>
               </div>
-              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-red-400 transition-colors">
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-[#ff4757] transition-colors">
                 Pulse
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-red-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 text-xs text-[#ff4757] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Monitoring")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>
         )}
 
+        {/* Games / Minecraft Card (Green #76ff03) */}
         {(hasModule("minecraft") || hasModule("minecraft:monitor")) && (
           <Link
             href="/games/minecraft"
-            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-sky-950/40 via-zinc-900/80 to-cyan-950/30 backdrop-blur-md border border-white/10 hover:border-sky-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(14,165,233,0.25)]"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-[#76ff03]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#76ff03]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)]"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#76ff03]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(14,165,233,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="size-11 rounded-xl bg-[#76ff03]/15 border border-[#76ff03]/30 flex items-center justify-center text-[#76ff03] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(118,255,3,0.4)] group-hover:scale-110 transition-transform duration-300">
                 <Gamepad2 className="size-5" />
               </div>
-              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-sky-400 transition-colors">
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-[#76ff03] transition-colors">
                 {t("Lobby Control")}
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 text-xs text-[#76ff03] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Game servers")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>
           </Link>
         )}
 
-        {/* Minor Card */}
+        {/* Minor Card (Orange #ff9f1c) */}
         {hasModule("minor") && (
           <Link
             href="/minor"
-            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-zinc-900/80 to-teal-950/30 backdrop-blur-md border border-white/10 hover:border-emerald-500/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(16,185,129,0.25)]"
+            className="group relative flex flex-row items-center justify-between p-5 rounded-2xl bg-gradient-to-br from-[#ff9f1c]/10 via-zinc-900/90 to-zinc-950/90 backdrop-blur-md border border-white/10 hover:border-[#ff9f1c]/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_0_2rem_-0.5rem_rgba(255,159,28,0.35)]"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#ff9f1c]/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
             <div className="flex items-center gap-3.5 relative z-10">
-              <div className="size-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(16,185,129,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="size-11 rounded-xl bg-[#ff9f1c]/15 border border-[#ff9f1c]/30 flex items-center justify-center text-[#ff9f1c] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,159,28,0.4)] group-hover:scale-110 transition-transform duration-300">
                 <GraduationCap className="size-5" />
               </div>
-              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-emerald-400 transition-colors">
+              <h2 className="font-display font-black text-xl text-zinc-100 tracking-tight group-hover:text-[#ff9f1c] transition-colors">
                 {t("Minor")}
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 text-xs text-[#ff9f1c] font-semibold tracking-wide uppercase relative z-10 opacity-80 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
               <span>{t("Sprints & LU's")}</span>
               <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
             </div>

@@ -179,7 +179,7 @@ export default async function WorkoutsPage() {
                 <div className="px-4 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h2 className="font-medium text-foreground text-sm sm:text-base truncate">
+                      <h2 className="font-workout-title font-medium text-foreground text-sm sm:text-base truncate">
                         {template.name}
                       </h2>
                       {template.description && (

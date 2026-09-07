@@ -99,7 +99,7 @@ export function RunningWorkoutCard({
                   {t("Lopende workout")}
                 </span>
               </div>
-              <h3 className="font-display font-black text-sm text-foreground truncate">
+              <h3 className="font-workout-title font-bold text-sm text-foreground truncate">
                 {session.name || t("Workout Session")}
               </h3>
             </div>
@@ -140,7 +140,7 @@ export function RunningWorkoutCard({
                 {t("Workout in uitvoering")}
               </span>
             </div>
-            <h2 className="font-display font-black text-xl sm:text-2xl text-foreground tracking-tight">
+            <h2 className="font-workout-title font-bold text-xl sm:text-2xl text-foreground tracking-tight">
               {session.name || t("Workout Session")}
             </h2>
           </div>
