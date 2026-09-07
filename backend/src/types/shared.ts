@@ -165,6 +165,22 @@ export interface MinorStoryEvidence {
   createdAt: string;
 }
 
+export interface MinorStoryPresentationImage {
+  url: string;
+  caption?: string;
+}
+
+export interface MinorStoryPresentationData {
+  enabled?: boolean;
+  layout?: "auto" | "split" | "media" | "bullets" | "demo";
+  bullets?: string[];
+  summary?: string;
+  demoUrl?: string;
+  demoTitle?: string;
+  images?: MinorStoryPresentationImage[];
+  notes?: string;
+}
+
 export interface MinorStory {
   id: number;
   sprintId: number | null;
@@ -178,6 +194,7 @@ export interface MinorStory {
   learningOutcomes: number[];
   status: "todo" | "in_progress" | "done";
   orderIndex: number;
+  presentationData?: MinorStoryPresentationData | null;
   createdAt: string;
   criteria?: MinorStoryCriterion[];
   evidence?: MinorStoryEvidence[];
@@ -251,6 +268,40 @@ export interface MinorSprintFull extends MinorSprint {
   teacherAssessments: MinorTeacherAssessment[];
   feedback: MinorFeedbackEntry[];
   reflection: MinorReflection | null;
+}
+
+export interface MinorSprintExportStory {
+  storyTypeCode: string;
+  storyNumber?: string | null;
+  title: string;
+  asA?: string | null;
+  iWant?: string | null;
+  soThat?: string | null;
+  learningOutcomes: number[];
+  status: "todo" | "in_progress" | "done";
+  orderIndex?: number;
+  presentationData?: MinorStoryPresentationData | null;
+  acceptanceCriteria?: Array<{ text: string; isCompleted: boolean; indent?: number }>;
+  qualityCriteria?: Array<{ text: string; isCompleted: boolean; indent?: number }>;
+  evidence?: Array<{ type: "link" | "github" | "document" | "app"; title: string; url: string }>;
+}
+
+export interface MinorSprintExportData {
+  version?: number;
+  sprintNumber: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  showAndGrowDate: string;
+  extendedDays?: number;
+  extensionReason?: string | null;
+  status: "planned" | "active" | "completed" | "archived";
+  stories: MinorSprintExportStory[];
+  feedback?: Array<{ date: string; fromWhom: string; feedback: string; action: string; orderIndex?: number }>;
+  selfEvaluations?: Array<{ learningOutcome: number; level: "V" | "NV" | "-"; argumentation?: string | null }>;
+  teacherAssessments?: Array<{ learningOutcome: number; assessment: "V" | "O" | "-"; notes?: string | null; evaluatedAt?: string | null }>;
+  reflection?: { date: string; whatLearned?: string | null; whatRetained?: string | null; whatChange?: string | null } | null;
 }
 
 export interface MinorPeerHelp {

@@ -179,6 +179,7 @@ export const serverApi = {
     sprints: {
       list: () => serverFetch<import("./api").MinorSprint[]>("/minor/sprints"),
       get: (id: number) => serverFetch<import("./api").MinorSprintFull>(`/minor/sprints/${id}`),
+      exportJson: (id: number) => serverFetch<import("./api").MinorSprintExportData>(`/minor/sprints/${id}/export`),
     },
     stories: {
       list: () => serverFetch<import("./api").MinorStoryWithSprint[]>("/minor/stories"),

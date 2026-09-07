@@ -52,6 +52,7 @@ export const minorStories = sqliteTable("minor_stories", {
   learningOutcomes: text("learning_outcomes").notNull().default("[]"), // JSON string array e.g. "[1,2,5]"
   status: text("status").notNull().default("todo"), // todo | in_progress | done
   orderIndex: integer("order_index").notNull().default(0),
+  presentationData: text("presentation_data"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

@@ -21,6 +21,10 @@ import type {
   MinorDefaultQualityCriterion,
   MinorPeerHelp,
   MinorDashboardStats,
+  MinorStoryPresentationData,
+  MinorStoryPresentationImage,
+  MinorSprintExportData,
+  MinorSprintExportStory,
 } from "@backend/types/shared";
 import { compressImage } from "./image";
 
@@ -731,6 +735,26 @@ export const api = {
         status: "planned" | "active" | "completed" | "archived";
       }>) => request<MinorSprint>(`/minor/sprints/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ success: boolean }>(`/minor/sprints/${id}`, { method: "DELETE" }),
+      exportJson: (id: number) => request<MinorSprintExportData>(`/minor/sprints/${id}/export`),
+      import: (
+        data: unknown,
+        targetSprintId?: number,
+        options?: { overwrite?: boolean; customName?: string; customSprintNumber?: string }
+      ) => {
+        const payload =
+          typeof data === "object" && data !== null
+            ? { ...data, ...options }
+            : data;
+        return targetSprintId
+          ? request<MinorSprintFull>(`/minor/sprints/${targetSprintId}/import`, {
+              method: "POST",
+              body: JSON.stringify(payload),
+            })
+          : request<MinorSprintFull>("/minor/sprints/import", {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+      },
       autoSelfEvaluations: (id: number) => request<MinorSelfEvaluation[]>(`/minor/sprints/${id}/self-evaluations/auto`, { method: "POST" }),
       saveSelfEvaluations: (id: number, evaluations: { learningOutcome: number; level: "V" | "NV" | "-"; argumentation?: string }[]) =>
         request<MinorSelfEvaluation[]>(`/minor/sprints/${id}/self-evaluations`, { method: "PUT", body: JSON.stringify({ evaluations }) }),
@@ -762,6 +786,7 @@ export const api = {
           acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
           qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
           evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
+          presentationData?: MinorStoryPresentationData | null;
         }) =>
           sprintId
             ? request<MinorStory>(`/minor/sprints/${sprintId}/stories`, { method: "POST", body: JSON.stringify(data) })
@@ -777,6 +802,7 @@ export const api = {
           learningOutcomes?: number[];
           status?: "todo" | "in_progress" | "done";
           orderIndex?: number;
+          presentationData?: MinorStoryPresentationData | null;
           acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
           qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
           evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
@@ -799,6 +825,7 @@ export const api = {
         learningOutcomes?: number[];
         status?: "todo" | "in_progress" | "done";
         orderIndex?: number;
+        presentationData?: MinorStoryPresentationData | null;
         acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
         qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
         evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
@@ -814,6 +841,7 @@ export const api = {
         learningOutcomes?: number[];
         status?: "todo" | "in_progress" | "done";
         orderIndex?: number;
+        presentationData?: MinorStoryPresentationData | null;
         acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
         qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
         evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
@@ -878,6 +906,10 @@ export type {
   MinorDefaultQualityCriterion,
   MinorPeerHelp,
   MinorDashboardStats,
+  MinorStoryPresentationData,
+  MinorStoryPresentationImage,
+  MinorSprintExportData,
+  MinorSprintExportStory,
 };
 
 export interface PulseUser {

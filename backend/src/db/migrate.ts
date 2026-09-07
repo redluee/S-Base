@@ -52,7 +52,7 @@ export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS
       migratedCount++;
       console.log(`MIGRATED: ${file}`);
     } catch (fileErr: any) {
-      if (fileErr?.message?.includes("already exists")) {
+      if (fileErr?.message?.includes("already exists") || fileErr?.message?.includes("duplicate column name")) {
         sqlite.run("INSERT OR IGNORE INTO _migrations (name) VALUES (?)", [file]);
         appliedSet.add(file);
         console.log(`SKIPPED (already exists): ${file}`);

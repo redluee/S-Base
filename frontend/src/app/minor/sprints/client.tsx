@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Calendar,
@@ -11,18 +12,26 @@ import {
   Trash2,
   Edit2,
   Sparkles,
+  Download,
+  Check,
+  Copy,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint } from "@/lib/api";
+import { MinorSprintImportModal } from "@/components/minor-sprint-import-modal";
+import { copySprintJsonToClipboard } from "@/lib/minor-sprint-export";
 
 interface MinorSprintsClientProps {
   initialSprints: MinorSprint[];
 }
 
 export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) {
+  const router = useRouter();
   const [sprints, setSprints] = useState<MinorSprint[]>(initialSprints);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [copiedSprintId, setCopiedSprintId] = useState<number | null>(null);
   const [editingSprint, setEditingSprint] = useState<MinorSprint | null>(null);
 
   // Form state
@@ -131,6 +140,17 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     }
   }
 
+  async function handleExportSprint(sprintItem: MinorSprint) {
+    try {
+      const fullSprint = await api.minor.sprints.get(sprintItem.id);
+      await copySprintJsonToClipboard(fullSprint);
+      setCopiedSprintId(sprintItem.id);
+      setTimeout(() => setCopiedSprintId(null), 2500);
+    } catch (err) {
+      console.error("Failed to export sprint:", err);
+    }
+  }
+
   const filteredSprints = sprints.filter((s) => {
     if (statusFilter === "all") return true;
     return s.status === statusFilter;
@@ -149,13 +169,23 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           </p>
         </div>
 
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="size-4" />
-          <span>{t("Nieuwe Sprint")}</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
+          >
+            <Download className="size-4 text-zinc-400" />
+            <span>{t("Sprint Importeren")}</span>
+          </button>
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer"
+          >
+            <Plus className="size-4" />
+            <span>{t("Nieuwe Sprint")}</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -251,6 +281,33 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                 )}
 
                 <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  <Link
+                    href={`/minor/sprints/${s.id}/present`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand/10 text-brand border border-brand/20 hover:bg-brand hover:text-zinc-950 transition-all cursor-pointer"
+                    title={t("Start Show & Tell presentatie")}
+                  >
+                    <Sparkles className="size-3.5" />
+                    <span>{t("Presentatie")}</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleExportSprint(s);
+                    }}
+                    className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
+                    title={copiedSprintId === s.id ? t("Gekopieerd naar klembord!") : t("Sprint kopiëren naar klembord")}
+                    aria-label={t("Sprint kopiëren naar klembord")}
+                  >
+                    {copiedSprintId === s.id ? (
+                      <Check className="size-4 text-brand" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -411,6 +468,20 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           </div>
         </div>
       )}
+
+      {/* Sprint Import Modal */}
+      <MinorSprintImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        sprints={sprints}
+        onSuccess={(imported) => {
+          setSprints((prev) => {
+            const filtered = prev.filter((p) => p.id !== imported.id);
+            return [...filtered, imported];
+          });
+          router.push(`/minor/sprints/${imported.id}`);
+        }}
+      />
     </div>
   );
 }

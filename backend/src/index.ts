@@ -636,10 +636,26 @@ export const app = new Elysia()
       })
       .get("/sprints", ({ userId }) => minor.listSprints(userId))
       .post("/sprints", ({ userId, body }) => minor.createSprint(userId, (body ?? {}) as any))
+      .post("/sprints/import", ({ userId, body }) => {
+        const b = (body ?? {}) as any;
+        const targetSprintId = b.targetSprintId ? Number(b.targetSprintId) : undefined;
+        const overwrite = Boolean(b.overwrite);
+        return minor.importSprint(userId, b, targetSprintId, overwrite);
+      })
       .get("/sprints/:id", ({ params: { id }, userId }) => {
         const s = minor.getSprintById(Number(id), userId);
         if (!s) return new Response("Not Found", { status: 404 });
         return s;
+      })
+      .get("/sprints/:id/export", ({ params: { id }, userId }) => {
+        const exp = minor.exportSprint(Number(id), userId);
+        if (!exp) return new Response("Not Found", { status: 404 });
+        return exp;
+      })
+      .post("/sprints/:id/import", ({ params: { id }, userId, body }) => {
+        const b = (body ?? {}) as any;
+        const overwrite = Boolean(b.overwrite);
+        return minor.importSprint(userId, b, Number(id), overwrite);
       })
       .put("/sprints/:id", ({ params: { id }, userId, body }) => {
         const s = minor.updateSprint(Number(id), userId, (body ?? {}) as any);
