@@ -187,7 +187,9 @@ export const app = new Elysia()
     const sessionId = auth.createSession(user.userId);
     const isSecure = process.env.NODE_ENV === "production";
     const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${isSecure ? "; Secure" : ""}`;
-    return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email, modules: auth.getUserModules(user.userId) } }), {
+    const userModules = auth.getUserModules(user.userId);
+    const role = (userModules.includes("pulse") || user.username === "admin") ? "admin" : "user";
+    return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email, role, modules: userModules } }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -228,12 +230,15 @@ export const app = new Elysia()
         headers: { "Content-Type": "application/json" },
       });
     }
+    const userModules = auth.getUserModules(user.userId);
+    const role = (userModules.includes("pulse") || user.username === "admin") ? "admin" : "user";
     return {
       user: {
         id: user.userId,
         username: user.username,
         email: user.email,
-        modules: auth.getUserModules(user.userId),
+        role,
+        modules: userModules,
         isImpersonated: user.isImpersonated,
         impersonatorUserId: user.impersonatorUserId ?? null,
         impersonatedBy: user.impersonatedBy ?? null,

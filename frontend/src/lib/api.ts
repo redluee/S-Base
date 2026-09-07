@@ -205,6 +205,7 @@ export interface AuthUser {
   id: number;
   username: string;
   email: string | null;
+  role?: "admin" | "user";
   modules?: string[];
   isImpersonated?: boolean;
   impersonatorUserId?: number | null;
