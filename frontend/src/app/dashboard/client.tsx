@@ -141,6 +141,7 @@ export function DashboardClient({
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [runningSession, setRunningSession] = useState<WorkoutSession | null>(null);
+  const [hasOnlineServer, setHasOnlineServer] = useState<boolean>(false);
 
   // Determine current active role
   const currentRole: "admin" | "user" =
@@ -157,7 +158,18 @@ export function DashboardClient({
         }
       })
       .catch(() => {});
-  }, []);
+
+    if (Array.isArray(userModules) && (userModules.includes("minecraft") || userModules.includes("minecraft:monitor"))) {
+      api.minecraft.servers
+        .list()
+        .then((servers) => {
+          setHasOnlineServer(Array.isArray(servers) && servers.some((s) => s.online));
+        })
+        .catch(() => {
+          setHasOnlineServer(false);
+        });
+    }
+  }, [userModules]);
 
   const storageKey = `sbase_dashboard_bg_${username.toLowerCase().trim() || "default"}`;
 
@@ -254,18 +266,11 @@ export function DashboardClient({
       {/* Dark Overlay Gradient for maximum contrast */}
       <div className="fixed inset-0 z-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/50 to-zinc-950/90 pointer-events-none" />
 
-      {/* Background Decorative Radial Glows */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,230,118,0.06)_0%,_transparent_70%)] pointer-events-none" />
-      <div className="fixed -top-40 -left-40 size-96 bg-[#00E676]/10 blur-[140px] rounded-full pointer-events-none z-0" />
-      <div className="fixed -top-40 -right-40 size-96 bg-[#00B0FF]/10 blur-[140px] rounded-full pointer-events-none z-0" />
-      <div className="fixed -bottom-40 -left-40 size-96 bg-[#76FF03]/8 blur-[140px] rounded-full pointer-events-none z-0" />
-      <div className="fixed -bottom-40 -right-40 size-96 bg-[#FF9100]/8 blur-[140px] rounded-full pointer-events-none z-0" />
-
       {/* Top Header Bar */}
       <header
         className={`absolute ${
           isImpersonated ? "top-14" : "top-6"
-        } right-4 sm:right-6 z-30 flex items-center gap-2 p-1.5 px-3 rounded-full bg-white/[0.05] border border-white/[0.08] backdrop-blur-[16px] shadow-lg`}
+        } right-4 sm:right-6 z-30 flex items-center gap-2 p-1.5 px-3 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-[16px] shadow-lg`}
       >
         <div className="size-6 sm:size-7 rounded-full bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shadow-[0_0_8px_rgba(0,230,118,0.3)]">
           <User className="size-3.5 sm:size-4" />
@@ -299,45 +304,39 @@ export function DashboardClient({
 
       {/* Module Grid Hierarchy (Asymmetric Bento Grid) */}
       <nav className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 w-full max-w-3xl mb-8 relative z-10">
-        {/* 1. Workout Studio Card (Large 2-column wide, Neon Green #00E676) */}
+        {/* 1. Workout Studio Card */}
         {canAccess("workout") && (
           <Link
             href="/workouts"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-5 sm:p-6 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00E676]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,230,118,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00E676]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,230,118,0.35)] overflow-hidden"
           >
-            {/* Ambient hover glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#00E676]/10 via-transparent to-[#00E676]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-            <div className="flex items-center gap-4 relative z-10 min-w-0">
-              <div className="size-12 rounded-2xl bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,230,118,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.6)] transition-all duration-300">
-                <Dumbbell className="size-6 anim-dumbbell rotate-90" />
+            <div className="flex items-center gap-3.5 relative z-10 min-w-0">
+              <div className="size-11 rounded-2xl bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,230,118,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.6)] transition-all duration-300">
+                <Dumbbell className="size-5 anim-dumbbell rotate-90" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-lg sm:text-xl text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
+                <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
                   {t("Workout Studio")}
                 </h2>
-                <p className="text-xs text-zinc-400 font-medium tracking-wide">
+                <p className="text-xs text-zinc-400 font-medium tracking-wide truncate">
                   {t("Kracht & conditie")}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#00E676] uppercase tracking-wider relative z-10 shrink-0 ml-3">
-              <span className="hidden sm:inline bg-[#00E676]/10 border border-[#00E676]/20 px-2.5 py-1 rounded-lg">
-                {t("Sessie starten")}
-              </span>
-              <div className="size-8 rounded-full bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center group-hover:bg-[#00E676] group-hover:text-zinc-950 transition-all duration-200">
-                <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </div>
+            <div className="size-8 rounded-full bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] group-hover:bg-[#00E676] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+              <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
         )}
 
-        {/* 2. Taste Tracker Card (Standard 1-column tile, Amber #FFB300) */}
+        {/* 2. Taste Tracker Card */}
         {canAccess("recipes") && (
           <Link
             href="/recipes"
-            className="group relative col-span-1 flex items-center justify-between p-4.5 sm:p-5 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FFB300]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,179,0,0.35)] overflow-hidden"
+            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FFB300]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,179,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FFB300]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -368,17 +367,17 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-7 rounded-full bg-[#FFB300]/15 border border-[#FFB300]/30 flex items-center justify-center text-[#FFB300] group-hover:bg-[#FFB300] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-2">
-              <ArrowUpRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <div className="size-8 rounded-full bg-[#FFB300]/15 border border-[#FFB300]/30 flex items-center justify-center text-[#FFB300] group-hover:bg-[#FFB300] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+              <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
         )}
 
-        {/* 3. Lobby Control Card (Standard 1-column tile, Lime Green #76FF03) */}
+        {/* 3. Lobby Control Card */}
         {canAccess("minecraft") && (
           <Link
             href="/games/minecraft"
-            className="group relative col-span-1 flex items-center justify-between p-4.5 sm:p-5 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#76FF03]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)] overflow-hidden"
+            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#76FF03]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#76FF03]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -391,7 +390,9 @@ export function DashboardClient({
                   <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
                     {t("Lobby Control")}
                   </h2>
-                  <span className="size-1.5 rounded-full bg-[#76FF03] animate-pulse" />
+                  {hasOnlineServer && (
+                    <span className="size-1.5 rounded-full bg-[#76FF03] animate-pulse" />
+                  )}
                 </div>
                 <p className="text-xs text-zinc-400 font-medium tracking-wide truncate">
                   {t("Game servers")}
@@ -399,51 +400,46 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-7 rounded-full bg-[#76FF03]/15 border border-[#76FF03]/30 flex items-center justify-center text-[#76FF03] group-hover:bg-[#76FF03] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-2">
-              <ArrowUpRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <div className="size-8 rounded-full bg-[#76FF03]/15 border border-[#76FF03]/30 flex items-center justify-center text-[#76FF03] group-hover:bg-[#76FF03] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+              <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
         )}
 
-        {/* 4. Cashflow Card (Large 2-column wide, Cyan / Electric Blue #00B0FF) */}
+        {/* 4. Cashflow Card */}
         {canAccess("cashflow") && (
           <Link
             href="/cashflow"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-5 sm:p-6 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00B0FF]/10 via-transparent to-[#00B0FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-            <div className="flex items-center gap-4 relative z-10 min-w-0">
-              <div className="size-12 rounded-2xl bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,176,255,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,176,255,0.6)] transition-all duration-300 relative overflow-visible">
-                <Banknote className="size-5 absolute anim-bill-back opacity-0 text-[#00B0FF]/70" aria-hidden="true" />
-                <Banknote className="size-5.5 relative anim-bill-front" />
+            <div className="flex items-center gap-3.5 relative z-10 min-w-0">
+              <div className="size-11 rounded-2xl bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,176,255,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,176,255,0.6)] transition-all duration-300 relative overflow-visible">
+                <Banknote className="size-4.5 absolute anim-bill-back opacity-0 text-[#00B0FF]/70" aria-hidden="true" />
+                <Banknote className="size-5 relative anim-bill-front" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-lg sm:text-xl text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
+                <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
                   {t("Cashflow")}
                 </h2>
-                <p className="text-xs text-zinc-400 font-medium tracking-wide">
+                <p className="text-xs text-zinc-400 font-medium tracking-wide truncate">
                   {t("Facturatie & financieel overzicht")}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#00B0FF] uppercase tracking-wider relative z-10 shrink-0 ml-3">
-              <span className="hidden sm:inline bg-[#00B0FF]/10 border border-[#00B0FF]/20 px-2.5 py-1 rounded-lg">
-                {t("Facturatie")}
-              </span>
-              <div className="size-8 rounded-full bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center group-hover:bg-[#00B0FF] group-hover:text-zinc-950 transition-all duration-200">
-                <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </div>
+            <div className="size-8 rounded-full bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] group-hover:bg-[#00B0FF] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+              <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
         )}
 
-        {/* 5. Minor Card (Standard 1-column tile, Orange #FF9100) */}
+        {/* 5. Minor Card */}
         {canAccess("minor") && (
           <Link
             href="/minor"
-            className="group relative col-span-1 flex items-center justify-between p-4.5 sm:p-5 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
+            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FF9100]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -461,8 +457,8 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-7 rounded-full bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] group-hover:bg-[#FF9100] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-2">
-              <ArrowUpRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <div className="size-8 rounded-full bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] group-hover:bg-[#FF9100] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+              <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
         )}
@@ -480,7 +476,7 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/lyric_quotes/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#7C4DFF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(124,77,255,0.35)] overflow-hidden"
+                className="group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#7C4DFF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(124,77,255,0.35)] overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#7C4DFF]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -509,7 +505,7 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/you"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF4081]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,64,129,0.35)] overflow-hidden"
+                className="group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF4081]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,64,129,0.35)] overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#FF4081]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -548,7 +544,7 @@ export function DashboardClient({
 
           <Link
             href="/pulse"
-            className="group relative flex items-center justify-between p-4.5 sm:p-5 rounded-[20px] bg-white/[0.05] backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF1744]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,23,68,0.35)] overflow-hidden"
+            className="group relative flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF1744]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,23,68,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#FF1744]/10 via-transparent to-[#FF1744]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -584,7 +580,7 @@ export function DashboardClient({
                     Admin
                   </span>
                 </div>
-                <p className="text-xs text-zinc-400 font-medium tracking-wide">
+                <p className="text-xs text-zinc-400 font-medium tracking-wide truncate">
                   {t("Monitoring")} &middot; {t("Systeembeheer")}
                 </p>
               </div>
