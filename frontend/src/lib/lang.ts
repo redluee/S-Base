@@ -989,6 +989,22 @@ const nl: Record<string, string> = {
   "Afsluiting": "Afsluiting",
   "Gedeployde URL": "Gedeployde URL",
   "Bewijsstukken": "Bewijsstukken",
+  "Server Shutdown": "Server Nachtafsluiting",
+  "Automatic Shutdown": "Automatische Nachtafsluiting",
+  "Scheduled Shutdown": "Geplande Afsluiting",
+  "Shutdown Time": "Afsluitingstijd",
+  "Next shutdown": "Volgende afsluiting",
+  "Shutdown blocked": "Afsluiting geblokkeerd",
+  "Block Tonight": "Blokkeer nachtafsluiting",
+  "Unblock Shutdown": "Deblokkeer afsluiting",
+  "Save Time": "Tijd opslaan",
+  "Shutdown schedule updated": "Afsluitingsschema bijgewerkt",
+  "Shutdown blocked for tonight": "Nachtafsluiting geblokkeerd voor vannacht",
+  "Shutdown unblocked": "Nachtafsluiting gedeblokkeerd",
+  "Minecraft player warnings and safe shutdown active": "Minecraft spelers ontvangen 10m, 5m en 1m van tevoren een waarschuwing in de chat. Bij afsluiting worden alle werelden veilig opgeslagen voordat de Fedora server uitschakelt.",
+  "Automatic server shutdown active": "Automatische serverafsluiting actief",
+  "Server shutdown is blocked for tonight": "Serverafsluiting is voor vannacht geblokkeerd",
+  "Automatic server shutdown is disabled": "Automatische serverafsluiting is uitgeschakeld",
 };
 
 

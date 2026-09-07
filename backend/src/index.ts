@@ -6,7 +6,7 @@ import { WorkoutService } from "./modules/workout";
 import { MeasurementService } from "./modules/measurements";
 import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
-import { PulseService } from "./modules/pulse";
+import { PulseService, ServerShutdownService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
 import { createDiscordBot } from "./modules/minecraft/discord-bot";
 import { MinorService } from "./modules/minor";
@@ -31,6 +31,7 @@ const wineService = new WineService();
 const cashflow = new CashflowService();
 const pulse = new PulseService();
 const minecraft = new MinecraftService();
+const shutdownService = new ServerShutdownService(minecraft);
 const minor = new MinorService();
 
 function createAuthPlugin(moduleName: string | string[]) {
@@ -768,6 +769,13 @@ export const app = new Elysia()
       .get("/users", () => pulse.listUsers())
       .get("/modules", () => pulse.listModules())
       .get("/stats", () => pulse.getStats())
+      .get("/shutdown-schedule", () => shutdownService.getStatus())
+      .post("/shutdown-schedule", ({ body }) => {
+        const { time, enabled } = (body ?? {}) as { time?: string; enabled?: boolean };
+        return shutdownService.updateSchedule({ time, enabled });
+      })
+      .post("/shutdown-schedule/block", () => shutdownService.blockShutdown())
+      .post("/shutdown-schedule/unblock", () => shutdownService.unblockShutdown())
       .put("/users/:id/email", ({ params: { id }, body }) => {
         const { email } = (body ?? {}) as { email?: string | null };
         const u = pulse.updateEmail(Number(id), email ?? null);

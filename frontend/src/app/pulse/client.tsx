@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
-import { api, type PulseUser, type PulseModuleInfo, type PulseStats, type McServer } from "@/lib/api";
+import { api, type PulseUser, type PulseModuleInfo, type PulseStats, type McServer, type ShutdownSchedule } from "@/lib/api";
 import {
   Activity,
   Users,
@@ -21,6 +21,11 @@ import {
   Sparkles,
   LogIn,
   Gamepad2,
+  Power,
+  Clock,
+  ShieldAlert,
+  Moon,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,18 +36,23 @@ export function PulseClient({
   initialModules,
   initialStats,
   initialServers = [],
+  initialShutdownSchedule,
 }: {
   username: string;
   initialUsers: PulseUser[];
   initialModules: PulseModuleInfo[];
   initialStats: PulseStats;
   initialServers?: McServer[];
+  initialShutdownSchedule?: ShutdownSchedule;
 }) {
   const router = useRouter();
   const [usersList, setUsersList] = useState<PulseUser[]>(initialUsers);
   const [modulesList] = useState<PulseModuleInfo[]>(initialModules);
   const [serversList] = useState<McServer[]>(initialServers);
   const [stats, setStats] = useState<PulseStats>(initialStats);
+  const [shutdownSchedule, setShutdownSchedule] = useState<ShutdownSchedule | null>(initialShutdownSchedule ?? null);
+  const [shutdownTimeInput, setShutdownTimeInput] = useState<string>(initialShutdownSchedule?.time ?? "01:00");
+  const [isSavingShutdown, setIsSavingShutdown] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingEmailUserId, setEditingEmailUserId] = useState<number | null>(null);
   const [emailInput, setEmailInput] = useState("");
@@ -52,6 +62,53 @@ export function PulseClient({
   const showNotification = (text: string, type: "success" | "error" = "success") => {
     setStatusMsg({ text, type });
     setTimeout(() => setStatusMsg(null), 3000);
+  };
+
+  const handleSaveShutdownTime = async () => {
+    setIsSavingShutdown(true);
+    try {
+      const updated = await api.pulse.updateShutdownSchedule({ time: shutdownTimeInput });
+      setShutdownSchedule(updated);
+      showNotification(t("Shutdown schedule updated"));
+    } catch {
+      showNotification(t("Opslaan mislukt"), "error");
+    } finally {
+      setIsSavingShutdown(false);
+    }
+  };
+
+  const handleToggleShutdownEnabled = async () => {
+    if (!shutdownSchedule) return;
+    setIsSavingShutdown(true);
+    try {
+      const updated = await api.pulse.updateShutdownSchedule({ enabled: !shutdownSchedule.enabled });
+      setShutdownSchedule(updated);
+      showNotification(t("Shutdown schedule updated"));
+    } catch {
+      showNotification(t("Opslaan mislukt"), "error");
+    } finally {
+      setIsSavingShutdown(false);
+    }
+  };
+
+  const handleToggleBlockShutdown = async () => {
+    if (!shutdownSchedule) return;
+    setIsSavingShutdown(true);
+    try {
+      const updated = shutdownSchedule.isBlocked
+        ? await api.pulse.unblockShutdown()
+        : await api.pulse.blockShutdown();
+      setShutdownSchedule(updated);
+      showNotification(
+        shutdownSchedule.isBlocked
+          ? t("Shutdown unblocked")
+          : t("Shutdown blocked for tonight")
+      );
+    } catch {
+      showNotification(t("Opslaan mislukt"), "error");
+    } finally {
+      setIsSavingShutdown(false);
+    }
   };
 
   const refreshStats = (updatedUsers: PulseUser[]) => {
@@ -259,6 +316,130 @@ export function PulseClient({
             <span className="text-2xl sm:text-3xl font-black font-display text-amber-400">{stats.totalPermissions}</span>
           </div>
         </div>
+
+        {/* Automated Nightly Shutdown Control Panel */}
+        {shutdownSchedule && (
+          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-5 sm:p-6 backdrop-blur-md mb-8 relative overflow-hidden group hover:border-white/20 transition-all">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`size-10 rounded-xl flex items-center justify-center border transition-all ${
+                    !shutdownSchedule.enabled
+                      ? "bg-zinc-800 border-zinc-700 text-zinc-400"
+                      : shutdownSchedule.isBlocked
+                      ? "bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.3)]"
+                      : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_1.5rem_-0.25rem_rgba(16,185,129,0.3)]"
+                  }`}
+                >
+                  <Moon className="size-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                      {t("Server Shutdown")}
+                    </h2>
+                    {!shutdownSchedule.enabled ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                        {t("Disabled")}
+                      </span>
+                    ) : shutdownSchedule.isBlocked ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <ShieldAlert className="size-3" />
+                        {t("Blocked")}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {t("Active")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {!shutdownSchedule.enabled
+                      ? t("Automatic server shutdown is disabled")
+                      : shutdownSchedule.isBlocked
+                      ? t("Server shutdown is blocked for tonight")
+                      : `${t("Next shutdown")}: ${shutdownSchedule.time} (${shutdownSchedule.minutesUntilShutdown ?? 0}m)`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons & Time Controls */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Time Picker & Save */}
+                <div className="flex items-center gap-1.5 bg-zinc-950/70 border border-white/10 rounded-xl px-2.5 py-1">
+                  <Clock className="size-3.5 text-zinc-400" />
+                  <input
+                    type="time"
+                    value={shutdownTimeInput}
+                    onChange={(e) => setShutdownTimeInput(e.target.value)}
+                    disabled={isSavingShutdown}
+                    className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none w-16"
+                  />
+                  {shutdownTimeInput !== shutdownSchedule.time && (
+                    <Button
+                      size="sm"
+                      onClick={handleSaveShutdownTime}
+                      disabled={isSavingShutdown}
+                      className="h-6 px-2 text-[10px] font-bold rounded-lg bg-emerald-500 text-zinc-950 hover:bg-emerald-400 transition-colors"
+                    >
+                      {t("Save Time")}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Block / Unblock Toggle Button */}
+                {shutdownSchedule.enabled && (
+                  <Button
+                    size="sm"
+                    onClick={handleToggleBlockShutdown}
+                    disabled={isSavingShutdown}
+                    className={`h-9 px-3.5 text-xs font-bold rounded-xl transition-all border ${
+                      shutdownSchedule.isBlocked
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                        : "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                    }`}
+                  >
+                    {shutdownSchedule.isBlocked ? (
+                      <>
+                        <Unlock className="size-3.5 mr-1.5" />
+                        {t("Unblock Shutdown")}
+                      </>
+                    ) : (
+                      <>
+                        <ShieldAlert className="size-3.5 mr-1.5" />
+                        {t("Block Tonight")}
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Master Enable/Disable Toggle */}
+                <Button
+                  size="sm"
+                  onClick={handleToggleShutdownEnabled}
+                  disabled={isSavingShutdown}
+                  className={`h-9 px-3.5 text-xs font-bold rounded-xl transition-all border ${
+                    shutdownSchedule.enabled
+                      ? "bg-zinc-800/80 border-white/10 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                      : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                  }`}
+                >
+                  <Power className="size-3.5 mr-1.5" />
+                  {shutdownSchedule.enabled ? t("Uitschakelen") : t("Inschakelen")}
+                </Button>
+              </div>
+            </div>
+
+            {/* Subtext info regarding Minecraft safely stopping */}
+            <div className="mt-3.5 flex items-start gap-2 text-xs text-zinc-400 leading-relaxed">
+              <Bell className="size-3.5 text-zinc-500 mt-0.5 shrink-0" />
+              <span>
+                {t("Minecraft player warnings and safe shutdown active")}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Search & Filter Bar */}
         <div className="flex items-center gap-3 mb-6">

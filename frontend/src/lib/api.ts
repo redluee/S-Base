@@ -530,6 +530,20 @@ export const api = {
       request<{ ok: boolean; user: AuthUser }>(`/pulse/users/${id}/impersonate`, {
         method: "POST",
       }),
+    getShutdownSchedule: () => request<ShutdownSchedule>("/pulse/shutdown-schedule"),
+    updateShutdownSchedule: (data: { time?: string; enabled?: boolean }) =>
+      request<ShutdownSchedule>("/pulse/shutdown-schedule", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    blockShutdown: () =>
+      request<ShutdownSchedule>("/pulse/shutdown-schedule/block", {
+        method: "POST",
+      }),
+    unblockShutdown: () =>
+      request<ShutdownSchedule>("/pulse/shutdown-schedule/unblock", {
+        method: "POST",
+      }),
   },
 
   minecraft: {
@@ -936,6 +950,15 @@ export interface PulseStats {
   activeUsers: number;
   pausedUsers: number;
   totalPermissions: number;
+}
+
+export interface ShutdownSchedule {
+  enabled: boolean;
+  time: string;
+  blockedUntil: string | null;
+  isBlocked: boolean;
+  nextShutdownAt: string | null;
+  minutesUntilShutdown: number | null;
 }
 
 export interface Wine {

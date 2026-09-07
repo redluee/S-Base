@@ -176,3 +176,5 @@ export class PulseService {
   }
 }
 
+export * from "./shutdown-service";
+
