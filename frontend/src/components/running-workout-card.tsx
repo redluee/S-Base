@@ -79,12 +79,13 @@ export function RunningWorkoutCard({
 
   if (compact) {
     return (
-      <div className="relative group overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-900/90 to-emerald-950/60 backdrop-blur-md border border-emerald-500/40 p-4 shadow-[0_0_2rem_-0.5rem_rgba(16,185,129,0.3)] hover:border-emerald-500/60 transition-all duration-300">
-        <div className="flex items-center justify-between gap-3">
+      <div className="relative group overflow-hidden rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-[#00E676]/40 p-3.5 sm:p-4 shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.3)] hover:border-[#00E676]/70 transition-all duration-300">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#00E676]/10 via-transparent to-[#00E676]/5 pointer-events-none" />
+        <div className="flex items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex items-center justify-center shrink-0">
-              <span className="absolute inline-flex size-10 animate-ping rounded-full bg-emerald-500/20" />
-              <div className="size-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <span className="absolute inline-flex size-9 animate-ping rounded-full bg-[#00E676]/20" />
+              <div className="size-9 rounded-xl bg-[#00E676]/15 border border-[#00E676]/40 flex items-center justify-center text-[#00E676] shadow-[0_0_12px_rgba(0,230,118,0.3)]">
                 <Dumbbell className="size-4" />
               </div>
             </div>
@@ -92,26 +93,26 @@ export function RunningWorkoutCard({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00E676] opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-[#00E676]" />
                 </span>
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#00E676] uppercase tracking-wider">
                   {t("Lopende workout")}
                 </span>
               </div>
-              <h3 className="font-workout-title font-bold text-sm text-foreground truncate">
+              <h3 className="font-semibold text-sm text-foreground truncate">
                 {session.name || t("Workout Session")}
               </h3>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1 text-xs font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+            <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/30 px-2.5 py-1 rounded-lg">
               <Timer className="size-3.5" />
               <span>{formatElapsedTime(elapsed)}</span>
             </div>
             <Link href={`/workouts/session/${session.sessionId}`}>
-              <Button size="sm" className="bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold text-xs shadow-md shadow-emerald-500/20">
+              <Button size="sm" className="bg-[#00E676] text-zinc-950 hover:bg-[#00E676]/90 font-bold text-xs h-8 px-3 rounded-xl shadow-md shadow-[#00E676]/20 active:scale-95 transition-all">
                 <span>{t("Hervatten")}</span>
                 <Play className="size-3 ml-1 fill-zinc-950" />
               </Button>
@@ -140,7 +141,7 @@ export function RunningWorkoutCard({
                 {t("Workout in uitvoering")}
               </span>
             </div>
-            <h2 className="font-workout-title font-bold text-xl sm:text-2xl text-foreground tracking-tight">
+            <h2 className="font-semibold text-xl sm:text-2xl text-foreground tracking-tight">
               {session.name || t("Workout Session")}
             </h2>
           </div>
