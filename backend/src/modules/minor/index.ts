@@ -1408,33 +1408,11 @@ export class MinorService {
     const sprint = db.select().from(minorSprints).where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId))).get();
     if (!sprint) throw new Error("Sprint not found");
 
-    // Enforce max 1 'V' per sprint across teacher assessments
-    let assignedVLu: number | null = null;
     for (const item of items) {
-      if (item.assessment === "V") {
-        assignedVLu = item.learningOutcome;
-      }
-    }
-
-    if (assignedVLu !== null) {
-      db.update(minorTeacherAssessments)
-        .set({ assessment: "-" })
-        .where(
-          and(
-            eq(minorTeacherAssessments.sprintId, sprintId),
-            sql`${minorTeacherAssessments.learningOutcome} != ${assignedVLu}`,
-            eq(minorTeacherAssessments.assessment, "V")
-          )
-        )
-        .run();
-    }
-
-    for (const item of items) {
-      const finalAssessment = (item.assessment === "V" && item.learningOutcome !== assignedVLu) ? "-" : item.assessment;
       const existing = db.select().from(minorTeacherAssessments).where(and(eq(minorTeacherAssessments.sprintId, sprintId), eq(minorTeacherAssessments.learningOutcome, item.learningOutcome))).get();
       if (existing) {
         db.update(minorTeacherAssessments).set({
-          assessment: finalAssessment,
+          assessment: item.assessment,
           notes: item.notes !== undefined ? item.notes : existing.notes,
           evaluatedAt: item.evaluatedAt ?? existing.evaluatedAt ?? formatDate(new Date()),
         }).where(eq(minorTeacherAssessments.id, existing.id)).run();
@@ -1442,7 +1420,7 @@ export class MinorService {
         db.insert(minorTeacherAssessments).values({
           sprintId,
           learningOutcome: item.learningOutcome,
-          assessment: finalAssessment,
+          assessment: item.assessment,
           notes: item.notes || "",
           evaluatedAt: item.evaluatedAt || formatDate(new Date()),
         }).run();
@@ -1613,49 +1591,47 @@ export class MinorService {
         }
       }
 
-      // Prognosis: Each sprint awards at most 1 'V' in total (not per story).
+      // Prognosis: Each sprint awards at most 1 'V' per learning outcome (not per story).
       for (const s of sprints) {
         const sprintAssessments = allAssessments.filter((a) => a.sprintId === s.id);
-        const awardedV = sprintAssessments.find((a) => a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5);
 
-        if (awardedV) {
-          // If official assessment has 'V', use that outcome
-          projectedPasses[awardedV.learningOutcome] = (projectedPasses[awardedV.learningOutcome] || 0) + 1;
-        } else if (s.status !== "completed" && s.status !== "archived") {
-          // For unassessed active or planned sprints: assign max 1 projected 'V' to the most targeted / needed LU in this sprint
+        if (s.status === "completed" || s.status === "archived") {
+          for (const a of sprintAssessments) {
+            if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
+              projectedPasses[a.learningOutcome] = (projectedPasses[a.learningOutcome] || 0) + 1;
+            }
+          }
+        } else {
+          // For active or planned sprints:
+          const officiallyPassedInSprint = new Set<number>();
+          for (const a of sprintAssessments) {
+            if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
+              projectedPasses[a.learningOutcome] = (projectedPasses[a.learningOutcome] || 0) + 1;
+              officiallyPassedInSprint.add(a.learningOutcome);
+            }
+          }
+
+          // Stories in sprint define targeted LUs (at most 1 projected V per covered LU for this sprint)
           const stories = db.select().from(minorStories).where(eq(minorStories.sprintId, s.id)).all();
-          const luFrequency = new Map<number, number>();
-
+          const coveredLUs = new Set<number>();
           for (const st of stories) {
             try {
               const lus = JSON.parse(st.learningOutcomes);
               if (Array.isArray(lus)) {
                 lus.forEach((lu) => {
                   if (typeof lu === "number" && lu >= 1 && lu <= 5) {
-                    luFrequency.set(lu, (luFrequency.get(lu) || 0) + 1);
+                    coveredLUs.add(lu);
                   }
                 });
               }
             } catch {}
           }
 
-          const coveredLUs = Array.from(luFrequency.keys());
-          if (coveredLUs.length > 0) {
-            // Sort by largest unmet deficit towards minimum target, then highest frequency in sprint stories, then lowest LU number
-            coveredLUs.sort((a, b) => {
-              const deficitA = Math.max(0, (LU_MIN_TARGETS[a] || 0) - (projectedPasses[a] || 0));
-              const deficitB = Math.max(0, (LU_MIN_TARGETS[b] || 0) - (projectedPasses[b] || 0));
-              if (deficitA !== deficitB) return deficitB - deficitA;
-
-              const freqA = luFrequency.get(a) || 0;
-              const freqB = luFrequency.get(b) || 0;
-              if (freqA !== freqB) return freqB - freqA;
-
-              return a - b;
-            });
-
-            const bestLU = coveredLUs[0];
-            projectedPasses[bestLU] = (projectedPasses[bestLU] || 0) + 1;
+          for (const lu of coveredLUs) {
+            const isAssessedO = sprintAssessments.some((a) => a.learningOutcome === lu && a.assessment === "O");
+            if (!officiallyPassedInSprint.has(lu) && !isAssessedO) {
+              projectedPasses[lu] = (projectedPasses[lu] || 0) + 1;
+            }
           }
         }
       }

@@ -1230,11 +1230,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
           <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/5 flex items-center justify-between text-xs text-zinc-400">
             <span className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-brand shrink-0" />
-              <span>{t("Per sprint kan de docent maximaal 1 voldoende (V) toekennen voor de gehele sprint.")}</span>
+              <span>{t("Per sprint kan de docent per leeruitkomst maximaal 1 voldoende (V) toekennen.")}</span>
             </span>
             {teacherAssessments.some((a) => a.assessment === "V") && (
               <span className="text-[11px] font-mono text-brand font-semibold shrink-0">
-                {t("Toegekend: LU {lu}", { lu: String(teacherAssessments.find((a) => a.assessment === "V")?.learningOutcome) })}
+                {t("Voldoendes: LU {lus}", {
+                  lus: teacherAssessments
+                    .filter((a) => a.assessment === "V")
+                    .map((a) => a.learningOutcome)
+                    .sort((a, b) => a - b)
+                    .join(", "),
+                })}
               </span>
             )}
           </div>
@@ -1299,16 +1305,11 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                           onChange={(e) => {
                             const newAssess = e.target.value as "V" | "O" | "-";
                             setTeacherAssessments((prev) =>
-                              prev.map((item) => {
-                                if (item.learningOutcome === luNum) {
-                                  return { ...item, assessment: newAssess };
-                                }
-                                // If selecting 'V' for this LU, reset any other LU from 'V' to '-'
-                                if (newAssess === "V" && item.assessment === "V") {
-                                  return { ...item, assessment: "-" };
-                                }
-                                return item;
-                              })
+                              prev.map((item) =>
+                                item.learningOutcome === luNum
+                                  ? { ...item, assessment: newAssess }
+                                  : item
+                              )
                             );
                           }}
                           className={`bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer ${

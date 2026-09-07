@@ -226,21 +226,21 @@ describe("MinorService", () => {
     expect(updatedStats.officialPasses[1]).toBe(1);
     expect(updatedStats.officialPasses[2]).toBe(0);
 
-    // If teacher updates assessment to award 'V' on LU 2, LU 1 must be reset to '-' (max 1 V per sprint)
+    // Teacher can award 'V' on LU 2 as well (both LU 1 and LU 2 are 'V' in this sprint)
     const reAssessed = minor.saveTeacherAssessments(sprint.id, testerId, [
-      { learningOutcome: 2, assessment: "V", notes: "Nu LU 2 behaald" },
+      { learningOutcome: 2, assessment: "V", notes: "Nu ook LU 2 behaald" },
     ]);
     const lu1Assess = reAssessed.find((a) => a.learningOutcome === 1);
     const lu2Assess = reAssessed.find((a) => a.learningOutcome === 2);
-    expect(lu1Assess?.assessment).toBe("-");
+    expect(lu1Assess?.assessment).toBe("V");
     expect(lu2Assess?.assessment).toBe("V");
 
     const reAssessedStats = minor.getDashboardStats(testerId);
-    expect(reAssessedStats.officialPasses[1]).toBe(0);
+    expect(reAssessedStats.officialPasses[1]).toBe(1);
     expect(reAssessedStats.officialPasses[2]).toBe(1);
 
     // Prognosis with a new planned sprint with multiple stories covering multiple LUs:
-    // Should allocate at most 1 projected pass for the whole sprint, not per story
+    // Should allocate 1 projected pass per covered LU, not duplicated per story
     const sprint2 = minor.createSprint(testerId, {
       startDate: "2026-09-21",
       status: "planned",
@@ -253,14 +253,21 @@ describe("MinorService", () => {
       title: "Story B",
       learningOutcomes: [4, 5],
     });
+    // Another story covering LU 1 in the same sprint (must not duplicate LU 1 pass)
+    minor.createStory(testerId, sprint2.id, {
+      title: "Story C",
+      learningOutcomes: [1],
+    });
 
     const progStats = minor.getDashboardStats(testerId);
     const totalOfficial = Object.values(progStats.officialPasses).reduce((a, b) => a + b, 0);
     const totalProjected = Object.values(progStats.projectedPasses).reduce((a, b) => a + b, 0);
 
-    // Sprint 1 has 1 official V (on LU 2), sprint 2 adds at most 1 projected V
-    expect(totalOfficial).toBe(1);
-    expect(totalProjected).toBe(2);
+    // Sprint 1 has 2 official V's (LU 1 and LU 2).
+    // Sprint 2 covers LU 1, 2, 3, 4, 5 (all 5 LUs, max 1 each) -> adds 5 projected V's.
+    expect(totalOfficial).toBe(2);
+    expect(totalProjected).toBe(7);
+    expect(progStats.projectedPasses[1]).toBe(2); // 1 official from sprint 1 + 1 projected from sprint 2
   });
 
   it("manages dynamic feedback rows, reflections, and peer help", () => {
