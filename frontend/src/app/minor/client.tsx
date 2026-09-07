@@ -172,20 +172,24 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
             {t("Centraal overzicht van je sprintplanning, Show & Grow sessies en leeruitkomsten.")}
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <Link
             href="/minor/sprints"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
+            title={t("Alle sprints bekijken")}
+            aria-label={t("Alle sprints bekijken")}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
           >
             <Layers className="size-3.5" />
-            <span>{t("Alle sprints bekijken")}</span>
+            <span className="hidden sm:inline">{t("Alle sprints")}</span>
           </Link>
           <Link
             href="/minor/export"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer"
+            title={t("Exporteer Portfolio")}
+            aria-label={t("Exporteer Portfolio")}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer"
           >
             <Upload className="size-3.5" />
-            <span>{t("Exporteer Portfolio")}</span>
+            <span className="hidden sm:inline">{t("Exporteer Portfolio")}</span>
           </Link>
         </div>
       </div>
@@ -417,11 +421,11 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
             <div className="flex items-center justify-between text-[11px] text-zinc-500">
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-brand inline-block" />
-                <span>{t("Officieel toegekend")}: {totalOfficial}</span>
+                <span>{t("Officieel toegekend")}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-brand/30 inline-block" />
-                <span>{t("Verwacht inclusief actief")}: {totalProjected}</span>
+                <span>{t("Verwacht (inclusief actief)")}</span>
               </span>
             </div>
           </div>
@@ -440,6 +444,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                 return (
                   <div
                     key={luNum}
+                    title={getLUShortDesc(luNum) || undefined}
                     className={`px-3 py-2 rounded-xl border text-xs flex items-center justify-between ${
                       isMet
                         ? "bg-brand/10 border-brand/30 text-brand"
@@ -450,7 +455,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                         : "bg-zinc-950/40 border-white/5 text-zinc-400"
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       {isMet ? (
                         <Check className="size-3.5 text-brand shrink-0" />
                       ) : pendingCount > 0 ? (
@@ -458,16 +463,16 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                       ) : (
                         <span className="size-1.5 rounded-full bg-zinc-600 shrink-0" />
                       )}
-                      <span className="font-semibold font-mono">
+                      <span className="font-semibold font-mono truncate">
                         LU {luNum}
                         {getLUShortDesc(luNum) && (
-                          <span className="text-[10px] font-sans font-normal opacity-70 ml-1">
+                          <span className="hidden sm:inline text-[10px] font-sans font-normal opacity-70 ml-1">
                             · {getLUShortDesc(luNum)}
                           </span>
                         )}
                       </span>
                     </div>
-                    <div className="font-mono text-[11px]">
+                    <div className="font-mono text-[11px] shrink-0 ml-1">
                       <span className={isMet ? "font-bold text-brand" : "text-white"}>{count}</span>
                       {pendingCount > 0 && !isMet && (
                         <span className="text-emerald-400 font-semibold text-[10px] ml-0.5">
@@ -496,10 +501,12 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
               <button
                 type="button"
                 onClick={openCreateSprintModal}
+                title={t("Sprint toevoegen")}
+                aria-label={t("Sprint toevoegen")}
                 className="text-xs text-zinc-300 hover:text-brand flex items-center gap-1 font-semibold transition-colors cursor-pointer"
               >
                 <Plus className="size-3.5" />
-                <span>{t("Sprint toevoegen")}</span>
+                <span className="hidden sm:inline">{t("Sprint toevoegen")}</span>
               </button>
               <span className="text-zinc-600 text-xs">·</span>
               <Link
@@ -522,13 +529,13 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                 <Link
                   key={s.id}
                   href={`/minor/sprints/${s.id}`}
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-900 border border-white/10 hover:border-brand/40 transition-all group cursor-pointer"
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-900 border border-white/10 hover:border-brand/40 transition-all group cursor-pointer gap-3"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="min-w-8 h-8 px-2 rounded-lg bg-zinc-800 border border-white/10 flex items-center justify-center text-xs font-mono font-bold text-zinc-300 group-hover:text-brand transition-colors shrink-0 whitespace-nowrap">
                       {s.sprintNumber}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-xs font-semibold text-white group-hover:text-brand transition-colors truncate">
                         {s.name}
                       </h3>
@@ -537,7 +544,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     {s.extendedDays > 0 && (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hidden sm:inline">
                         +{s.extendedDays}d
@@ -703,8 +710,8 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
 
       {/* Create Sprint Modal */}
       {isSprintModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="size-4 text-brand" />
@@ -719,7 +726,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
             </div>
 
             <form onSubmit={handleSaveSprint} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Sprintnummer")}</label>
                   <input
@@ -744,7 +751,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Startdatum")}</label>
                   <input

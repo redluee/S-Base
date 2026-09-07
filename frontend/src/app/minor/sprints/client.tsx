@@ -173,23 +173,27 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
+            title={t("Sprint Importeren")}
+            aria-label={t("Sprint Importeren")}
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
           >
             <Download className="size-4 text-zinc-400" />
-            <span>{t("Sprint Importeren")}</span>
+            <span className="hidden sm:inline">{t("Sprint Importeren")}</span>
           </button>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer"
+            title={t("Nieuwe Sprint")}
+            aria-label={t("Nieuwe Sprint")}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer"
           >
             <Plus className="size-4" />
-            <span>{t("Nieuwe Sprint")}</span>
+            <span className="hidden sm:inline">{t("Nieuwe Sprint")}</span>
           </button>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto scrollbar-none">
         {[
           { id: "all", label: "Alle" },
           { id: "active", label: "Actief" },
@@ -200,7 +204,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           <button
             key={tab.id}
             onClick={() => setStatusFilter(tab.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               statusFilter === tab.id
                 ? "bg-brand/15 text-brand border border-brand/30"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
@@ -228,7 +232,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           filteredSprints.map((s) => (
             <div
               key={s.id}
-              className="p-4 sm:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-brand/40 hover:bg-zinc-900 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group relative"
+              className="p-4 sm:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-brand/40 hover:bg-zinc-900 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group relative"
             >
               <Link
                 href={`/minor/sprints/${s.id}`}
@@ -236,12 +240,12 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                 aria-label={s.name}
               />
 
-              <div className="flex items-center gap-3.5 min-w-0 z-10 pointer-events-none">
+              <div className="flex items-center gap-3.5 min-w-0 flex-1 z-10 pointer-events-none">
                 <div className="min-w-10 h-10 px-2.5 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center font-mono font-bold text-xs text-white shrink-0 whitespace-nowrap">
                   {s.sprintNumber}
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                     <h2 className="text-base font-bold text-white group-hover:text-brand transition-colors truncate">
                       {s.name}
                     </h2>
@@ -263,29 +267,30 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                 </div>
               </div>
 
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-6 text-xs text-zinc-300 z-10">
-                <div className="flex items-center gap-1.5 text-zinc-400 pointer-events-none">
-                  <Clock className="size-3.5 text-brand shrink-0" />
-                  <span>
-                    {t("Show & Grow")}: <strong className="text-white">{s.showAndGrowDate}</strong>
-                  </span>
-                </div>
-
-                {s.extendedDays > 0 && (
-                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs pointer-events-none">
-                    <Calendar className="size-3.5 shrink-0" />
+              <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 text-xs text-zinc-300 z-10 pt-2.5 sm:pt-0 border-t border-white/5 sm:border-0 w-full sm:w-auto">
+                <div className="flex items-center gap-3 text-zinc-400 pointer-events-none flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="size-3.5 text-brand shrink-0" />
                     <span>
-                      +{s.extendedDays}d ({s.extensionReason})
+                      {t("Show & Grow")}: <strong className="text-white">{s.showAndGrowDate}</strong>
                     </span>
                   </div>
-                )}
 
-                <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  {s.extendedDays > 0 && (
+                    <div className="flex items-center gap-1 text-emerald-400 text-xs">
+                      <Calendar className="size-3.5 shrink-0" />
+                      <span>+{s.extendedDays}d</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0 shrink-0">
                   <Link
                     href={`/minor/sprints/${s.id}/present`}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand/10 text-brand border border-brand/20 hover:bg-brand hover:text-zinc-950 transition-all cursor-pointer"
+                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand/10 text-brand border border-brand/20 hover:bg-brand hover:text-zinc-950 transition-all cursor-pointer"
                     title={t("Start Show & Tell presentatie")}
+                    aria-label={t("Presentatie")}
                   >
                     <Sparkles className="size-3.5" />
                     <span>{t("Presentatie")}</span>
@@ -317,6 +322,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                     }}
                     className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
                     title={t("Bewerken")}
+                    aria-label={t("Bewerken")}
                   >
                     <Edit2 className="size-4" />
                   </button>
@@ -332,8 +338,8 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
       {/* Create / Edit Sprint Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="size-4 text-brand" />
@@ -348,7 +354,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
             </div>
 
             <form onSubmit={handleSaveSprint} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Sprintnummer")}</label>
                   <input
@@ -373,7 +379,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Startdatum")}</label>
                   <input

@@ -125,8 +125,8 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
             disabled={exportingPdf || selectedSprintIds.length === 0}
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="size-4" />
-            <span>{exportingPdf ? t("PDF genereren...") : t("Download Verzameling PDF")}</span>
+            <Download className="size-4 shrink-0" />
+            <span>{exportingPdf ? t("PDF genereren...") : t("Download PDF")}</span>
           </button>
         </div>
 
@@ -149,8 +149,8 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
             disabled={exportingExcel || selectedSprintIds.length === 0}
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-semibold text-xs transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="size-4 text-zinc-400" />
-            <span>{exportingExcel ? t("Excel genereren...") : t("Download Verzameling Excel")}</span>
+            <Download className="size-4 text-zinc-400 shrink-0" />
+            <span>{exportingExcel ? t("Excel genereren...") : t("Download Excel")}</span>
           </button>
         </div>
 
@@ -173,8 +173,8 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
             disabled={exportingJson || selectedSprintIds.length === 0}
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-semibold text-xs transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="size-4 text-zinc-400" />
-            <span>{exportingJson ? t("JSON genereren...") : t("Download Verzameling JSON")}</span>
+            <Download className="size-4 text-zinc-400 shrink-0" />
+            <span>{exportingJson ? t("JSON genereren...") : t("Download JSON")}</span>
           </button>
         </div>
       </div>
@@ -209,27 +209,27 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
                 <div
                   key={s.id}
                   onClick={() => handleToggleSprint(s.id)}
-                  className="p-4 flex items-center justify-between hover:bg-zinc-900/80 transition-colors cursor-pointer"
+                  className="p-4 flex items-center justify-between gap-3 hover:bg-zinc-900/80 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {isSelected ? (
                       <CheckSquare className="size-4 text-brand shrink-0" />
                     ) : (
                       <Square className="size-4 text-zinc-600 shrink-0" />
                     )}
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-zinc-400 font-bold">[{s.sprintNumber}]</span>
-                        <h3 className="font-bold text-white">{s.name}</h3>
+                        <span className="font-mono text-zinc-400 font-bold shrink-0">[{s.sprintNumber}]</span>
+                        <h3 className="font-bold text-white truncate">{s.name}</h3>
                       </div>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-[11px] text-zinc-400 mt-0.5 truncate">
                         {s.startDate} t/m {s.endDate} · Show & Grow: {s.showAndGrowDate}
                       </p>
                     </div>
                   </div>
 
                   <span
-                    className={`text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded ${
+                    className={`text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded shrink-0 ${
                       s.status === "active"
                         ? "bg-brand/10 text-brand border border-brand/20"
                         : "bg-zinc-800 text-zinc-300"

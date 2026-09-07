@@ -112,10 +112,13 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer self-start sm:self-auto"
+          title={t("Nieuwe hulp registratie")}
+          aria-label={t("Nieuwe hulp registratie")}
+          className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="size-4" />
-          <span>{t("Nieuwe hulp registratie")}</span>
+          <span className="hidden sm:inline">{t("Nieuwe hulp registratie")}</span>
+          <span className="sm:hidden">{t("Nieuwe registratie")}</span>
         </button>
       </div>
 
@@ -133,82 +136,154 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
 
       {/* Table / Cards List */}
       <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
-              <th className="py-3 px-4 w-28">{t("Datum")}</th>
-              <th className="py-3 px-4 w-44">{t("Naam medestudent")}</th>
-              <th className="py-3 px-4">{t("Toelichting geboden hulp")}</th>
-              <th className="py-3 px-4 w-36">{t("Sprint")}</th>
-              <th className="py-3 px-4 w-44">{t("Links")}</th>
-              <th className="py-3 px-4 w-20 text-right"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {filteredList.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-12 text-center text-zinc-500 italic">
-                  {t("Geen kennisdeling geregistreerd.")}
-                </td>
+        {/* Mobile Cards View */}
+        <div className="block md:hidden divide-y divide-white/5">
+          {filteredList.length === 0 ? (
+            <div className="py-12 text-center text-zinc-500 italic">
+              {t("Geen kennisdeling geregistreerd.")}
+            </div>
+          ) : (
+            filteredList.map((item) => {
+              const linkedSprint = sprints.find((s) => s.id === item.sprintId);
+              return (
+                <div key={item.id} className="p-4 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-semibold text-white text-sm truncate">{item.peerName}</span>
+                      {linkedSprint && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5 shrink-0">
+                          {linkedSprint.name}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-zinc-400 text-[11px] shrink-0">{item.date}</span>
+                  </div>
+
+                  <p className="text-zinc-300 leading-relaxed break-words">{item.description}</p>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
+                    {item.links ? (
+                      <a
+                        href={item.links}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sky-400 hover:underline text-xs truncate max-w-[200px]"
+                      >
+                        <ExternalLink className="size-3 shrink-0" />
+                        <span className="truncate">{t("Link naar bewijs")}</span>
+                      </a>
+                    ) : (
+                      <span className="text-zinc-500 text-[11px] italic">{t("Geen link")}</span>
+                    )}
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="text-zinc-400 hover:text-white p-2 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
+                        title={t("Bewerken")}
+                        aria-label={t("Bewerken")}
+                      >
+                        <Edit2 className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="text-zinc-500 hover:text-red-400 p-2 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
+                        title={t("Verwijderen")}
+                        aria-label={t("Verwijderen")}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
+                <th className="py-3 px-4 w-28">{t("Datum")}</th>
+                <th className="py-3 px-4 w-44">{t("Naam medestudent")}</th>
+                <th className="py-3 px-4">{t("Toelichting geboden hulp")}</th>
+                <th className="py-3 px-4 w-36">{t("Sprint")}</th>
+                <th className="py-3 px-4 w-44">{t("Links")}</th>
+                <th className="py-3 px-4 w-20 text-right"></th>
               </tr>
-            ) : (
-              filteredList.map((item) => {
-                const linkedSprint = sprints.find((s) => s.id === item.sprintId);
-                return (
-                  <tr key={item.id} className="hover:bg-zinc-900/80 transition-colors">
-                    <td className="py-3.5 px-4 font-mono text-zinc-400">{item.date}</td>
-                    <td className="py-3.5 px-4 font-semibold text-white">{item.peerName}</td>
-                    <td className="py-3.5 px-4 text-zinc-300 max-w-md">{item.description}</td>
-                    <td className="py-3.5 px-4 text-zinc-400">
-                      {linkedSprint ? (
-                        <span className="font-mono text-zinc-300">{linkedSprint.name}</span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {item.links ? (
-                        <a
-                          href={item.links}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sky-400 hover:underline max-w-xs truncate"
-                        >
-                          <ExternalLink className="size-3 shrink-0" />
-                          <span className="truncate">{item.links}</span>
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => openEditModal(item)}
-                          className="text-zinc-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-zinc-500 italic">
+                    {t("Geen kennisdeling geregistreerd.")}
+                  </td>
+                </tr>
+              ) : (
+                filteredList.map((item) => {
+                  const linkedSprint = sprints.find((s) => s.id === item.sprintId);
+                  return (
+                    <tr key={item.id} className="hover:bg-zinc-900/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono text-zinc-400">{item.date}</td>
+                      <td className="py-3.5 px-4 font-semibold text-white">{item.peerName}</td>
+                      <td className="py-3.5 px-4 text-zinc-300 max-w-md break-words">{item.description}</td>
+                      <td className="py-3.5 px-4 text-zinc-400">
+                        {linkedSprint ? (
+                          <span className="font-mono text-zinc-300">{linkedSprint.name}</span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {item.links ? (
+                          <a
+                            href={item.links}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sky-400 hover:underline max-w-xs truncate"
+                          >
+                            <ExternalLink className="size-3 shrink-0" />
+                            <span className="truncate">{item.links}</span>
+                          </a>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => openEditModal(item)}
+                            className="text-zinc-400 hover:text-white p-1.5 rounded transition-colors cursor-pointer"
+                            title={t("Bewerken")}
+                            aria-label={t("Bewerken")}
+                          >
+                            <Edit2 className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="text-zinc-500 hover:text-red-400 p-1.5 rounded transition-colors cursor-pointer"
+                            title={t("Verwijderen")}
+                            aria-label={t("Verwijderen")}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Users className="size-4 text-purple-400" />
@@ -223,7 +298,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
             </div>
 
             <form onSubmit={handleSavePeerHelp} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Datum")}</label>
                   <input

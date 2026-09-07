@@ -86,6 +86,7 @@ interface StoryTypeBadgeProps {
   code?: string;
   storyTypes?: MinorStoryType[];
   showName?: boolean;
+  hideNameOnMobile?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -94,6 +95,7 @@ export function StoryTypeBadge({
   code = "US",
   storyTypes = [],
   showName = false,
+  hideNameOnMobile = false,
   size = "md",
   className = "",
 }: StoryTypeBadgeProps) {
@@ -127,7 +129,11 @@ export function StoryTypeBadge({
     >
       <span className="tracking-wider">{details.code}</span>
       {showName && details.name && (
-        <span className="font-sans font-medium text-[11px] opacity-90 border-l border-current/20 pl-1.5">
+        <span
+          className={`font-sans font-medium text-[11px] opacity-90 border-l border-current/20 pl-1.5 ${
+            hideNameOnMobile ? "hidden sm:inline" : ""
+          }`}
+        >
           {details.name}
         </span>
       )}

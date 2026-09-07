@@ -798,28 +798,31 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
         </div>
 
         {/* Export & Presentation Toolbar */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
           <button
             type="button"
             onClick={() => setIsPresentationOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-brand text-zinc-950 hover:bg-brand-hover hover:shadow-[0_0_1.5rem_rgba(0,227,164,0.3)] transition-all cursor-pointer shrink-0"
             title={t("Start Show & Tell presentatie")}
+            aria-label={t("Presentatie")}
           >
             <Sparkles className="size-3.5" />
             <span>{t("Presentatie")}</span>
           </button>
           <button
             onClick={() => handleTriggerExport("pdf")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/10 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/10 transition-all cursor-pointer shrink-0"
             title={t("Exporteer deze sprint als PDF")}
+            aria-label="PDF"
           >
             <FileText className="size-3.5 text-brand" />
             <span>PDF</span>
           </button>
           <button
             onClick={() => handleTriggerExport("excel")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/10 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/10 transition-all cursor-pointer shrink-0"
             title={t("Exporteer deze sprint als Excel")}
+            aria-label="Excel"
           >
             <FileSpreadsheet className="size-3.5 text-emerald-400" />
             <span>Excel</span>
@@ -827,7 +830,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
           <button
             type="button"
             onClick={handleExportSprintJson}
-            className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-all cursor-pointer flex items-center justify-center"
+            className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-all cursor-pointer flex items-center justify-center shrink-0"
             title={copiedSprintExport ? t("Gekopieerd naar klembord!") : t("Sprint kopiëren naar klembord")}
             aria-label={t("Sprint kopiëren naar klembord")}
           >
@@ -869,7 +872,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
       </div>
 
       {/* Section Tabs (1. PLANNING, 2. FEEDBACK, 3. ZELFEVALUATIE & BEOORDELING, 4. REFLECTIE) */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {[
           { id: "planning", label: "1. Planning", icon: Layers },
           { id: "feedback", label: "2. Feedback", icon: Clock },
@@ -882,7 +885,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as "planning" | "feedback" | "self_eval" | "reflection")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 active
                   ? "bg-brand/15 text-brand border border-brand/30"
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
@@ -898,19 +901,20 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
       {/* TAB 1: 1. PLANNING */}
       {activeTab === "planning" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white tracking-tight">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
               {t("Sprintplanning & Stories")} ({sprint.stories.length})
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={openLinkStoryModal}
                 title={t("Bestaande concept story koppelen")}
                 aria-label={t("Bestaande concept story koppelen")}
-                className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center justify-center"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer"
               >
-                <Link2 className="size-3.5" />
+                <Link2 className="size-3.5 text-zinc-400" />
+                <span className="hidden sm:inline">{t("Koppelen")}</span>
               </button>
               <button
                 type="button"
@@ -921,13 +925,16 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 }}
                 title={t("Story importeren (JSON)")}
                 aria-label={t("Story importeren (JSON)")}
-                className="p-2 rounded-lg text-zinc-400 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center justify-center"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 border border-white/10 hover:border-white/20 transition-all cursor-pointer"
               >
-                <Download className="size-3.5" />
+                <Download className="size-3.5 text-zinc-400" />
+                <span className="hidden sm:inline">{t("Importeren")}</span>
               </button>
               <button
                 onClick={openCreateStoryModal}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer"
+                title={t("Nieuwe Story")}
+                aria-label={t("Nieuwe Story")}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer shadow-sm"
               >
                 <Plus className="size-3.5" />
                 <span>{t("Nieuwe Story")}</span>
@@ -970,7 +977,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 </button>
               </div>
             </div>
-          ) : (            <div className="space-y-2.5">
+          ) : (
+            <div className="space-y-2.5">
               {sprint.stories.map((st) => {
                 const totalCriteria = st.criteria?.length || 0;
                 const completedCriteria = st.criteria?.filter((c) => c.isCompleted).length || 0;
@@ -981,93 +989,145 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     key={st.id}
                     onClick={() => setViewingStoryId(st.id)}
                     style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-                    className={`p-3.5 sm:p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/50 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group`}
+                    className={`p-3.5 sm:p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/50 transition-all cursor-pointer flex flex-col gap-2.5 sm:gap-3 group`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-wrap sm:flex-nowrap">
-                      <StoryTypeBadge code={st.storyTypeCode} storyTypes={storyTypes} showName size="sm" />
-                      {st.storyNumber && (
-                        <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950 px-2 py-0.5 rounded border border-white/5 shrink-0">
-                          {st.storyNumber}
-                        </span>
-                      )}
-                      <h3 className={`text-sm font-semibold text-white tracking-tight truncate ${typeDetails.hoverTextClass} transition-colors`}>
+                    {/* Top Row: Type Badge + Story Number (Left) & Status Dropdown / Desktop Title */}
+                    <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <StoryTypeBadge
+                          code={st.storyTypeCode}
+                          storyTypes={storyTypes}
+                          showName
+                          hideNameOnMobile
+                          size="sm"
+                        />
+                        {st.storyNumber && (
+                          <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950 px-2 py-0.5 rounded border border-white/5 shrink-0">
+                            {st.storyNumber}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Desktop only: Title placed inline */}
+                      <div className="hidden sm:flex items-center min-w-0 flex-1 ml-1">
+                        <h3 className={`text-sm font-semibold text-white tracking-tight truncate ${typeDetails.hoverTextClass} transition-colors`}>
+                          {st.title}
+                        </h3>
+                      </div>
+
+                      {/* Mobile Status dropdown pinned to top-right */}
+                      <div className="sm:hidden" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={st.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value as "todo" | "in_progress" | "done";
+                            await api.minor.sprints.stories.update(st.id, { status: newStatus });
+                            await reloadSprint();
+                          }}
+                          className={`text-[10px] font-semibold uppercase px-2 py-1 rounded border cursor-pointer ${
+                            st.status === "done"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                              : st.status === "in_progress"
+                              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                              : "bg-zinc-800 border-white/10 text-zinc-300"
+                          }`}
+                        >
+                          <option value="todo">{t("To Do")}</option>
+                          <option value="in_progress">{t("Bezig")}</option>
+                          <option value="done">{t("Voltooid")}</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Mobile Title Row: Full width, clean wrapping */}
+                    <div className="sm:hidden">
+                      <h3 className={`text-sm font-semibold text-white tracking-tight break-words leading-snug ${typeDetails.hoverTextClass} transition-colors`}>
                         {st.title}
                       </h3>
                     </div>
 
+                    {/* Bottom Metadata & Actions: Clean divider and never-wrapping action buttons */}
                     <div
-                      className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap sm:flex-nowrap"
+                      className="flex items-center justify-between gap-2 pt-2 border-t border-white/5 sm:border-0 sm:pt-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {st.learningOutcomes && st.learningOutcomes.length > 0 && (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {st.learningOutcomes.map((lu) => (
-                            <span
-                              key={lu}
-                              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-white/5"
-                            >
-                              LU {lu}
-                              {getLUShortDesc(lu) && (
-                                <span className="font-sans font-normal text-zinc-500 ml-1">
-                                  · {getLUShortDesc(lu)}
-                                </span>
-                              )}
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        {st.learningOutcomes && st.learningOutcomes.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {st.learningOutcomes.map((lu) => (
+                              <span
+                                key={lu}
+                                title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                                className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-white/5 whitespace-nowrap"
+                              >
+                                LU {lu}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {totalCriteria > 0 && (
+                          <div
+                            className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-md border flex items-center gap-1.5 whitespace-nowrap ${
+                              completedCriteria === totalCriteria
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-zinc-950 text-zinc-400 border-white/5"
+                            }`}
+                            title={`${completedCriteria} van ${totalCriteria} criteria voltooid`}
+                          >
+                            <CheckSquare className="size-3 shrink-0" />
+                            <span>
+                              {completedCriteria}/{totalCriteria}
                             </span>
-                          ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                        {/* Status dropdown for desktop */}
+                        <div className="hidden sm:block">
+                          <select
+                            value={st.status}
+                            onChange={async (e) => {
+                              const newStatus = e.target.value as "todo" | "in_progress" | "done";
+                              await api.minor.sprints.stories.update(st.id, { status: newStatus });
+                              await reloadSprint();
+                            }}
+                            className={`text-[10px] font-semibold uppercase px-2 py-1 rounded border cursor-pointer ${
+                              st.status === "done"
+                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                : st.status === "in_progress"
+                                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                                : "bg-zinc-800 border-white/10 text-zinc-300"
+                            }`}
+                          >
+                            <option value="todo">{t("To Do")}</option>
+                            <option value="in_progress">{t("Bezig")}</option>
+                            <option value="done">{t("Voltooid")}</option>
+                          </select>
                         </div>
-                      )}
 
-                      {totalCriteria > 0 && (
-                        <div
-                          className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${
-                            completedCriteria === totalCriteria
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-zinc-950 text-zinc-400 border-white/5"
-                          }`}
-                          title={`${completedCriteria} van ${totalCriteria} criteria voltooid`}
-                        >
-                          <CheckSquare className="size-3 shrink-0" />
-                          <span>
-                            {completedCriteria}/{totalCriteria}
-                          </span>
+                        {/* Action buttons locked together: Never separate */}
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setEditingPresentationStory(st)}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-brand hover:bg-brand/10 transition-all cursor-pointer"
+                            title={t("Show & Tell content bewerken")}
+                            aria-label={t("Show & Tell content bewerken")}
+                          >
+                            <Sparkles className="size-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => openEditStoryModal(st)}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
+                            title={t("Bewerken")}
+                            aria-label={t("Bewerken")}
+                          >
+                            <Edit3 className="size-3.5" />
+                          </button>
                         </div>
-                      )}
-
-                      <select
-                        value={st.status}
-                        onChange={async (e) => {
-                          const newStatus = e.target.value as "todo" | "in_progress" | "done";
-                          await api.minor.sprints.stories.update(st.id, { status: newStatus });
-                          await reloadSprint();
-                        }}
-                        className={`text-[10px] font-semibold uppercase px-2 py-1 rounded border cursor-pointer ${
-                          st.status === "done"
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                            : st.status === "in_progress"
-                            ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                            : "bg-zinc-800 border-white/10 text-zinc-300"
-                        }`}
-                      >
-                        <option value="todo">{t("To Do")}</option>
-                        <option value="in_progress">{t("Bezig")}</option>
-                        <option value="done">{t("Voltooid")}</option>
-                      </select>
-
-                      <button
-                        onClick={() => setEditingPresentationStory(st)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-brand hover:bg-brand/10 transition-all cursor-pointer"
-                        title={t("Show & Tell content bewerken")}
-                      >
-                        <Sparkles className="size-3.5" />
-                      </button>
-
-                      <button
-                        onClick={() => openEditStoryModal(st)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
-                        title={t("Bewerken")}
-                      >
-                        <Edit3 className="size-3.5" />
-                      </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1150,45 +1210,88 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
             </div>
           </form>
 
-          {/* Feedback Table */}
+          {/* Feedback List (Responsive Cards for mobile, Table for desktop) */}
           <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
-                  <th className="py-3 px-4 w-28">{t("Datum")}</th>
-                  <th className="py-3 px-4 w-40">{t("Van wie")}</th>
-                  <th className="py-3 px-4">{t("Feedback")}</th>
-                  <th className="py-3 px-4">{t("Jouw actie")}</th>
-                  <th className="py-3 px-4 w-12 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {sprint.feedback.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-zinc-500 italic">
-                      {t("Geen feedbackregels ingevuld.")}
-                    </td>
+            {/* Mobile Cards */}
+            <div className="block sm:hidden divide-y divide-white/5">
+              {sprint.feedback.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 italic">
+                  {t("Geen feedbackregels ingevuld.")}
+                </div>
+              ) : (
+                sprint.feedback.map((fb) => (
+                  <div key={fb.id} className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-white">{fb.fromWhom}</span>
+                        <span className="font-mono text-zinc-400 text-[11px]">{fb.date}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteFeedback(fb.id)}
+                        className="text-zinc-500 hover:text-red-400 p-1.5 rounded transition-colors cursor-pointer"
+                        title={t("Verwijderen")}
+                        aria-label={t("Verwijderen")}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-zinc-300">
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 block">{t("Feedback")}</span>
+                        <p>{fb.feedback}</p>
+                      </div>
+                      <div className="text-zinc-200">
+                        <span className="text-[10px] uppercase font-bold text-brand block">{t("Jouw actie")}</span>
+                        <p>{fb.action}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
+                    <th className="py-3 px-4 w-28">{t("Datum")}</th>
+                    <th className="py-3 px-4 w-40">{t("Van wie")}</th>
+                    <th className="py-3 px-4">{t("Feedback")}</th>
+                    <th className="py-3 px-4">{t("Jouw actie")}</th>
+                    <th className="py-3 px-4 w-12 text-right"></th>
                   </tr>
-                ) : (
-                  sprint.feedback.map((fb) => (
-                    <tr key={fb.id} className="hover:bg-zinc-900/80 transition-colors">
-                      <td className="py-3 px-4 font-mono text-zinc-400">{fb.date}</td>
-                      <td className="py-3 px-4 font-semibold text-white">{fb.fromWhom}</td>
-                      <td className="py-3 px-4 text-zinc-300">{fb.feedback}</td>
-                      <td className="py-3 px-4 text-zinc-300">{fb.action}</td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleDeleteFeedback(fb.id)}
-                          className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {sprint.feedback.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-zinc-500 italic">
+                        {t("Geen feedbackregels ingevuld.")}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    sprint.feedback.map((fb) => (
+                      <tr key={fb.id} className="hover:bg-zinc-900/80 transition-colors">
+                        <td className="py-3 px-4 font-mono text-zinc-400">{fb.date}</td>
+                        <td className="py-3 px-4 font-semibold text-white">{fb.fromWhom}</td>
+                        <td className="py-3 px-4 text-zinc-300">{fb.feedback}</td>
+                        <td className="py-3 px-4 text-zinc-300">{fb.action}</td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => handleDeleteFeedback(fb.id)}
+                            className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
+                            title={t("Verwijderen")}
+                            aria-label={t("Verwijderen")}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1211,18 +1314,21 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 onClick={handleAutoPopulateEvals}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
                 title={t("Automatisch vullen op basis van voltooide stories en bewijslast")}
+                aria-label={t("Automatisch invullen")}
               >
                 <Sparkles className="size-3.5 text-brand" />
-                <span>{t("Automatisch invullen")}</span>
+                <span className="hidden sm:inline">{t("Automatisch invullen")}</span>
               </button>
 
               <button
                 onClick={handleSaveEvalsAndAssessments}
                 disabled={savingEvals}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                title={savingEvals ? t("Opslaan...") : evalSaveSuccess ? t("Opgeslagen!") : t("Wijzigingen opslaan")}
+                aria-label={t("Wijzigingen opslaan")}
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
               >
                 <Save className="size-3.5" />
-                <span>{savingEvals ? t("Opslaan...") : evalSaveSuccess ? t("Opgeslagen!") : t("Wijzigingen opslaan")}</span>
+                <span className="hidden sm:inline">{savingEvals ? t("Opslaan...") : evalSaveSuccess ? t("Opgeslagen!") : t("Wijzigingen opslaan")}</span>
               </button>
             </div>
           </div>
@@ -1253,17 +1359,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               return (
                 <div
                   key={luNum}
-                  className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-4"
+                  className="p-4 sm:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-4"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-zinc-800 text-brand border border-brand/20">
                         LU {luNum}
                       </span>
                       <h3 className="text-sm font-bold text-white">
                         {t(`Leeruitkomst ${luNum}`)}
                         {getLUShortDesc(luNum) && (
-                          <span className="text-zinc-400 font-normal text-xs ml-2">
+                          <span className="text-zinc-400 font-normal text-xs ml-1 sm:ml-2">
                             ({getLUShortDesc(luNum)})
                           </span>
                         )}
@@ -1275,7 +1381,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
                       {/* Self Eval Level */}
                       <div className="flex items-center gap-1.5">
                         <label className="text-zinc-400 font-semibold">{t("Zelf (Niv.)")}:</label>
@@ -1392,10 +1498,12 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
             <button
               type="submit"
               disabled={savingReflection}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+              title={savingReflection ? t("Opslaan...") : refSaveSuccess ? t("Opgeslagen!") : t("Reflectie opslaan")}
+              aria-label={t("Reflectie opslaan")}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
             >
               <Save className="size-3.5" />
-              <span>{savingReflection ? t("Opslaan...") : refSaveSuccess ? t("Opgeslagen!") : t("Reflectie opslaan")}</span>
+              <span className="hidden sm:inline">{savingReflection ? t("Opslaan...") : refSaveSuccess ? t("Opgeslagen!") : t("Reflectie opslaan")}</span>
             </button>
           </div>
 
@@ -1455,11 +1563,11 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {/* Story View Modal */}
       {viewingStory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <StoryTypeBadge code={viewingStory.storyTypeCode} storyTypes={storyTypes} showName size="md" />
+              <div className="flex items-center gap-2">
+                <StoryTypeBadge code={viewingStory.storyTypeCode} storyTypes={storyTypes} showName hideNameOnMobile size="md" />
                 {viewingStory.storyNumber && (
                   <span className="text-xs sm:text-sm font-mono font-bold text-zinc-300 bg-zinc-950 px-2.5 py-1 rounded-lg border border-white/5">
                     {viewingStory.storyNumber}
@@ -1477,19 +1585,16 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </div>
             </div>
 
-            <div className="space-y-5 text-sm">
+            <div className="space-y-4 sm:space-y-5 text-sm">
               {/* Header Title & Status */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
-                <div className="space-y-1">
-                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-xl font-bold text-white tracking-tight break-words">
                     {viewingStory.title}
                   </h3>
-                  <p className="text-xs text-zinc-400">
-                    {storyTypes.find((t) => t.code === viewingStory.storyTypeCode)?.name || viewingStory.storyTypeCode}
-                  </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
                   <span className="text-zinc-400 text-xs font-medium">{t("Status")}:</span>
                   <select
                     value={viewingStory.status}
@@ -1687,7 +1792,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               )}
 
               {/* Modal Footer */}
-              <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
+              <div className="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1707,9 +1812,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                   >
                     {copiedExport ? <Check className="size-4 text-brand" /> : <Copy className="size-4" />}
                   </button>
-                </div>
-
-                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -1723,6 +1825,9 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     <Sparkles className="size-3.5 text-brand" />
                     <span>{t("Show & Tell")}</span>
                   </button>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setViewingStoryId(null)}
@@ -1751,8 +1856,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {/* Story Create / Edit Modal */}
       {isStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                 <Sparkles className="size-4.5 text-brand" />
@@ -2023,14 +2128,14 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
                 {/* Quality criteria */}
                 <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-zinc-100 text-sm">{t("Kwaliteitscriteria")}</span>
                       <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono font-medium">
                         {qualityCriteria.length}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                       <button
                         type="button"
                         onClick={() => setQualityCriteria(getDefaultQualityCriteriaForType(storyTypeCode))}
@@ -2156,22 +2261,32 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
                 <div className="space-y-2 max-h-48 overflow-y-auto overflow-x-hidden pr-2">
                   {evidenceList.map((ev, idx) => (
-                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
-                      <select
-                        value={ev.type}
-                        onChange={(e) => {
-                          const val = e.target.value as "link" | "github" | "document" | "app";
-                          setEvidenceList((prev) =>
-                            prev.map((item, i) => (i === idx ? { ...item, type: val } : item))
-                          );
-                        }}
-                        className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
-                      >
-                        <option value="github">GitHub</option>
-                        <option value="document">Document</option>
-                        <option value="app">Live URL</option>
-                        <option value="link">Link</option>
-                      </select>
+                    <div key={idx} className="p-2.5 rounded-xl bg-zinc-900/60 border border-white/5 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-4 sm:gap-2 sm:items-center">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={ev.type}
+                          onChange={(e) => {
+                            const val = e.target.value as "link" | "github" | "document" | "app";
+                            setEvidenceList((prev) =>
+                              prev.map((item, i) => (i === idx ? { ...item, type: val } : item))
+                            );
+                          }}
+                          className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
+                        >
+                          <option value="github">GitHub</option>
+                          <option value="document">Document</option>
+                          <option value="app">Live URL</option>
+                          <option value="link">Link</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setEvidenceList((prev) => prev.filter((_, i) => i !== idx))}
+                          className="sm:hidden text-zinc-400 hover:text-red-400 p-2 rounded hover:bg-white/5 cursor-pointer transition-colors"
+                          title={t("Verwijderen")}
+                        >
+                          ✕
+                        </button>
+                      </div>
                       <input
                         type="text"
                         placeholder="Titel/Omschrijving"
@@ -2182,7 +2297,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             prev.map((item, i) => (i === idx ? { ...item, title: val } : item))
                           );
                         }}
-                        className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
+                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
                       />
                       <input
                         type="text"
@@ -2194,13 +2309,14 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             prev.map((item, i) => (i === idx ? { ...item, url: val } : item))
                           );
                         }}
-                        className="sm:col-span-1 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none font-mono"
+                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none font-mono"
                       />
-                      <div className="flex justify-end">
+                      <div className="hidden sm:flex justify-end">
                         <button
                           type="button"
                           onClick={() => setEvidenceList((prev) => prev.filter((_, i) => i !== idx))}
                           className="text-zinc-400 hover:text-red-400 p-2 rounded hover:bg-white/5 cursor-pointer transition-colors"
+                          title={t("Verwijderen")}
                         >
                           ✕
                         </button>
@@ -2415,7 +2531,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 )}
               </div>
 
-              <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
+              <div className="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   {editingStory && (
                     <>
@@ -2453,7 +2569,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     {copiedExport ? <Check className="size-4 text-brand" /> : <Copy className="size-4" />}
                   </button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsStoryModalOpen(false)}
@@ -2478,8 +2594,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {/* Story Import Modal */}
       {isImportStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Download className="size-4 text-brand" />
@@ -2553,8 +2669,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {/* Link Concept Story Modal */}
       {isLinkStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-2xl w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Link2 className="size-4 text-brand" />
@@ -2635,39 +2751,35 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                       key={st.id}
                       className="p-3.5 rounded-xl bg-zinc-950 border border-white/5 hover:border-white/10 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <div className="space-y-1 min-w-0">
+                      <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <StoryTypeBadge code={st.storyTypeCode} storyTypes={storyTypes} showName size="sm" />
+                          <StoryTypeBadge code={st.storyTypeCode} storyTypes={storyTypes} showName hideNameOnMobile size="sm" />
                           {st.storyNumber && (
                             <span className="text-[11px] font-mono font-bold text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-white/5">
                               {st.storyNumber}
                             </span>
                           )}
-                          <span className="text-xs font-semibold text-white tracking-tight truncate">
+                          <span className="text-xs font-semibold text-white tracking-tight break-words">
                             {st.title}
                           </span>
-                          {st.learningOutcomes && st.learningOutcomes.length > 0 && (
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {st.learningOutcomes.map((lu) => (
-                                <span
-                                  key={lu}
-                                  className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-white/5"
-                                >
-                                  LU {lu}
-                                  {getLUShortDesc(lu) && (
-                                    <span className="font-sans font-normal text-zinc-500 ml-1">
-                                      · {getLUShortDesc(lu)}
-                                    </span>
-                                  )}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
                         {(st.asA || st.iWant) && (
-                          <p className="text-[11px] text-zinc-400 truncate">
+                          <p className="text-[11px] text-zinc-400 line-clamp-1">
                             {st.asA ? `Als ${st.asA}, ` : ""}{st.iWant ? `wil ik ${st.iWant}` : ""}
                           </p>
+                        )}
+                        {st.learningOutcomes && st.learningOutcomes.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                            {st.learningOutcomes.map((lu) => (
+                              <span
+                                key={lu}
+                                title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                                className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-white/5"
+                              >
+                                LU {lu}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
 
@@ -2675,7 +2787,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                         type="button"
                         disabled={linkingStoryId === st.id}
                         onClick={() => handleLinkStory(st.id)}
-                        className="px-3 py-1.5 rounded-lg bg-brand text-zinc-950 hover:bg-brand-hover text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer disabled:opacity-50 self-end sm:self-auto"
+                        className="px-3 py-2 rounded-lg bg-brand text-zinc-950 hover:bg-brand-hover text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                       >
                         <Link2 className="size-3.5" />
                         <span>{linkingStoryId === st.id ? t("Koppelen...") : t("Koppelen")}</span>
@@ -2700,8 +2812,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {/* Story Unlink / Move Modal */}
       {isUnlinkModalOpen && storyToUnlink && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <Unlink className="size-5 text-amber-400" />

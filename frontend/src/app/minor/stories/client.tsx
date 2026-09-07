@@ -310,9 +310,11 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setGroupBySprint(!groupBySprint)}
+            title={groupBySprint ? t("Gegroepeerd per sprint") : t("Vlakke lijst")}
+            aria-label={groupBySprint ? t("Gegroepeerd per sprint") : t("Vlakke lijst")}
             className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
               groupBySprint
                 ? "bg-zinc-800 border-white/20 text-white"
@@ -320,15 +322,18 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
             }`}
           >
             <Layers className="size-3.5" />
-            <span>{groupBySprint ? t("Gegroepeerd per sprint") : t("Vlakke lijst")}</span>
+            <span className="hidden sm:inline">{groupBySprint ? t("Gegroepeerd per sprint") : t("Vlakke lijst")}</span>
+            <span className="sm:hidden">{groupBySprint ? t("Gegroepeerd") : t("Lijst")}</span>
           </button>
 
           <button
             onClick={openCreateStoryModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer shadow-sm"
+            title={t("Nieuwe Story")}
+            aria-label={t("Nieuwe Story")}
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer shadow-sm"
           >
             <Plus className="size-3.5" />
-            <span>{t("Nieuwe Story")}</span>
+            <span className="hidden sm:inline">{t("Nieuwe Story")}</span>
           </button>
         </div>
       </div>
@@ -584,17 +589,17 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
       {/* Story View Modal */}
       {viewingStory && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto"
           onClick={() => setViewingStoryId(null)}
         >
           <div
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl my-8"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <StoryTypeBadge code={viewingStory.storyTypeCode} storyTypes={storyTypes} showName size="md" />
+              <div className="flex items-center gap-2">
+                <StoryTypeBadge code={viewingStory.storyTypeCode} storyTypes={storyTypes} showName hideNameOnMobile size="md" />
                 {viewingStory.storyNumber && (
                   <span className="text-xs sm:text-sm font-mono font-bold text-zinc-300 bg-zinc-950 px-2.5 py-1 rounded-lg border border-white/5">
                     {viewingStory.storyNumber}
@@ -627,13 +632,10 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
             <div className="space-y-5 text-sm">
               {/* Header Title & Status */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
-                <div className="space-y-1">
-                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight break-words">
                     {viewingStory.title}
                   </h3>
-                  <p className="text-xs text-zinc-400">
-                    {storyTypes.find((t) => t.code === viewingStory.storyTypeCode)?.name || viewingStory.storyTypeCode}
-                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -891,8 +893,8 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
 
       {/* Create Story Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <Plus className="size-4 text-brand" />
@@ -1143,79 +1145,92 @@ function StoryCard({
     <div
       onClick={onView}
       style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-      className={`p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 transition-all space-y-4 cursor-pointer group`}
+      className={`p-4 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 transition-all space-y-3 sm:space-y-4 cursor-pointer group`}
     >
-      {/* Top Row: Type Badge, Story Number, Title, Sprint Tag, LU Badges, Status Select */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Prominent Story Type Badge */}
-          <StoryTypeBadge code={story.storyTypeCode} storyTypes={storyTypes} showName size="md" />
+      {/* Top Row: Type Badge, Story Number, Sprint Tag, Status Select & Story Title */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <StoryTypeBadge code={story.storyTypeCode} storyTypes={storyTypes} showName hideNameOnMobile size="sm" />
 
-          {story.storyNumber && (
-            <span className="text-xs sm:text-sm font-mono font-bold text-zinc-300 bg-zinc-950 px-2.5 py-1 rounded-lg border border-white/5">
-              {story.storyNumber}
-            </span>
-          )}
+            {story.storyNumber && (
+              <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950 px-2 py-0.5 rounded border border-white/5 shrink-0">
+                {story.storyNumber}
+              </span>
+            )}
 
-          <h3 className={`text-base sm:text-lg font-bold text-white tracking-tight ${typeDetails.hoverTextClass} transition-colors`}>
-            {story.title}
-          </h3>
+            {story.sprintNumber ? (
+              <Link
+                href={`/minor/sprints/${story.sprintId}`}
+                className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-zinc-950 border border-white/10 text-zinc-400 hover:text-white hover:border-brand/40 transition-all flex items-center gap-1 shrink-0"
+                title={story.sprintName || undefined}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span>{story.sprintNumber}</span>
+                <ExternalLink className="size-2.5 opacity-60" />
+              </Link>
+            ) : (
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-zinc-950 border border-amber-500/20 text-amber-400/80 shrink-0">
+                {t("Concept")}
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center gap-2 shrink-0 ml-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Learning Outcomes for desktop */}
+            <div className="hidden sm:flex items-center gap-1">
+              {story.learningOutcomes.map((lu) => (
+                <span
+                  key={lu}
+                  title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                  className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5 whitespace-nowrap"
+                >
+                  LU {lu}
+                </span>
+              ))}
+            </div>
+
+            {/* Status Dropdown */}
+            <select
+              value={story.status}
+              onChange={(e) => onStatusChange(story.id, e.target.value as "todo" | "in_progress" | "done")}
+              className={`text-xs font-semibold uppercase px-2.5 py-1 rounded-lg border cursor-pointer ${
+                story.status === "done"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : story.status === "in_progress"
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                  : "bg-zinc-800 border-white/10 text-zinc-300"
+              }`}
+            >
+              <option value="todo">{t("To Do")}</option>
+              <option value="in_progress">{t("Bezig")}</option>
+              <option value="done">{t("Voltooid")}</option>
+            </select>
+          </div>
         </div>
 
-        <div
-          className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Sprint Badge / Concept Badge */}
-          {story.sprintNumber ? (
-            <Link
-              href={`/minor/sprints/${story.sprintId}`}
-              className="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-zinc-950 border border-white/10 text-zinc-400 hover:text-white hover:border-brand/40 transition-all flex items-center gap-1.5"
-              title={story.sprintName || undefined}
-            >
-              <span>{story.sprintNumber}</span>
-              <ExternalLink className="size-3 opacity-60" />
-            </Link>
-          ) : (
-            <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-zinc-950 border border-amber-500/20 text-amber-400/80">
-              {t("Concept")}
-            </span>
-          )}
+        {/* Title: Unconstrained width for long titles with break-words */}
+        <h3 className={`text-base sm:text-lg font-bold text-white tracking-tight break-words ${typeDetails.hoverTextClass} transition-colors`}>
+          {story.title}
+        </h3>
 
-          {/* Learning Outcomes */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Mobile Learning Outcomes row */}
+        {story.learningOutcomes && story.learningOutcomes.length > 0 && (
+          <div className="flex sm:hidden items-center gap-1 flex-wrap pt-0.5">
             {story.learningOutcomes.map((lu) => (
               <span
                 key={lu}
-                className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5"
+                title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5 whitespace-nowrap"
               >
                 LU {lu}
-                {getLUShortDesc(lu) && (
-                  <span className="font-sans font-normal text-zinc-400 ml-1">
-                    · {getLUShortDesc(lu)}
-                  </span>
-                )}
               </span>
             ))}
           </div>
-
-          {/* Status Dropdown */}
-          <select
-            value={story.status}
-            onChange={(e) => onStatusChange(story.id, e.target.value as "todo" | "in_progress" | "done")}
-            className={`text-xs font-semibold uppercase px-3 py-1.5 rounded-lg border cursor-pointer ${
-              story.status === "done"
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                : story.status === "in_progress"
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                : "bg-zinc-800 border-white/10 text-zinc-300"
-            }`}
-          >
-            <option value="todo">{t("To Do")}</option>
-            <option value="in_progress">{t("Bezig")}</option>
-            <option value="done">{t("Voltooid")}</option>
-          </select>
-        </div>
+        )}
       </div>
 
       {/* User Story Structure (Als / Wil ik / Zodat) */}
@@ -1237,12 +1252,12 @@ function StoryCard({
       )}
 
       {/* Criteria & Evidence Overview Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-white/5">
-        <div className="flex items-center gap-4 text-xs sm:text-sm text-zinc-400">
+      <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5">
+        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-zinc-400 flex-wrap">
           {/* Criteria Count */}
           {totalCriteria > 0 ? (
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-zinc-300">
+              <span className="font-semibold text-zinc-300 whitespace-nowrap">
                 {completedCriteria}/{totalCriteria} {t("criteria")}
               </span>
               <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -1260,7 +1275,7 @@ function StoryCard({
 
           {/* Evidence Count */}
           {story.evidence && story.evidence.length > 0 && (
-            <span className="text-zinc-400">
+            <span className="text-zinc-400 whitespace-nowrap">
               {story.evidence.length} {story.evidence.length === 1 ? t("bewijsstuk") : t("bewijsstukken")}
             </span>
           )}
@@ -1268,14 +1283,15 @@ function StoryCard({
 
         {totalCriteria > 0 && (
           <div
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 shrink-0 ml-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={onToggleExpand}
               className="text-xs sm:text-sm text-zinc-400 hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer"
             >
-              <span>{isExpanded ? t("Criteria verbergen") : t("Criteria bekijken")}</span>
+              <span className="hidden sm:inline">{isExpanded ? t("Criteria verbergen") : t("Criteria bekijken")}</span>
+              <span className="sm:hidden">{t("Criteria")}</span>
               {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
             </button>
           </div>

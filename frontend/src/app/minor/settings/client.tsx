@@ -195,57 +195,104 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
           </div>
           <button
             onClick={openCreateVacModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer"
+            title={t("Vakantie toevoegen")}
+            aria-label={t("Vakantie toevoegen")}
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer"
           >
             <Plus className="size-3.5" />
-            <span>{t("Vakantie toevoegen")}</span>
+            <span className="hidden sm:inline">{t("Vakantie toevoegen")}</span>
           </button>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
-                <th className="py-3 px-4">{t("Vakantienaam")}</th>
-                <th className="py-3 px-4 w-36">{t("Startdatum")}</th>
-                <th className="py-3 px-4 w-36">{t("Einddatum")}</th>
-                <th className="py-3 px-4 w-20 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {vacations.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-zinc-500 italic">
-                    {t("Geen vakanties geregistreerd.")}
-                  </td>
+          {/* Mobile Cards */}
+          <div className="block sm:hidden divide-y divide-white/5">
+            {vacations.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 italic">
+                {t("Geen vakanties geregistreerd.")}
+              </div>
+            ) : (
+              vacations.map((v) => (
+                <div key={v.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-white text-sm">{v.name}</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditVacModal(v)}
+                        className="text-zinc-400 hover:text-white p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
+                        title={t("Bewerken")}
+                        aria-label={t("Bewerken")}
+                      >
+                        <Edit2 className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteVacation(v.id)}
+                        className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
+                        title={t("Verwijderen")}
+                        aria-label={t("Verwijderen")}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-zinc-400 font-mono text-[11px]">
+                    {v.startDate} → {v.endDate}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
+                  <th className="py-3 px-4">{t("Vakantienaam")}</th>
+                  <th className="py-3 px-4 w-36">{t("Startdatum")}</th>
+                  <th className="py-3 px-4 w-36">{t("Einddatum")}</th>
+                  <th className="py-3 px-4 w-20 text-right"></th>
                 </tr>
-              ) : (
-                vacations.map((v) => (
-                  <tr key={v.id} className="hover:bg-zinc-900/80 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-white">{v.name}</td>
-                    <td className="py-3.5 px-4 font-mono text-zinc-300">{v.startDate}</td>
-                    <td className="py-3.5 px-4 font-mono text-zinc-300">{v.endDate}</td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => openEditVacModal(v)}
-                          className="text-zinc-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteVacation(v.id)}
-                          className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {vacations.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-zinc-500 italic">
+                      {t("Geen vakanties geregistreerd.")}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  vacations.map((v) => (
+                    <tr key={v.id} className="hover:bg-zinc-900/80 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-white">{v.name}</td>
+                      <td className="py-3.5 px-4 font-mono text-zinc-300">{v.startDate}</td>
+                      <td className="py-3.5 px-4 font-mono text-zinc-300">{v.endDate}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => openEditVacModal(v)}
+                            className="text-zinc-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
+                            title={t("Bewerken")}
+                            aria-label={t("Bewerken")}
+                          >
+                            <Edit2 className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVacation(v.id)}
+                            className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
+                            title={t("Verwijderen")}
+                            aria-label={t("Verwijderen")}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -260,10 +307,13 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
           </div>
           <button
             onClick={openCreateTypeModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
+            title={t("Story Type toevoegen")}
+            aria-label={t("Story Type toevoegen")}
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
           >
             <Plus className="size-3.5" />
-            <span>{t("Story Type toevoegen")}</span>
+            <span className="hidden sm:inline">{t("Story Type toevoegen")}</span>
+            <span className="sm:hidden">{t("Type toevoegen")}</span>
           </button>
         </div>
 
@@ -364,8 +414,8 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
 
       {/* Vacation Modal */}
       {isVacModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Calendar className="size-4 text-brand" />
@@ -392,7 +442,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Startdatum")}</label>
                   <input
@@ -415,21 +465,34 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsVacModalOpen(false)}
-                  className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
-                >
-                  {t("Annuleren")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingVac}
-                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {savingVac ? t("Opslaan...") : t("Opslaan")}
-                </button>
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                {editingVac ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteVacation(editingVac.id)}
+                    className="text-red-400 hover:underline cursor-pointer"
+                  >
+                    {t("Verwijderen")}
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsVacModalOpen(false)}
+                    className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white cursor-pointer"
+                  >
+                    {t("Annuleren")}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingVac}
+                    className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {savingVac ? t("Opslaan...") : t("Opslaan")}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -438,8 +501,8 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
 
       {/* Story Type Modal (Create & Edit) */}
       {isTypeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Tag className="size-4 text-brand" />
@@ -454,7 +517,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
             </div>
 
             <form onSubmit={handleSaveStoryType} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1">{t("Type Code")}</label>
                   <input
