@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   FileText,
   FileSpreadsheet,
+  FileCode,
   CheckSquare,
   Square,
   Download,
@@ -13,6 +14,7 @@ import { t } from "@/lib/lang";
 import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
 import { downloadAllSprintsPDF } from "@/components/minor-pdf";
 import { downloadAllSprintsExcel } from "@/lib/minor-excel";
+import { downloadMultipleSprintsJson } from "@/lib/minor-sprint-export";
 
 interface MinorExportClientProps {
   initialSprints: MinorSprint[];
@@ -75,6 +77,21 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     }
   }
 
+  const [exportingJson, setExportingJson] = useState(false);
+
+  async function handleExportJson() {
+    if (selectedSprintIds.length === 0) return;
+    setExportingJson(true);
+    try {
+      const fullSprints = await fetchFullSprints();
+      downloadMultipleSprintsJson(fullSprints);
+    } catch (err) {
+      console.error("Batch JSON export failed:", err);
+    } finally {
+      setExportingJson(false);
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       {/* Header */}
@@ -88,7 +105,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
       </div>
 
       {/* Export Format Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* PDF Card */}
         <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
@@ -132,8 +149,32 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
             disabled={exportingExcel || selectedSprintIds.length === 0}
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-semibold text-xs transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="size-4 text-emerald-400" />
+            <Download className="size-4 text-zinc-400" />
             <span>{exportingExcel ? t("Excel genereren...") : t("Download Verzameling Excel")}</span>
+          </button>
+        </div>
+
+        {/* JSON Card */}
+        <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-4">
+          <div className="space-y-2">
+            <div className="size-10 rounded-xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center">
+              <FileCode className="size-5" />
+            </div>
+            <h2 className="text-base font-bold text-white tracking-tight">
+              {t("JSON Portfolio Archief")}
+            </h2>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              {t("Exporteert alle geselecteerde sprints als gestructureerde JSON-data. Ideaal voor back-ups, data-overdracht of herimport naar een ander profiel.")}
+            </p>
+          </div>
+
+          <button
+            onClick={handleExportJson}
+            disabled={exportingJson || selectedSprintIds.length === 0}
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-semibold text-xs transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Download className="size-4 text-zinc-400" />
+            <span>{exportingJson ? t("JSON genereren...") : t("Download Verzameling JSON")}</span>
           </button>
         </div>
       </div>
