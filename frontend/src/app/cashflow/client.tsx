@@ -249,6 +249,11 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                 ? "right-0 left-auto translate-x-0"
                 : "left-1/2 -translate-x-1/2";
 
+            const hasIncome = totalVal > 0;
+            const hasExpense = expenseVal > 0;
+            const bothBars = hasIncome && hasExpense;
+            const barWidthClass = bothBars ? "w-1/2" : "w-full";
+
             return (
               <div
                 key={month}
@@ -300,54 +305,56 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                   {totalVal > 0 || expenseVal > 0 ? (
                     <div className="w-full flex items-end justify-center gap-0.5" style={{ height: "100%" }}>
                       {/* Income Bar */}
-                      <div
-                        className="w-1/2 flex flex-col justify-end transition-all duration-300"
-                        style={{ height: `${Math.max(heightPct, totalVal > 0 ? 4 : 0)}%` }}
-                      >
-                        {expectedVal > 0 && (
-                          <div
-                            className={`w-full rounded-t border-t border-l border-r border-blue-400/50 border-dashed transition-all duration-300 ${
-                              isCurrentMonth
-                                ? "bg-blue-500/35"
-                                : isTooltipActive
-                                ? "bg-blue-500/30"
-                                : "bg-blue-500/20 group-hover:bg-blue-500/25"
-                            }`}
-                            style={{
-                              height: `${(expectedVal / totalVal) * 100}%`,
-                              backgroundImage:
-                                "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(96, 165, 250, 0.15) 3px, rgba(96, 165, 250, 0.15) 6px)",
-                            }}
-                          />
-                        )}
-                        {paidVal > 0 && (
-                          <div
-                            className={`w-full transition-all duration-300 ${
-                              expectedVal === 0 ? "rounded-t" : ""
-                            } ${
-                              isCurrentMonth
-                                ? "bg-blue-500"
-                                : isTooltipActive
-                                ? "bg-blue-500/80"
-                                : "bg-blue-500/40 group-hover:bg-blue-500/60"
-                            }`}
-                            style={{ height: `${(paidVal / (totalVal || 1)) * 100}%` }}
-                          />
-                        )}
-                      </div>
+                      {hasIncome && (
+                        <div
+                          className={`${barWidthClass} flex flex-col justify-end transition-all duration-300`}
+                          style={{ height: `${Math.max(heightPct, 4)}%` }}
+                        >
+                          {expectedVal > 0 && (
+                            <div
+                              className={`w-full rounded-t border-t border-l border-r border-blue-400/50 border-dashed transition-all duration-300 ${
+                                isCurrentMonth
+                                  ? "bg-blue-500/35"
+                                  : isTooltipActive
+                                  ? "bg-blue-500/30"
+                                  : "bg-blue-500/20 group-hover:bg-blue-500/25"
+                              }`}
+                              style={{
+                                height: `${(expectedVal / totalVal) * 100}%`,
+                                backgroundImage:
+                                  "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(96, 165, 250, 0.15) 3px, rgba(96, 165, 250, 0.15) 6px)",
+                              }}
+                            />
+                          )}
+                          {paidVal > 0 && (
+                            <div
+                              className={`w-full transition-all duration-300 ${
+                                expectedVal === 0 ? "rounded-t" : ""
+                              } ${
+                                isCurrentMonth
+                                  ? "bg-blue-500"
+                                  : isTooltipActive
+                                  ? "bg-blue-500/80"
+                                  : "bg-blue-500/40 group-hover:bg-blue-500/60"
+                              }`}
+                              style={{ height: `${(paidVal / (totalVal || 1)) * 100}%` }}
+                            />
+                          )}
+                        </div>
+                      )}
 
                       {/* Expense Bar */}
-                      <div
-                        className="w-1/2 flex flex-col justify-end transition-all duration-300"
-                        style={{ height: `${maxIncome > 0 && expenseVal > 0 ? Math.max((expenseVal / maxIncome) * 100, 4) : 0}%` }}
-                      >
-                        {expenseVal > 0 && (
+                      {hasExpense && (
+                        <div
+                          className={`${barWidthClass} flex flex-col justify-end transition-all duration-300`}
+                          style={{ height: `${maxIncome > 0 ? Math.max((expenseVal / maxIncome) * 100, 4) : 0}%` }}
+                        >
                           <div
                             className="w-full rounded-t bg-rose-500/50 hover:bg-rose-500/70 transition-colors"
                             style={{ height: "100%" }}
                           />
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="w-full rounded-t bg-zinc-800" style={{ height: "2%" }} />
