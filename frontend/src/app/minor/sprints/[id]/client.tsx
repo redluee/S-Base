@@ -14,6 +14,7 @@ import {
   CheckSquare,
   Square,
   Sparkles,
+  Presentation,
   FileSpreadsheet,
   FileText,
   ExternalLink,
@@ -806,7 +807,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
             title={t("Start Show & Tell presentatie")}
             aria-label={t("Presentatie")}
           >
-            <Sparkles className="size-3.5" />
+            <Presentation className="size-3.5" />
             <span>{t("Presentatie")}</span>
           </button>
           <button
@@ -1115,7 +1116,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             title={t("Show & Tell content bewerken")}
                             aria-label={t("Show & Tell content bewerken")}
                           >
-                            <Sparkles className="size-3.5" />
+                            <Presentation className="size-3.5" />
                           </button>
 
                           <button
@@ -1822,7 +1823,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-700 transition-all cursor-pointer border border-white/10"
                     title={t("Show & Tell content bewerken")}
                   >
-                    <Sparkles className="size-3.5 text-brand" />
+                    <Presentation className="size-3.5 text-brand" />
                     <span>{t("Show & Tell")}</span>
                   </button>
                 </div>
@@ -2330,7 +2331,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="size-4 text-brand" />
+                    <Presentation className="size-4 text-brand" />
                     <span className="font-bold text-zinc-100 text-sm">
                       {t("Show & Tell / Presentatie")}
                     </span>

@@ -12,6 +12,7 @@ import {
   Trash2,
   Edit2,
   Sparkles,
+  Presentation,
   Download,
   Check,
   Copy,
@@ -292,7 +293,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
                     title={t("Start Show & Tell presentatie")}
                     aria-label={t("Presentatie")}
                   >
-                    <Sparkles className="size-3.5" />
+                    <Presentation className="size-3.5" />
                     <span>{t("Presentatie")}</span>
                   </Link>
 

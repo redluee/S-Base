@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Sparkles,
+  Presentation,
   Plus,
   Trash2,
   Upload,
@@ -96,7 +96,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
       >
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-4.5 text-brand" />
+            <Presentation className="size-4.5 text-brand" />
             <h2 className="text-base sm:text-lg font-bold text-white">
               {t("Show & Tell Presentatie Content")}
             </h2>
