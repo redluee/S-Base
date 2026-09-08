@@ -474,11 +474,6 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                     </div>
                     <div className="font-mono text-[11px] shrink-0 ml-1">
                       <span className={isMet ? "font-bold text-brand" : "text-white"}>{count}</span>
-                      {pendingCount > 0 && !isMet && (
-                        <span className="text-emerald-400 font-semibold text-[10px] ml-0.5">
-                          (+{pendingCount})
-                        </span>
-                      )}
                       <span className="text-zinc-500">/{minTarget}</span>
                     </div>
                   </div>
