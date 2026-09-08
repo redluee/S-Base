@@ -379,22 +379,6 @@ export function SprintPresentation({
     }
   }
 
-  // Handle updating presentation data (e.g. toggling listStyle directly on slide)
-  const handleUpdateStoryPresentationData = useCallback(
-    async (targetStory: MinorStory, data: MinorStoryPresentationData) => {
-      try {
-        const updated = await api.minor.sprints.stories.update(targetStory.id, {
-          presentationData: data,
-        });
-        if (updated && onStoryUpdated) {
-          onStoryUpdated(updated);
-        }
-      } catch (err) {
-        console.error("Failed to update story presentation data:", err);
-      }
-    },
-    [onStoryUpdated]
-  );
 
   // Handle criteria update inside criteria modal
   const handleStoryUpdatedInternal = useCallback(
@@ -510,9 +494,6 @@ export function SprintPresentation({
             storyTypes={storyTypes}
             onImageClick={(img) => setLightboxImage(img)}
             onOpenCriteria={() => setViewingCriteriaStory(currentStory)}
-            onUpdatePresentationData={(data) =>
-              handleUpdateStoryPresentationData(currentStory, data)
-            }
           />
         )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   ExternalLink,
   CheckCircle2,
@@ -10,12 +10,10 @@ import {
   GitBranch,
   FileText,
   Layers,
-  List,
-  ListOrdered,
   ListChecks,
 } from "lucide-react";
 import { t } from "@/lib/lang";
-import type { MinorStory, MinorStoryType, MinorStoryPresentationData } from "@/lib/api";
+import type { MinorStory, MinorStoryType } from "@/lib/api";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { getLUShortDesc } from "@/lib/minor-constants";
 
@@ -24,7 +22,6 @@ interface SlideStoryProps {
   storyTypes: MinorStoryType[];
   onImageClick: (image: { url: string; caption?: string }) => void;
   onOpenCriteria?: () => void;
-  onUpdatePresentationData?: (data: MinorStoryPresentationData) => void;
 }
 
 function HighlightsList({
@@ -86,51 +83,11 @@ function HighlightsList({
   );
 }
 
-function ListStyleToggle({
-  listStyle,
-  onChange,
-}: {
-  listStyle: "bullets" | "steps";
-  onChange: (style: "bullets" | "steps") => void;
-}) {
-  return (
-    <div className="flex items-center p-0.5 rounded-lg bg-zinc-950 border border-white/10 text-xs font-semibold select-none">
-      <button
-        type="button"
-        onClick={() => onChange("bullets")}
-        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-[11px] ${
-          listStyle === "bullets"
-            ? "bg-zinc-800 text-white shadow-sm font-bold"
-            : "text-zinc-400 hover:text-zinc-200"
-        }`}
-        title={t("Weergave als bulletpoints")}
-      >
-        <List className="size-3.5" />
-        <span>{t("Bullets")}</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("steps")}
-        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-[11px] ${
-          listStyle === "steps"
-            ? "bg-zinc-800 text-white shadow-sm font-bold"
-            : "text-zinc-400 hover:text-zinc-200"
-        }`}
-        title={t("Weergave als stappen 1, 2, 3...")}
-      >
-        <ListOrdered className="size-3.5" />
-        <span>{t("Stappen")}</span>
-      </button>
-    </div>
-  );
-}
-
 export function SlideStory({
   story,
   storyTypes,
   onImageClick,
   onOpenCriteria,
-  onUpdatePresentationData,
 }: SlideStoryProps) {
   const typeDetails = useMemo(() => {
     return getStoryTypeDetails(story.storyTypeCode, storyTypes);
@@ -141,19 +98,8 @@ export function SlideStory({
   // Resolved presentation content
   const presentationData = story.presentationData || {};
 
-  // List style (bullets vs numbered steps)
-  const [overrideListStyle, setOverrideListStyle] = useState<"bullets" | "steps" | null>(null);
-  const listStyle = overrideListStyle ?? presentationData.listStyle ?? "bullets";
-
-  function handleListStyleChange(style: "bullets" | "steps") {
-    setOverrideListStyle(style);
-    if (onUpdatePresentationData) {
-      onUpdatePresentationData({
-        ...presentationData,
-        listStyle: style,
-      });
-    }
-  }
+  // List style (bullets vs numbered steps) set via presentation editor
+  const listStyle = presentationData.listStyle || "bullets";
 
   // Criteria counts for top badge
   const totalCriteriaCount = story.criteria?.length || 0;
@@ -311,12 +257,9 @@ export function SlideStory({
           {/* Left Column: Highlights & Links */}
           <div className="lg:col-span-6 space-y-4">
             <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-4">
-              <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
-                <div className="flex items-center gap-2 text-xs sm:text-sm uppercase font-bold tracking-wider text-zinc-300">
-                  <Sparkles className="size-4" style={{ color: storyColor }} />
-                  <span>{t("Wat is er gerealiseerd")}</span>
-                </div>
-                <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
+              <div className="flex items-center gap-2 text-xs sm:text-sm uppercase font-bold tracking-wider text-zinc-300">
+                <Sparkles className="size-4" style={{ color: storyColor }} />
+                <span>{t("Wat is er gerealiseerd")}</span>
               </div>
               <HighlightsList
                 bullets={bullets}
@@ -392,12 +335,9 @@ export function SlideStory({
         <div className="space-y-4 mt-2">
           {bullets.length > 0 && (
             <div className="p-4 sm:p-5 rounded-xl bg-zinc-900/70 border border-white/10 space-y-3">
-              <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
-                <div className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-300">
-                  <Sparkles className="size-3.5" style={{ color: storyColor }} />
-                  <span>{t("Wat is er gerealiseerd")}</span>
-                </div>
-                <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
+              <div className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-300">
+                <Sparkles className="size-3.5" style={{ color: storyColor }} />
+                <span>{t("Wat is er gerealiseerd")}</span>
               </div>
               <HighlightsList
                 bullets={bullets.slice(0, 4)}
@@ -470,11 +410,8 @@ export function SlideStory({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center mt-2">
           <div className="lg:col-span-5 space-y-4">
             <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-4">
-              <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
-                <div className="text-xs uppercase font-bold tracking-wider text-zinc-400">
-                  {t("Opgeleverde functionaliteit")}
-                </div>
-                <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
+              <div className="text-xs uppercase font-bold tracking-wider text-zinc-400">
+                {t("Opgeleverde functionaliteit")}
               </div>
               <HighlightsList
                 bullets={bullets}
@@ -532,12 +469,9 @@ export function SlideStory({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           {/* Card 1: Deliverables */}
           <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-5">
-            <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
-              <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
-                <Sparkles className="size-4.5" style={{ color: storyColor }} />
-                <span>{t("Wat is er gerealiseerd")}</span>
-              </div>
-              <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
+            <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
+              <Sparkles className="size-4.5" style={{ color: storyColor }} />
+              <span>{t("Wat is er gerealiseerd")}</span>
             </div>
             <HighlightsList
               bullets={bullets}
