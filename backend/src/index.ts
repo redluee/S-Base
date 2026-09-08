@@ -558,6 +558,21 @@ export const app = new Elysia()
       })
       .get("/clients", ({ userId }) => cashflow.listClients(userId))
       .post("/clients", async ({ userId, body }) => cashflow.createClient(userId, body as any))
+      .post("/upload", async ({ body }) => {
+        const { file } = (body ?? {}) as any;
+        if (!file) {
+          return new Response("No file uploaded", { status: 400 });
+        }
+        const uploadsDir = join(import.meta.dir, "../uploads");
+        await mkdir(uploadsDir, { recursive: true });
+        
+        const ext = file.name ? file.name.split(".").pop() : "pdf";
+        const filename = `${crypto.randomUUID()}.${ext}`;
+        const filePath = join(uploadsDir, filename);
+        
+        await Bun.write(filePath, file);
+        return { filePath: `/api/uploads/${filename}`, originalName: file.name || filename };
+      })
       .get("/clients/:id", ({ params: { id } }) => {
         const c = cashflow.getClientById(Number(id));
         if (!c) return new Response("Not Found", { status: 404 });

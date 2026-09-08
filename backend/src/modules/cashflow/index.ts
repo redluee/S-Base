@@ -76,6 +76,8 @@ export class CashflowService {
     email?: string;
     kvkNumber?: string;
     standardRate?: number;
+    contractPdfPath?: string | null;
+    contractPdfName?: string | null;
   }) {
     if (!data.name?.trim()) throw new Error("Client name is required");
     return db.insert(cashflowClients).values({
@@ -85,6 +87,8 @@ export class CashflowService {
       email: data.email?.trim() || null,
       kvkNumber: data.kvkNumber?.trim() || null,
       standardRate: data.standardRate !== undefined ? Number(data.standardRate) : null,
+      contractPdfPath: data.contractPdfPath?.trim() || null,
+      contractPdfName: data.contractPdfName?.trim() || null,
     }).returning().get();
   }
 
@@ -94,6 +98,8 @@ export class CashflowService {
     email?: string | null;
     kvkNumber?: string | null;
     standardRate?: number | null;
+    contractPdfPath?: string | null;
+    contractPdfName?: string | null;
   }) {
     const existing = this.getClientById(id);
     if (!existing) return null;
@@ -103,6 +109,8 @@ export class CashflowService {
       email: data.email !== undefined ? (data.email?.trim() || null) : existing.email,
       kvkNumber: data.kvkNumber !== undefined ? (data.kvkNumber?.trim() || null) : existing.kvkNumber,
       standardRate: data.standardRate !== undefined ? (data.standardRate !== null ? Number(data.standardRate) : null) : existing.standardRate,
+      contractPdfPath: data.contractPdfPath !== undefined ? (data.contractPdfPath?.trim() || null) : existing.contractPdfPath,
+      contractPdfName: data.contractPdfName !== undefined ? (data.contractPdfName?.trim() || null) : existing.contractPdfName,
     }).where(eq(cashflowClients.id, id)).returning().get();
   }
 

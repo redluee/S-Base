@@ -471,6 +471,17 @@ export const api = {
       update: (id: number, data: unknown) => request<CashflowClient>(`/cashflow/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/clients/${id}`, { method: "DELETE" }),
     },
+    upload: async (file: File | Blob, fileName?: string) => {
+      const formData = new FormData();
+      formData.append("file", file, fileName || (file as File).name || "contract.pdf");
+      const res = await fetch("/api/cashflow/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to upload file");
+      return res.json() as Promise<{ filePath: string; originalName: string }>;
+    },
     projects: {
       list: (clientId?: number) => {
         const params = new URLSearchParams();
@@ -995,6 +1006,8 @@ export interface CashflowClient {
   email: string | null;
   kvkNumber: string | null;
   standardRate: number | null;
+  contractPdfPath?: string | null;
+  contractPdfName?: string | null;
   createdAt: string;
 }
 

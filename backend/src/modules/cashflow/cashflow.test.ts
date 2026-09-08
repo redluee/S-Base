@@ -44,16 +44,29 @@ describe("CashflowService", () => {
       name: "Global Tech",
       email: "contact@globaltech.com",
       standardRate: 85,
+      contractPdfPath: "/api/uploads/contract-123.pdf",
+      contractPdfName: "Contract_2026.pdf",
     });
     expect(client.id).toBeDefined();
     expect(client.name).toBe("Global Tech");
+    expect(client.contractPdfPath).toBe("/api/uploads/contract-123.pdf");
+    expect(client.contractPdfName).toBe("Contract_2026.pdf");
 
     const fetched = cashflow.getClientById(client.id);
     expect(fetched?.email).toBe("contact@globaltech.com");
+    expect(fetched?.contractPdfPath).toBe("/api/uploads/contract-123.pdf");
+    expect(fetched?.contractPdfName).toBe("Contract_2026.pdf");
 
-    const updated = cashflow.updateClient(client.id, { name: "Global Tech BV", standardRate: 90 });
+    const updated = cashflow.updateClient(client.id, {
+      name: "Global Tech BV",
+      standardRate: 90,
+      contractPdfPath: "/api/uploads/contract-456.pdf",
+      contractPdfName: "Updated_Contract.pdf",
+    });
     expect(updated?.name).toBe("Global Tech BV");
     expect(updated?.standardRate).toBe(90);
+    expect(updated?.contractPdfPath).toBe("/api/uploads/contract-456.pdf");
+    expect(updated?.contractPdfName).toBe("Updated_Contract.pdf");
 
     const list = cashflow.listClients(adminId);
     expect(list.some((c) => c.id === client.id)).toBe(true);

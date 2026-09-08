@@ -1005,6 +1005,23 @@ const nl: Record<string, string> = {
   "Automatic server shutdown active": "Automatische serverafsluiting actief",
   "Server shutdown is blocked for tonight": "Serverafsluiting is voor vannacht geblokkeerd",
   "Automatic server shutdown is disabled": "Automatische serverafsluiting is uitgeschakeld",
+  "Contract / Overeenkomst (PDF)": "Contract / Overeenkomst (PDF)",
+  "Contract / Overeenkomst": "Contract / Overeenkomst",
+  "Contract toevoegen": "Contract toevoegen",
+  "Contract wijzigen": "Contract wijzigen",
+  "Contract uploaden": "Contract uploaden",
+  "Overeenkomst bekijken": "Overeenkomst bekijken",
+  "Contract bekijken": "Contract bekijken",
+  "Geen contract toegevoegd": "Geen contract toegevoegd",
+  "Contract verwijderen": "Contract verwijderen",
+  "Upload een PDF-contract of overeenkomst": "Upload een PDF-contract of overeenkomst (max 20MB)",
+  "Contract": "Contract",
+  "Overeenkomst": "Overeenkomst",
+  "Contract details": "Contract details",
+  "Downloaden": "Downloaden",
+  "Download contract": "Download contract",
+  "PDF uploaden mislukt": "PDF uploaden mislukt",
+  "Alleen PDF-bestanden zijn toegestaan.": "Alleen PDF-bestanden zijn toegestaan.",
 };
 
 

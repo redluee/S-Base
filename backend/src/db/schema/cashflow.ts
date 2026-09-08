@@ -21,6 +21,8 @@ export const cashflowClients = sqliteTable("cashflow_clients", {
   email: text("email"),
   kvkNumber: text("kvk_number"),
   standardRate: real("standard_rate"),
+  contractPdfPath: text("contract_pdf_path"),
+  contractPdfName: text("contract_pdf_name"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
