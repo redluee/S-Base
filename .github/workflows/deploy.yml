@@ -1,0 +1,19 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Update S-Base on Production Server
+    runs-on: self-hosted
+    steps:
+      - name: Trigger Production Deployment
+        run: |
+          /home/gsd/deploy.sh
