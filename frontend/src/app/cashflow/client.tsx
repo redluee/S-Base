@@ -5,7 +5,16 @@ import Link from "next/link";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowDashboardStats } from "@/lib/api";
-import { TrendingUp, Clock, FileText, CheckCircle, Plus, ArrowRight } from "lucide-react";
+import {
+  TrendingUp,
+  Clock,
+  FileText,
+  CheckCircle,
+  Plus,
+  ArrowRight,
+  Receipt,
+  Wallet,
+} from "lucide-react";
 import { YearSelector } from "@/components/year-selector";
 
 function formatEuro(amount: number) {
@@ -83,10 +92,16 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
       },
     ])
   );
+
+  const monthExpenseMap = new Map(
+    (stats?.monthlyExpenses ?? []).map((e) => [e.month, e.total ?? 0])
+  );
+
   const maxIncome = Math.max(
     ...months.map((m) => {
       const d = monthDataMap.get(m);
-      return (d?.paid ?? 0) + (d?.expected ?? 0);
+      const exp = monthExpenseMap.get(m) ?? 0;
+      return Math.max((d?.paid ?? 0) + (d?.expected ?? 0), exp);
     }),
     1
   );
@@ -94,10 +109,12 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
   const paid = stats?.statusTotals.find((s) => s.status === "paid");
   const sent = stats?.statusTotals.find((s) => s.status === "sent");
   const overdue = stats?.statusTotals.find((s) => s.status === "overdue");
-  const draft = stats?.statusTotals.find((s) => s.status === "draft");
 
   const outstanding = (sent?.total ?? 0) + (overdue?.total ?? 0);
   const outstandingCount = (sent?.count ?? 0) + (overdue?.count ?? 0);
+
+  const totalExpenses = stats?.totalExpenses12m ?? 0;
+  const netProfit = (stats?.totalPaid12m ?? 0) - totalExpenses;
 
   const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
@@ -107,22 +124,32 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t("Cashflow")}</h1>
-          <p className="text-sm text-zinc-400 mt-0.5">{t("Facturatie")}</p>
+          <p className="text-sm text-zinc-400 mt-0.5">{t("Facturatie & Uitgaven")}</p>
         </div>
-        <Link
-          href="/cashflow/invoices/new"
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold transition-all shadow-lg shadow-blue-500/20"
-        >
-          <Plus className="size-4" />
-          {t("Nieuwe factuur")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/cashflow/expenses"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold transition-all border border-zinc-700"
+          >
+            <Receipt className="size-4 text-rose-400" />
+            <span className="hidden sm:inline">{t("Uitgaven")}</span>
+          </Link>
+          <Link
+            href="/cashflow/invoices/new"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold transition-all shadow-lg shadow-blue-500/20"
+          >
+            <Plus className="size-4" />
+            {t("Nieuwe factuur")}
+          </Link>
+        </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Omzet */}
         <Link
           href={`/cashflow/invoices?year=${selectedYear}&status=paid`}
-          className="col-span-2 lg:col-span-1 rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-blue-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
+          className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-blue-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-blue-400">
@@ -135,6 +162,37 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
           <p className="text-xs text-zinc-500">{paid?.count ?? 0} betaalde facturen</p>
         </Link>
 
+        {/* Uitgaven */}
+        <Link
+          href={`/cashflow/expenses?year=${selectedYear}`}
+          className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-rose-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-rose-400">
+              <Receipt className="size-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Uitgaven")} {selectedYear}</span>
+            </div>
+            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <p className="text-2xl font-bold text-white">{formatEuro(totalExpenses)}</p>
+          <p className="text-xs text-zinc-500">Bedrijfskosten in {selectedYear}</p>
+        </Link>
+
+        {/* Netto resultaat */}
+        <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center gap-2 ${netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <Wallet className="size-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Netto resultaat")}</span>
+            </div>
+          </div>
+          <p className={`text-2xl font-bold ${netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            {formatEuro(netProfit)}
+          </p>
+          <p className="text-xs text-zinc-500">Omzet minus uitgaven</p>
+        </div>
+
+        {/* Openstaand */}
         <Link
           href="/cashflow/invoices?status=open"
           className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-amber-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
@@ -149,62 +207,38 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
           <p className="text-xl font-bold text-white">{formatEuro(outstanding)}</p>
           <p className="text-xs text-zinc-500">{outstandingCount} facturen</p>
         </Link>
-
-        <Link
-          href="/cashflow/invoices?status=draft"
-          className="hidden md:flex rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex-col gap-2 hover:border-zinc-700 hover:bg-zinc-850/60 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <FileText className="size-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">{t("Concept")}</span>
-            </div>
-            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-zinc-300 group-hover:translate-x-0.5 transition-all" />
-          </div>
-          <p className="text-xl font-bold text-white">{formatEuro(draft?.total ?? 0)}</p>
-          <p className="text-xs text-zinc-500">{draft?.count ?? 0} facturen</p>
-        </Link>
-
-        <Link
-          href="/cashflow/invoices?status=overdue"
-          className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-rose-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-rose-400">
-              <Clock className="size-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">{t("Te laat")}</span>
-            </div>
-            <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
-          </div>
-          <p className="text-xl font-bold text-white">{formatEuro(overdue?.total ?? 0)}</p>
-          <p className="text-xs text-zinc-500">{overdue?.count ?? 0} facturen</p>
-        </Link>
       </div>
 
-      {/* Income Chart */}
+      {/* Income & Expenses Chart */}
       <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-4 flex-wrap">
-            <h2 className="text-sm font-semibold text-zinc-300">{t("Omzet per maand")}</h2>
+            <h2 className="text-sm font-semibold text-zinc-300">{t("Omzet & Uitgaven per maand")}</h2>
             <div className="flex items-center gap-3 text-xs text-zinc-400">
               <div className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-sm bg-blue-500" />
-                <span>{t("Betaald")}</span>
+                <span>{t("Omzet")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-sm bg-blue-500/25 border border-dashed border-blue-400/60" />
                 <span>{t("Verwacht")}</span>
               </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm bg-rose-500/70" />
+                <span>{t("Uitgaven")}</span>
+              </div>
             </div>
           </div>
           <YearSelector year={selectedYear} onChange={setSelectedYear} />
         </div>
+
         <div className={`flex items-end gap-1.5 h-36 transition-opacity duration-200 ${loading ? "opacity-50" : "opacity-100"}`}>
           {months.map((month, idx) => {
             const data = monthDataMap.get(month) ?? { paid: 0, expected: 0, draft: 0, open: 0 };
             const paidVal = data.paid;
             const expectedVal = data.expected;
             const totalVal = paidVal + expectedVal;
+            const expenseVal = monthExpenseMap.get(month) ?? 0;
             const heightPct = maxIncome > 0 ? (totalVal / maxIncome) * 100 : 0;
             const isCurrentMonth = month === currentMonthStr;
             const isTooltipActive = activeMonthTooltip === month;
@@ -224,17 +258,17 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                 className="flex flex-col items-center gap-1 flex-1 min-w-0 group relative cursor-pointer select-none touch-manipulation"
               >
                 <div
-                  className={`absolute -top-14 ${tooltipPosClass} bg-zinc-800/95 border border-zinc-700 rounded-md px-2 py-1 text-[10px] text-white whitespace-nowrap transition-opacity pointer-events-none z-20 shadow-xl flex flex-col gap-0.5 ${
+                  className={`absolute -top-16 ${tooltipPosClass} bg-zinc-800/95 border border-zinc-700 rounded-md px-2.5 py-1.5 text-[10px] text-white whitespace-nowrap transition-opacity pointer-events-none z-20 shadow-xl flex flex-col gap-0.5 ${
                     isTooltipActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
-                  {totalVal === 0 ? (
+                  {totalVal === 0 && expenseVal === 0 ? (
                     <span className="text-zinc-400">{formatEuro(0)}</span>
                   ) : (
                     <>
                       {paidVal > 0 && (
                         <div className="flex items-center justify-between gap-2.5">
-                          <span className="text-zinc-400">{t("Betaald")}:</span>
+                          <span className="text-zinc-400">{t("Omzet")}:</span>
                           <span className="font-semibold text-white">{formatEuro(paidVal)}</span>
                         </div>
                       )}
@@ -244,51 +278,76 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                           <span className="font-semibold text-blue-200">{formatEuro(expectedVal)}</span>
                         </div>
                       )}
-                      {paidVal > 0 && expectedVal > 0 && (
+                      {expenseVal > 0 && (
+                        <div className="flex items-center justify-between gap-2.5 text-rose-300">
+                          <span>{t("Uitgaven")}:</span>
+                          <span className="font-semibold">{formatEuro(expenseVal)}</span>
+                        </div>
+                      )}
+                      {(paidVal > 0 || expenseVal > 0) && (
                         <div className="flex items-center justify-between gap-2.5 pt-0.5 border-t border-zinc-700 font-bold">
-                          <span className="text-zinc-300">{t("Totaal")}:</span>
-                          <span className="text-white">{formatEuro(totalVal)}</span>
+                          <span className="text-zinc-300">{t("Netto")}:</span>
+                          <span className={paidVal - expenseVal >= 0 ? "text-emerald-400" : "text-rose-400"}>
+                            {formatEuro(paidVal - expenseVal)}
+                          </span>
                         </div>
                       )}
                     </>
                   )}
                 </div>
+
                 <div className="w-full flex items-end" style={{ height: "120px" }}>
-                  {totalVal > 0 ? (
-                    <div
-                      className="w-full flex flex-col justify-end transition-all duration-300"
-                      style={{ height: `${Math.max(heightPct, 4)}%` }}
-                    >
-                      {expectedVal > 0 && (
-                        <div
-                          className={`w-full rounded-t border-t border-l border-r border-blue-400/50 border-dashed transition-all duration-300 ${
-                            isCurrentMonth
-                              ? "bg-blue-500/35"
-                              : isTooltipActive
-                              ? "bg-blue-500/30"
-                              : "bg-blue-500/20 group-hover:bg-blue-500/25"
-                          }`}
-                          style={{
-                            height: `${(expectedVal / totalVal) * 100}%`,
-                            backgroundImage:
-                              "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(96, 165, 250, 0.15) 3px, rgba(96, 165, 250, 0.15) 6px)",
-                          }}
-                        />
-                      )}
-                      {paidVal > 0 && (
-                        <div
-                          className={`w-full transition-all duration-300 ${
-                            expectedVal === 0 ? "rounded-t" : ""
-                          } ${
-                            isCurrentMonth
-                              ? "bg-blue-500"
-                              : isTooltipActive
-                              ? "bg-blue-500/80"
-                              : "bg-blue-500/40 group-hover:bg-blue-500/60"
-                          }`}
-                          style={{ height: `${(paidVal / totalVal) * 100}%` }}
-                        />
-                      )}
+                  {totalVal > 0 || expenseVal > 0 ? (
+                    <div className="w-full flex items-end justify-center gap-0.5" style={{ height: "100%" }}>
+                      {/* Income Bar */}
+                      <div
+                        className="w-1/2 flex flex-col justify-end transition-all duration-300"
+                        style={{ height: `${Math.max(heightPct, totalVal > 0 ? 4 : 0)}%` }}
+                      >
+                        {expectedVal > 0 && (
+                          <div
+                            className={`w-full rounded-t border-t border-l border-r border-blue-400/50 border-dashed transition-all duration-300 ${
+                              isCurrentMonth
+                                ? "bg-blue-500/35"
+                                : isTooltipActive
+                                ? "bg-blue-500/30"
+                                : "bg-blue-500/20 group-hover:bg-blue-500/25"
+                            }`}
+                            style={{
+                              height: `${(expectedVal / totalVal) * 100}%`,
+                              backgroundImage:
+                                "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(96, 165, 250, 0.15) 3px, rgba(96, 165, 250, 0.15) 6px)",
+                            }}
+                          />
+                        )}
+                        {paidVal > 0 && (
+                          <div
+                            className={`w-full transition-all duration-300 ${
+                              expectedVal === 0 ? "rounded-t" : ""
+                            } ${
+                              isCurrentMonth
+                                ? "bg-blue-500"
+                                : isTooltipActive
+                                ? "bg-blue-500/80"
+                                : "bg-blue-500/40 group-hover:bg-blue-500/60"
+                            }`}
+                            style={{ height: `${(paidVal / (totalVal || 1)) * 100}%` }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Expense Bar */}
+                      <div
+                        className="w-1/2 flex flex-col justify-end transition-all duration-300"
+                        style={{ height: `${maxIncome > 0 && expenseVal > 0 ? Math.max((expenseVal / maxIncome) * 100, 4) : 0}%` }}
+                      >
+                        {expenseVal > 0 && (
+                          <div
+                            className="w-full rounded-t bg-rose-500/50 hover:bg-rose-500/70 transition-colors"
+                            style={{ height: "100%" }}
+                          />
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="w-full rounded-t bg-zinc-800" style={{ height: "2%" }} />
@@ -302,16 +361,17 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         {[
           { href: "/cashflow/invoices", label: "Facturen bekijken", icon: FileText },
+          { href: "/cashflow/expenses", label: "Uitgaven bekijken", icon: Receipt },
           { href: "/cashflow/projects", label: "Projecten bekijken", icon: CheckCircle },
           { href: "/cashflow/clients", label: "Klanten bekijken", icon: CheckCircle },
         ].map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            className="flex items-center justify-between px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50 transition-all group"
+            className="flex items-center justify-between px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-850/50 transition-all group"
           >
             <div className="flex items-center gap-2 text-sm text-zinc-300 group-hover:text-white transition-colors">
               <Icon className="size-4 text-zinc-500" />

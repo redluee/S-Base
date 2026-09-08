@@ -153,6 +153,17 @@ export const serverApi = {
       },
       get: (id: number) => serverFetch<import("./api").CashflowInvoiceFull>(`/cashflow/invoices/${id}`),
     },
+    expenses: {
+      list: (options?: { year?: number; category?: string; tradeNameId?: number }) => {
+        const params = new URLSearchParams();
+        if (options?.year) params.set("year", String(options.year));
+        if (options?.category) params.set("category", options.category);
+        if (options?.tradeNameId) params.set("tradeNameId", String(options.tradeNameId));
+        const qs = params.toString();
+        return serverFetch<import("./api").CashflowExpense[]>(`/cashflow/expenses${qs ? `?${qs}` : ""}`);
+      },
+      get: (id: number) => serverFetch<import("./api").CashflowExpense>(`/cashflow/expenses/${id}`),
+    },
   },
 
   pulse: {

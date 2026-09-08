@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, FolderOpen, FileText, Building2 } from "lucide-react";
+import { LayoutDashboard, Users, FolderOpen, FileText, Building2, Receipt } from "lucide-react";
 import { t } from "@/lib/lang";
 
 const links = [
   { href: "/cashflow", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/cashflow/invoices", label: "Facturen", icon: FileText, exact: false },
+  { href: "/cashflow/expenses", label: "Uitgaven", icon: Receipt, exact: false },
   { href: "/cashflow/projects", label: "Projecten", icon: FolderOpen, exact: false },
   { href: "/cashflow/clients", label: "Klanten", icon: Users, exact: false },
   { href: "/cashflow/trade-names", label: "Handelsnamen", icon: Building2, exact: false },

@@ -64,3 +64,17 @@ export const cashflowInvoiceLines = sqliteTable("cashflow_invoice_lines", {
   discountType: text("discount_type"),
   discountValue: real("discount_value"),
 });
+
+export const cashflowExpenses = sqliteTable("cashflow_expenses", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  category: text("category"),
+  amount: real("amount").notNull(),
+  date: integer("date"),
+  tradeNameId: integer("trade_name_id").references(() => cashflowTradeNames.id, { onDelete: "set null" }),
+  receiptPdfPath: text("receipt_pdf_path"),
+  receiptPdfName: text("receipt_pdf_name"),
+  notes: text("notes"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});

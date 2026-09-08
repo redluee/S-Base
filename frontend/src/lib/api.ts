@@ -510,6 +510,20 @@ export const api = {
       delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/invoices/${id}`, { method: "DELETE" }),
       markAsPaid: (id: number, datePaid?: number) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}/paid`, { method: "PATCH", body: datePaid !== undefined ? JSON.stringify({ datePaid }) : undefined }),
     },
+    expenses: {
+      list: (options?: { year?: number; category?: string; tradeNameId?: number }) => {
+        const params = new URLSearchParams();
+        if (options?.year) params.set("year", String(options.year));
+        if (options?.category) params.set("category", options.category);
+        if (options?.tradeNameId) params.set("tradeNameId", String(options.tradeNameId));
+        const qs = params.toString();
+        return request<CashflowExpense[]>(`/cashflow/expenses${qs ? `?${qs}` : ""}`);
+      },
+      get: (id: number) => request<CashflowExpense>(`/cashflow/expenses/${id}`),
+      create: (data: unknown) => request<CashflowExpense>("/cashflow/expenses", { method: "POST", body: JSON.stringify(data) }),
+      update: (id: number, data: unknown) => request<CashflowExpense>(`/cashflow/expenses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/expenses/${id}`, { method: "DELETE" }),
+    },
     dashboard: (year?: number) => request<CashflowDashboardStats>(year ? `/cashflow/dashboard?year=${year}` : "/cashflow/dashboard"),
   },
 
@@ -1092,6 +1106,33 @@ export interface CashflowInvoiceFull extends CashflowInvoiceSummary {
   createdAt: string;
 }
 
+export interface CashflowExpense {
+  id: number;
+  userId: number;
+  description: string;
+  category: string | null;
+  amount: number;
+  date: number | null;
+  tradeNameId: number | null;
+  tradeNameDisplay: string | null;
+  receiptPdfPath: string | null;
+  receiptPdfName: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface CashflowMonthlyExpense {
+  month: string;
+  total: number;
+  count: number;
+}
+
+export interface CashflowExpenseCategory {
+  category: string;
+  total: number;
+  count: number;
+}
+
 export interface CashflowMonthlyIncome {
   month: string;
   total: number;
@@ -1106,5 +1147,9 @@ export interface CashflowDashboardStats {
   statusTotals: { status: string; count: number; total: number }[];
   totalPaid12m: number;
   totalExpected12m?: number;
+  monthlyExpenses?: CashflowMonthlyExpense[];
+  expensesByCategory?: CashflowExpenseCategory[];
+  totalExpenses12m?: number;
+  netProfit12m?: number;
 }
 

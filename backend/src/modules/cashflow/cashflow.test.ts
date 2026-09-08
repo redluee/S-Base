@@ -217,4 +217,54 @@ describe("CashflowService", () => {
     expect(octMonth?.expected).toBe(1500);
     expect(stats.totalExpected12m).toBeGreaterThanOrEqual(1500);
   });
+
+  it("manages company expenses CRUD and integrates with dashboard stats", () => {
+    const tradeName = cashflow.createTradeName(adminId, { displayName: "Design Studio" });
+
+    expect(() => cashflow.createExpense(adminId, { description: "", amount: 100 })).toThrow("Omschrijving van de uitgave is verplicht");
+    expect(() => cashflow.createExpense(adminId, { description: "Server", amount: NaN })).toThrow("Bedrag is verplicht");
+
+    const expDate = new Date("2026-05-10").getTime();
+    const exp1 = cashflow.createExpense(adminId, {
+      description: "Cloud Server Hosting",
+      category: "Software & Abonnementen",
+      amount: 85.50,
+      date: expDate,
+      tradeNameId: tradeName.id,
+      receiptPdfPath: "/api/uploads/receipt-1.pdf",
+      receiptPdfName: "invoice_server_may.pdf",
+      notes: "Monthly VPS cost",
+    });
+
+    expect(exp1?.id).toBeDefined();
+    expect(exp1?.description).toBe("Cloud Server Hosting");
+    expect(exp1?.amount).toBe(85.50);
+    expect(exp1?.tradeNameDisplay).toBe("Design Studio");
+    expect(exp1?.receiptPdfPath).toBe("/api/uploads/receipt-1.pdf");
+
+    const fetched = cashflow.getExpenseById(exp1!.id);
+    expect(fetched?.description).toBe("Cloud Server Hosting");
+
+    const updated = cashflow.updateExpense(exp1!.id, {
+      amount: 95.00,
+      description: "Cloud Server Hosting (Upgraded)",
+    });
+    expect(updated?.amount).toBe(95.00);
+    expect(updated?.description).toBe("Cloud Server Hosting (Upgraded)");
+
+    const list = cashflow.listExpenses(adminId, { year: 2026 });
+    expect(list.some((e) => e.id === exp1!.id)).toBe(true);
+
+    const filteredCategory = cashflow.listExpenses(adminId, { category: "Software & Abonnementen" });
+    expect(filteredCategory.some((e) => e.id === exp1!.id)).toBe(true);
+
+    const stats = cashflow.getDashboardStats(adminId, 2026);
+    expect(stats.totalExpenses12m).toBeGreaterThanOrEqual(95);
+    const mayExp = stats.monthlyExpenses.find((m) => m.month === "2026-05");
+    expect(mayExp?.total).toBe(95);
+
+    const deleted = cashflow.removeExpense(exp1!.id);
+    expect(deleted?.deleted).toBe(true);
+    expect(cashflow.getExpenseById(exp1!.id)).toBeFalsy();
+  });
 });

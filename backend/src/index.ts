@@ -641,6 +641,28 @@ export const app = new Elysia()
         if (!inv) return new Response("Not Found", { status: 404 });
         return inv;
       })
+      .get("/expenses", ({ userId, query }) => {
+        const year = query?.year ? Number(query.year) : undefined;
+        const category = query?.category as string | undefined;
+        const tradeNameId = query?.tradeNameId ? Number(query.tradeNameId) : undefined;
+        return cashflow.listExpenses(userId, { year, category, tradeNameId });
+      })
+      .post("/expenses", async ({ userId, body }) => cashflow.createExpense(userId, body as any))
+      .get("/expenses/:id", ({ params: { id } }) => {
+        const exp = cashflow.getExpenseById(Number(id));
+        if (!exp) return new Response("Not Found", { status: 404 });
+        return exp;
+      })
+      .put("/expenses/:id", async ({ params: { id }, body }) => {
+        const exp = cashflow.updateExpense(Number(id), body as any);
+        if (!exp) return new Response("Not Found", { status: 404 });
+        return exp;
+      })
+      .delete("/expenses/:id", ({ params: { id } }) => {
+        const r = cashflow.removeExpense(Number(id));
+        if (!r) return new Response("Not Found", { status: 404 });
+        return r;
+      })
       .get("/dashboard", ({ userId, query }) => cashflow.getDashboardStats(userId, (query as any)?.year ? Number((query as any).year) : undefined))
   )
 
