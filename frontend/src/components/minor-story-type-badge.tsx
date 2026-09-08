@@ -86,6 +86,7 @@ interface StoryTypeBadgeProps {
   code?: string;
   storyTypes?: MinorStoryType[];
   showName?: boolean;
+  fullNameOnly?: boolean;
   hideNameOnMobile?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -95,6 +96,7 @@ export function StoryTypeBadge({
   code = "US",
   storyTypes = [],
   showName = false,
+  fullNameOnly = false,
   hideNameOnMobile = false,
   size = "md",
   className = "",
@@ -111,7 +113,9 @@ export function StoryTypeBadge({
 
   return (
     <span
-      className={`inline-flex items-center font-mono font-bold rounded-lg border leading-none whitespace-nowrap shadow-sm ${sizeClasses} ${
+      className={`inline-flex items-center font-bold rounded-lg border leading-none whitespace-nowrap shadow-sm ${
+        fullNameOnly ? "font-sans font-semibold" : "font-mono"
+      } ${sizeClasses} ${
         hasStandardClass
           ? `${details.bgClass} ${details.textClass} ${details.borderClass}`
           : ""
@@ -127,15 +131,21 @@ export function StoryTypeBadge({
       }
       title={details.name}
     >
-      <span className="tracking-wider">{details.code}</span>
-      {showName && details.name && (
-        <span
-          className={`font-sans font-medium text-[11px] opacity-90 border-l border-current/20 pl-1.5 ${
-            hideNameOnMobile ? "hidden sm:inline" : ""
-          }`}
-        >
-          {details.name}
-        </span>
+      {fullNameOnly ? (
+        <span>{details.name}</span>
+      ) : (
+        <>
+          <span className="tracking-wider">{details.code}</span>
+          {showName && details.name && (
+            <span
+              className={`font-sans font-medium text-[11px] opacity-90 border-l border-current/20 pl-1.5 ${
+                hideNameOnMobile ? "hidden sm:inline" : ""
+              }`}
+            >
+              {details.name}
+            </span>
+          )}
+        </>
       )}
     </span>
   );

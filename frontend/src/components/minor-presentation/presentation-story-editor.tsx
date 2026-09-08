@@ -33,6 +33,9 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
   const [bullets, setBullets] = useState<string[]>(
     initialData.bullets && initialData.bullets.length > 0 ? initialData.bullets : [""]
   );
+  const [listStyle, setListStyle] = useState<"bullets" | "steps">(
+    initialData.listStyle || "bullets"
+  );
   const [images, setImages] = useState<Array<{ url: string; caption?: string }>>(
     initialData.images || []
   );
@@ -65,6 +68,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
       const payload: MinorStoryPresentationData = {
         enabled,
         layout,
+        listStyle,
         summary: summary.trim() || undefined,
         demoUrl: demoUrl.trim() || undefined,
         demoTitle: demoTitle.trim() || undefined,
@@ -158,19 +162,45 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
           </div>
 
           {/* Highlights / Bullet points */}
-          <div className="space-y-2 p-4 rounded-xl bg-zinc-950 border border-white/5">
-            <div className="flex items-center justify-between">
+          <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-white/5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="text-xs font-semibold text-zinc-200">
-                {t("Highlights / Bulletpoints")}
+                {t("Highlights / Opsomming")}
               </label>
-              <button
-                type="button"
-                onClick={() => setBullets((prev) => [...prev, ""])}
-                className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>{t("Highlight toevoegen")}</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setListStyle("bullets")}
+                    className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                      listStyle === "bullets"
+                        ? "bg-zinc-800 text-white font-semibold shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {t("Bulletpoints (•)")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setListStyle("steps")}
+                    className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                      listStyle === "steps"
+                        ? "bg-zinc-800 text-white font-semibold shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {t("Stappen (1, 2, 3)")}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBullets((prev) => [...prev, ""])}
+                  className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  <span>{t("Toevoegen")}</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2 max-h-44 overflow-y-auto pr-1">

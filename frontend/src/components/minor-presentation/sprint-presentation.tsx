@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Edit3,
   StickyNote,
+  ListChecks,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprintFull, MinorStory, MinorStoryType, MinorStoryPresentationData } from "@/lib/api";
@@ -19,6 +20,7 @@ import { SlideIntro } from "./slide-intro";
 import { SlideStory } from "./slide-story";
 import { SlideOutro } from "./slide-outro";
 import { PresentationStoryEditor } from "./presentation-story-editor";
+import { PresentationCriteriaModal } from "./presentation-criteria-modal";
 import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { api } from "@/lib/api";
 
@@ -135,6 +137,7 @@ export function SprintPresentation({
   const [lightboxImage, setLightboxImage] = useState<{ url: string; caption?: string } | null>(null);
   const [isOverviewOpen, setIsOverviewOpen] = useState<boolean>(false);
   const [editingStory, setEditingStory] = useState<MinorStory | null>(null);
+  const [viewingCriteriaStory, setViewingCriteriaStory] = useState<MinorStory | null>(null);
   const [showNotes, setShowNotes] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => isCurrentlyFullscreen());
   const [fullscreenToast, setFullscreenToast] = useState<string | null>(null);
@@ -277,8 +280,8 @@ export function SprintPresentation({
         return;
       }
 
-      // Ignore other navigation keys if lightbox or editor is active
-      if (lightboxImage !== null || editingStory !== null) {
+      // Ignore other navigation keys if lightbox, editor, or criteria modal is active
+      if (lightboxImage !== null || editingStory !== null || viewingCriteriaStory !== null) {
         return;
       }
 
@@ -312,6 +315,13 @@ export function SprintPresentation({
           e.preventDefault();
           setIsOverviewOpen((prev) => !prev);
           break;
+        case "c":
+        case "C":
+          if (currentStory) {
+            e.preventDefault();
+            setViewingCriteriaStory((prev) => (prev ? null : currentStory));
+          }
+          break;
         case "Escape":
           if (!isCurrentlyFullscreen()) {
             onClose();
@@ -325,6 +335,8 @@ export function SprintPresentation({
   }, [
     lightboxImage,
     editingStory,
+    viewingCriteriaStory,
+    currentStory,
     goToNextSlide,
     goToPrevSlide,
     goToSlide,
@@ -366,6 +378,34 @@ export function SprintPresentation({
       console.error("Failed to update story presentation:", err);
     }
   }
+
+  // Handle updating presentation data (e.g. toggling listStyle directly on slide)
+  const handleUpdateStoryPresentationData = useCallback(
+    async (targetStory: MinorStory, data: MinorStoryPresentationData) => {
+      try {
+        const updated = await api.minor.sprints.stories.update(targetStory.id, {
+          presentationData: data,
+        });
+        if (updated && onStoryUpdated) {
+          onStoryUpdated(updated);
+        }
+      } catch (err) {
+        console.error("Failed to update story presentation data:", err);
+      }
+    },
+    [onStoryUpdated]
+  );
+
+  // Handle criteria update inside criteria modal
+  const handleStoryUpdatedInternal = useCallback(
+    (updatedStory: MinorStory) => {
+      if (onStoryUpdated) {
+        onStoryUpdated(updatedStory);
+      }
+      setViewingCriteriaStory(updatedStory);
+    },
+    [onStoryUpdated]
+  );
 
   const progressPercent =
     totalSlides > 1 ? (currentSlideIndex / (totalSlides - 1)) * 100 : 0;
@@ -469,6 +509,10 @@ export function SprintPresentation({
             story={currentStory}
             storyTypes={storyTypes}
             onImageClick={(img) => setLightboxImage(img)}
+            onOpenCriteria={() => setViewingCriteriaStory(currentStory)}
+            onUpdatePresentationData={(data) =>
+              handleUpdateStoryPresentationData(currentStory, data)
+            }
           />
         )}
 
@@ -547,6 +591,22 @@ export function SprintPresentation({
           </button>
 
           <div className="w-px h-5 bg-white/10 mx-1 hidden sm:block" />
+
+          {/* Criteria button (Acceptance & Quality criteria) */}
+          {currentStory && (
+            <button
+              type="button"
+              onClick={() => setViewingCriteriaStory(currentStory)}
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                viewingCriteriaStory
+                  ? "text-brand bg-brand/15"
+                  : "text-zinc-400 hover:text-white hover:bg-white/10"
+              }`}
+              title={t("Acceptatie- & Kwaliteitscriteria bekijken (C)")}
+            >
+              <ListChecks className="size-4" />
+            </button>
+          )}
 
           {/* Edit Presentation Content for this story */}
           {currentStory && (
@@ -642,15 +702,20 @@ export function SprintPresentation({
                       borderColor: isCurrent ? color : undefined,
                     }}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1">
                       <span className="text-[10px] font-mono opacity-60">
                         {String(slideNum + 1).padStart(2, "0")}.
                       </span>
                       <span
-                        className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded"
-                        style={{ color, backgroundColor: `${color}15` }}
+                        className="text-[10px] font-sans font-semibold px-2 py-0.5 rounded truncate max-w-[130px]"
+                        style={{
+                          color,
+                          backgroundColor: `${color}15`,
+                          border: `1px solid ${color}30`,
+                        }}
+                        title={typeDetails.name}
                       >
-                        {st.storyTypeCode}
+                        {typeDetails.name}
                       </span>
                     </div>
                     <span className="text-xs font-bold block truncate text-white mt-1">
@@ -689,6 +754,16 @@ export function SprintPresentation({
 
       {/* Image Zoom Lightbox */}
       <PresentationLightbox key={lightboxImage?.url} image={lightboxImage} onClose={() => setLightboxImage(null)} />
+
+      {/* Criteria Inspector Modal */}
+      {viewingCriteriaStory && (
+        <PresentationCriteriaModal
+          story={viewingCriteriaStory}
+          storyTypes={storyTypes}
+          onClose={() => setViewingCriteriaStory(null)}
+          onStoryUpdated={handleStoryUpdatedInternal}
+        />
+      )}
 
       {/* Story Presentation Editor Modal */}
       {editingStory && (

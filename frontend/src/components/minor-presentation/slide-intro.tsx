@@ -90,7 +90,7 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
           <div className="flex flex-wrap gap-2">
             {Object.entries(typeCounts).map(([code, count]) => (
               <div key={code} className="flex items-center gap-1.5">
-                <StoryTypeBadge code={code} storyTypes={storyTypes} />
+                <StoryTypeBadge code={code} storyTypes={storyTypes} fullNameOnly size="sm" />
                 <span className="text-xs font-mono text-zinc-400 font-semibold">×{count}</span>
               </div>
             ))}

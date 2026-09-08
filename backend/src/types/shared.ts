@@ -174,6 +174,7 @@ export interface MinorStoryPresentationData {
   enabled?: boolean;
   layout?: "auto" | "split" | "media" | "bullets" | "demo";
   bullets?: string[];
+  listStyle?: "bullets" | "steps";
   summary?: string;
   demoUrl?: string;
   demoTitle?: string;

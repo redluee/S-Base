@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   ExternalLink,
   CheckCircle2,
@@ -10,9 +10,12 @@ import {
   GitBranch,
   FileText,
   Layers,
+  List,
+  ListOrdered,
+  ListChecks,
 } from "lucide-react";
 import { t } from "@/lib/lang";
-import type { MinorStory, MinorStoryType } from "@/lib/api";
+import type { MinorStory, MinorStoryType, MinorStoryPresentationData } from "@/lib/api";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { getLUShortDesc } from "@/lib/minor-constants";
 
@@ -20,9 +23,115 @@ interface SlideStoryProps {
   story: MinorStory;
   storyTypes: MinorStoryType[];
   onImageClick: (image: { url: string; caption?: string }) => void;
+  onOpenCriteria?: () => void;
+  onUpdatePresentationData?: (data: MinorStoryPresentationData) => void;
 }
 
-export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps) {
+function HighlightsList({
+  bullets,
+  listStyle,
+  storyColor,
+  size = "large",
+}: {
+  bullets: string[];
+  listStyle: "bullets" | "steps";
+  storyColor: string;
+  size?: "large" | "medium";
+}) {
+  if (bullets.length === 0) {
+    return (
+      <p className="text-zinc-500 italic text-sm py-2">
+        {t("Geen specifieke bulletpoints opgegeven.")}
+      </p>
+    );
+  }
+
+  return (
+    <ul className={size === "large" ? "space-y-4" : "space-y-3"}>
+      {bullets.map((bullet, idx) => (
+        <li key={idx} className="flex items-start gap-3 sm:gap-4">
+          {listStyle === "steps" ? (
+            <span
+              className={`flex items-center justify-center rounded-lg font-mono font-bold shrink-0 mt-0.5 shadow-sm ${
+                size === "large"
+                  ? "size-7 sm:size-8 text-sm sm:text-base"
+                  : "size-6 text-xs"
+              }`}
+              style={{
+                backgroundColor: `${storyColor}20`,
+                color: storyColor,
+                border: `1px solid ${storyColor}50`,
+              }}
+            >
+              {idx + 1}
+            </span>
+          ) : (
+            <CheckCircle2
+              className={`shrink-0 mt-0.5 ${
+                size === "large" ? "size-6 sm:size-7" : "size-5"
+              }`}
+              style={{ color: storyColor }}
+            />
+          )}
+          <span
+            className={`leading-relaxed text-zinc-100 flex-1 font-medium ${
+              size === "large" ? "text-base sm:text-xl" : "text-sm sm:text-base"
+            }`}
+          >
+            {bullet}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ListStyleToggle({
+  listStyle,
+  onChange,
+}: {
+  listStyle: "bullets" | "steps";
+  onChange: (style: "bullets" | "steps") => void;
+}) {
+  return (
+    <div className="flex items-center p-0.5 rounded-lg bg-zinc-950 border border-white/10 text-xs font-semibold select-none">
+      <button
+        type="button"
+        onClick={() => onChange("bullets")}
+        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-[11px] ${
+          listStyle === "bullets"
+            ? "bg-zinc-800 text-white shadow-sm font-bold"
+            : "text-zinc-400 hover:text-zinc-200"
+        }`}
+        title={t("Weergave als bulletpoints")}
+      >
+        <List className="size-3.5" />
+        <span>{t("Bullets")}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("steps")}
+        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-[11px] ${
+          listStyle === "steps"
+            ? "bg-zinc-800 text-white shadow-sm font-bold"
+            : "text-zinc-400 hover:text-zinc-200"
+        }`}
+        title={t("Weergave als stappen 1, 2, 3...")}
+      >
+        <ListOrdered className="size-3.5" />
+        <span>{t("Stappen")}</span>
+      </button>
+    </div>
+  );
+}
+
+export function SlideStory({
+  story,
+  storyTypes,
+  onImageClick,
+  onOpenCriteria,
+  onUpdatePresentationData,
+}: SlideStoryProps) {
   const typeDetails = useMemo(() => {
     return getStoryTypeDetails(story.storyTypeCode, storyTypes);
   }, [story.storyTypeCode, storyTypes]);
@@ -31,6 +140,24 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
 
   // Resolved presentation content
   const presentationData = story.presentationData || {};
+
+  // List style (bullets vs numbered steps)
+  const [overrideListStyle, setOverrideListStyle] = useState<"bullets" | "steps" | null>(null);
+  const listStyle = overrideListStyle ?? presentationData.listStyle ?? "bullets";
+
+  function handleListStyleChange(style: "bullets" | "steps") {
+    setOverrideListStyle(style);
+    if (onUpdatePresentationData) {
+      onUpdatePresentationData({
+        ...presentationData,
+        listStyle: style,
+      });
+    }
+  }
+
+  // Criteria counts for top badge
+  const totalCriteriaCount = story.criteria?.length || 0;
+  const completedCriteriaCount = (story.criteria || []).filter((c) => c.isCompleted).length;
 
   // Images: custom or fallback from evidence
   const images = useMemo(() => {
@@ -102,11 +229,16 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
     <div className="w-full max-w-6xl mx-auto flex flex-col justify-center min-h-[72vh] px-4 sm:px-8 py-4 animate-in fade-in duration-200 select-text">
       {/* Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4 mb-6">
-        <div className="flex items-center gap-3">
-          <StoryTypeBadge code={story.storyTypeCode} storyTypes={storyTypes} />
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <StoryTypeBadge
+            code={story.storyTypeCode}
+            storyTypes={storyTypes}
+            fullNameOnly
+            size="md"
+          />
           {story.storyNumber && (
             <span
-              className="text-xs font-mono font-bold px-2.5 py-0.5 rounded border"
+              className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg border"
               style={{
                 borderColor: `${storyColor}40`,
                 backgroundColor: `${storyColor}15`,
@@ -117,7 +249,7 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
             </span>
           )}
           <span
-            className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${
+            className={`text-[10px] font-semibold uppercase px-2.5 py-1 rounded-lg ${
               story.status === "done"
                 ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                 : "bg-zinc-800 text-zinc-300 border border-white/10"
@@ -125,6 +257,24 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
           >
             {story.status === "done" ? t("Voltooid") : story.status === "in_progress" ? t("Bezig") : t("To Do")}
           </span>
+
+          {/* Criteria button */}
+          {onOpenCriteria && (
+            <button
+              type="button"
+              onClick={onOpenCriteria}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-zinc-900 border border-white/10 hover:border-brand/40 text-zinc-200 hover:text-white transition-all cursor-pointer shadow-sm group"
+              title={t("Acceptatie- en kwaliteitscriteria inzien")}
+            >
+              <ListChecks className="size-4 text-brand group-hover:scale-110 transition-transform" />
+              <span>{t("Criteria")}</span>
+              {totalCriteriaCount > 0 && (
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-zinc-300">
+                  {completedCriteriaCount}/{totalCriteriaCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Learning Outcome Tags */}
@@ -132,7 +282,7 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
           {(story.learningOutcomes || []).map((lu) => (
             <span
               key={lu}
-              className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-zinc-900 border border-white/10 text-zinc-300"
+              className="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-zinc-900 border border-white/10 text-zinc-300"
               title={getLUShortDesc(lu)}
             >
               LU {lu}
@@ -160,22 +310,20 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-2">
           {/* Left Column: Highlights & Links */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-3">
-              <div className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-300">
-                <Sparkles className="size-3.5" style={{ color: storyColor }} />
-                <span>{t("Wat is er gerealiseerd")}</span>
+            <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-4">
+              <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+                <div className="flex items-center gap-2 text-xs sm:text-sm uppercase font-bold tracking-wider text-zinc-300">
+                  <Sparkles className="size-4" style={{ color: storyColor }} />
+                  <span>{t("Wat is er gerealiseerd")}</span>
+                </div>
+                <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
               </div>
-              <ul className="space-y-2.5 text-sm text-zinc-200">
-                {bullets.map((bullet, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5">
-                    <CheckCircle2
-                      className="size-4 shrink-0 mt-0.5"
-                      style={{ color: storyColor }}
-                    />
-                    <span className="leading-relaxed">{bullet}</span>
-                  </li>
-                ))}
-              </ul>
+              <HighlightsList
+                bullets={bullets}
+                listStyle={listStyle}
+                storyColor={storyColor}
+                size="large"
+              />
             </div>
 
             {/* Clickable Demo Link */}
@@ -243,15 +391,20 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
       {activeLayout === "media" && (
         <div className="space-y-4 mt-2">
           {bullets.length > 0 && (
-            <div className="p-4 rounded-xl bg-zinc-900/70 border border-white/10">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-300">
-                {bullets.slice(0, 3).map((bullet, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <CheckCircle2 className="size-3.5" style={{ color: storyColor }} />
-                    <span>{bullet}</span>
-                  </div>
-                ))}
+            <div className="p-4 sm:p-5 rounded-xl bg-zinc-900/70 border border-white/10 space-y-3">
+              <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
+                <div className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-300">
+                  <Sparkles className="size-3.5" style={{ color: storyColor }} />
+                  <span>{t("Wat is er gerealiseerd")}</span>
+                </div>
+                <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
               </div>
+              <HighlightsList
+                bullets={bullets.slice(0, 4)}
+                listStyle={listStyle}
+                storyColor={storyColor}
+                size="medium"
+              />
             </div>
           )}
 
@@ -280,7 +433,7 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
                 </div>
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/80 text-white text-[11px] font-semibold">
-                    <Maximize2 className="size-3" />
+                    <Maximize2 className="size-3.5" />
                     <span>{t("Vergroten")}</span>
                   </div>
                 </div>
@@ -316,18 +469,19 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
       {activeLayout === "demo" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center mt-2">
           <div className="lg:col-span-5 space-y-4">
-            <div className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-3">
-              <div className="text-xs uppercase font-bold tracking-wider text-zinc-400">
-                {t("Opgeleverde functionaliteit")}
+            <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-4">
+              <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+                <div className="text-xs uppercase font-bold tracking-wider text-zinc-400">
+                  {t("Opgeleverde functionaliteit")}
+                </div>
+                <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
               </div>
-              <ul className="space-y-2 text-sm text-zinc-200">
-                {bullets.map((bullet, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5">
-                    <CheckCircle2 className="size-4 shrink-0 mt-0.5" style={{ color: storyColor }} />
-                    <span className="leading-relaxed">{bullet}</span>
-                  </li>
-                ))}
-              </ul>
+              <HighlightsList
+                bullets={bullets}
+                listStyle={listStyle}
+                storyColor={storyColor}
+                size="large"
+              />
             </div>
           </div>
 
@@ -377,35 +531,39 @@ export function SlideStory({ story, storyTypes, onImageClick }: SlideStoryProps)
       {activeLayout === "bullets" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           {/* Card 1: Deliverables */}
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
-              <Sparkles className="size-4" style={{ color: storyColor }} />
-              <span>{t("Wat is er gerealiseerd")}</span>
+          <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-5">
+            <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
+                <Sparkles className="size-4.5" style={{ color: storyColor }} />
+                <span>{t("Wat is er gerealiseerd")}</span>
+              </div>
+              <ListStyleToggle listStyle={listStyle} onChange={handleListStyleChange} />
             </div>
-            <ul className="space-y-3 text-sm sm:text-base text-zinc-200">
-              {bullets.length > 0 ? (
-                bullets.map((bullet, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <CheckCircle2
-                      className="size-5 shrink-0 mt-0.5"
-                      style={{ color: storyColor }}
-                    />
-                    <span className="leading-relaxed">{bullet}</span>
-                  </li>
-                ))
-              ) : (
-                <li className="text-zinc-500 italic text-sm">
-                  {t("Geen specifieke bulletpoints opgegeven.")}
-                </li>
-              )}
-            </ul>
+            <HighlightsList
+              bullets={bullets}
+              listStyle={listStyle}
+              storyColor={storyColor}
+              size="large"
+            />
           </div>
 
           {/* Card 2: Quality & Evidence */}
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
-              <Layers className="size-4" style={{ color: storyColor }} />
-              <span>{t("Kwaliteit & Bewijslast")}</span>
+          <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-4">
+            <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
+                <Layers className="size-4.5" style={{ color: storyColor }} />
+                <span>{t("Kwaliteit & Bewijslast")}</span>
+              </div>
+              {onOpenCriteria && (
+                <button
+                  type="button"
+                  onClick={onOpenCriteria}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-zinc-950 border border-white/10 hover:border-brand/40 text-brand transition-all cursor-pointer"
+                >
+                  <ListChecks className="size-3.5" />
+                  <span>{t("Alle criteria")}</span>
+                </button>
+              )}
             </div>
 
             {/* Evidence items */}

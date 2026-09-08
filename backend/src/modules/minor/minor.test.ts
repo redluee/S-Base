@@ -320,6 +320,7 @@ describe("MinorService", () => {
       presentationData: {
         enabled: true,
         layout: "split",
+        listStyle: "steps",
         bullets: ["Real-time updates via WebSockets", "99.9% uptime metric card"],
         summary: "Live product metrics dashboard built for end users",
         demoUrl: "https://staging.app.example.com/dashboard",
@@ -332,6 +333,7 @@ describe("MinorService", () => {
     expect(story.id).toBeDefined();
     expect(story.presentationData).toBeDefined();
     expect(story.presentationData?.layout).toBe("split");
+    expect(story.presentationData?.listStyle).toBe("steps");
     expect(story.presentationData?.bullets?.length).toBe(2);
     expect(story.presentationData?.demoUrl).toBe("https://staging.app.example.com/dashboard");
 
@@ -339,6 +341,7 @@ describe("MinorService", () => {
     const sprintData = minor.getSprintById(sprint.id, adminId);
     const foundStory = sprintData?.stories.find((s) => s.id === story.id);
     expect(foundStory?.presentationData?.demoTitle).toBe("Staging Dashboard Live");
+    expect(foundStory?.presentationData?.listStyle).toBe("steps");
     expect(foundStory?.presentationData?.images?.[0].caption).toBe("Dashboard overview");
 
     // Update presentation data
@@ -346,10 +349,12 @@ describe("MinorService", () => {
       presentationData: {
         ...foundStory!.presentationData,
         layout: "media",
+        listStyle: "bullets",
         bullets: ["Real-time updates via WebSockets"],
       },
     });
     expect(updated?.presentationData?.layout).toBe("media");
+    expect(updated?.presentationData?.listStyle).toBe("bullets");
     expect(updated?.presentationData?.bullets?.length).toBe(1);
 
     // Verify in listAllStories
