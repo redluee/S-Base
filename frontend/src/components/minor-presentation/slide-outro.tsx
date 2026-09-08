@@ -12,8 +12,6 @@ interface SlideOutroProps {
 }
 
 export function SlideOutro({ sprint, stories, onRestart, onClose }: SlideOutroProps) {
-  const completedCount = stories.filter((s) => s.status === "done").length;
-
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col justify-center items-center min-h-[72vh] px-4 sm:px-8 py-6 text-center animate-in fade-in duration-300">
       {/* Icon Badge */}
@@ -35,17 +33,9 @@ export function SlideOutro({ sprint, stories, onRestart, onClose }: SlideOutroPr
         <div className="text-xs uppercase font-bold tracking-wider text-zinc-400 mb-2">
           {t("Sprint Samenvatting")} ({sprint.sprintNumber})
         </div>
-        <div className="flex items-center justify-between text-sm text-zinc-300 py-1 border-b border-white/5">
+        <div className="flex items-center justify-between text-sm text-zinc-300 py-1">
           <span>{t("Gedemonstreerde Stories")}:</span>
           <strong className="text-white font-mono">{stories.length}</strong>
-        </div>
-        <div className="flex items-center justify-between text-sm text-zinc-300 py-1 border-b border-white/5">
-          <span>{t("Voltooid (Definition of Done)")}:</span>
-          <strong className="text-brand font-mono">{completedCount}</strong>
-        </div>
-        <div className="flex items-center justify-between text-sm text-zinc-300 py-1">
-          <span>{t("Show & Grow Datum")}:</span>
-          <strong className="text-white font-mono">{sprint.showAndGrowDate}</strong>
         </div>
       </div>
 

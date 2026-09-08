@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprintFull, MinorStory, MinorStoryType } from "@/lib/api";
 import { StoryTypeBadge } from "@/components/minor-story-type-badge";
@@ -29,22 +29,13 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col justify-center items-center min-h-[72vh] px-4 sm:px-8 py-6 text-center animate-in fade-in duration-300">
-      {/* Top Badge */}
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand/10 border border-brand/30 text-brand text-xs font-semibold tracking-wide uppercase mb-6">
-        <Sparkles className="size-3.5" />
-        <span>{t("Show & Tell Presentatie")}</span>
-      </div>
-
       {/* Main Title */}
       <h1 className="font-display text-4xl sm:text-6xl text-white tracking-tight leading-tight max-w-4xl">
         {sprint.name}
       </h1>
 
-      {/* Sprint Number & Dates */}
+      {/* Dates */}
       <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-4 text-xs sm:text-sm text-zinc-400 font-mono">
-        <span className="px-3 py-1 rounded-lg bg-zinc-900 border border-white/10 text-white font-bold">
-          {sprint.sprintNumber}
-        </span>
         <div className="flex items-center gap-1.5">
           <Calendar className="size-3.5 text-zinc-500" />
           <span>{sprint.startDate} t/m {sprint.endDate}</span>
@@ -120,7 +111,7 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
         </div>
       </div>
 
-      {/* Start Button & Keyboard Hint */}
+      {/* Start Button */}
       <div className="mt-10 flex flex-col items-center gap-3">
         <button
           type="button"
@@ -130,9 +121,6 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
           <span>{t("Start Presentatie")}</span>
           <ArrowRight className="size-4.5" />
         </button>
-        <span className="text-xs text-zinc-400 font-mono">
-          Tip: {t("Gebruik spatie of pijltjestoetsen om te navigeren, F voor fullscreen")}
-        </span>
       </div>
     </div>
   );

@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import {
   ExternalLink,
   CheckCircle2,
-  Sparkles,
   Maximize2,
   Globe,
   GitBranch,
@@ -257,10 +256,6 @@ export function SlideStory({
           {/* Left Column: Highlights & Links */}
           <div className="lg:col-span-6 space-y-4">
             <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-4">
-              <div className="flex items-center gap-2 text-xs sm:text-sm uppercase font-bold tracking-wider text-zinc-300">
-                <Sparkles className="size-4" style={{ color: storyColor }} />
-                <span>{t("Wat is er gerealiseerd")}</span>
-              </div>
               <HighlightsList
                 bullets={bullets}
                 listStyle={listStyle}
@@ -335,10 +330,6 @@ export function SlideStory({
         <div className="space-y-4 mt-2">
           {bullets.length > 0 && (
             <div className="p-4 sm:p-5 rounded-xl bg-zinc-900/70 border border-white/10 space-y-3">
-              <div className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-300">
-                <Sparkles className="size-3.5" style={{ color: storyColor }} />
-                <span>{t("Wat is er gerealiseerd")}</span>
-              </div>
               <HighlightsList
                 bullets={bullets.slice(0, 4)}
                 listStyle={listStyle}
@@ -410,9 +401,6 @@ export function SlideStory({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center mt-2">
           <div className="lg:col-span-5 space-y-4">
             <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-4">
-              <div className="text-xs uppercase font-bold tracking-wider text-zinc-400">
-                {t("Opgeleverde functionaliteit")}
-              </div>
               <HighlightsList
                 bullets={bullets}
                 listStyle={listStyle}
@@ -469,10 +457,6 @@ export function SlideStory({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           {/* Card 1: Deliverables */}
           <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-5">
-            <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
-              <Sparkles className="size-4.5" style={{ color: storyColor }} />
-              <span>{t("Wat is er gerealiseerd")}</span>
-            </div>
             <HighlightsList
               bullets={bullets}
               listStyle={listStyle}
