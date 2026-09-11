@@ -1061,6 +1061,7 @@ const nl: Record<string, string> = {
   "Geen websites toegevoegd.": "Geen websites toegevoegd.",
   "Website openen": "Website openen",
   "Live Applicatie": "Live Applicatie",
+  "Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt sluiten?": "Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt sluiten?",
 };
 
 

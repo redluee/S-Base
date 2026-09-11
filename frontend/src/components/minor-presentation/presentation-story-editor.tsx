@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Presentation,
   Plus,
@@ -32,7 +32,7 @@ interface PresentationStoryEditorProps {
 }
 
 export function PresentationStoryEditor({ story, onSave, onClose }: PresentationStoryEditorProps) {
-  const initialData = story.presentationData || {};
+  const initialData = useMemo(() => story.presentationData || {}, [story.presentationData]);
 
   const [enabled, setEnabled] = useState<boolean>(initialData.enabled !== false);
   const [layout, setLayout] = useState<"auto" | "split" | "media" | "bullets" | "demo">(
@@ -212,11 +212,84 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
     }
   }
 
+  const hasUnsavedChanges = useCallback((): boolean => {
+    const origEnabled = initialData.enabled !== false;
+    if (enabled !== origEnabled) return true;
+
+    const origLayout = initialData.layout || "auto";
+    if (layout !== origLayout) return true;
+
+    const origListStyle = initialData.listStyle || "bullets";
+    if (listStyle !== origListStyle) return true;
+
+    const cleanBullets = bullets.map((b) => b.trim()).filter(Boolean);
+    const origBullets = (initialData.bullets || []).map((b) => b.trim()).filter(Boolean);
+    if (JSON.stringify(cleanBullets) !== JSON.stringify(origBullets)) return true;
+
+    const cleanWebsites = websites
+      .map((w) => ({ title: (w.title || w.name || "").trim(), url: w.url.trim() }))
+      .filter((w) => w.url.length > 0);
+    const origWebsites = (initialData.websites || initialData.links || [])
+      .map((w) => ({ title: (w.title || w.name || "").trim(), url: w.url.trim() }))
+      .filter((w) => w.url.length > 0);
+    if (origWebsites.length === 0 && initialData.demoUrl?.trim()) {
+      origWebsites.push({
+        title: initialData.demoTitle?.trim() || "",
+        url: initialData.demoUrl.trim(),
+      });
+    }
+    if (JSON.stringify(cleanWebsites) !== JSON.stringify(origWebsites)) return true;
+
+    const cleanDocs = documents
+      .map((d) => ({ title: d.title.trim(), url: d.url.trim() }))
+      .filter((d) => d.url.length > 0);
+    const origDocs = (initialData.documents || [])
+      .map((d) => ({ title: d.title.trim(), url: d.url.trim() }))
+      .filter((d) => d.url.length > 0);
+    if (JSON.stringify(cleanDocs) !== JSON.stringify(origDocs)) return true;
+
+    const cleanImages = images
+      .map((i) => ({ url: i.url.trim(), caption: i.caption?.trim() || "" }))
+      .filter((i) => i.url.length > 0);
+    const origImages = (initialData.images || [])
+      .map((i) => ({ url: i.url.trim(), caption: i.caption?.trim() || "" }))
+      .filter((i) => i.url.length > 0);
+    if (JSON.stringify(cleanImages) !== JSON.stringify(origImages)) return true;
+
+    return false;
+  }, [
+    initialData,
+    enabled,
+    layout,
+    listStyle,
+    bullets,
+    websites,
+    documents,
+    images,
+  ]);
+
+  const handleSafeClose = useCallback(() => {
+    if (hasUnsavedChanges()) {
+      if (!confirm(t("Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt sluiten?"))) {
+        return;
+      }
+    }
+    onClose();
+  }, [hasUnsavedChanges, onClose]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleSafeClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSafeClose]);
+
   return (
-    <div
-      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
       <div
         className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-2xl w-full space-y-5 shadow-2xl my-8 text-sm max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -257,7 +330,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleSafeClose}
               className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
               title={t("Sluiten")}
               aria-label={t("Sluiten")}
@@ -759,7 +832,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleSafeClose}
               className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
             >
               {t("Annuleren")}

@@ -48,7 +48,7 @@ function WebsiteLinkCard({
         borderColor: `${storyColor}40`,
       }}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
           className={`rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
             size === "large" ? "size-11 sm:size-12" : "size-9 sm:size-10"
@@ -61,9 +61,9 @@ function WebsiteLinkCard({
         >
           <Globe className={size === "large" ? "size-5 sm:size-6" : "size-4 sm:size-4.5"} />
         </div>
-        <div className="min-w-0 space-y-0.5">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div
-            className={`font-bold text-white group-hover:text-brand transition-colors truncate ${
+            className={`font-bold text-white group-hover:text-brand transition-colors break-words ${
               size === "large" ? "text-sm sm:text-base" : "text-xs sm:text-sm"
             }`}
           >
@@ -117,7 +117,7 @@ function DocumentLinkCard({
       style={{ borderColor: `${storyColor}35` }}
     >
       <span
-        className={`font-semibold text-white group-hover:text-brand transition-colors truncate ${
+        className={`font-semibold text-white group-hover:text-brand transition-colors break-words min-w-0 flex-1 ${
           size === "large" ? "text-sm sm:text-base" : "text-xs sm:text-sm"
         }`}
       >
@@ -458,15 +458,15 @@ export function SlideStory({
                 className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border hover:bg-zinc-800 transition-all group cursor-pointer"
                 style={{ borderColor: `${storyColor}40` }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
-                    className="p-2 rounded-lg"
+                    className="p-2 rounded-lg shrink-0"
                     style={{ backgroundColor: `${storyColor}20`, color: storyColor }}
                   >
                     <Globe className="size-4" />
                   </div>
-                  <div>
-                    <span className="text-sm font-bold text-white block group-hover:text-brand transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-bold text-white block group-hover:text-brand transition-colors break-words">
                       {demoTitle}
                     </span>
                     <span className="text-xs text-zinc-400 font-mono truncate max-w-xs block">
@@ -474,7 +474,7 @@ export function SlideStory({
                     </span>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-zinc-400 group-hover:text-white transition-colors" />
+                <ExternalLink className="size-4 text-zinc-400 group-hover:text-white transition-colors shrink-0 ml-2" />
               </a>
             )}
 
@@ -766,15 +766,15 @@ export function SlideStory({
                 className="flex items-center justify-between p-4 rounded-xl bg-zinc-950/80 border hover:bg-zinc-800 transition-all group cursor-pointer"
                 style={{ borderColor: `${storyColor}40` }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
-                    className="p-2 rounded-lg"
+                    className="p-2 rounded-lg shrink-0"
                     style={{ backgroundColor: `${storyColor}20`, color: storyColor }}
                   >
                     <Globe className="size-4" />
                   </div>
-                  <div>
-                    <span className="text-sm font-bold text-white block group-hover:text-brand transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-bold text-white block group-hover:text-brand transition-colors break-words">
                       {demoTitle}
                     </span>
                     <span className="text-xs text-zinc-400 font-mono truncate max-w-xs block">
@@ -782,7 +782,7 @@ export function SlideStory({
                     </span>
                   </div>
                 </div>
-                <ExternalLink className="size-4 text-zinc-400 group-hover:text-white transition-colors" />
+                <ExternalLink className="size-4 text-zinc-400 group-hover:text-white transition-colors shrink-0 ml-2" />
               </a>
             )}
           </div>
@@ -826,17 +826,17 @@ export function SlideStory({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-white/20 text-xs text-zinc-300 hover:text-white transition-all cursor-pointer group"
+                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-white/20 text-xs text-zinc-300 hover:text-white transition-all cursor-pointer group gap-2.5"
                 >
-                  <div className="flex items-center gap-2.5 truncate">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     {ev.type === "github" ? (
-                      <GitBranch className="size-4 text-zinc-400" />
+                      <GitBranch className="size-4 text-zinc-400 shrink-0" />
                     ) : ev.type === "document" ? (
-                      <FileText className="size-4 text-zinc-400" />
+                      <FileText className="size-4 text-zinc-400 shrink-0" />
                     ) : (
-                      <Globe className="size-4 text-zinc-400" />
+                      <Globe className="size-4 text-zinc-400 shrink-0" />
                     )}
-                    <span className="font-medium truncate">{ev.title}</span>
+                    <span className="font-medium break-words">{ev.title}</span>
                   </div>
                   <ExternalLink className="size-3.5 text-zinc-500 group-hover:text-white shrink-0 ml-2" />
                 </a>
