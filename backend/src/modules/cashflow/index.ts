@@ -785,6 +785,27 @@ export class CashflowService {
     const totalExpenses12m = monthlyExpenses.reduce((s, m) => s + m.total, 0);
     const netProfit12m = totalPaid12m - totalExpenses12m;
 
+    const earliestRow = db.all<{ earliest_year: string | null }>(sql`
+      SELECT MIN(strftime('%Y', datetime(val / 1000, 'unixepoch', 'localtime'))) as earliest_year FROM (
+        SELECT date_created as val FROM cashflow_invoices i JOIN cashflow_clients c ON i.client_id = c.id WHERE c.user_id = ${userId} AND date_created IS NOT NULL
+        UNION ALL
+        SELECT date_service as val FROM cashflow_invoices i JOIN cashflow_clients c ON i.client_id = c.id WHERE c.user_id = ${userId} AND date_service IS NOT NULL
+        UNION ALL
+        SELECT date_paid as val FROM cashflow_invoices i JOIN cashflow_clients c ON i.client_id = c.id WHERE c.user_id = ${userId} AND date_paid IS NOT NULL
+        UNION ALL
+        SELECT CAST(strftime('%s', i.created_at) AS INTEGER) * 1000 as val FROM cashflow_invoices i JOIN cashflow_clients c ON i.client_id = c.id WHERE c.user_id = ${userId}
+        UNION ALL
+        SELECT il.date as val FROM cashflow_invoice_lines il JOIN cashflow_invoices i ON il.invoice_id = i.id JOIN cashflow_clients c ON i.client_id = c.id WHERE c.user_id = ${userId} AND il.date IS NOT NULL
+        UNION ALL
+        SELECT date as val FROM cashflow_expenses e WHERE e.user_id = ${userId} AND date IS NOT NULL
+        UNION ALL
+        SELECT CAST(strftime('%s', e.created_at) AS INTEGER) * 1000 as val FROM cashflow_expenses e WHERE e.user_id = ${userId}
+        UNION ALL
+        SELECT CAST(strftime('%s', c.created_at) AS INTEGER) * 1000 as val FROM cashflow_clients c WHERE c.user_id = ${userId}
+      )
+    `);
+    const firstRecordYear = earliestRow[0]?.earliest_year ? Number(earliestRow[0].earliest_year) : new Date().getFullYear();
+
     return {
       monthlyIncome,
       statusTotals,
@@ -794,6 +815,7 @@ export class CashflowService {
       expensesByCategory,
       totalExpenses12m,
       netProfit12m,
+      firstRecordYear,
     };
   }
 }

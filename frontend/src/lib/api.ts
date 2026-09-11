@@ -1151,5 +1151,6 @@ export interface CashflowDashboardStats {
   expensesByCategory?: CashflowExpenseCategory[];
   totalExpenses12m?: number;
   netProfit12m?: number;
+  firstRecordYear?: number;
 }
 

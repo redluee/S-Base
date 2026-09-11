@@ -29,11 +29,11 @@ function getMonthsForYear(year: number): string[] {
   return months;
 }
 
-function MonthLabel({ month }: { month: string }) {
+function MonthLabel({ month, isCurrentMonth }: { month: string; isCurrentMonth?: boolean }) {
   const [y, m] = month.split("-");
   const date = new Date(Number(y), Number(m) - 1, 1);
   return (
-    <span className="text-[10px] text-zinc-500">
+    <span className={`text-[10px] ${isCurrentMonth ? "font-bold text-white" : "text-zinc-500"}`}>
       {date.toLocaleDateString("nl-NL", { month: "short" })}
     </span>
   );
@@ -45,12 +45,21 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
   const [loading, setLoading] = useState<boolean>(false);
   const [activeMonthTooltip, setActiveMonthTooltip] = useState<string | null>(null);
 
+  const currentYear = new Date().getFullYear();
+  const maxYear = currentYear + 1;
+  const minYear = Math.min(stats?.firstRecordYear ?? currentYear, currentYear);
+  const activeYear = Math.max(minYear, Math.min(maxYear, selectedYear));
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(Math.max(minYear, Math.min(maxYear, year)));
+  };
+
   useEffect(() => {
     let isMounted = true;
     async function fetchStats() {
       setLoading(true);
       try {
-        const res = await api.cashflow.dashboard(selectedYear);
+        const res = await api.cashflow.dashboard(activeYear);
         if (isMounted) {
           setStats(res);
         }
@@ -67,7 +76,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
     return () => {
       isMounted = false;
     };
-  }, [selectedYear]);
+  }, [activeYear]);
 
   useEffect(() => {
     function handleTouchOutside(e: TouchEvent) {
@@ -80,7 +89,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
     return () => document.removeEventListener("touchstart", handleTouchOutside);
   }, []);
 
-  const months = getMonthsForYear(selectedYear);
+  const months = getMonthsForYear(activeYear);
   const monthDataMap = new Map(
     (stats?.monthlyIncome ?? []).map((m) => [
       m.month,
@@ -148,13 +157,13 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Omzet */}
         <Link
-          href={`/cashflow/invoices?year=${selectedYear}&status=paid`}
+          href={`/cashflow/invoices?year=${activeYear}&status=paid`}
           className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-blue-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-blue-400">
               <TrendingUp className="size-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">{t("Omzet")} {selectedYear}</span>
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Omzet")} {activeYear}</span>
             </div>
             <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
           </div>
@@ -164,18 +173,18 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
 
         {/* Uitgaven */}
         <Link
-          href={`/cashflow/expenses?year=${selectedYear}`}
+          href={`/cashflow/expenses?year=${activeYear}`}
           className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-rose-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-rose-400">
               <Receipt className="size-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">{t("Uitgaven")} {selectedYear}</span>
+              <span className="text-xs font-semibold uppercase tracking-wide">{t("Uitgaven")} {activeYear}</span>
             </div>
             <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-2xl font-bold text-white">{formatEuro(totalExpenses)}</p>
-          <p className="text-xs text-zinc-500">Bedrijfskosten in {selectedYear}</p>
+          <p className="text-xs text-zinc-500">Bedrijfskosten in {activeYear}</p>
         </Link>
 
         {/* Netto resultaat */}
@@ -229,7 +238,12 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
               </div>
             </div>
           </div>
-          <YearSelector year={selectedYear} onChange={setSelectedYear} />
+          <YearSelector
+            year={activeYear}
+            onChange={handleYearChange}
+            minYear={minYear}
+            maxYear={maxYear}
+          />
         </div>
 
         <div className={`flex items-end gap-1.5 h-36 transition-opacity duration-200 ${loading ? "opacity-50" : "opacity-100"}`}>
@@ -360,7 +374,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                     <div className="w-full rounded-t bg-zinc-800" style={{ height: "2%" }} />
                   )}
                 </div>
-                <MonthLabel month={month} />
+                <MonthLabel month={month} isCurrentMonth={isCurrentMonth} />
               </div>
             );
           })}

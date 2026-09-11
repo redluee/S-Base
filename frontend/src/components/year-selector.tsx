@@ -72,7 +72,7 @@ export function YearSelector({
         type="button"
         onClick={handlePrev}
         disabled={year <= minYear}
-        className="size-6 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 transition-colors cursor-pointer flex items-center justify-center"
+        className="size-6 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center"
         aria-label="Previous year"
       >
         <ChevronLeft className="size-4" />
@@ -105,7 +105,7 @@ export function YearSelector({
         type="button"
         onClick={handleNext}
         disabled={year >= maxYear}
-        className="size-6 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 transition-colors cursor-pointer flex items-center justify-center"
+        className="size-6 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center"
         aria-label="Next year"
       >
         <ChevronRight className="size-4" />

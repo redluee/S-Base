@@ -5,10 +5,12 @@ import { CashflowService } from "./index";
 describe("CashflowService", () => {
   let cashflow: CashflowService;
   let adminId: number;
+  let testerId: number;
 
   beforeEach(async () => {
     const ids = await setupTestDb();
     adminId = ids.adminId;
+    testerId = ids.testerId;
     cashflow = new CashflowService();
   });
 
@@ -266,5 +268,25 @@ describe("CashflowService", () => {
     const deleted = cashflow.removeExpense(exp1!.id);
     expect(deleted?.deleted).toBe(true);
     expect(cashflow.getExpenseById(exp1!.id)).toBeFalsy();
+  });
+
+  it("computes firstRecordYear correctly based on the earliest invoice or expense record", () => {
+    const client = cashflow.createClient(testerId, { name: "Year Test Client" });
+
+    // When there are no invoices or expenses, firstRecordYear falls back to current year
+    const initialStats = cashflow.getDashboardStats(testerId);
+    expect(initialStats.firstRecordYear).toBe(new Date().getFullYear());
+
+    // Create an older invoice in 2023
+    const oldDate = new Date("2023-04-15").getTime();
+    cashflow.createInvoice(testerId, {
+      clientId: client.id,
+      invoiceNumber: "2023-001",
+      dateCreated: oldDate,
+      lines: [{ taskDescription: "Historical Work", quantity: 1, unitPrice: 500, totalCost: 500 }],
+    });
+
+    const updatedStats = cashflow.getDashboardStats(testerId);
+    expect(updatedStats.firstRecordYear).toBe(2023);
   });
 });
