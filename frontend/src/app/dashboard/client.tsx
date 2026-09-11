@@ -440,8 +440,6 @@ export function DashboardClient({
         {canAccess("minor") && (
           <a
             href="https://minor.stevenheijn.nl"
-            target="_blank"
-            rel="noopener noreferrer"
             className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FF9100]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
