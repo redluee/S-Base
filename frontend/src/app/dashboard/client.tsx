@@ -87,7 +87,8 @@ const MODULES: ModuleDefinition[] = [
     roles: ["user", "admin"],
     accentColor: "#FF9100",
     glowColor: "rgba(255, 145, 0, 0.35)",
-    href: "/minor",
+    href: "https://minor.stevenheijn.nl",
+    external: true,
   },
   {
     id: "lyric_quotes",
@@ -437,8 +438,10 @@ export function DashboardClient({
 
         {/* 5. Minor Card */}
         {canAccess("minor") && (
-          <Link
-            href="/minor"
+          <a
+            href="https://minor.stevenheijn.nl"
+            target="_blank"
+            rel="noopener noreferrer"
             className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FF9100]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -460,7 +463,7 @@ export function DashboardClient({
             <div className="size-8 rounded-full bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] group-hover:bg-[#FF9100] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
-          </Link>
+          </a>
         )}
 
         {/* 6. Lyric Quotes & You (Side-by-side compact partner tiles in 1 column) */}
