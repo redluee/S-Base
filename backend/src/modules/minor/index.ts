@@ -1053,6 +1053,20 @@ export class MinorService {
     const storyTypeCode = data.storyTypeCode?.trim().toUpperCase() || "US";
     const learningOutcomes = Array.isArray(data.learningOutcomes) ? data.learningOutcomes : [];
 
+    let orderIndex = data.orderIndex;
+    if (orderIndex === undefined) {
+      if (validSprintId) {
+        const lastStory = db
+          .select({ maxOrder: sql<number>`MAX(${minorStories.orderIndex})` })
+          .from(minorStories)
+          .where(and(eq(minorStories.sprintId, validSprintId), eq(minorStories.userId, userId)))
+          .get();
+        orderIndex = ((lastStory?.maxOrder as number | null | undefined) ?? 0) + 1;
+      } else {
+        orderIndex = 0;
+      }
+    }
+
     const storyRow = db.insert(minorStories).values({
       sprintId: validSprintId,
       userId,
@@ -1064,7 +1078,7 @@ export class MinorService {
       soThat: data.soThat?.trim() || null,
       learningOutcomes: JSON.stringify(learningOutcomes),
       status: data.status || "todo",
-      orderIndex: data.orderIndex ?? 0,
+      orderIndex,
       presentationData: data.presentationData ? JSON.stringify(data.presentationData) : null,
     }).returning().get();
 
@@ -1301,6 +1315,22 @@ export class MinorService {
     const existing = db.select().from(minorStories).where(and(eq(minorStories.id, storyId), eq(minorStories.userId, userId))).get();
     if (!existing) return null;
     db.delete(minorStories).where(eq(minorStories.id, storyId)).run();
+    return { success: true };
+  }
+
+  reorderStories(sprintId: number, userId: number, storyIds: number[]) {
+    const sprint = db.select().from(minorSprints).where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId))).get();
+    if (!sprint) return null;
+
+    db.transaction((tx) => {
+      storyIds.forEach((id, index) => {
+        tx.update(minorStories)
+          .set({ orderIndex: index + 1 })
+          .where(and(eq(minorStories.id, id), eq(minorStories.sprintId, sprintId), eq(minorStories.userId, userId)))
+          .run();
+      });
+    });
+
     return { success: true };
   }
 

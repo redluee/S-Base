@@ -713,6 +713,12 @@ export const app = new Elysia()
       .get("/stories", ({ userId }) => minor.listAllStories(userId))
       .post("/stories", ({ userId, body }) => minor.createStory(userId, (body as any)?.sprintId ?? null, (body ?? {}) as any))
       .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.createStory(userId, Number(id), (body ?? {}) as any))
+      .put("/sprints/:id/stories/reorder", ({ params: { id }, userId, body }) => {
+        const storyIds = ((body as any)?.storyIds || []) as number[];
+        const res = minor.reorderStories(Number(id), userId, storyIds);
+        if (!res) return new Response("Not Found", { status: 404 });
+        return res;
+      })
       .put("/stories/:id", ({ params: { id }, userId, body }) => {
         const s = minor.updateStory(Number(id), userId, (body ?? {}) as any);
         if (!s) return new Response("Not Found", { status: 404 });

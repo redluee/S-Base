@@ -495,5 +495,41 @@ describe("MinorService", () => {
     expect(renamed.name).toBe("Sprint 1 (kopie)");
     expect(renamed.stories.length).toBe(1);
   });
+
+  it("reorders stories in a sprint and preserves order in sprint full view", () => {
+    const sprint = minor.createSprint(adminId, {
+      startDate: "2026-09-07",
+    });
+
+    const story1 = minor.createStory(adminId, sprint.id, {
+      title: "Story One",
+      learningOutcomes: [1],
+    });
+    const story2 = minor.createStory(adminId, sprint.id, {
+      title: "Story Two",
+      learningOutcomes: [2],
+    });
+    const story3 = minor.createStory(adminId, sprint.id, {
+      title: "Story Three",
+      learningOutcomes: [3],
+    });
+
+    const initialSprint = minor.getSprintById(sprint.id, adminId);
+    expect(initialSprint?.stories.map((s) => s.id)).toEqual([story1.id, story2.id, story3.id]);
+
+    // Reorder: 3, 1, 2
+    const result = minor.reorderStories(sprint.id, adminId, [story3.id, story1.id, story2.id]);
+    expect(result).toEqual({ success: true });
+
+    const updatedSprint = minor.getSprintById(sprint.id, adminId);
+    expect(updatedSprint?.stories.map((s) => s.id)).toEqual([story3.id, story1.id, story2.id]);
+    expect(updatedSprint?.stories[0].orderIndex).toBe(1);
+    expect(updatedSprint?.stories[1].orderIndex).toBe(2);
+    expect(updatedSprint?.stories[2].orderIndex).toBe(3);
+
+    // Verify user isolation: tester cannot reorder admin's sprint
+    const forbidden = minor.reorderStories(sprint.id, testerId, [story1.id, story2.id, story3.id]);
+    expect(forbidden).toBeNull();
+  });
 });
 

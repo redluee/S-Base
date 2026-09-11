@@ -813,6 +813,11 @@ export const api = {
       },
       stories: {
         listAll: () => request<MinorStoryWithSprint[]>("/minor/stories"),
+        reorder: (sprintId: number, storyIds: number[]) =>
+          request<{ success: boolean }>(`/minor/sprints/${sprintId}/stories/reorder`, {
+            method: "PUT",
+            body: JSON.stringify({ storyIds }),
+          }),
         create: (sprintId: number | null | undefined, data: {
           storyTypeCode?: string;
           storyNumber?: string;
@@ -854,6 +859,11 @@ export const api = {
     },
     stories: {
       list: () => request<MinorStoryWithSprint[]>("/minor/stories"),
+      reorder: (sprintId: number, storyIds: number[]) =>
+        request<{ success: boolean }>(`/minor/sprints/${sprintId}/stories/reorder`, {
+          method: "PUT",
+          body: JSON.stringify({ storyIds }),
+        }),
       create: (data: {
         sprintId?: number | null;
         storyTypeCode?: string;
