@@ -133,10 +133,11 @@ export function PresentationCriteriaModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
             title={t("Sluiten (ESC)")}
+            aria-label={t("Sluiten")}
           >
-            <X className="size-5" />
+            <X className="size-4" />
           </button>
         </div>
 

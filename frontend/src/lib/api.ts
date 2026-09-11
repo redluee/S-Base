@@ -23,6 +23,8 @@ import type {
   MinorDashboardStats,
   MinorStoryPresentationData,
   MinorStoryPresentationImage,
+  MinorStoryPresentationLink,
+  MinorStoryPresentationDocument,
   MinorSprintExportData,
   MinorSprintExportStory,
 } from "@backend/types/shared";
@@ -958,6 +960,8 @@ export type {
   MinorDashboardStats,
   MinorStoryPresentationData,
   MinorStoryPresentationImage,
+  MinorStoryPresentationLink,
+  MinorStoryPresentationDocument,
   MinorSprintExportData,
   MinorSprintExportStory,
 };

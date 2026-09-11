@@ -468,8 +468,9 @@ export function SprintPresentation({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-zinc-900/80 border border-white/10 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer backdrop-blur-md"
+            className="size-8 flex items-center justify-center rounded-lg bg-zinc-900/80 border border-white/10 hover:bg-zinc-800 hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer backdrop-blur-md shrink-0"
             title={t("Sluiten")}
+            aria-label={t("Sluiten")}
           >
             <X className="size-4" />
           </button>
@@ -639,7 +640,9 @@ export function SprintPresentation({
               <button
                 type="button"
                 onClick={() => setIsOverviewOpen(false)}
-                className="p-1 text-zinc-400 hover:text-white rounded cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
                 <X className="size-4" />
               </button>

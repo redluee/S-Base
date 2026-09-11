@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Plus, Trash2, Edit2, Tag, CornerDownRight, CheckSquare } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit2, Tag, CornerDownRight, CheckSquare, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorVacation, type MinorStoryType } from "@/lib/api";
 import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
@@ -422,10 +422,13 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
                 <span>{editingVac ? t("Vakantie bewerken") : t("Vakantie toevoegen")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsVacModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 
@@ -509,10 +512,13 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
                 <span>{editingType ? t("Story Type bewerken") : t("Story Type toevoegen")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsTypeModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 

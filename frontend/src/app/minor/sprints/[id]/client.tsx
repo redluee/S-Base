@@ -30,6 +30,7 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import {
@@ -90,16 +91,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   });
   const [editingPresentationStory, setEditingPresentationStory] = useState<MinorStory | null>(null);
 
-  // Story Modal Presentation Fields
-  const [presEnabled, setPresEnabled] = useState(true);
-  const [presLayout, setPresLayout] = useState<"auto" | "split" | "media" | "bullets" | "demo">("auto");
-  const [presBullets, setPresBullets] = useState<string[]>([]);
-  const [presDemoUrl, setPresDemoUrl] = useState("");
-  const [presDemoTitle, setPresDemoTitle] = useState("");
-  const [presSummary, setPresSummary] = useState("");
-  const [presImages, setPresImages] = useState<Array<{ url: string; caption?: string }>>([]);
-  const [presNotes, setPresNotes] = useState("");
-  const [isPresentationSectionOpen, setIsPresentationSectionOpen] = useState(false);
 
   // Story Unlink / Move Modal State
   const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
@@ -195,15 +186,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     setAcceptanceCriteria([{ text: "", isCompleted: false, indent: 0 }]);
     setQualityCriteria(getDefaultQualityCriteriaForType("US"));
     setEvidenceList([]);
-    setPresEnabled(true);
-    setPresLayout("auto");
-    setPresBullets([""]);
-    setPresDemoUrl("");
-    setPresDemoTitle("");
-    setPresSummary("");
-    setPresImages([]);
-    setPresNotes("");
-    setIsPresentationSectionOpen(false);
     setIsStoryModalOpen(true);
   }
 
@@ -230,16 +212,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     setEvidenceList(
       st.evidence?.map((e) => ({ type: e.type as "link" | "github" | "document" | "app", title: e.title, url: e.url })) || []
     );
-    const pd = st.presentationData || {};
-    setPresEnabled(pd.enabled !== false);
-    setPresLayout(pd.layout || "auto");
-    setPresBullets(pd.bullets && pd.bullets.length > 0 ? pd.bullets : [""]);
-    setPresDemoUrl(pd.demoUrl || "");
-    setPresDemoTitle(pd.demoTitle || "");
-    setPresSummary(pd.summary || "");
-    setPresImages(pd.images || []);
-    setPresNotes(pd.notes || "");
-    setIsPresentationSectionOpen(Boolean(st.presentationData));
     setIsStoryModalOpen(true);
   }
 
@@ -276,16 +248,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
         acceptanceCriteria: acceptanceCriteria.filter((c) => c.text.trim()),
         qualityCriteria: qualityCriteria.filter((c) => c.text.trim()),
         evidence: evidenceList.filter((e) => e.title.trim() && e.url.trim()),
-        presentationData: {
-          enabled: presEnabled,
-          layout: presLayout,
-          bullets: presBullets.map((b) => b.trim()).filter(Boolean),
-          demoUrl: presDemoUrl.trim() || undefined,
-          demoTitle: presDemoTitle.trim() || undefined,
-          summary: presSummary.trim() || undefined,
-          images: presImages.filter((img) => img.url.trim().length > 0),
-          notes: presNotes.trim() || undefined,
-        },
+        presentationData: editingStory?.presentationData ?? undefined,
       };
 
       let targetStoryId: number | null = null;
@@ -1659,11 +1622,13 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setViewingStoryId(null)}
-                  className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                  title={t("Sluiten")}
                   aria-label={t("Sluiten")}
                 >
-                  ✕
+                  <X className="size-4" />
                 </button>
               </div>
             </div>
@@ -1947,10 +1912,13 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 <span>{editingStory ? t("Story Bewerken") : t("Nieuwe Story Aanmaken")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsStoryModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 
@@ -2409,211 +2377,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 </div>
               </div>
 
-              {/* Show & Tell / Presentation Section */}
-              <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Presentation className="size-4 text-brand" />
-                    <span className="font-bold text-zinc-100 text-sm">
-                      {t("Show & Tell / Presentatie")}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPresentationSectionOpen((prev) => !prev)}
-                    className="text-xs text-brand hover:underline font-medium cursor-pointer"
-                  >
-                    {isPresentationSectionOpen ? t("Inklappen") : t("Uitklappen / Aanpassen")}
-                  </button>
-                </div>
-
-                {isPresentationSectionOpen && (
-                  <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in duration-150">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <label className="flex items-center gap-2 p-2.5 rounded-lg bg-zinc-900 border border-white/5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={presEnabled}
-                          onChange={(e) => setPresEnabled(e.target.checked)}
-                          className="rounded border-zinc-700 bg-zinc-950 text-brand focus:ring-brand size-4 cursor-pointer"
-                        />
-                        <span className="text-xs font-medium text-zinc-300">
-                          {t("Opnemen in presentatie")}
-                        </span>
-                      </label>
-
-                      <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-1">
-                          {t("Dia layout")}
-                        </label>
-                        <select
-                          value={presLayout}
-                          onChange={(e) => setPresLayout(e.target.value as "auto" | "split" | "media" | "bullets" | "demo")}
-                          className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
-                        >
-                          <option value="auto">{t("Automatisch (aanbevolen)")}</option>
-                          <option value="split">{t("Split (Tekst & Media)")}</option>
-                          <option value="media">{t("Media Galerij")}</option>
-                          <option value="demo">{t("Live Demo Focus")}</option>
-                          <option value="bullets">{t("Highlights & Doelen")}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-zinc-400 mb-1">
-                        {t("Aangepaste toelichting / samenvatting (optioneel)")}
-                      </label>
-                      <input
-                        type="text"
-                        value={presSummary}
-                        onChange={(e) => setPresSummary(e.target.value)}
-                        placeholder="Korte samenvatting van wat er gebouwd is..."
-                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
-                      />
-                    </div>
-
-                    {/* Highlights / Bullet points */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-zinc-400">
-                          {t("Highlights / Bulletpoints")}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setPresBullets((prev) => [...prev, ""])}
-                          className="text-brand hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
-                        >
-                          <Plus className="size-3" />
-                          <span>{t("Highlight toevoegen")}</span>
-                        </button>
-                      </div>
-
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                        {presBullets.map((b, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-zinc-500 font-mono text-xs w-4 shrink-0">
-                              {idx + 1}.
-                            </span>
-                            <input
-                              type="text"
-                              value={b}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setPresBullets((prev) => prev.map((item, i) => (i === idx ? val : item)));
-                              }}
-                              placeholder="bijv. API endpoints geïmplementeerd met Drizzle ORM..."
-                              className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1 text-white text-xs focus:outline-none focus:border-brand"
-                            />
-                            {presBullets.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => setPresBullets((prev) => prev.filter((_, i) => i !== idx))}
-                                className="p-1 text-zinc-500 hover:text-red-400 rounded transition-colors cursor-pointer"
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Live Demo URL */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-medium text-zinc-400">
-                        {t("Live Deployed Product URL")}
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          value={presDemoTitle}
-                          onChange={(e) => setPresDemoTitle(e.target.value)}
-                          placeholder="Knop label (bijv. Bekijk Live Applicatie)"
-                          className="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none"
-                        />
-                        <input
-                          type="text"
-                          value={presDemoUrl}
-                          onChange={(e) => setPresDemoUrl(e.target.value)}
-                          placeholder="https://jouw-app.example.com"
-                          className="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Screenshots & Images */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-zinc-400">
-                          {t("Screenshots & Afbeeldingen")}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setPresImages((prev) => [...prev, { url: "", caption: "" }])}
-                          className="text-brand hover:underline flex items-center gap-1 text-xs cursor-pointer"
-                        >
-                          <Plus className="size-3" />
-                          <span>{t("Afbeelding toevoegen")}</span>
-                        </button>
-                      </div>
-
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                        {presImages.map((img, idx) => (
-                          <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                            <input
-                              type="text"
-                              value={img.url}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setPresImages((prev) =>
-                                  prev.map((item, i) => (i === idx ? { ...item, url: val } : item))
-                                );
-                              }}
-                              placeholder="/api/uploads/... of https://..."
-                              className="sm:col-span-6 bg-zinc-900 border border-white/10 rounded-lg px-2 py-1 text-white text-xs font-mono focus:outline-none"
-                            />
-                            <input
-                              type="text"
-                              value={img.caption || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setPresImages((prev) =>
-                                  prev.map((item, i) => (i === idx ? { ...item, caption: val } : item))
-                                );
-                              }}
-                              placeholder="Onderschrift (optioneel)"
-                              className="sm:col-span-5 bg-zinc-900 border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setPresImages((prev) => prev.filter((_, i) => i !== idx))}
-                              className="sm:col-span-1 p-1 text-zinc-500 hover:text-red-400 rounded transition-colors cursor-pointer flex justify-center"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-xs font-medium text-zinc-400 mb-1">
-                        {t("Presentator notities")}
-                      </label>
-                      <input
-                        type="text"
-                        value={presNotes}
-                        onChange={(e) => setPresNotes(e.target.value)}
-                        placeholder="Notities voor tijdens de Show & Tell..."
-                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
               <div className="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   {editingStory && (
@@ -2685,10 +2448,13 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 <span>{t("Story Importeren (JSON)")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsImportStoryModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 
@@ -2760,10 +2526,13 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 <span>{t("Concept Story Koppelen")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsLinkStoryModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 
@@ -2903,11 +2672,13 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 <span>{t("Story loskoppelen")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsUnlinkModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
                 aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 

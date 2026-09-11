@@ -1055,6 +1055,12 @@ const nl: Record<string, string> = {
   "Alle handelsnamen": "Alle handelsnamen",
   "Bijlage gekoppeld": "Bijlage gekoppeld",
   "Bestand uploaden mislukt": "Bestand uploaden mislukt",
+  "Websites": "Websites",
+  "Website toevoegen": "Website toevoegen",
+  "Weergavenaam": "Weergavenaam",
+  "Geen websites toegevoegd.": "Geen websites toegevoegd.",
+  "Website openen": "Website openen",
+  "Live Applicatie": "Live Applicatie",
 };
 
 

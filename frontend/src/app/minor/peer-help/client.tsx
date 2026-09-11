@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Plus, Trash2, Edit2, ExternalLink, Search } from "lucide-react";
+import { Users, Plus, Trash2, Edit2, ExternalLink, Search, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorPeerHelp, type MinorSprint } from "@/lib/api";
 
@@ -290,10 +290,13 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
                 <span>{editingEntry ? t("Kennisdeling Bewerken") : t("Kennisdeling Registreren")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 

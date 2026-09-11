@@ -326,6 +326,9 @@ describe("MinorService", () => {
         demoUrl: "https://staging.app.example.com/dashboard",
         demoTitle: "Staging Dashboard Live",
         images: [{ url: "/api/uploads/dash.png", caption: "Dashboard overview" }],
+        websites: [{ url: "https://my-app.example.com", title: "Production Portal" }],
+        links: [{ url: "https://docs.example.com", title: "API Documentation" }],
+        documents: [{ url: "/api/minor/uploads/spec.pdf", title: "Architecture Spec" }],
         notes: "Remember to highlight the responsive layout",
       },
     });
@@ -336,13 +339,20 @@ describe("MinorService", () => {
     expect(story.presentationData?.listStyle).toBe("steps");
     expect(story.presentationData?.bullets?.length).toBe(2);
     expect(story.presentationData?.demoUrl).toBe("https://staging.app.example.com/dashboard");
+    expect(story.presentationData?.websites?.[0].title).toBe("Production Portal");
+    expect(story.presentationData?.websites?.[0].url).toBe("https://my-app.example.com");
+    expect(story.presentationData?.links?.[0].url).toBe("https://docs.example.com");
+    expect(story.presentationData?.documents?.[0].title).toBe("Architecture Spec");
 
     // Retrieve via getSprintById
     const sprintData = minor.getSprintById(sprint.id, adminId);
     const foundStory = sprintData?.stories.find((s) => s.id === story.id);
     expect(foundStory?.presentationData?.demoTitle).toBe("Staging Dashboard Live");
     expect(foundStory?.presentationData?.listStyle).toBe("steps");
+    expect(foundStory?.presentationData?.websites?.[0].title).toBe("Production Portal");
     expect(foundStory?.presentationData?.images?.[0].caption).toBe("Dashboard overview");
+    expect(foundStory?.presentationData?.links?.[0].title).toBe("API Documentation");
+    expect(foundStory?.presentationData?.documents?.[0].url).toBe("/api/minor/uploads/spec.pdf");
 
     // Update presentation data
     const updated = minor.updateStory(story.id, adminId, {

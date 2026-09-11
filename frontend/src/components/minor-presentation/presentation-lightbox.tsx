@@ -88,7 +88,7 @@ export function PresentationLightbox({ image, onClose }: PresentationLightboxPro
         <button
           type="button"
           onClick={onClose}
-          className="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
           title={t("Sluiten")}
           aria-label={t("Sluiten")}
         >

@@ -170,6 +170,17 @@ export interface MinorStoryPresentationImage {
   caption?: string;
 }
 
+export interface MinorStoryPresentationDocument {
+  title: string;
+  url: string;
+}
+
+export interface MinorStoryPresentationLink {
+  url: string;
+  title?: string;
+  name?: string;
+}
+
 export interface MinorStoryPresentationData {
   enabled?: boolean;
   layout?: "auto" | "split" | "media" | "bullets" | "demo";
@@ -179,6 +190,9 @@ export interface MinorStoryPresentationData {
   demoUrl?: string;
   demoTitle?: string;
   images?: MinorStoryPresentationImage[];
+  links?: MinorStoryPresentationLink[];
+  websites?: MinorStoryPresentationLink[];
+  documents?: MinorStoryPresentationDocument[];
   notes?: string;
 }
 

@@ -17,6 +17,7 @@ import {
   GraduationCap,
   Check,
   Sparkles,
+  X,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorDashboardStats, type MinorSprint } from "@/lib/api";
@@ -628,10 +629,13 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                 <span>{t("Kennisdeling Registreren")}</span>
               </h3>
               <button
+                type="button"
                 onClick={() => setIsPeerModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 
@@ -713,10 +717,13 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                 <span>{t("Nieuwe Sprint Aanmaken")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsSprintModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 

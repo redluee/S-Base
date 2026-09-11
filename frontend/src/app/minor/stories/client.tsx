@@ -16,6 +16,7 @@ import {
   Plus,
   Link2,
   Check,
+  X,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import {
@@ -621,10 +622,13 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
                   </span>
                 )}
                 <button
+                  type="button"
                   onClick={() => setViewingStoryId(null)}
-                  className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                  title={t("Sluiten")}
+                  aria-label={t("Sluiten")}
                 >
-                  ✕
+                  <X className="size-4" />
                 </button>
               </div>
             </div>
@@ -901,10 +905,13 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
                 <span>{t("Nieuwe Story Aanmaken")}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-base cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
+                title={t("Sluiten")}
+                aria-label={t("Sluiten")}
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
 
