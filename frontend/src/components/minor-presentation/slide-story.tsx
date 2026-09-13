@@ -518,26 +518,14 @@ export function SlideStory({
                 )}
               </div>
             ) : websites.length > 0 ? (
-              <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-4">
-                <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
-                  <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
-                    <Globe className="size-4.5" style={{ color: storyColor }} />
-                    <span>{t("Websites")}</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
-                    {websites.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {websites.map((w, idx) => (
-                    <WebsiteLinkCard key={idx} website={w} storyColor={storyColor} size="large" />
-                  ))}
-                </div>
+              <div className="space-y-3">
+                {websites.map((w, idx) => (
+                  <WebsiteLinkCard key={idx} website={w} storyColor={storyColor} size="large" />
+                ))}
                 {documents.length > 0 && (
-                  <div className="space-y-2.5 pt-3 border-t border-white/5">
-                    <span className="text-xs font-semibold text-zinc-400 block">{t("Documenten")}</span>
+                  <div className="space-y-2.5 pt-2">
                     {documents.map((doc, idx) => (
-                      <DocumentLinkCard key={idx} doc={doc} storyColor={storyColor} />
+                      <DocumentLinkCard key={idx} doc={doc} storyColor={storyColor} size="large" />
                     ))}
                   </div>
                 )}
@@ -726,10 +714,6 @@ export function SlideStory({
                   <ExternalLink className="size-4" />
                 </a>
               )}
-
-              <p className="text-xs text-zinc-400 italic">
-                {t("Klik om de gedeployde applicatie in een nieuw venster te demonstreren.")}
-              </p>
             </div>
           </div>
         </div>
