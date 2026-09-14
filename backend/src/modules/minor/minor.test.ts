@@ -541,5 +541,46 @@ describe("MinorService", () => {
     const forbidden = minor.reorderStories(sprint.id, testerId, [story1.id, story2.id, story3.id]);
     expect(forbidden).toBeNull();
   });
+
+  it("automatically synchronizes self-evaluations with 'V' and evidence for realized learning outcomes", () => {
+    const sprint = minor.createSprint(adminId, {
+      startDate: "2026-09-01",
+    });
+
+    // Create a story with status 'done' touching LU 1 and LU 2
+    minor.createStory(adminId, sprint.id, {
+      title: "Realized Story",
+      learningOutcomes: [1, 2],
+      status: "done",
+      evidence: [
+        { type: "github", title: "PR #10", url: "https://github.com/example/pr/10" },
+      ],
+    });
+
+    const full = minor.getSprintById(sprint.id, adminId);
+    expect(full).not.toBeNull();
+    const eval1 = full?.selfEvaluations.find((e) => e.learningOutcome === 1);
+    const eval2 = full?.selfEvaluations.find((e) => e.learningOutcome === 2);
+    const eval3 = full?.selfEvaluations.find((e) => e.learningOutcome === 3);
+
+    expect(eval1?.level).toBe("V");
+    expect(eval1?.argumentation).toContain("Voltooide stories voor LU 1:");
+    expect(eval1?.argumentation).toContain("Realized Story");
+    expect(eval1?.argumentation).toContain("PR #10");
+
+    expect(eval2?.level).toBe("V");
+    expect(eval2?.argumentation).toContain("Voltooide stories voor LU 2:");
+
+    expect(eval3?.level).toBe("-");
+    expect(eval3?.argumentation).toBe("");
+
+    // Custom argumentation should not be overwritten
+    minor.saveSelfEvaluations(sprint.id, adminId, [
+      { learningOutcome: 1, level: "V", argumentation: "Mijn eigen bewijs" },
+    ]);
+    const afterCustom = minor.getSprintById(sprint.id, adminId);
+    const eval1After = afterCustom?.selfEvaluations.find((e) => e.learningOutcome === 1);
+    expect(eval1After?.argumentation).toBe("Mijn eigen bewijs");
+  });
 });
 

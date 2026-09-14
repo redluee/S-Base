@@ -6,7 +6,8 @@ import { api, type MinorSprintFull } from "@/lib/api";
 import {
   LU_MASTER_DEFINITIONS,
   findSprintByNumber,
-  normalizeEvaluationLevel,
+  resolveSprintLuLevel,
+  resolveSprintLuArgumentation,
 } from "@/lib/minor-excel";
 
 // Palette matching Image 1 & Image 2
@@ -170,8 +171,7 @@ function DashboardPdfPage({ sprints }: DashboardPageProps) {
     sprintLuLevels[sNum] = {};
     const sp = findSprintByNumber(sprints, sNum);
     for (let lu = 1; lu <= 5; lu++) {
-      const item = sp?.selfEvaluations?.find((e) => e.learningOutcome === lu);
-      sprintLuLevels[sNum][lu] = normalizeEvaluationLevel(item?.level);
+      sprintLuLevels[sNum][lu] = resolveSprintLuLevel(sp, lu);
     }
   }
 
@@ -470,9 +470,8 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
         {/* 5 LU Rows */}
         {LU_MASTER_DEFINITIONS.map((luDef, idx) => {
-          const evalItem = sprint?.selfEvaluations?.find((e) => e.learningOutcome === luDef.lu);
-          const level = normalizeEvaluationLevel(evalItem?.level);
-          const argumentation = evalItem?.argumentation || "";
+          const level = resolveSprintLuLevel(sprint, luDef.lu);
+          const argumentation = resolveSprintLuArgumentation(sprint, luDef.lu);
 
           return (
             <View

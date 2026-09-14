@@ -168,13 +168,61 @@ export function findSprintByNumber(sprints: MinorSprintFull[], targetNum: number
   });
 }
 
-export function normalizeEvaluationLevel(level?: string | null): string {
-  if (!level) return "-";
-  const trimmed = level.trim().toUpperCase();
-  if (trimmed === "V") return "V";
-  if (trimmed === "O") return "O";
-  if (trimmed === "NV") return "O";
+export function isLuRealizedInSprint(sprint: MinorSprintFull | undefined, lu: number): boolean {
+  if (!sprint || !Array.isArray(sprint.stories)) return false;
+  return sprint.stories.some(
+    (s) => s.status === "done" && Array.isArray(s.learningOutcomes) && s.learningOutcomes.includes(lu)
+  );
+}
+
+export function resolveSprintLuLevel(sprint: MinorSprintFull | undefined, lu: number): string {
+  if (!sprint) return "-";
+  const evalItem = sprint.selfEvaluations?.find((e) => e.learningOutcome === lu);
+  const teacherItem = sprint.teacherAssessments?.find((a) => a.learningOutcome === lu);
+
+  if (teacherItem?.assessment?.trim().toUpperCase() === "V" || evalItem?.level?.trim().toUpperCase() === "V") {
+    return "V";
+  }
+
+  const rawLevel = evalItem?.level?.trim().toUpperCase();
+  const rawTeacher = teacherItem?.assessment?.trim().toUpperCase();
+  if (rawLevel === "NV" || rawLevel === "O" || rawTeacher === "O") {
+    return "O";
+  }
+
+  if (isLuRealizedInSprint(sprint, lu)) {
+    return "V";
+  }
+
   return "-";
+}
+
+export function resolveSprintLuArgumentation(sprint: MinorSprintFull | undefined, lu: number): string {
+  if (!sprint) return "";
+  const evalItem = sprint.selfEvaluations?.find((e) => e.learningOutcome === lu);
+  if (evalItem?.argumentation && evalItem.argumentation.trim() !== "" && !evalItem.argumentation.trim().startsWith("Geen stories")) {
+    return evalItem.argumentation.trim();
+  }
+
+  if (Array.isArray(sprint.stories)) {
+    const storiesForLu = sprint.stories.filter((s) => Array.isArray(s.learningOutcomes) && s.learningOutcomes.includes(lu));
+    const completed = storiesForLu.filter((s) => s.status === "done");
+    if (completed.length > 0) {
+      const lines: string[] = [`Voltooide stories voor LU ${lu}:`];
+      for (const st of completed) {
+        const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
+        lines.push(`• ${prefix}${st.title}`);
+        if (Array.isArray(st.evidence) && st.evidence.length > 0) {
+          for (const ev of st.evidence) {
+            lines.push(`   - Bewijs (${ev.type}): ${ev.title} (${ev.url})`);
+          }
+        }
+      }
+      return lines.join("\n");
+    }
+  }
+
+  return evalItem?.argumentation?.trim() || "";
 }
 
 export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] = []): ExcelJS.Workbook {
@@ -188,8 +236,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     sprintLuLevels[sNum] = {};
     const sp = findSprintByNumber(sprints, sNum);
     for (let lu = 1; lu <= 5; lu++) {
-      const item = sp?.selfEvaluations?.find((e) => e.learningOutcome === lu);
-      sprintLuLevels[sNum][lu] = normalizeEvaluationLevel(item?.level);
+      sprintLuLevels[sNum][lu] = resolveSprintLuLevel(sp, lu);
     }
   }
 
@@ -593,9 +640,8 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       const luRow = wsLogboek.getRow(luRowIndex);
       luRow.height = luDef.height;
 
-      const evalItem = currentSprint?.selfEvaluations?.find((e) => e.learningOutcome === luDef.lu);
-      const level = normalizeEvaluationLevel(evalItem?.level);
-      const argumentation = evalItem?.argumentation || "";
+      const level = resolveSprintLuLevel(currentSprint, luDef.lu);
+      const argumentation = resolveSprintLuArgumentation(currentSprint, luDef.lu);
 
       // Cel A: LU Nummer
       const cellA = luRow.getCell(1);

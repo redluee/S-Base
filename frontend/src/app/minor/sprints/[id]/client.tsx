@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -122,7 +122,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   const [addingFeedback, setAddingFeedback] = useState(false);
 
   // Self Evaluation & Teacher Assessment Edit State
-  const [selfEvals, setSelfEvals] = useState<MinorSelfEvaluation[]>(initialSprint.selfEvaluations);
+  const [selfEvals, setSelfEvals] = useState<MinorSelfEvaluation[]>(() => {
+    return (initialSprint.selfEvaluations || []).map((e) => {
+      const isRealized = initialSprint.stories?.some(
+        (s) => s.status === "done" && s.learningOutcomes.includes(e.learningOutcome)
+      );
+      if (isRealized && (!e.level || e.level === "-")) {
+        return { ...e, level: "V" };
+      }
+      return e;
+    });
+  });
   const [teacherAssessments, setTeacherAssessments] = useState<MinorTeacherAssessment[]>(initialSprint.teacherAssessments);
   const [savingEvals, setSavingEvals] = useState(false);
   const [evalSaveSuccess, setEvalSaveSuccess] = useState(false);
@@ -142,6 +152,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
     api.minor.sprints.list().then(setAllSprints).catch(() => {});
   }, []);
+
+
 
   function getDefaultQualityCriteriaForType(code: string, customTypes: MinorStoryType[] = storyTypes) {
     const found = customTypes.find((t) => t.code.toUpperCase() === code.toUpperCase());
@@ -705,6 +717,74 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     }
   }
 
+  function handlePopulateSingleLuEvidence(luNum: number) {
+    const storiesForLu = sprint.stories.filter((s) => s.learningOutcomes.includes(luNum));
+    const completedStories = storiesForLu.filter((s) => s.status === "done");
+    const inProgressStories = storiesForLu.filter((s) => s.status !== "done");
+
+    const lines: string[] = [];
+    if (completedStories.length > 0) {
+      lines.push(`Voltooide stories voor LU ${luNum}:`);
+      for (const st of completedStories) {
+        const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
+        lines.push(`• ${prefix}${st.title}`);
+        if (st.evidence && st.evidence.length > 0) {
+          for (const ev of st.evidence) {
+            lines.push(`   - Bewijs (${ev.type}): ${ev.title} (${ev.url})`);
+          }
+        }
+      }
+    }
+    if (inProgressStories.length > 0) {
+      if (lines.length > 0) lines.push("");
+      lines.push(`In uitvoering:`);
+      for (const st of inProgressStories) {
+        const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
+        lines.push(`• ${prefix}${st.title}`);
+      }
+    }
+    if (lines.length === 0) {
+      lines.push(`Geen stories gekoppeld aan LU ${luNum} in deze sprint.`);
+    }
+
+    const generated = lines.join("\n");
+    const isRealized = completedStories.length > 0;
+
+    setSelfEvals((prev) =>
+      prev.map((item) => {
+        if (item.learningOutcome === luNum) {
+          const currentArg = (item.argumentation || "").trim();
+          const newArg = currentArg && !currentArg.startsWith("Geen stories")
+            ? `${currentArg}\n\n${generated}`
+            : generated;
+          return {
+            ...item,
+            level: isRealized ? "V" : item.level,
+            argumentation: newArg,
+          };
+        }
+        return item;
+      })
+    );
+  }
+
+  function handleAppendEvidenceToLu(luNum: number, ev: { type: string; title: string; url: string }) {
+    const textToAppend = `- Bewijs (${ev.type}): ${ev.title} (${ev.url})`;
+    setSelfEvals((prev) =>
+      prev.map((item) => {
+        if (item.learningOutcome === luNum) {
+          const current = (item.argumentation || "").trim();
+          const newArg = current ? `${current}\n${textToAppend}` : textToAppend;
+          return {
+            ...item,
+            argumentation: newArg,
+          };
+        }
+        return item;
+      })
+    );
+  }
+
   async function handleSaveEvalsAndAssessments() {
     setSavingEvals(true);
     try {
@@ -735,8 +815,8 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   }
 
   // Reflection Helpers
-  async function handleSaveReflection(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSaveReflection(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     setSavingReflection(true);
     try {
       await api.minor.sprints.saveReflection(sprint.id, {
@@ -755,21 +835,81 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     }
   }
 
+  // Helper to build latest current full sprint data including unsaved form state
+  function getCurrentFullSprint(): MinorSprintFull {
+    return {
+      ...sprint,
+      selfEvaluations: selfEvals,
+      teacherAssessments: teacherAssessments,
+      reflection: sprint.reflection ? {
+        ...sprint.reflection,
+        date: refDate,
+        whatLearned,
+        whatRetained,
+        whatChange,
+      } : {
+        id: 0,
+        sprintId: sprint.id,
+        date: refDate,
+        whatLearned,
+        whatRetained,
+        whatChange,
+        createdAt: "",
+        updatedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  // Keyboard shortcut Ctrl+S / Cmd+S
+  const saveActionRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (activeTab === "self_eval") {
+      saveActionRef.current = () => { handleSaveEvalsAndAssessments(); };
+    } else if (activeTab === "reflection") {
+      saveActionRef.current = () => { handleSaveReflection(); };
+    } else {
+      saveActionRef.current = () => {};
+    }
+  });
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        saveActionRef.current();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Export with Pre-check (US 6.2)
   function handleTriggerExport(type: "pdf" | "excel") {
+    // Auto-save evaluations to backend in background if exporting
+    api.minor.sprints.saveSelfEvaluations(
+      sprint.id,
+      selfEvals.map((e) => ({
+        learningOutcome: e.learningOutcome,
+        level: e.level,
+        argumentation: e.argumentation || "",
+      }))
+    ).catch(() => {});
+
+    const currentData = getCurrentFullSprint();
     if (sprint.feedback.length === 0) {
       setPendingExportType(type);
     } else {
-      if (type === "pdf") downloadSprintPDF(sprint);
-      else downloadSprintExcel(sprint);
+      if (type === "pdf") downloadSprintPDF(currentData);
+      else downloadSprintExcel(currentData);
     }
   }
 
   function handleConfirmExportIgnore() {
+    const currentData = getCurrentFullSprint();
     if (pendingExportType === "pdf") {
-      downloadSprintPDF(sprint);
+      downloadSprintPDF(currentData);
     } else if (pendingExportType === "excel") {
-      downloadSprintExcel(sprint);
+      downloadSprintExcel(currentData);
     }
     setPendingExportType(null);
   }
@@ -1402,6 +1542,25 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               const evalItem = selfEvals.find((e) => e.learningOutcome === luNum);
               const assessItem = teacherAssessments.find((a) => a.learningOutcome === luNum);
 
+              const storiesForLu = sprint.stories.filter((s) => Array.isArray(s.learningOutcomes) && s.learningOutcomes.includes(luNum));
+              const doneStories = storiesForLu.filter((s) => s.status === "done");
+              const isRealized = doneStories.length > 0;
+
+              const luEvidenceList: { storyNumber?: string | null; storyTitle: string; type: string; title: string; url: string }[] = [];
+              storiesForLu.forEach((st) => {
+                if (st.evidence && st.evidence.length > 0) {
+                  st.evidence.forEach((ev) => {
+                    luEvidenceList.push({
+                      storyNumber: st.storyNumber,
+                      storyTitle: st.title,
+                      type: ev.type,
+                      title: ev.title,
+                      url: ev.url,
+                    });
+                  });
+                }
+              });
+
               return (
                 <div
                   key={luNum}
@@ -1420,6 +1579,15 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                           </span>
                         )}
                       </h3>
+                      {isRealized && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                          <Check className="size-3" />
+                          {t("Gerealiseerd ({count} voltooide {stories})", {
+                            count: String(doneStories.length),
+                            stories: doneStories.length === 1 ? t("story") : t("stories"),
+                          })}
+                        </span>
+                      )}
                       {assessItem?.assessment === "V" && (
                         <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand">
                           {t("Sprint Voldoende")}
@@ -1432,7 +1600,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                       <div className="flex items-center gap-1.5">
                         <label className="text-zinc-400 font-semibold">{t("Zelf (Niv.)")}:</label>
                         <select
-                          value={evalItem?.level ?? "-"}
+                          value={evalItem?.level ?? (isRealized ? "V" : "-")}
                           onChange={(e) => {
                             const newLevel = e.target.value as "V" | "NV" | "-";
                             setSelfEvals((prev) =>
@@ -1482,9 +1650,22 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
                   {/* Argumentation Textarea */}
                   <div className="space-y-1.5 text-xs">
-                    <label className="block text-zinc-400 font-semibold">
-                      {t("Argumentatie en bewijs")}:
-                    </label>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <label className="text-zinc-300 font-semibold flex items-center gap-1.5">
+                        <span>{t("Argumentatie en bewijs")}</span>
+                        <span className="text-zinc-500 font-normal text-[11px]">(Excel kolom D)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handlePopulateSingleLuEvidence(luNum)}
+                        className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-[11px] font-medium border border-white/10 transition-colors cursor-pointer"
+                        title={t("Vul aan met verantwoording uit voltooide stories van LU {lu}", { lu: String(luNum) })}
+                      >
+                        <Sparkles className="size-3 text-brand" />
+                        <span>{t("Vul aan uit stories")}</span>
+                      </button>
+                    </div>
+
                     <textarea
                       rows={4}
                       value={evalItem?.argumentation || ""}
@@ -1496,9 +1677,46 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                           )
                         );
                       }}
-                      placeholder="Beschrijf concrete beroepsproducten en linkjes naar bewijslast..."
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand"
+                      onBlur={() => handleSaveEvalsAndAssessments()}
+                      placeholder="Beschrijf concrete beroepsproducten, acties en linkjes naar bewijslast voor deze leeruitkomst..."
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-brand"
                     />
+
+                    {/* Attached Story Evidence Pills */}
+                    {luEvidenceList.length > 0 && (
+                      <div className="pt-1 space-y-1">
+                        <span className="text-[11px] text-zinc-400 font-medium block">
+                          {t("Gekoppeld bewijsmateriaal uit stories:")}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {luEvidenceList.map((ev, evIdx) => (
+                            <div
+                              key={evIdx}
+                              className="flex items-center gap-1.5 bg-zinc-950/80 border border-white/10 rounded-lg px-2.5 py-1 text-[11px] text-zinc-300"
+                            >
+                              <span className="font-semibold text-brand">{ev.type}:</span>
+                              <a
+                                href={ev.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-zinc-200 hover:underline truncate max-w-[160px]"
+                                title={ev.url}
+                              >
+                                {ev.title}
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleAppendEvidenceToLu(luNum, ev)}
+                                className="ml-1 text-[10px] text-brand hover:text-brand-hover hover:underline cursor-pointer font-medium"
+                                title={t("Invoegen in tekst")}
+                              >
+                                + {t("Invoegen")}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Teacher notes */}

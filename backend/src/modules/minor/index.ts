@@ -486,8 +486,9 @@ export class MinorService {
     let selfEvaluations = db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, id)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
     if (selfEvaluations.length === 0) {
       this.initSelfEvaluationsAndAssessments(id);
-      selfEvaluations = db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, id)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
     }
+    this.syncSprintSelfEvaluations(id, stories);
+    selfEvaluations = db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, id)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
 
     let teacherAssessments = db.select().from(minorTeacherAssessments).where(eq(minorTeacherAssessments.sprintId, id)).orderBy(asc(minorTeacherAssessments.learningOutcome)).all() as MinorTeacherAssessment[];
     if (teacherAssessments.length === 0) {
@@ -573,6 +574,96 @@ export class MinorService {
         whatRetained: "",
         whatChange: "",
       }).run();
+    }
+  }
+
+  syncSprintSelfEvaluations(sprintId: number, existingStories?: MinorStory[]) {
+    let sprintStories = existingStories;
+    if (!sprintStories) {
+      const rawStories = db.select().from(minorStories).where(eq(minorStories.sprintId, sprintId)).all();
+      const evidence = db.select().from(minorStoryEvidence).all();
+      sprintStories = rawStories.map((s) => {
+        let learningOutcomes: number[] = [];
+        try {
+          learningOutcomes = JSON.parse(s.learningOutcomes || "[]");
+        } catch {
+          learningOutcomes = [];
+        }
+        return {
+          id: s.id,
+          sprintId: s.sprintId,
+          userId: s.userId,
+          storyTypeCode: s.storyTypeCode,
+          storyNumber: s.storyNumber,
+          title: s.title,
+          asA: s.asA,
+          iWant: s.iWant,
+          soThat: s.soThat,
+          learningOutcomes,
+          status: s.status as any,
+          orderIndex: s.orderIndex,
+          presentationData: null,
+          createdAt: s.createdAt,
+          criteria: [],
+          evidence: evidence.filter((e) => e.storyId === s.id).map((e) => ({
+            id: e.id,
+            storyId: e.storyId,
+            type: e.type as any,
+            title: e.title,
+            url: e.url,
+            createdAt: e.createdAt,
+          })),
+        };
+      });
+    }
+
+    for (let lu = 1; lu <= 5; lu++) {
+      const storiesForLu = sprintStories.filter((s) => Array.isArray(s.learningOutcomes) && s.learningOutcomes.includes(lu));
+      const completedStories = storiesForLu.filter((s) => s.status === "done");
+
+      if (completedStories.length > 0) {
+        const existing = db.select().from(minorSelfEvaluations).where(and(eq(minorSelfEvaluations.sprintId, sprintId), eq(minorSelfEvaluations.learningOutcome, lu))).get();
+        if (existing) {
+          const updates: any = {};
+          if (existing.level === "-") {
+            updates.level = "V";
+          }
+          if (!existing.argumentation || existing.argumentation.trim() === "" || existing.argumentation.startsWith("Geen stories gekoppeld")) {
+            const lines: string[] = [`Voltooide stories voor LU ${lu}:`];
+            for (const st of completedStories) {
+              const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
+              lines.push(`• ${prefix}${st.title}`);
+              if (st.evidence && st.evidence.length > 0) {
+                for (const ev of st.evidence) {
+                  lines.push(`   - Bewijs (${ev.type}): ${ev.title} (${ev.url})`);
+                }
+              }
+            }
+            updates.argumentation = lines.join("\n");
+          }
+          if (Object.keys(updates).length > 0) {
+            updates.updatedAt = sql`CURRENT_TIMESTAMP`;
+            db.update(minorSelfEvaluations).set(updates).where(eq(minorSelfEvaluations.id, existing.id)).run();
+          }
+        } else {
+          const lines: string[] = [`Voltooide stories voor LU ${lu}:`];
+          for (const st of completedStories) {
+            const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
+            lines.push(`• ${prefix}${st.title}`);
+            if (st.evidence && st.evidence.length > 0) {
+              for (const ev of st.evidence) {
+                lines.push(`   - Bewijs (${ev.type}): ${ev.title} (${ev.url})`);
+              }
+            }
+          }
+          db.insert(minorSelfEvaluations).values({
+            sprintId,
+            learningOutcome: lu,
+            level: "V",
+            argumentation: lines.join("\n"),
+          }).run();
+        }
+      }
     }
   }
 
@@ -1153,6 +1244,10 @@ export class MinorService {
       });
     }
 
+    if (storyRow.sprintId) {
+      this.syncSprintSelfEvaluations(storyRow.sprintId);
+    }
+
     return {
       id: storyRow.id,
       sprintId: storyRow.sprintId,
@@ -1273,6 +1368,13 @@ export class MinorService {
     const updated = db.select().from(minorStories).where(eq(minorStories.id, storyId)).get()!;
     const criteria = db.select().from(minorStoryCriteria).where(eq(minorStoryCriteria.storyId, storyId)).orderBy(asc(minorStoryCriteria.orderIndex)).all();
     const evidence = db.select().from(minorStoryEvidence).where(eq(minorStoryEvidence.storyId, storyId)).all();
+
+    if (updated.sprintId) {
+      this.syncSprintSelfEvaluations(updated.sprintId);
+    }
+    if (existing.sprintId && existing.sprintId !== updated.sprintId) {
+      this.syncSprintSelfEvaluations(existing.sprintId);
+    }
 
     return {
       id: updated.id,
