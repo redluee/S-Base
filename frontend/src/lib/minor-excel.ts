@@ -171,7 +171,14 @@ export function findSprintByNumber(sprints: MinorSprintFull[], targetNum: number
 export function isLuRealizedInSprint(sprint: MinorSprintFull | undefined, lu: number): boolean {
   if (!sprint || !Array.isArray(sprint.stories)) return false;
   return sprint.stories.some(
-    (s) => s.status === "done" && Array.isArray(s.learningOutcomes) && s.learningOutcomes.includes(lu)
+    (s) => s.status === "done" && Array.isArray(s.learningOutcomes) && s.learningOutcomes.some((o: number | string) => Number(o) === lu)
+  );
+}
+
+export function isLuSelectedInSprint(sprint: MinorSprintFull | undefined, lu: number): boolean {
+  if (!sprint || !Array.isArray(sprint.stories)) return false;
+  return sprint.stories.some(
+    (s) => Array.isArray(s.learningOutcomes) && s.learningOutcomes.some((o: number | string) => Number(o) === lu)
   );
 }
 
@@ -192,6 +199,10 @@ export function resolveSprintLuLevel(sprint: MinorSprintFull | undefined, lu: nu
 
   if (isLuRealizedInSprint(sprint, lu)) {
     return "V";
+  }
+
+  if (!isLuSelectedInSprint(sprint, lu)) {
+    return "O";
   }
 
   return "-";

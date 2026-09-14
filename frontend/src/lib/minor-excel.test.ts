@@ -336,8 +336,8 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(wsLog.getCell("D19").value as string).toContain("Realized LU 1 and LU 2 story");
     expect(wsLog.getCell("D19").value as string).toContain("PR #42");
 
-    // LU 3 (Row 20) - not realized -> "-"
-    expect(wsLog.getCell("C20").value).toBe("-");
+    // LU 3 (Row 20) - not selected in any story in sprint -> "O" instead of "-"
+    expect(wsLog.getCell("C20").value).toBe("O");
 
     // Dashboard:
     // D2 (Sprint 1 LU 1): formula pointing to Logboek!C18 with result "V"
@@ -348,8 +348,62 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     const cellD3 = wsDash.getCell("D3").value as { formula: string; result: string };
     expect(cellD3.result).toBe("V");
 
-    // D4 (Sprint 1 LU 3): result "-"
+    // D4 (Sprint 1 LU 3): not selected in any story -> result "O"
     const cellD4 = wsDash.getCell("D4").value as { formula: string; result: string };
-    expect(cellD4.result).toBe("-");
+    expect(cellD4.result).toBe("O");
+  });
+
+  it("resolves '-' when an LU is selected in a story that is not yet completed (and not rated), and 'O' when not selected", () => {
+    const mockSprints: MinorSprintFull[] = [
+      {
+        id: 1,
+        userId: 1,
+        sprintNumber: "1",
+        name: "Sprint 1",
+        startDate: "2026-09-01",
+        endDate: "2026-09-14",
+        durationDays: 14,
+        showAndGrowDate: "2026-09-14",
+        extendedDays: 0,
+        extensionReason: null,
+        status: "active",
+        createdAt: "2026-09-01T00:00:00Z",
+        updatedAt: "2026-09-01T00:00:00Z",
+        stories: [
+          {
+            id: 101,
+            sprintId: 1,
+            userId: 1,
+            storyTypeCode: "US",
+            storyNumber: "1.1",
+            title: "In progress story for LU 4",
+            asA: "student",
+            iWant: "in progress",
+            soThat: "learning",
+            learningOutcomes: [4],
+            status: "todo",
+            orderIndex: 0,
+            createdAt: "2026-09-01T00:00:00Z",
+            criteria: [],
+            evidence: [],
+          },
+        ],
+        feedback: [],
+        selfEvaluations: [],
+        teacherAssessments: [],
+      },
+    ];
+
+    const wb = buildIntegraalSprintLogboekWorkbook(mockSprints);
+    const wsLog = wb.getWorksheet("Logboek")!;
+
+    // LU 4 is selected in a planned/todo story, but not yet completed and not rated -> "-"
+    expect(wsLog.getCell("C21").value).toBe("-");
+
+    // LU 1, 2, 3, 5 are not selected in any story in this sprint -> "O"
+    expect(wsLog.getCell("C18").value).toBe("O");
+    expect(wsLog.getCell("C19").value).toBe("O");
+    expect(wsLog.getCell("C20").value).toBe("O");
+    expect(wsLog.getCell("C22").value).toBe("O");
   });
 });
