@@ -47,7 +47,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     extendedDays: number;
     extensionReason: string | null;
   } | null>(null);
-  const [status, setStatus] = useState<"planned" | "active" | "completed" | "archived">("active");
   const [saving, setSaving] = useState(false);
 
   // Load next sprint number suggestion when opening new sprint modal
@@ -77,7 +76,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     setEditingSprint(null);
     setStartDate(new Date().toISOString().slice(0, 10));
     setDurationDays(14);
-    setStatus("active");
     setIsModalOpen(true);
   }
 
@@ -87,7 +85,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     setName(sprint.name);
     setStartDate(sprint.startDate);
     setDurationDays(sprint.durationDays);
-    setStatus(sprint.status);
     setCalculatedDates({
       endDate: sprint.endDate,
       showAndGrowDate: sprint.showAndGrowDate,
@@ -108,7 +105,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           name,
           startDate,
           durationDays,
-          status,
         });
         setSprints((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       } else {
@@ -117,7 +113,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           name,
           startDate,
           durationDays,
-          status,
         });
         setSprints((prev) => [...prev, created]);
       }
@@ -201,7 +196,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           { id: "active", label: "Actief" },
           { id: "planned", label: "Gepland" },
           { id: "completed", label: "Voltooid" },
-          { id: "archived", label: "Gearchiveerd" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -410,40 +404,50 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
               </div>
 
               {/* Real-time Calculation Summary Box */}
-              {calculatedDates && (
-                <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2 text-xs">
-                  <div className="flex justify-between items-center text-zinc-300">
-                    <span className="text-zinc-500">{t("Berekende Einddatum")}:</span>
-                    <strong className="text-white font-mono">{calculatedDates.endDate}</strong>
-                  </div>
-                  <div className="flex justify-between items-center text-zinc-300">
-                    <span className="text-zinc-500">{t("Show & Grow Datum (woensdag)")}:</span>
-                    <strong className="text-brand font-mono">{calculatedDates.showAndGrowDate}</strong>
-                  </div>
-                  {calculatedDates.extendedDays > 0 && (
-                    <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] pt-1 border-t border-white/5">
-                      <Calendar className="size-3 shrink-0" />
-                      <span>
-                        {t("Verlengd met {days} vakantiedagen", { days: String(calculatedDates.extendedDays) })} ({calculatedDates.extensionReason})
+              {calculatedDates && (() => {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const computedStatus =
+                  startDate > todayStr
+                    ? "planned"
+                    : calculatedDates.endDate < todayStr
+                    ? "completed"
+                    : "active";
+
+                return (
+                  <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="text-zinc-500">{t("Berekende Einddatum")}:</span>
+                      <strong className="text-white font-mono">{calculatedDates.endDate}</strong>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="text-zinc-500">{t("Show & Grow Datum (woensdag)")}:</span>
+                      <strong className="text-brand font-mono">{calculatedDates.showAndGrowDate}</strong>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300 pt-1 border-t border-white/5">
+                      <span className="text-zinc-500">{t("Automatische Status")}:</span>
+                      <span
+                        className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${
+                          computedStatus === "active"
+                            ? "bg-brand/10 text-brand border border-brand/20"
+                            : computedStatus === "completed"
+                            ? "bg-zinc-800 text-zinc-400 border border-white/5"
+                            : "bg-zinc-800 text-zinc-300 border border-white/5"
+                        }`}
+                      >
+                        {computedStatus === "active" ? t("Actief") : computedStatus === "completed" ? t("Voltooid") : t("Gepland")}
                       </span>
                     </div>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Status")}</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as "planned" | "active" | "completed" | "archived")}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
-                >
-                  <option value="active">{t("Actief")}</option>
-                  <option value="planned">{t("Gepland")}</option>
-                  <option value="completed">{t("Voltooid")}</option>
-                  <option value="archived">{t("Gearchiveerd")}</option>
-                </select>
-              </div>
+                    {calculatedDates.extendedDays > 0 && (
+                      <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] pt-1 border-t border-white/5">
+                        <Calendar className="size-3 shrink-0" />
+                        <span>
+                          {t("Verlengd met {days} vakantiedagen", { days: String(calculatedDates.extendedDays) })} ({calculatedDates.extensionReason})
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="pt-3 border-t border-white/10 flex items-center justify-between">
                 {editingSprint ? (

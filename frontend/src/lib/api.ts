@@ -763,7 +763,7 @@ export const api = {
         endDate?: string;
         durationDays?: number;
         showAndGrowDate?: string;
-        status?: "planned" | "active" | "completed" | "archived";
+        status?: "planned" | "active" | "completed";
       }) => request<MinorSprint>("/minor/sprints", { method: "POST", body: JSON.stringify(data) }),
       update: (id: number, data: Partial<{
         sprintNumber: string;
@@ -774,7 +774,7 @@ export const api = {
         showAndGrowDate: string;
         extendedDays: number;
         extensionReason: string | null;
-        status: "planned" | "active" | "completed" | "archived";
+        status: "planned" | "active" | "completed";
       }>) => request<MinorSprint>(`/minor/sprints/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ success: boolean }>(`/minor/sprints/${id}`, { method: "DELETE" }),
       exportJson: (id: number) => request<MinorSprintExportData>(`/minor/sprints/${id}/export`),

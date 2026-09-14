@@ -272,7 +272,7 @@ export interface MinorSprint {
   showAndGrowDate: string;
   extendedDays: number;
   extensionReason: string | null;
-  status: "planned" | "active" | "completed" | "archived";
+  status: "planned" | "active" | "completed";
   createdAt: string;
   updatedAt: string;
 }
@@ -311,7 +311,7 @@ export interface MinorSprintExportData {
   showAndGrowDate: string;
   extendedDays?: number;
   extensionReason?: string | null;
-  status: "planned" | "active" | "completed" | "archived";
+  status: "planned" | "active" | "completed";
   stories: MinorSprintExportStory[];
   feedback?: Array<{ date: string; fromWhom: string; feedback: string; action: string; orderIndex?: number }>;
   selfEvaluations?: Array<{ learningOutcome: number; level: "V" | "NV" | "-"; argumentation?: string | null }>;

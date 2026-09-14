@@ -120,6 +120,16 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
+export function calculateSprintStatus(
+  startDate: string,
+  endDate: string,
+  today: string = formatDate(new Date())
+): "planned" | "active" | "completed" {
+  if (startDate > today) return "planned";
+  if (endDate < today) return "completed";
+  return "active";
+}
+
 export class MinorService {
   // --- Vacation & Date Calculation Engine ---
 
@@ -421,12 +431,35 @@ export class MinorService {
   }
 
   listSprints(userId: number): MinorSprint[] {
-    return db.select().from(minorSprints).where(eq(minorSprints.userId, userId)).orderBy(asc(minorSprints.startDate), asc(minorSprints.id)).all() as MinorSprint[];
+    const sprints = db.select().from(minorSprints).where(eq(minorSprints.userId, userId)).orderBy(asc(minorSprints.startDate), asc(minorSprints.id)).all();
+    const today = formatDate(new Date());
+
+    return sprints.map((s) => {
+      const computedStatus = calculateSprintStatus(s.startDate, s.endDate, today);
+      if (s.status !== computedStatus) {
+        db.update(minorSprints)
+          .set({ status: computedStatus, updatedAt: sql`CURRENT_TIMESTAMP` })
+          .where(eq(minorSprints.id, s.id))
+          .run();
+        return { ...s, status: computedStatus };
+      }
+      return { ...s, status: computedStatus };
+    }) as MinorSprint[];
   }
 
   getSprintById(id: number, userId: number): MinorSprintFull | null {
-    const sprint = db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get() as MinorSprint | undefined;
-    if (!sprint) return null;
+    const sprintRaw = db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get();
+    if (!sprintRaw) return null;
+
+    const today = formatDate(new Date());
+    const computedStatus = calculateSprintStatus(sprintRaw.startDate, sprintRaw.endDate, today);
+    if (sprintRaw.status !== computedStatus) {
+      db.update(minorSprints)
+        .set({ status: computedStatus, updatedAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(minorSprints.id, sprintRaw.id))
+        .run();
+    }
+    const sprint: MinorSprint = { ...sprintRaw, status: computedStatus } as MinorSprint;
 
     const storiesRaw = db.select().from(minorStories).where(eq(minorStories.sprintId, id)).orderBy(asc(minorStories.orderIndex), asc(minorStories.id)).all();
     const storyIds = storiesRaw.map((s) => s.id);
@@ -516,25 +549,27 @@ export class MinorService {
     endDate?: string;
     durationDays?: number;
     showAndGrowDate?: string;
-    status?: "planned" | "active" | "completed" | "archived";
+    status?: "planned" | "active" | "completed";
   }): MinorSprint {
     const calc = this.calculateSprintDates(userId, data.startDate, data.durationDays ?? 14);
     const nextInfo = this.getNextSprintNumber(userId);
 
     const sprintNumber = data.sprintNumber?.trim() || nextInfo.nextNumber;
     const name = data.name?.trim() || `Sprint ${sprintNumber}`;
+    const endDate = data.endDate || calc.endDate;
+    const status = data.status || calculateSprintStatus(data.startDate, endDate);
 
     const sprint = db.insert(minorSprints).values({
       userId,
       sprintNumber,
       name,
       startDate: data.startDate,
-      endDate: data.endDate || calc.endDate,
+      endDate,
       durationDays: data.durationDays ?? calc.durationDays,
       showAndGrowDate: data.showAndGrowDate || calc.showAndGrowDate,
       extendedDays: calc.extendedDays,
       extensionReason: calc.extensionReason,
-      status: data.status || "active",
+      status,
     }).returning().get() as MinorSprint;
 
     this.initSelfEvaluationsAndAssessments(sprint.id);
@@ -676,7 +711,7 @@ export class MinorService {
     showAndGrowDate: string;
     extendedDays: number;
     extensionReason: string | null;
-    status: "planned" | "active" | "completed" | "archived";
+    status: "planned" | "active" | "completed";
   }>): MinorSprint | null {
     const existing = db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get();
     if (!existing) return null;
@@ -685,6 +720,7 @@ export class MinorService {
     let extensionReason = data.extensionReason !== undefined ? data.extensionReason : existing.extensionReason;
     let endDate = data.endDate ?? existing.endDate;
     let showAndGrowDate = data.showAndGrowDate ?? existing.showAndGrowDate;
+    const startDate = data.startDate ?? existing.startDate;
 
     // Recalculate if startDate or duration changed and not explicitly overridden
     if (data.startDate && data.startDate !== existing.startDate && !data.endDate) {
@@ -695,16 +731,18 @@ export class MinorService {
       extensionReason = calc.extensionReason;
     }
 
+    const computedStatus = data.status || calculateSprintStatus(startDate, endDate);
+
     const updated = db.update(minorSprints).set({
       sprintNumber: data.sprintNumber?.trim() ?? existing.sprintNumber,
       name: data.name?.trim() ?? existing.name,
-      startDate: data.startDate ?? existing.startDate,
+      startDate,
       endDate,
       durationDays: data.durationDays ?? existing.durationDays,
       showAndGrowDate,
       extendedDays,
       extensionReason,
-      status: data.status ?? (existing.status as any),
+      status: computedStatus,
       updatedAt: sql`CURRENT_TIMESTAMP`,
     }).where(eq(minorSprints.id, id)).returning().get();
 
@@ -830,8 +868,7 @@ export class MinorService {
         const showAndGrowDate = data.showAndGrowDate ? String(data.showAndGrowDate).trim() : calc.showAndGrowDate;
         const extendedDays = typeof data.extendedDays === "number" ? data.extendedDays : calc.extendedDays;
         const extensionReason = data.extensionReason !== undefined ? data.extensionReason : calc.extensionReason;
-        const rawStatus = String(data.status || existing.status);
-        const status = (["planned", "active", "completed", "archived"].includes(rawStatus) ? rawStatus : existing.status) as any;
+        const status = calculateSprintStatus(startDate, endDate);
 
         db.update(minorSprints).set({
           sprintNumber: customNumber || existing.sprintNumber,
@@ -860,8 +897,7 @@ export class MinorService {
       const showAndGrowDate = data.showAndGrowDate ? String(data.showAndGrowDate).trim() : calc.showAndGrowDate;
       const extendedDays = typeof data.extendedDays === "number" ? data.extendedDays : calc.extendedDays;
       const extensionReason = data.extensionReason !== undefined ? data.extensionReason : calc.extensionReason;
-      const rawStatus = String(data.status || "active");
-      const status = (["planned", "active", "completed", "archived"].includes(rawStatus) ? rawStatus : "active") as "planned" | "active" | "completed" | "archived";
+      const status = calculateSprintStatus(startDate, endDate);
 
       const created = db.insert(minorSprints).values({
         userId,
@@ -1727,7 +1763,7 @@ export class MinorService {
       for (const s of sprints) {
         const sprintAssessments = allAssessments.filter((a) => a.sprintId === s.id);
 
-        if (s.status === "completed" || s.status === "archived") {
+        if (s.status === "completed") {
           for (const a of sprintAssessments) {
             if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
               projectedPasses[a.learningOutcome] = (projectedPasses[a.learningOutcome] || 0) + 1;
