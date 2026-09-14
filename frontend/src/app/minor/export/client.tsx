@@ -65,11 +65,10 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
   }
 
   async function handleExportExcel() {
-    if (selectedSprintIds.length === 0) return;
     setExportingExcel(true);
     try {
       const fullSprints = await fetchFullSprints();
-      downloadAllSprintsExcel(fullSprints);
+      await downloadAllSprintsExcel(fullSprints);
     } catch (err) {
       console.error("Batch Excel export failed:", err);
     } finally {
@@ -137,16 +136,16 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
               <FileSpreadsheet className="size-5" />
             </div>
             <h2 className="text-base font-bold text-white tracking-tight">
-              {t("Verzamel Excel Werkmap")}
+              {t("Integraal Sprint Logboek (Excel)")}
             </h2>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              {t("Genereert één Excel-werkbestand met een apart tabblad per sprint ('Sprint 1', 'Sprint 2', etc.). Bevat alle verhalen, criteria, feedback, beoordelingen en reflecties.")}
+              {t("Genereert het officiële beoordelingsdocument (Dashboard met voortgangsmatrix, Logboek voor Sprints 1 t/m 8 met alle 4 secties, en Lijsten met drop-downs).")}
             </p>
           </div>
 
           <button
             onClick={handleExportExcel}
-            disabled={exportingExcel || selectedSprintIds.length === 0}
+            disabled={exportingExcel}
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-semibold text-xs transition-all cursor-pointer disabled:opacity-50"
           >
             <Download className="size-4 text-zinc-400 shrink-0" />
