@@ -1,5 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
+import db from "../../db/client";
+import { users } from "../../db/schema";
 import { MinorService } from "./index";
 
 describe("MinorService", () => {
@@ -582,7 +584,7 @@ describe("MinorService", () => {
     expect(forbidden).toBeNull();
   });
 
-  it("automatically synchronizes self-evaluations with 'V' and evidence for realized learning outcomes", () => {
+  it("does not automatically overwrite self-evaluations with 'V' when stories are completed", () => {
     const sprint = minor.createSprint(adminId, {
       startDate: "2026-09-01",
     });
@@ -603,24 +605,70 @@ describe("MinorService", () => {
     const eval2 = full?.selfEvaluations.find((e) => e.learningOutcome === 2);
     const eval3 = full?.selfEvaluations.find((e) => e.learningOutcome === 3);
 
-    expect(eval1?.level).toBe("V");
-    expect(eval1?.argumentation).toContain("Voltooide stories voor LU 1:");
-    expect(eval1?.argumentation).toContain("Realized Story");
-    expect(eval1?.argumentation).toContain("PR #10");
-
-    expect(eval2?.level).toBe("V");
-    expect(eval2?.argumentation).toContain("Voltooide stories voor LU 2:");
-
+    // Should remain '-' and empty argumentation unless explicitly triggered via autoGenerateSelfEvaluations
+    expect(eval1?.level).toBe("-");
+    expect(eval1?.argumentation).toBe("");
+    expect(eval2?.level).toBe("-");
+    expect(eval2?.argumentation).toBe("");
     expect(eval3?.level).toBe("-");
     expect(eval3?.argumentation).toBe("");
 
-    // Custom argumentation should not be overwritten
-    minor.saveSelfEvaluations(sprint.id, adminId, [
-      { learningOutcome: 1, level: "V", argumentation: "Mijn eigen bewijs" },
+    // Explicit manual auto-generation still works
+    const generated = minor.autoGenerateSelfEvaluations(sprint.id, adminId);
+    const gen1 = generated.find((e) => e.learningOutcome === 1);
+    expect(gen1?.level).toBe("V");
+    expect(gen1?.argumentation).toContain("Voltooide stories voor LU 1:");
+  });
+
+  it("handles dashboard official passes and prognosis based on reflection completeness for finished sprints", () => {
+    // Use an isolated user so existing test sprints don't affect stats
+    const isolatedUser = db.insert(users).values({
+      username: `iso_user_${Date.now()}`,
+      pswdHash: "hash",
+      email: `iso_${Date.now()}@test.com`,
+    }).returning().get();
+    const isoId = isolatedUser.userId;
+
+    // Sprint 1 is completed / past end date
+    const pastSprint = minor.createSprint(isoId, {
+      startDate: "2026-01-01",
+      endDate: "2026-01-15",
+      status: "completed",
+    });
+
+    // Teacher gave 'V' for LU 1 in pastSprint
+    minor.saveTeacherAssessments(pastSprint.id, isoId, [
+      { learningOutcome: 1, assessment: "V" },
+      { learningOutcome: 2, assessment: "-" },
     ]);
-    const afterCustom = minor.getSprintById(sprint.id, adminId);
-    const eval1After = afterCustom?.selfEvaluations.find((e) => e.learningOutcome === 1);
-    expect(eval1After?.argumentation).toBe("Mijn eigen bewijs");
+
+    // Story in pastSprint for LU 2 (realized, but teacher gave '-')
+    minor.createStory(isoId, pastSprint.id, {
+      title: "Past story for LU 2",
+      learningOutcomes: [2],
+      status: "done",
+    });
+
+    // Without reflection filled in:
+    let stats = minor.getDashboardStats(isoId);
+    // Because pastSprint is completed and reflection is NOT filled in, officialPasses should NOT count it yet!
+    expect(stats.officialPasses[1]).toBe(0);
+    // And for projectedPasses, finished sprint with teacher assessment 'V' is 1, but unpassed LU 2 is excluded (0)
+    expect(stats.projectedPasses[2]).toBe(0);
+
+    // Now fill in reflection for pastSprint
+    minor.saveReflection(pastSprint.id, {
+      whatLearned: "Geleerd",
+      whatRetained: "Vastgehouden",
+      whatChange: "Veranderen",
+    });
+
+    stats = minor.getDashboardStats(isoId);
+    // Now that reflection is filled, officialPasses LU 1 should be counted
+    expect(stats.officialPasses[1]).toBe(1);
+    // Projected passes for LU 1 is 1; LU 2 was not given 'V' by teacher, so prognosis does not include LU 2
+    expect(stats.projectedPasses[1]).toBe(1);
+    expect(stats.projectedPasses[2]).toBe(0);
   });
 });
 

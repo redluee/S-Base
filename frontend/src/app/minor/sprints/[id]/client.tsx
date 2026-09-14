@@ -44,7 +44,7 @@ import {
   type MinorTeacherAssessment,
 } from "@/lib/api";
 import { downloadSprintPDF } from "@/components/minor-pdf";
-import { downloadSprintExcel } from "@/lib/minor-excel";
+import { downloadSprintExcel, validateSprintForExport } from "@/lib/minor-excel";
 import { copySprintJsonToClipboard } from "@/lib/minor-sprint-export";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { getLUShortDesc } from "@/lib/minor-constants";
@@ -122,17 +122,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   const [addingFeedback, setAddingFeedback] = useState(false);
 
   // Self Evaluation & Teacher Assessment Edit State
-  const [selfEvals, setSelfEvals] = useState<MinorSelfEvaluation[]>(() => {
-    return (initialSprint.selfEvaluations || []).map((e) => {
-      const isRealized = initialSprint.stories?.some(
-        (s) => s.status === "done" && s.learningOutcomes.includes(e.learningOutcome)
-      );
-      if (isRealized && (!e.level || e.level === "-")) {
-        return { ...e, level: "V" };
-      }
-      return e;
-    });
-  });
+  const [selfEvals, setSelfEvals] = useState<MinorSelfEvaluation[]>(initialSprint.selfEvaluations || []);
   const [teacherAssessments, setTeacherAssessments] = useState<MinorTeacherAssessment[]>(initialSprint.teacherAssessments);
   const [savingEvals, setSavingEvals] = useState(false);
   const [evalSaveSuccess, setEvalSaveSuccess] = useState(false);
@@ -145,8 +135,9 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   const [savingReflection, setSavingReflection] = useState(false);
   const [refSaveSuccess, setRefSaveSuccess] = useState(false);
 
-  // Missing Feedback Pre-export Warning Modal State
+  // Pre-export Warning Modal State
   const [pendingExportType, setPendingExportType] = useState<"pdf" | "excel" | null>(null);
+  const [exportValidationIssues, setExportValidationIssues] = useState<string[]>([]);
 
   useEffect(() => {
     api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
@@ -819,12 +810,22 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     if (e) e.preventDefault();
     setSavingReflection(true);
     try {
-      await api.minor.sprints.saveReflection(sprint.id, {
-        date: refDate,
-        whatLearned,
-        whatRetained,
-        whatChange,
-      });
+      await Promise.all([
+        api.minor.sprints.saveReflection(sprint.id, {
+          date: refDate,
+          whatLearned,
+          whatRetained,
+          whatChange,
+        }),
+        api.minor.sprints.saveTeacherAssessments(
+          sprint.id,
+          teacherAssessments.map((a) => ({
+            learningOutcome: a.learningOutcome,
+            assessment: a.assessment,
+            notes: a.notes || "",
+          }))
+        ),
+      ]);
       setRefSaveSuccess(true);
       setTimeout(() => setRefSaveSuccess(false), 3000);
       await reloadSprint();
@@ -896,9 +897,12 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     ).catch(() => {});
 
     const currentData = getCurrentFullSprint();
-    if (sprint.feedback.length === 0) {
+    const issues = validateSprintForExport(currentData);
+    if (issues.length > 0) {
+      setExportValidationIssues(issues);
       setPendingExportType(type);
     } else {
+      setExportValidationIssues([]);
       if (type === "pdf") downloadSprintPDF(currentData);
       else downloadSprintExcel(currentData);
     }
@@ -912,6 +916,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
       downloadSprintExcel(currentData);
     }
     setPendingExportType(null);
+    setExportValidationIssues([]);
   }
 
   // Calculate unique LUs in sprint for warnings
@@ -1600,7 +1605,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                       <div className="flex items-center gap-1.5">
                         <label className="text-zinc-400 font-semibold">{t("Zelf (Niv.)")}:</label>
                         <select
-                          value={evalItem?.level ?? (isRealized ? "V" : "-")}
+                          value={evalItem?.level ?? "-"}
                           onChange={(e) => {
                             const newLevel = e.target.value as "V" | "NV" | "-";
                             setSelfEvals((prev) =>
@@ -1820,6 +1825,65 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                 placeholder="Aanpassingen in planning, communicatie of voorbereiding voor de volgende sprint..."
                 className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand"
               />
+            </div>
+
+            {/* Docentbeoordeling per leeruitkomst (Voldoende behaald) */}
+            <div className="pt-3 border-t border-white/10 space-y-2.5">
+              <div>
+                <label className="block text-zinc-200 font-bold text-xs">
+                  {t("Docentbeoordeling leeruitkomsten (Voldoende behaald)")}
+                </label>
+                <p className="text-[11px] text-zinc-400">
+                  {t("Vink per leeruitkomst aan of je hiervoor een voldoende hebt gekregen van de docent. Pas als dit is aangevinkt telt het mee als officieel behaald op het dashboard.")}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                {[1, 2, 3, 4, 5].map((luNum) => {
+                  const assessItem = teacherAssessments.find((a) => a.learningOutcome === luNum);
+                  const isPassed = assessItem?.assessment === "V";
+                  return (
+                    <button
+                      key={luNum}
+                      type="button"
+                      onClick={() => {
+                        const newAssess = isPassed ? "-" : "V";
+                        setTeacherAssessments((prev) =>
+                          prev.map((item) =>
+                            item.learningOutcome === luNum ? { ...item, assessment: newAssess } : item
+                          )
+                        );
+                      }}
+                      className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isPassed
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                          : "bg-zinc-950/60 border-white/5 text-zinc-400 hover:border-white/15"
+                      }`}
+                    >
+                      <div className="mt-0.5 shrink-0">
+                        {isPassed ? (
+                          <CheckSquare className="size-4 text-emerald-400" />
+                        ) : (
+                          <Square className="size-4 text-zinc-500" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold flex items-center gap-1.5">
+                          <span>LU {luNum}: {getLUShortDesc(luNum)}</span>
+                          {isPassed && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
+                              V
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mt-0.5 truncate">
+                          {isPassed ? t("Voldoende toegekend door docent") : t("Nog niet als voldoende gemarkeerd")}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </form>
@@ -2964,30 +3028,53 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
         </div>
       )}
 
-      {/* Missing Feedback Warning Dialog Modal (US 6.2) */}
+      {/* Pre-export Validation Warning Dialog Modal */}
       {pendingExportType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
             <div className="flex items-center gap-2.5 text-amber-400 font-bold">
               <AlertTriangle className="size-5 shrink-0" />
-              <h3 className="text-base text-white">{t("Feedback ontbreekt")}</h3>
+              <h3 className="text-base text-white">{t("Controleer sprint voor export")}</h3>
             </div>
+            
             <p className="text-xs text-zinc-300 leading-relaxed">
-              {t("Er zijn nog geen feedbackregels ingevuld voor deze sprint. Weet je zeker dat je wilt exporteren?")}
+              {t("De volgende aandachtspunten zijn gevonden voor deze sprint:")}
             </p>
+
+            <ul className="space-y-1.5 p-3 rounded-xl bg-zinc-950 border border-white/5 text-xs text-zinc-300">
+              {exportValidationIssues.map((issue, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-amber-400 mt-0.5">•</span>
+                  <span>{issue}</span>
+                </li>
+              ))}
+            </ul>
+
             <div className="pt-2 flex flex-col sm:flex-row justify-end gap-2">
               <button
+                type="button"
                 onClick={() => {
+                  const hasStoryIssue = exportValidationIssues.some((i) => i.toLowerCase().includes("stories"));
+                  const hasFeedbackIssue = exportValidationIssues.some((i) => i.toLowerCase().includes("feedback"));
+                  const hasEvalIssue = exportValidationIssues.some((i) => i.toLowerCase().includes("zelfevaluatie"));
+                  const hasRefIssue = exportValidationIssues.some((i) => i.toLowerCase().includes("reflectie"));
+
+                  if (hasStoryIssue) setActiveTab("planning");
+                  else if (hasFeedbackIssue) setActiveTab("feedback");
+                  else if (hasEvalIssue) setActiveTab("self_eval");
+                  else if (hasRefIssue) setActiveTab("reflection");
+
                   setPendingExportType(null);
-                  setActiveTab("feedback");
+                  setExportValidationIssues([]);
                 }}
-                className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer text-center"
               >
-                {t("Ga naar feedback invoeren")}
+                {t("Sprint bewerken")}
               </button>
               <button
+                type="button"
                 onClick={handleConfirmExportIgnore}
-                className="px-3.5 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium cursor-pointer text-center"
               >
                 {t("Negeren en downloaden")}
               </button>

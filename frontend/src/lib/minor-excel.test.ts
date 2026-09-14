@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import {
   buildIntegraalSprintLogboekWorkbook,
   generateIntegraalSprintLogboekBlob,
+  validateSprintForExport,
 } from "./minor-excel";
 import type { MinorSprintFull } from "./api";
 
@@ -405,5 +406,104 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(wsLog.getCell("C19").value).toBe("O");
     expect(wsLog.getCell("C20").value).toBe("O");
     expect(wsLog.getCell("C22").value).toBe("O");
+  });
+
+  describe("validateSprintForExport", () => {
+    it("flags issues when stories are missing or uncompleted, feedback is missing, self-evals incomplete, or reflection missing", () => {
+      const emptySprint: MinorSprintFull = {
+        id: 1,
+        userId: 1,
+        sprintNumber: "1",
+        name: "Sprint 1",
+        startDate: "2026-01-01",
+        endDate: "2026-01-15",
+        durationDays: 14,
+        showAndGrowDate: "2026-01-14",
+        extendedDays: 0,
+        extensionReason: null,
+        status: "completed",
+        createdAt: "2026-01-01",
+        stories: [],
+        feedback: [],
+        selfEvaluations: [],
+        teacherAssessments: [],
+        reflection: null,
+      };
+
+      const issues = validateSprintForExport(emptySprint, "2026-02-01");
+      expect(issues.some((i: string) => i.includes("Geen user stories"))).toBe(true);
+      expect(issues.some((i: string) => i.includes("Minimaal 1 feedbackpunt"))).toBe(true);
+      expect(issues.some((i: string) => i.includes("zelfevaluatievelden"))).toBe(true);
+      expect(issues.some((i: string) => i.includes("Sprintreflectie"))).toBe(true);
+    });
+
+    it("returns no issues for a fully completed sprint satisfying all specifications", () => {
+      const validSprint: MinorSprintFull = {
+        id: 1,
+        userId: 1,
+        sprintNumber: "1",
+        name: "Sprint 1",
+        startDate: "2026-01-01",
+        endDate: "2026-01-15",
+        durationDays: 14,
+        showAndGrowDate: "2026-01-14",
+        extendedDays: 0,
+        extensionReason: null,
+        status: "completed",
+        createdAt: "2026-01-01",
+        stories: [
+          {
+            id: 1,
+            sprintId: 1,
+            userId: 1,
+            storyTypeCode: "US",
+            title: "Test story",
+            asA: "a",
+            iWant: "b",
+            soThat: "c",
+            learningOutcomes: [1],
+            status: "done",
+            orderIndex: 0,
+            presentationData: null,
+            createdAt: "2026-01-01",
+            criteria: [],
+            evidence: [],
+          },
+        ],
+        feedback: [
+          {
+            id: 1,
+            sprintId: 1,
+            date: "2026-01-14",
+            fromWhom: "Peer student",
+            feedback: "Mooi gedaan",
+            action: "",
+            orderIndex: 0,
+            createdAt: "2026-01-14",
+          },
+        ],
+        selfEvaluations: [1, 2, 3, 4, 5].map((lu) => ({
+          id: lu,
+          sprintId: 1,
+          learningOutcome: lu,
+          level: "V",
+          argumentation: `Toelichting voor LU ${lu}`,
+          updatedAt: "2026-01-14",
+        })),
+        teacherAssessments: [],
+        reflection: {
+          id: 1,
+          sprintId: 1,
+          date: "2026-01-15",
+          whatLearned: "Veel geleerd",
+          whatRetained: "Goede workflow",
+          whatChange: "Eerder beginnen",
+          updatedAt: "2026-01-15",
+        },
+      };
+
+      const issues = validateSprintForExport(validSprint, "2026-02-01");
+      expect(issues.length).toBe(0);
+    });
   });
 });

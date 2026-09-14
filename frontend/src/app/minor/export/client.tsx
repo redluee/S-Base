@@ -9,15 +9,22 @@ import {
   Square,
   Download,
   Layers,
+  AlertTriangle,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
 import { downloadAllSprintsPDF } from "@/components/minor-pdf";
-import { downloadAllSprintsExcel } from "@/lib/minor-excel";
+import { downloadAllSprintsExcel, validateSprintForExport } from "@/lib/minor-excel";
 import { downloadMultipleSprintsJson } from "@/lib/minor-sprint-export";
 
 interface MinorExportClientProps {
   initialSprints: MinorSprint[];
+}
+
+interface SprintExportIssue {
+  sprintNumber: string;
+  sprintName: string;
+  issues: string[];
 }
 
 export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
@@ -27,6 +34,8 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
   );
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportIssues, setExportIssues] = useState<SprintExportIssue[]>([]);
+  const [pendingExcelSprints, setPendingExcelSprints] = useState<MinorSprintFull[] | null>(null);
 
   function handleToggleAll() {
     if (selectedSprintIds.length === sprints.length) {
@@ -65,13 +74,46 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
   }
 
   async function handleExportExcel() {
+    if (selectedSprintIds.length === 0) return;
     setExportingExcel(true);
     try {
       const fullSprints = await fetchFullSprints();
-      await downloadAllSprintsExcel(fullSprints);
+      
+      const allIssues: SprintExportIssue[] = [];
+      for (const sprint of fullSprints) {
+        const issues = validateSprintForExport(sprint);
+        if (issues.length > 0) {
+          allIssues.push({
+            sprintNumber: sprint.sprintNumber,
+            sprintName: sprint.name,
+            issues,
+          });
+        }
+      }
+
+      if (allIssues.length > 0) {
+        setExportIssues(allIssues);
+        setPendingExcelSprints(fullSprints);
+      } else {
+        await downloadAllSprintsExcel(fullSprints);
+      }
     } catch (err) {
       console.error("Batch Excel export failed:", err);
     } finally {
+      setExportingExcel(false);
+    }
+  }
+
+  async function handleConfirmIgnoreIssues() {
+    if (!pendingExcelSprints) return;
+    setExportingExcel(true);
+    try {
+      await downloadAllSprintsExcel(pendingExcelSprints);
+    } catch (err) {
+      console.error("Batch Excel export failed:", err);
+    } finally {
+      setPendingExcelSprints(null);
+      setExportIssues([]);
       setExportingExcel(false);
     }
   }
@@ -242,6 +284,61 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
           )}
         </div>
       </section>
+
+      {/* Pre-export Validation Warning Modal */}
+      {exportIssues.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center gap-2.5 text-amber-400 font-bold shrink-0">
+              <AlertTriangle className="size-5 shrink-0" />
+              <h3 className="text-base text-white">{t("Aandachtspunten voor Excel export")}</h3>
+            </div>
+            
+            <p className="text-xs text-zinc-300 leading-relaxed shrink-0">
+              {t("Bij één of meerdere geselecteerde sprints zijn onderdelen nog niet volledig afgerond volgens de specificaties:")}
+            </p>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {exportIssues.map((item, idx) => (
+                <div key={idx} className="p-3 rounded-xl bg-zinc-950 border border-white/5 space-y-1.5 text-xs">
+                  <div className="font-bold text-zinc-200 flex items-center gap-2">
+                    <span className="font-mono text-zinc-400">[{item.sprintNumber}]</span>
+                    <span>{item.sprintName}</span>
+                  </div>
+                  <ul className="space-y-1 text-zinc-400 pl-2">
+                    {item.issues.map((issue, iIdx) => (
+                      <li key={iIdx} className="flex items-start gap-1.5">
+                        <span className="text-amber-400 mt-0.5">•</span>
+                        <span>{issue}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row justify-end gap-2 shrink-0 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setExportIssues([]);
+                  setPendingExcelSprints(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium cursor-pointer text-center"
+              >
+                {t("Annuleren")}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmIgnoreIssues}
+                className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer text-center"
+              >
+                {t("Negeren en downloaden")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
