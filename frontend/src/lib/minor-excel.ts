@@ -7,6 +7,7 @@ const FILL_CARMINE_RED: ExcelJS.Fill = {
   fgColor: { argb: "FFC00000" },
 };
 
+// Odd Sprints (Red theme)
 const FILL_BRIGHT_RED: ExcelJS.Fill = {
   type: "pattern",
   pattern: "solid",
@@ -23,6 +24,25 @@ const FILL_LIGHT_PINK: ExcelJS.Fill = {
   type: "pattern",
   pattern: "solid",
   fgColor: { argb: "FFFDF0F0" },
+};
+
+// Even Sprints (Blue theme)
+const FILL_BRIGHT_BLUE: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FF00A1E1" },
+};
+
+const FILL_SOFT_BLUE: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFB0DEF0" },
+};
+
+const FILL_LIGHT_BLUE: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFEDF7FD" },
 };
 
 const THIN_BORDER: Partial<ExcelJS.Borders> = {
@@ -52,6 +72,14 @@ const FONT_CALIBRI_11_BOLD_WHITE: Partial<ExcelJS.Font> = {
   color: { argb: "FFFFFFFF" },
 };
 
+const FONT_CALIBRI_11_BOLD_TEAL_LINK: Partial<ExcelJS.Font> = {
+  name: "Calibri",
+  size: 11,
+  bold: true,
+  underline: true,
+  color: { argb: "FF00E3A4" },
+};
+
 const FONT_ARIAL_13_BOLD_WHITE: Partial<ExcelJS.Font> = {
   name: "Arial",
   size: 13,
@@ -64,6 +92,13 @@ const FONT_ARIAL_11_BOLD_DARK: Partial<ExcelJS.Font> = {
   size: 11,
   bold: true,
   color: { argb: "FF1A1A1A" },
+};
+
+const FONT_ARIAL_11_BOLD_GREEN: Partial<ExcelJS.Font> = {
+  name: "Arial",
+  size: 11,
+  bold: true,
+  color: { argb: "FF00A86B" },
 };
 
 const FONT_ARIAL_10_BOLD: Partial<ExcelJS.Font> = {
@@ -79,7 +114,7 @@ const FONT_ARIAL_10: Partial<ExcelJS.Font> = {
   color: { argb: "FF000000" },
 };
 
-const LU_MASTER_DEFINITIONS: Array<{
+export const LU_MASTER_DEFINITIONS: Array<{
   lu: number;
   label: string;
   name: string;
@@ -123,7 +158,7 @@ const LU_MASTER_DEFINITIONS: Array<{
   },
 ];
 
-function findSprintByNumber(sprints: MinorSprintFull[], targetNum: number): MinorSprintFull | undefined {
+export function findSprintByNumber(sprints: MinorSprintFull[], targetNum: number): MinorSprintFull | undefined {
   return sprints.find((s) => {
     const rawNum = s.sprintNumber ? parseInt(s.sprintNumber.replace(/\D/g, ""), 10) : NaN;
     if (!isNaN(rawNum) && rawNum === targetNum) return true;
@@ -133,7 +168,7 @@ function findSprintByNumber(sprints: MinorSprintFull[], targetNum: number): Mino
   });
 }
 
-function normalizeEvaluationLevel(level?: string | null): string {
+export function normalizeEvaluationLevel(level?: string | null): string {
   if (!level) return "-";
   const trimmed = level.trim().toUpperCase();
   if (trimmed === "V") return "V";
@@ -146,6 +181,17 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   const wb = new ExcelJS.Workbook();
   wb.creator = "S-Base Minor Module";
   wb.created = new Date();
+
+  // Pre-calculate evaluation levels across all 8 sprints for dashboard formula results
+  const sprintLuLevels: Record<number, Record<number, string>> = {}; // sprintNum -> lu -> level
+  for (let sNum = 1; sNum <= 8; sNum++) {
+    sprintLuLevels[sNum] = {};
+    const sp = findSprintByNumber(sprints, sNum);
+    for (let lu = 1; lu <= 5; lu++) {
+      const item = sp?.selfEvaluations?.find((e) => e.learningOutcome === lu);
+      sprintLuLevels[sNum][lu] = normalizeEvaluationLevel(item?.level);
+    }
+  }
 
   // ==========================================
   // TABBLAD 1: Dashboard
@@ -164,33 +210,45 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   // Header Row 1
   const dashRow1 = wsDashboard.getRow(1);
   dashRow1.height = 14.25;
-  const dashHeaders = [
-    "LU",
-    "Doel",
-    "Behaald",
-    "Sprint 1",
-    "Sprint 2",
-    "Sprint 3",
-    "Sprint 4",
-    "Sprint 5",
-    "Sprint 6",
-    "Sprint 7",
-    "Sprint 8",
-  ];
 
-  dashHeaders.forEach((header, index) => {
-    const cell = dashRow1.getCell(index + 1);
-    cell.value = header;
-    cell.fill = FILL_CARMINE_RED;
-    cell.font = FONT_CALIBRI_11_BOLD_WHITE;
-    cell.border = THIN_BORDER;
-    cell.alignment = {
-      vertical: "middle",
-      horizontal: index === 0 ? "left" : "center",
+  const cellA1 = dashRow1.getCell(1);
+  cellA1.value = "LU";
+  cellA1.fill = FILL_CARMINE_RED;
+  cellA1.font = FONT_CALIBRI_11_BOLD_WHITE;
+  cellA1.border = THIN_BORDER;
+  cellA1.alignment = { vertical: "middle", horizontal: "left" };
+
+  const cellB1 = dashRow1.getCell(2);
+  cellB1.value = "Doel";
+  cellB1.fill = FILL_CARMINE_RED;
+  cellB1.font = FONT_CALIBRI_11_BOLD_WHITE;
+  cellB1.border = THIN_BORDER;
+  cellB1.alignment = { vertical: "middle", horizontal: "center" };
+
+  const cellC1 = dashRow1.getCell(3);
+  cellC1.value = "Behaald";
+  cellC1.fill = FILL_CARMINE_RED;
+  cellC1.font = FONT_CALIBRI_11_BOLD_WHITE;
+  cellC1.border = THIN_BORDER;
+  cellC1.alignment = { vertical: "middle", horizontal: "center" };
+
+  for (let sprintIdx = 0; sprintIdx < 8; sprintIdx++) {
+    const sprintNum = sprintIdx + 1;
+    const cell = dashRow1.getCell(sprintIdx + 4);
+    const targetRowInLogboek = sprintIdx * 28 + 1;
+
+    cell.value = {
+      text: `Sprint ${sprintNum}`,
+      hyperlink: `#'Logboek'!A${targetRowInLogboek}`,
     };
-  });
+    cell.fill = FILL_CARMINE_RED;
+    cell.font = FONT_CALIBRI_11_BOLD_TEAL_LINK;
+    cell.border = THIN_BORDER;
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+  }
 
   // Data Rows 2 t/m 6 (LU 1 t/m 5)
+  let totalAchieved = 0;
   LU_MASTER_DEFINITIONS.forEach((luDef, idx) => {
     const rowNum = idx + 2;
     const row = wsDashboard.getRow(rowNum);
@@ -210,9 +268,21 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     cellB.border = THIN_BORDER;
     cellB.alignment = { vertical: "middle", horizontal: "center" };
 
+    // Calculate achieved V's for this LU
+    let luAchievedCount = 0;
+    for (let sNum = 1; sNum <= 8; sNum++) {
+      if (sprintLuLevels[sNum][luDef.lu] === "V") {
+        luAchievedCount++;
+      }
+    }
+    totalAchieved += luAchievedCount;
+
     // Cel C: Behaald
     const cellC = row.getCell(3);
-    cellC.value = { formula: `COUNTIF(D${rowNum}:K${rowNum}, "V")` };
+    cellC.value = {
+      formula: `COUNTIF(D${rowNum}:K${rowNum}, "V")`,
+      result: luAchievedCount,
+    };
     cellC.font = FONT_CALIBRI_11_BOLD;
     cellC.border = THIN_BORDER;
     cellC.alignment = { vertical: "middle", horizontal: "center" };
@@ -222,7 +292,12 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       const colNum = sprintIdx + 4;
       const cell = row.getCell(colNum);
       const logboekRow = sprintIdx * 28 + 18 + idx;
-      cell.value = { formula: `Logboek!C${logboekRow}` };
+      const levelResult = sprintLuLevels[sprintIdx + 1][luDef.lu];
+
+      cell.value = {
+        formula: `Logboek!C${logboekRow}`,
+        result: levelResult,
+      };
       cell.font = FONT_CALIBRI_11;
       cell.border = THIN_BORDER;
       cell.alignment = { vertical: "middle", horizontal: "center" };
@@ -240,13 +315,13 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   cellA7.alignment = { vertical: "middle", horizontal: "left" };
 
   const cellB7 = dashRow7.getCell(2);
-  cellB7.value = { formula: "SUM(B2:B6)" };
+  cellB7.value = { formula: "SUM(B2:B6)", result: 18 };
   cellB7.font = FONT_CALIBRI_11_BOLD;
   cellB7.border = THIN_BORDER;
   cellB7.alignment = { vertical: "middle", horizontal: "center" };
 
   const cellC7 = dashRow7.getCell(3);
-  cellC7.value = { formula: "SUM(D6:K7)" };
+  cellC7.value = { formula: "SUM(D6:K7)", result: totalAchieved };
   cellC7.font = FONT_CALIBRI_11_BOLD;
   cellC7.border = THIN_BORDER;
   cellC7.alignment = { vertical: "middle", horizontal: "center" };
@@ -254,7 +329,18 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   for (let sprintIdx = 0; sprintIdx < 8; sprintIdx++) {
     const colLetter = String.fromCharCode(68 + sprintIdx); // D, E, F, G, H, I, J, K
     const cell = dashRow7.getCell(sprintIdx + 4);
-    cell.value = { formula: `COUNTIF(${colLetter}2:${colLetter}6, "V")` };
+
+    let sprintVCount = 0;
+    for (let lu = 1; lu <= 5; lu++) {
+      if (sprintLuLevels[sprintIdx + 1][lu] === "V") {
+        sprintVCount++;
+      }
+    }
+
+    cell.value = {
+      formula: `COUNTIF(${colLetter}2:${colLetter}6, "V")`,
+      result: sprintVCount,
+    };
     cell.font = FONT_CALIBRI_11;
     cell.border = THIN_BORDER;
     cell.alignment = { vertical: "middle", horizontal: "center" };
@@ -276,6 +362,13 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     const R = (sprintNum - 1) * 28;
     const currentSprint = findSprintByNumber(sprints, sprintNum);
 
+    // Dynamic theme: Odd sprints are Red/Pink; Even sprints are Blue/Ice-blue
+    const isEven = sprintNum % 2 === 0;
+    const bannerFill = isEven ? FILL_BRIGHT_BLUE : FILL_BRIGHT_RED;
+    const sectionFill = isEven ? FILL_SOFT_BLUE : FILL_SOFT_PINK;
+    const cellFill = isEven ? FILL_LIGHT_BLUE : FILL_LIGHT_PINK;
+    const koprijFill = isEven ? FILL_SOFT_BLUE : FILL_LIGHT_PINK;
+
     // 1. Sprint Header & Scheiding
     // Rij R+1: SPRINT {N} (Merged A..D)
     const rowR1 = wsLogboek.getRow(R + 1);
@@ -283,16 +376,15 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     wsLogboek.mergeCells(`A${R + 1}:D${R + 1}`);
     const cellMergedHeader = wsLogboek.getCell(`A${R + 1}`);
     cellMergedHeader.value = `SPRINT ${sprintNum}`;
-    cellMergedHeader.fill = FILL_BRIGHT_RED;
+    cellMergedHeader.fill = bannerFill;
     cellMergedHeader.font = FONT_ARIAL_13_BOLD_WHITE;
     cellMergedHeader.alignment = { vertical: "middle", horizontal: "center" };
 
-    // Rij R+2: Lege scheidingsrij met achtergrond #FDF0F0
+    // Rij R+2: Lege scheidingsrij
     const rowR2 = wsLogboek.getRow(R + 2);
     rowR2.height = 14.25;
     for (let c = 1; c <= 4; c++) {
-      const cell = rowR2.getCell(c);
-      cell.fill = FILL_LIGHT_PINK;
+      rowR2.getCell(c).fill = cellFill;
     }
 
     // 2. Sectie 1: PLANNING (User Stories)
@@ -301,13 +393,14 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     rowR3.height = 18.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR3.getCell(c);
-      cell.fill = FILL_SOFT_PINK;
+      cell.fill = sectionFill;
       cell.font = FONT_ARIAL_11_BOLD_DARK;
       cell.alignment = { vertical: "middle", horizontal: "left" };
     }
     rowR3.getCell(1).value = "1. PLANNING (User Stories) ";
     const cellR3D = rowR3.getCell(4);
     cellR3D.value = "Plannen met je plannings Agent";
+    cellR3D.font = FONT_ARIAL_11_BOLD_GREEN;
     cellR3D.alignment = { vertical: "middle", horizontal: "right" };
 
     // Rij R+4: Koprij
@@ -317,7 +410,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     planningHeaders.forEach((h, idx) => {
       const cell = rowR4.getCell(idx + 1);
       cell.value = h;
-      cell.fill = FILL_LIGHT_PINK;
+      cell.fill = koprijFill;
       cell.font = FONT_ARIAL_10_BOLD;
       cell.border = THIN_BORDER;
       cell.alignment = {
@@ -338,7 +431,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       // Kolom A: Story Type (met validatie Lijsten!$B$1:$B$4)
       const cellA = storyRow.getCell(1);
       cellA.value = story?.storyTypeCode || "US";
-      cellA.fill = FILL_LIGHT_PINK;
+      cellA.fill = cellFill;
       cellA.font = FONT_ARIAL_10;
       cellA.border = THIN_BORDER;
       cellA.alignment = { vertical: "top", horizontal: "center" };
@@ -361,7 +454,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       } else {
         cellB.value = "Als < > ,wil ik < > ,zodat < >";
       }
-      cellB.fill = FILL_LIGHT_PINK;
+      cellB.fill = cellFill;
       cellB.font = FONT_ARIAL_10;
       cellB.border = THIN_BORDER;
       cellB.alignment = { vertical: "top", horizontal: "left", wrapText: true };
@@ -374,7 +467,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       } else {
         cellC.value = "1. \n2. \n3. ";
       }
-      cellC.fill = FILL_LIGHT_PINK;
+      cellC.fill = cellFill;
       cellC.font = FONT_ARIAL_10;
       cellC.border = THIN_BORDER;
       cellC.alignment = { vertical: "top", horizontal: "left", wrapText: true };
@@ -387,7 +480,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       } else {
         cellD.value = "1. \n2. \n3. ";
       }
-      cellD.fill = FILL_LIGHT_PINK;
+      cellD.fill = cellFill;
       cellD.font = FONT_ARIAL_10;
       cellD.border = THIN_BORDER;
       cellD.alignment = { vertical: "top", horizontal: "left", wrapText: true };
@@ -397,7 +490,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     const rowR10 = wsLogboek.getRow(R + 10);
     rowR10.height = 14.25;
     for (let c = 1; c <= 4; c++) {
-      rowR10.getCell(c).fill = FILL_LIGHT_PINK;
+      rowR10.getCell(c).fill = cellFill;
     }
 
     // 3. Sectie 2: FEEDBACK (Ontvangen van anderen)
@@ -406,7 +499,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     rowR11.height = 18.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR11.getCell(c);
-      cell.fill = FILL_SOFT_PINK;
+      cell.fill = sectionFill;
       cell.font = FONT_ARIAL_11_BOLD_DARK;
       cell.alignment = { vertical: "middle", horizontal: "left" };
     }
@@ -419,7 +512,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     feedbackHeaders.forEach((h, idx) => {
       const cell = rowR12.getCell(idx + 1);
       cell.value = h;
-      cell.fill = FILL_LIGHT_PINK;
+      cell.fill = koprijFill;
       cell.font = FONT_ARIAL_10_BOLD;
       cell.border = THIN_BORDER;
       cell.alignment = {
@@ -439,28 +532,28 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
       const cellA = fbRow.getCell(1);
       cellA.value = fb?.date || "";
-      cellA.fill = FILL_LIGHT_PINK;
+      cellA.fill = cellFill;
       cellA.font = FONT_ARIAL_10;
       cellA.border = THIN_BORDER;
       cellA.alignment = { vertical: "top", horizontal: "left" };
 
       const cellB = fbRow.getCell(2);
       cellB.value = fb?.fromWhom || "";
-      cellB.fill = FILL_LIGHT_PINK;
+      cellB.fill = cellFill;
       cellB.font = FONT_ARIAL_10;
       cellB.border = THIN_BORDER;
       cellB.alignment = { vertical: "top", horizontal: "left", wrapText: true };
 
       const cellC = fbRow.getCell(3);
       cellC.value = fb?.feedback || "";
-      cellC.fill = FILL_LIGHT_PINK;
+      cellC.fill = cellFill;
       cellC.font = FONT_ARIAL_10;
       cellC.border = THIN_BORDER;
       cellC.alignment = { vertical: "top", horizontal: "left", wrapText: true };
 
       const cellD = fbRow.getCell(4);
       cellD.value = fb?.action || "";
-      cellD.fill = FILL_LIGHT_PINK;
+      cellD.fill = cellFill;
       cellD.font = FONT_ARIAL_10;
       cellD.border = THIN_BORDER;
       cellD.alignment = { vertical: "top", horizontal: "left", wrapText: true };
@@ -471,7 +564,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     rowR16.height = 18.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR16.getCell(c);
-      cell.fill = FILL_SOFT_PINK;
+      cell.fill = sectionFill;
       cell.font = FONT_ARIAL_11_BOLD_DARK;
       cell.alignment = { vertical: "middle", horizontal: "left" };
     }
@@ -484,7 +577,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     evalHeaders.forEach((h, idx) => {
       const cell = rowR17.getCell(idx + 1);
       cell.value = h;
-      cell.fill = FILL_LIGHT_PINK;
+      cell.fill = koprijFill;
       cell.font = FONT_ARIAL_10_BOLD;
       cell.border = THIN_BORDER;
       cell.alignment = {
@@ -507,7 +600,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       // Cel A: LU Nummer
       const cellA = luRow.getCell(1);
       cellA.value = `LU ${luDef.lu}`;
-      cellA.fill = FILL_LIGHT_PINK;
+      cellA.fill = cellFill;
       cellA.font = FONT_ARIAL_10;
       cellA.border = THIN_BORDER;
       cellA.alignment = { vertical: "top", horizontal: "center" };
@@ -515,7 +608,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       // Cel B: Leeruitkomst omschrijving
       const cellB = luRow.getCell(2);
       cellB.value = luDef.name;
-      cellB.fill = FILL_LIGHT_PINK;
+      cellB.fill = cellFill;
       cellB.font = FONT_ARIAL_10;
       cellB.border = THIN_BORDER;
       cellB.alignment = { vertical: "top", horizontal: "left", wrapText: true };
@@ -523,7 +616,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       // Cel C: Niveau (met dropdown =Lijsten!$A$1:$A$3)
       const cellC = luRow.getCell(3);
       cellC.value = level;
-      cellC.fill = FILL_LIGHT_PINK;
+      cellC.fill = cellFill;
       cellC.font = FONT_ARIAL_10;
       cellC.border = THIN_BORDER;
       cellC.alignment = { vertical: "top", horizontal: "center", wrapText: true };
@@ -536,7 +629,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       // Cel D: Argumentatie en bewijs
       const cellD = luRow.getCell(4);
       cellD.value = argumentation;
-      cellD.fill = FILL_LIGHT_PINK;
+      cellD.fill = cellFill;
       cellD.font = FONT_ARIAL_10;
       cellD.border = THIN_BORDER;
       cellD.alignment = { vertical: "top", horizontal: "left", wrapText: true };
@@ -546,7 +639,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     const rowR23 = wsLogboek.getRow(R + 23);
     rowR23.height = 14.25;
     for (let c = 1; c <= 4; c++) {
-      rowR23.getCell(c).fill = FILL_LIGHT_PINK;
+      rowR23.getCell(c).fill = cellFill;
     }
 
     // 5. Sectie 4: REFLECTIE
@@ -555,7 +648,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     rowR24.height = 18.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR24.getCell(c);
-      cell.fill = FILL_SOFT_PINK;
+      cell.fill = sectionFill;
       cell.font = FONT_ARIAL_11_BOLD_DARK;
       cell.alignment = { vertical: "middle", horizontal: "left" };
     }
@@ -573,7 +666,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     reflectionHeaders.forEach((h, idx) => {
       const cell = rowR25.getCell(idx + 1);
       cell.value = h;
-      cell.fill = FILL_LIGHT_PINK;
+      cell.fill = koprijFill;
       cell.font = FONT_ARIAL_10_BOLD;
       cell.border = THIN_BORDER;
       cell.alignment = {
@@ -592,28 +685,28 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
       const cellA = refRow.getCell(1);
       cellA.value = i === 0 ? reflection?.date || "" : "";
-      cellA.fill = FILL_LIGHT_PINK;
+      cellA.fill = cellFill;
       cellA.font = FONT_ARIAL_10;
       cellA.border = THIN_BORDER;
       cellA.alignment = { vertical: "top", horizontal: "left" };
 
       const cellB = refRow.getCell(2);
       cellB.value = i === 0 ? reflection?.whatLearned || "" : "";
-      cellB.fill = FILL_LIGHT_PINK;
+      cellB.fill = cellFill;
       cellB.font = FONT_ARIAL_10;
       cellB.border = THIN_BORDER;
       cellB.alignment = { vertical: "top", horizontal: "left", wrapText: true };
 
       const cellC = refRow.getCell(3);
       cellC.value = i === 0 ? reflection?.whatRetained || "" : "";
-      cellC.fill = FILL_LIGHT_PINK;
+      cellC.fill = cellFill;
       cellC.font = FONT_ARIAL_10;
       cellC.border = THIN_BORDER;
       cellC.alignment = { vertical: "top", horizontal: "left", wrapText: true };
 
       const cellD = refRow.getCell(4);
       cellD.value = i === 0 ? reflection?.whatChange || "" : "";
-      cellD.fill = FILL_LIGHT_PINK;
+      cellD.fill = cellFill;
       cellD.font = FONT_ARIAL_10;
       cellD.border = THIN_BORDER;
       cellD.alignment = { vertical: "top", horizontal: "left", wrapText: true };

@@ -46,8 +46,8 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(ws.getCell("A1").value).toBe("LU");
     expect(ws.getCell("B1").value).toBe("Doel");
     expect(ws.getCell("C1").value).toBe("Behaald");
-    expect(ws.getCell("D1").value).toBe("Sprint 1");
-    expect(ws.getCell("K1").value).toBe("Sprint 8");
+    expect((ws.getCell("D1").value as { text: string }).text).toBe("Sprint 1");
+    expect((ws.getCell("K1").value as { text: string }).text).toBe("Sprint 8");
 
     // Header fill
     const fillA1 = ws.getCell("A1").fill as ExcelJS.PatternFill;
@@ -244,6 +244,11 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(ws.getCell("B26").value).toBe("Excel formatting");
     expect(ws.getCell("C26").value).toBe("Discipline");
     expect(ws.getCell("D26").value).toBe("Vroeger beginnen");
+
+    // Sprint 2 (Row 29) should be Blue theme
+    expect(ws.getCell("A29").value).toBe("SPRINT 2");
+    const fillSprint2 = ws.getCell("A29").fill as ExcelJS.PatternFill;
+    expect(fillSprint2?.fgColor?.argb).toBe("FF00A1E1");
 
     // Sprint 8 last row should be 224
     expect(ws.getCell("A197").value).toBe("SPRINT 8");

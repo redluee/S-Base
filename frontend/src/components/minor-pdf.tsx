@@ -2,398 +2,630 @@
 
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
-import type { MinorSprintFull } from "@/lib/api";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { api, type MinorSprintFull } from "@/lib/api";
+import {
+  LU_MASTER_DEFINITIONS,
+  findSprintByNumber,
+  normalizeEvaluationLevel,
+} from "@/lib/minor-excel";
 
-const brandGreen = "#00e3a4";
-const textDark = "#111827";
-const textMuted = "#4b5563";
-const borderLight = "#e5e7eb";
-const bgLight = "#f9fafb";
+// Palette matching Image 1 & Image 2
+const COLOR_CARMINE_RED = "#C00000";
+const COLOR_ODD_BANNER = "#E6302B";
+const COLOR_ODD_SECTION = "#FACAC9";
+const COLOR_ODD_CELL = "#FDF0F0";
+
+const COLOR_EVEN_BANNER = "#00A1E1";
+const COLOR_EVEN_SECTION = "#B0DEF0";
+const COLOR_EVEN_CELL = "#EDF7FD";
+
+const COLOR_GREEN_AGENT = "#00A86B";
+const COLOR_TEAL_LINK = "#00E3A4";
+const COLOR_BORDER = "#D3D3D3";
+const COLOR_TEXT_DARK = "#1A1A1A";
+const COLOR_BLACK = "#000000";
+const COLOR_WHITE = "#FFFFFF";
 
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 9,
-    paddingTop: 30,
-    paddingBottom: 40,
-    paddingHorizontal: 30,
-    color: textDark,
-    backgroundColor: "#ffffff",
+    fontSize: 7.5,
+    paddingTop: 18,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    color: COLOR_BLACK,
+    backgroundColor: "#FFFFFF",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1.5,
-    borderBottomColor: brandGreen,
-  },
-  sprintTitle: {
-    fontSize: 16,
-    fontFamily: "Helvetica-Bold",
-    color: textDark,
-  },
-  sprintMeta: {
-    fontSize: 8.5,
-    color: textMuted,
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: "#ecfdf5",
-    borderWidth: 1,
-    borderColor: "#a7f3d0",
-    borderRadius: 4,
-    fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    color: "#065f46",
-    textTransform: "uppercase",
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontFamily: "Helvetica-Bold",
-    backgroundColor: bgLight,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: brandGreen,
-    marginTop: 10,
-    marginBottom: 6,
-    color: textDark,
-  },
-  table: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: borderLight,
-    borderRadius: 3,
-    marginBottom: 8,
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: bgLight,
-    borderBottomWidth: 1,
-    borderBottomColor: borderLight,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
+  // Table utilities
+  tableBorder: {
+    borderWidth: 0.5,
+    borderColor: COLOR_BORDER,
   },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
-    borderBottomColor: borderLight,
+    borderBottomColor: COLOR_BORDER,
+  },
+  tableCell: {
+    paddingHorizontal: 4,
+    paddingVertical: 2.5,
+    borderRightWidth: 0.5,
+    borderRightColor: COLOR_BORDER,
+    justifyContent: "center",
+  },
+  tableCellLast: {
+    paddingHorizontal: 4,
+    paddingVertical: 2.5,
+    justifyContent: "center",
+  },
+
+  // Dashboard Page Styles
+  dashHeaderCell: {
+    backgroundColor: COLOR_CARMINE_RED,
+    paddingHorizontal: 3,
     paddingVertical: 4,
-    paddingHorizontal: 6,
-    alignItems: "flex-start",
+    borderRightWidth: 0.5,
+    borderRightColor: COLOR_BORDER,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  tableRowLast: {
-    borderBottomWidth: 0,
+  dashHeaderCellLeft: {
+    backgroundColor: COLOR_CARMINE_RED,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderRightWidth: 0.5,
+    borderRightColor: COLOR_BORDER,
+    justifyContent: "center",
   },
-  th: {
+  dashHeaderTextWhite: {
     fontFamily: "Helvetica-Bold",
     fontSize: 8,
-    color: textDark,
+    color: COLOR_WHITE,
   },
-  td: {
-    fontSize: 8,
-    color: textDark,
-  },
-  tdMuted: {
+  dashHeaderTextLink: {
+    fontFamily: "Helvetica-Bold",
     fontSize: 7.5,
-    color: textMuted,
+    color: COLOR_TEAL_LINK,
+    textDecoration: "underline",
   },
-  storyBox: {
-    borderWidth: 0.5,
-    borderColor: borderLight,
-    borderRadius: 3,
-    padding: 6,
-    marginBottom: 6,
-    backgroundColor: "#ffffff",
-  },
-  storyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 3,
-  },
-  storyTitle: {
-    fontSize: 9,
+  dashDataTextBold: {
     fontFamily: "Helvetica-Bold",
-    color: textDark,
-  },
-  storyTemplate: {
     fontSize: 8,
-    color: textMuted,
-    fontStyle: "italic",
+    color: COLOR_BLACK,
+  },
+  dashDataText: {
+    fontSize: 8,
+    color: COLOR_BLACK,
+  },
+
+  // Logboek Sprint Page Styles
+  sprintBanner: {
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 4,
   },
-  criteriaBlock: {
+  sprintBannerText: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 11,
+    color: COLOR_WHITE,
+    textAlign: "center",
+  },
+  sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
-    paddingTop: 4,
+    alignItems: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderTopWidth: 0.5,
-    borderTopColor: borderLight,
+    borderLeftWidth: 0.5,
+    borderRightWidth: 0.5,
+    borderColor: COLOR_BORDER,
   },
-  criteriaCol: {
-    width: "48%",
-  },
-  criteriaTitle: {
-    fontSize: 7.5,
+  sectionHeaderText: {
     fontFamily: "Helvetica-Bold",
-    color: textDark,
-    marginBottom: 2,
+    fontSize: 8.5,
+    color: COLOR_TEXT_DARK,
   },
-  criterionItem: {
-    fontSize: 7,
-    color: textDark,
-    marginBottom: 1.5,
-  },
-  criterionSubItem: {
-    fontSize: 7,
-    color: textMuted,
-    marginBottom: 1.5,
-    marginLeft: 8,
-  },
-  evidenceItem: {
-    fontSize: 7,
-    color: "#0284c7",
-    marginTop: 1,
-  },
-  luBadge: {
-    fontSize: 7,
+  sectionAgentText: {
     fontFamily: "Helvetica-Bold",
-    backgroundColor: "#f3f4f6",
+    fontSize: 8,
+    color: COLOR_GREEN_AGENT,
+  },
+  koprijCell: {
     paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 2,
-    marginRight: 2,
+    paddingVertical: 3,
+    borderRightWidth: 0.5,
+    borderRightColor: COLOR_BORDER,
+    justifyContent: "center",
   },
-  footer: {
-    position: "absolute",
-    bottom: 15,
-    left: 30,
-    right: 30,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderTopWidth: 0.5,
-    borderTopColor: borderLight,
-    paddingTop: 4,
+  koprijText: {
+    fontFamily: "Helvetica-Bold",
     fontSize: 7.5,
-    color: textMuted,
+    color: COLOR_BLACK,
+  },
+  cellText: {
+    fontSize: 7,
+    color: COLOR_BLACK,
+    lineHeight: 1.25,
+  },
+  cellTextBold: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 7.5,
+    color: COLOR_BLACK,
+  },
+  spacer: {
+    height: 4,
   },
 });
 
-interface SprintPageProps {
-  sprint: MinorSprintFull;
+interface DashboardPageProps {
+  sprints: MinorSprintFull[];
 }
 
-function SprintPdfPage({ sprint }: SprintPageProps) {
+function DashboardPdfPage({ sprints }: DashboardPageProps) {
+  // Pre-calculate evaluation levels across all 8 sprints for dashboard
+  const sprintLuLevels: Record<number, Record<number, string>> = {};
+  for (let sNum = 1; sNum <= 8; sNum++) {
+    sprintLuLevels[sNum] = {};
+    const sp = findSprintByNumber(sprints, sNum);
+    for (let lu = 1; lu <= 5; lu++) {
+      const item = sp?.selfEvaluations?.find((e) => e.learningOutcome === lu);
+      sprintLuLevels[sNum][lu] = normalizeEvaluationLevel(item?.level);
+    }
+  }
+
+  let totalAchieved = 0;
+  const luCounts: Record<number, number> = {};
+  for (let lu = 1; lu <= 5; lu++) {
+    let count = 0;
+    for (let sNum = 1; sNum <= 8; sNum++) {
+      if (sprintLuLevels[sNum][lu] === "V") count++;
+    }
+    luCounts[lu] = count;
+    totalAchieved += count;
+  }
+
+  const sprintTotals: Record<number, number> = {};
+  for (let sNum = 1; sNum <= 8; sNum++) {
+    let count = 0;
+    for (let lu = 1; lu <= 5; lu++) {
+      if (sprintLuLevels[sNum][lu] === "V") count++;
+    }
+    sprintTotals[sNum] = count;
+  }
+
   return (
     <Page size="A4" style={styles.page}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.sprintTitle}>
-            {sprint.name} {sprint.sprintNumber !== sprint.name.replace("Sprint ", "") ? `(${sprint.sprintNumber})` : ""}
-          </Text>
-          <Text style={styles.sprintMeta}>
-            Periode: {sprint.startDate} t/m {sprint.endDate} | Show & Grow: {sprint.showAndGrowDate}
-            {sprint.extendedDays > 0 ? ` (+${sprint.extendedDays} dagen verlengd i.v.m. ${sprint.extensionReason})` : ""}
-          </Text>
-        </View>
-        <Text style={styles.statusBadge}>{sprint.status}</Text>
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 13, color: COLOR_TEXT_DARK }}>
+          Voortgangsmatrix & Dashboard
+        </Text>
+        <Text style={{ fontSize: 7.5, color: "#666666", marginTop: 2 }}>
+          Integraal Sprint Logboek - Beoordelingsmatrix
+        </Text>
       </View>
 
-      {/* 1. PLANNING */}
-      <Text style={styles.sectionTitle}>1. PLANNING</Text>
-      {sprint.stories.length === 0 ? (
-        <Text style={styles.tdMuted}>Geen stories opgenomen in deze sprintplanning.</Text>
-      ) : (
-        sprint.stories.map((story) => (
-          <View key={story.id} style={styles.storyBox} wrap={false}>
-            <View style={styles.storyHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Text style={styles.luBadge}>{story.storyTypeCode}</Text>
-                <Text style={styles.storyTitle}>
-                  {story.storyNumber ? `[${story.storyNumber}] ` : ""}{story.title}
-                </Text>
-              </View>
-              <View style={{ flexDirection: "row", gap: 2 }}>
-                {story.learningOutcomes.map((lu) => (
-                  <Text key={lu} style={styles.luBadge}>
-                    LU {lu}{getLUShortDesc(lu) ? ` · ${getLUShortDesc(lu)}` : ""}
-                  </Text>
-                ))}
-              </View>
-            </View>
-
-            {(story.asA || story.iWant || story.soThat) && (
-              <Text style={styles.storyTemplate}>
-                Als {story.asA || "..."}, wil ik {story.iWant || "..."}, zodat {story.soThat || "..."}
-              </Text>
-            )}
-
-            {/* Criteria dual columns */}
-            <View style={styles.criteriaBlock}>
-              <View style={styles.criteriaCol}>
-                <Text style={styles.criteriaTitle}>Acceptatiecriteria:</Text>
-                {(story.criteria?.filter((c) => c.type === "acceptance") || []).length === 0 ? (
-                  <Text style={styles.tdMuted}>Geen criteria</Text>
-                ) : (
-                  story.criteria?.filter((c) => c.type === "acceptance").map((c) => {
-                    const isSub = (c.indent ?? 0) > 0;
-                    return (
-                      <Text key={c.id} style={isSub ? styles.criterionSubItem : styles.criterionItem}>
-                        {isSub ? `  ↳ ${c.isCompleted ? "[x]" : "[ ]"} ${c.text}` : `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`}
-                      </Text>
-                    );
-                  })
-                )}
-              </View>
-
-              <View style={styles.criteriaCol}>
-                <Text style={styles.criteriaTitle}>Kwaliteitscriteria:</Text>
-                {(story.criteria?.filter((c) => c.type === "quality") || []).length === 0 ? (
-                  <Text style={styles.tdMuted}>Geen criteria</Text>
-                ) : (
-                  story.criteria?.filter((c) => c.type === "quality").map((c) => {
-                    const isSub = (c.indent ?? 0) > 0;
-                    return (
-                      <Text key={c.id} style={isSub ? styles.criterionSubItem : styles.criterionItem}>
-                        {isSub ? `  ↳ ${c.isCompleted ? "[x]" : "[ ]"} ${c.text}` : `${c.isCompleted ? "[x]" : "[ ]"} ${c.orderIndex}. ${c.text}`}
-                      </Text>
-                    );
-                  })
-                )}
-              </View>
-            </View>
-
-            {/* Evidence */}
-            {story.evidence && story.evidence.length > 0 && (
-              <View style={{ marginTop: 3, paddingTop: 2, borderTopWidth: 0.5, borderTopColor: borderLight }}>
-                <Text style={styles.criteriaTitle}>Bewijsstukken & resultaten:</Text>
-                {story.evidence.map((ev) => (
-                  <Text key={ev.id} style={styles.evidenceItem}>
-                    • ({ev.type}) {ev.title}: {ev.url}
-                  </Text>
-                ))}
-              </View>
-            )}
+      <View style={styles.tableBorder}>
+        {/* Header Row */}
+        <View style={styles.tableRow}>
+          <View style={[styles.dashHeaderCellLeft, { width: "14%" }]}>
+            <Text style={styles.dashHeaderTextWhite}>LU</Text>
           </View>
-        ))
-      )}
-
-      {/* 2. FEEDBACK */}
-      <Text style={styles.sectionTitle}>2. FEEDBACK</Text>
-      <View style={styles.table}>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.th, { width: "18%" }]}>Datum</Text>
-          <Text style={[styles.th, { width: "22%" }]}>Van wie</Text>
-          <Text style={[styles.th, { width: "35%" }]}>Feedback</Text>
-          <Text style={[styles.th, { width: "25%" }]}>Jouw actie</Text>
-        </View>
-        {sprint.feedback.length === 0 ? (
-          <View style={[styles.tableRow, styles.tableRowLast]}>
-            <Text style={[styles.tdMuted, { width: "100%" }]}>Geen feedbackregels geregistreerd.</Text>
+          <View style={[styles.dashHeaderCell, { width: "6.5%" }]}>
+            <Text style={styles.dashHeaderTextWhite}>Doel</Text>
           </View>
-        ) : (
-          sprint.feedback.map((fb, idx) => (
-            <View key={fb.id} style={[styles.tableRow, idx === sprint.feedback.length - 1 ? styles.tableRowLast : {}]}>
-              <Text style={[styles.td, { width: "18%" }]}>{fb.date}</Text>
-              <Text style={[styles.td, { width: "22%", fontFamily: "Helvetica-Bold" }]}>{fb.fromWhom}</Text>
-              <Text style={[styles.td, { width: "35%" }]}>{fb.feedback}</Text>
-              <Text style={[styles.td, { width: "25%" }]}>{fb.action}</Text>
+          <View style={[styles.dashHeaderCell, { width: "9.5%" }]}>
+            <Text style={styles.dashHeaderTextWhite}>Behaald</Text>
+          </View>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((sNum) => (
+            <View
+              key={sNum}
+              style={[
+                styles.dashHeaderCell,
+                { width: "8.75%" },
+                sNum === 8 ? { borderRightWidth: 0 } : {},
+              ]}
+            >
+              <Text style={styles.dashHeaderTextLink}>Sprint {sNum}</Text>
             </View>
-          ))
-        )}
-      </View>
-
-      {/* 3. ZELFEVALUATIE & BEOORDELING */}
-      <Text style={styles.sectionTitle}>3. ZELFEVALUATIE & BEOORDELING</Text>
-      <View style={styles.table}>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.th, { width: "12%" }]}>LU</Text>
-          <Text style={[styles.th, { width: "12%" }]}>Zelf (Niv.)</Text>
-          <Text style={[styles.th, { width: "60%" }]}>Argumentatie en bewijs</Text>
-          <Text style={[styles.th, { width: "16%" }]}>Docent</Text>
+          ))}
         </View>
-        {[1, 2, 3, 4, 5].map((luNum, idx) => {
-          const evalItem = sprint.selfEvaluations.find((e) => e.learningOutcome === luNum);
-          const assessItem = sprint.teacherAssessments.find((a) => a.learningOutcome === luNum);
-          return (
-            <View key={luNum} style={[styles.tableRow, idx === 4 ? styles.tableRowLast : {}]} wrap={false}>
-              <Text style={[styles.td, { width: "12%", fontFamily: "Helvetica-Bold" }]}>
-                LU {luNum}{getLUShortDesc(luNum) ? `\n(${getLUShortDesc(luNum)})` : ""}
-              </Text>
-              <Text style={[styles.td, { width: "12%", fontFamily: "Helvetica-Bold" }]}>{evalItem?.level ?? "-"}</Text>
-              <Text style={[styles.td, { width: "60%" }]}>{evalItem?.argumentation || "Geen toelichting"}</Text>
-              <Text style={[styles.td, { width: "16%", fontFamily: "Helvetica-Bold", color: assessItem?.assessment === "V" ? "#059669" : textDark }]}>
-                {assessItem?.assessment ?? "-"}
-              </Text>
+
+        {/* Data Rows (LU 1 t/m 5) */}
+        {LU_MASTER_DEFINITIONS.map((luDef) => (
+          <View key={luDef.lu} style={styles.tableRow}>
+            <View style={[styles.tableCell, { width: "14%" }]}>
+              <Text style={styles.dashDataTextBold}>{luDef.label}</Text>
             </View>
-          );
-        })}
-      </View>
+            <View style={[styles.tableCell, { width: "6.5%", alignItems: "center" }]}>
+              <Text style={styles.dashDataTextBold}>{luDef.target}</Text>
+            </View>
+            <View style={[styles.tableCell, { width: "9.5%", alignItems: "center" }]}>
+              <Text style={styles.dashDataTextBold}>{luCounts[luDef.lu]}</Text>
+            </View>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((sNum) => (
+              <View
+                key={sNum}
+                style={[
+                  styles.tableCell,
+                  { width: "8.75%", alignItems: "center" },
+                  sNum === 8 ? styles.tableCellLast : {},
+                ]}
+              >
+                <Text style={styles.dashDataText}>{sprintLuLevels[sNum][luDef.lu] || "-"}</Text>
+              </View>
+            ))}
+          </View>
+        ))}
 
-      {/* 4. REFLECTIE */}
-      <Text style={styles.sectionTitle}>4. REFLECTIE</Text>
-      <View style={styles.storyBox} wrap={false}>
-        <Text style={[styles.tdMuted, { marginBottom: 3 }]}>Datum: {sprint.reflection?.date || "-"}</Text>
-        
-        <Text style={styles.criteriaTitle}>Wat heb je geleerd?</Text>
-        <Text style={[styles.td, { marginBottom: 4 }]}>{sprint.reflection?.whatLearned || "Geen invoer"}</Text>
-
-        <Text style={styles.criteriaTitle}>Wat behoud je?</Text>
-        <Text style={[styles.td, { marginBottom: 4 }]}>{sprint.reflection?.whatRetained || "Geen invoer"}</Text>
-
-        <Text style={styles.criteriaTitle}>Wat ga je anders doen?</Text>
-        <Text style={styles.td}>{sprint.reflection?.whatChange || "Geen invoer"}</Text>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer} fixed>
-        <Text>S-Base Minor Portfolio - {sprint.name}</Text>
-        <Text render={({ pageNumber, totalPages }) => `Pagina ${pageNumber} van ${totalPages}`} />
+        {/* Total Row */}
+        <View style={[styles.tableRow, { borderBottomWidth: 0 }]}>
+          <View style={[styles.tableCell, { width: "14%" }]}>
+            <Text style={styles.dashDataTextBold}>Totaal</Text>
+          </View>
+          <View style={[styles.tableCell, { width: "6.5%", alignItems: "center" }]}>
+            <Text style={styles.dashDataTextBold}>18</Text>
+          </View>
+          <View style={[styles.tableCell, { width: "9.5%", alignItems: "center" }]}>
+            <Text style={styles.dashDataTextBold}>{totalAchieved}</Text>
+          </View>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((sNum) => (
+            <View
+              key={sNum}
+              style={[
+                styles.tableCell,
+                { width: "8.75%", alignItems: "center" },
+                sNum === 8 ? styles.tableCellLast : {},
+              ]}
+            >
+              <Text style={styles.dashDataTextBold}>{sprintTotals[sNum]}</Text>
+            </View>
+          ))}
+        </View>
       </View>
     </Page>
   );
 }
 
-export async function downloadSprintPDF(sprint: MinorSprintFull) {
-  const doc = (
-    <Document title={`${sprint.name} - Minor Portfolio`}>
-      <SprintPdfPage sprint={sprint} />
-    </Document>
-  );
-
-  const blob = await pdf(doc).toBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Minor_${sprint.name.replace(/\s+/g, "_")}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+interface SprintPdfPageProps {
+  sprintNum: number;
+  sprint?: MinorSprintFull;
 }
 
-export async function downloadAllSprintsPDF(sprints: MinorSprintFull[]) {
-  const doc = (
-    <Document title="Minor Portfolio - Verzameling Sprints">
-      {sprints.map((sprint) => (
-        <SprintPdfPage key={sprint.id} sprint={sprint} />
+function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
+  const isEven = sprintNum % 2 === 0;
+  const bannerBg = isEven ? COLOR_EVEN_BANNER : COLOR_ODD_BANNER;
+  const sectionBg = isEven ? COLOR_EVEN_SECTION : COLOR_ODD_SECTION;
+  const cellBg = isEven ? COLOR_EVEN_CELL : COLOR_ODD_CELL;
+  const koprijBg = isEven ? COLOR_EVEN_SECTION : COLOR_ODD_CELL;
+
+  const stories = sprint?.stories || [];
+  const feedbackList = sprint?.feedback || [];
+  const reflection = sprint?.reflection;
+
+  return (
+    <Page size="A4" style={styles.page}>
+      {/* SPRINT Header Banner */}
+      <View style={[styles.sprintBanner, { backgroundColor: bannerBg }]}>
+        <Text style={styles.sprintBannerText}>SPRINT {sprintNum}</Text>
+      </View>
+
+      {/* ======================================================== */}
+      {/* 1. PLANNING (User Stories) */}
+      {/* ======================================================== */}
+      <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
+        <Text style={styles.sectionHeaderText}>1. PLANNING (User Stories) </Text>
+        <Text style={styles.sectionAgentText}>Plannen met je plannings Agent</Text>
+      </View>
+
+      <View style={styles.tableBorder}>
+        {/* Koprij */}
+        <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
+          <View style={[styles.koprijCell, { width: "13.4%", alignItems: "center" }]}>
+            <Text style={styles.koprijText}>Story</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "57.5%" }]}>
+            <Text style={styles.koprijText}>Story Omschrijving</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "14.55%" }]}>
+            <Text style={styles.koprijText}>Acceptatie Criteria</Text>
+          </View>
+          <View style={[styles.tableCellLast, { width: "14.55%" }]}>
+            <Text style={styles.koprijText}>Kwaliteitscriteria</Text>
+          </View>
+        </View>
+
+        {/* 5 Story Rows */}
+        {[0, 1, 2, 3, 4].map((i) => {
+          const story = stories[i];
+          const accCriteria = (story?.criteria || []).filter((c) => c.type === "acceptance");
+          const qualCriteria = (story?.criteria || []).filter((c) => c.type === "quality");
+
+          let storyDesc = "Als < > ,wil ik < > ,zodat < >";
+          if (story) {
+            if (story.asA || story.iWant || story.soThat) {
+              storyDesc = `Als ${story.asA || "< >"} ,wil ik ${story.iWant || "< >"} ,zodat ${story.soThat || "< >"}`;
+            } else if (story.title) {
+              storyDesc = story.title;
+            }
+          }
+
+          let accText = "1. \n2. \n3. ";
+          if (accCriteria.length > 0) {
+            accText = accCriteria.map((c, idx) => `${idx + 1}. ${c.text}`).join("\n");
+          }
+
+          let qualText = "1. \n2. \n3. ";
+          if (qualCriteria.length > 0) {
+            qualText = qualCriteria.map((c, idx) => `${idx + 1}. ${c.text}`).join("\n");
+          }
+
+          return (
+            <View
+              key={i}
+              style={[
+                styles.tableRow,
+                { backgroundColor: cellBg, minHeight: 28 },
+                i === 4 ? { borderBottomWidth: 0 } : {},
+              ]}
+            >
+              <View style={[styles.tableCell, { width: "13.4%", alignItems: "center" }]}>
+                <Text style={styles.cellText}>{story?.storyTypeCode || "US"}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "57.5%" }]}>
+                <Text style={styles.cellText}>{storyDesc}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "14.55%" }]}>
+                <Text style={styles.cellText}>{accText}</Text>
+              </View>
+              <View style={[styles.tableCellLast, { width: "14.55%" }]}>
+                <Text style={styles.cellText}>{qualText}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={styles.spacer} />
+
+      {/* ======================================================== */}
+      {/* 2. FEEDBACK (Ontvangen van anderen) */}
+      {/* ======================================================== */}
+      <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
+        <Text style={styles.sectionHeaderText}>2. FEEDBACK (Ontvangen van anderen)</Text>
+      </View>
+
+      <View style={styles.tableBorder}>
+        {/* Koprij */}
+        <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
+          <View style={[styles.koprijCell, { width: "13.4%" }]}>
+            <Text style={styles.koprijText}>Datum</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "20%" }]}>
+            <Text style={styles.koprijText}>Van wie</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "37.5%" }]}>
+            <Text style={styles.koprijText}>Feedback</Text>
+          </View>
+          <View style={[styles.tableCellLast, { width: "29.1%" }]}>
+            <Text style={styles.koprijText}>Jouw actie</Text>
+          </View>
+        </View>
+
+        {/* 3 Feedback Rows */}
+        {[0, 1, 2].map((i) => {
+          const fb = feedbackList[i];
+          return (
+            <View
+              key={i}
+              style={[
+                styles.tableRow,
+                { backgroundColor: cellBg, minHeight: 14 },
+                i === 2 ? { borderBottomWidth: 0 } : {},
+              ]}
+            >
+              <View style={[styles.tableCell, { width: "13.4%" }]}>
+                <Text style={styles.cellText}>{fb?.date || " "}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "20%" }]}>
+                <Text style={styles.cellText}>{fb?.fromWhom || " "}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "37.5%" }]}>
+                <Text style={styles.cellText}>{fb?.feedback || " "}</Text>
+              </View>
+              <View style={[styles.tableCellLast, { width: "29.1%" }]}>
+                <Text style={styles.cellText}>{fb?.action || " "}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={styles.spacer} />
+
+      {/* ======================================================== */}
+      {/* 3. ZELFEVALUATIE (Mastery) */}
+      {/* ======================================================== */}
+      <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
+        <Text style={styles.sectionHeaderText}>3. ZELFEVALUATIE (Mastery)</Text>
+      </View>
+
+      <View style={styles.tableBorder}>
+        {/* Koprij */}
+        <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
+          <View style={[styles.koprijCell, { width: "13.4%", alignItems: "center" }]}>
+            <Text style={styles.koprijText}>LU</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "57.5%" }]}>
+            <Text style={styles.koprijText}>Leeruitkomst</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "10%", alignItems: "center" }]}>
+            <Text style={styles.koprijText}>Niveau</Text>
+          </View>
+          <View style={[styles.tableCellLast, { width: "19.1%" }]}>
+            <Text style={styles.koprijText}>Argumentatie en bewijs</Text>
+          </View>
+        </View>
+
+        {/* 5 LU Rows */}
+        {LU_MASTER_DEFINITIONS.map((luDef, idx) => {
+          const evalItem = sprint?.selfEvaluations?.find((e) => e.learningOutcome === luDef.lu);
+          const level = normalizeEvaluationLevel(evalItem?.level);
+          const argumentation = evalItem?.argumentation || "";
+
+          return (
+            <View
+              key={luDef.lu}
+              style={[
+                styles.tableRow,
+                { backgroundColor: cellBg, minHeight: luDef.height > 20 ? 18 : 14 },
+                idx === 4 ? { borderBottomWidth: 0 } : {},
+              ]}
+            >
+              <View style={[styles.tableCell, { width: "13.4%", alignItems: "center" }]}>
+                <Text style={styles.cellText}>LU {luDef.lu}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "57.5%" }]}>
+                <Text style={styles.cellText}>{luDef.name}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "10%", alignItems: "center" }]}>
+                <Text style={styles.cellTextBold}>{level}</Text>
+              </View>
+              <View style={[styles.tableCellLast, { width: "19.1%" }]}>
+                <Text style={styles.cellText}>{argumentation || " "}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={styles.spacer} />
+
+      {/* ======================================================== */}
+      {/* 4. REFLECTIE */}
+      {/* ======================================================== */}
+      <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
+        <Text style={styles.sectionHeaderText}>4. REFLECTIE</Text>
+      </View>
+
+      <View style={styles.tableBorder}>
+        {/* Koprij */}
+        <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
+          <View style={[styles.koprijCell, { width: "13.4%" }]}>
+            <Text style={styles.koprijText}>Datum</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "29%" }]}>
+            <Text style={styles.koprijText}>Wat heb je geleerd?</Text>
+          </View>
+          <View style={[styles.koprijCell, { width: "29%" }]}>
+            <Text style={styles.koprijText}>Wat behoud je?</Text>
+          </View>
+          <View style={[styles.tableCellLast, { width: "28.6%" }]}>
+            <Text style={styles.koprijText}>Wat ga je anders doen?</Text>
+          </View>
+        </View>
+
+        {/* 3 Reflectie Rows */}
+        {[0, 1, 2].map((i) => {
+          const isFirst = i === 0;
+          return (
+            <View
+              key={i}
+              style={[
+                styles.tableRow,
+                { backgroundColor: cellBg, minHeight: 14 },
+                i === 2 ? { borderBottomWidth: 0 } : {},
+              ]}
+            >
+              <View style={[styles.tableCell, { width: "13.4%" }]}>
+                <Text style={styles.cellText}>{isFirst ? reflection?.date || " " : " "}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "29%" }]}>
+                <Text style={styles.cellText}>{isFirst ? reflection?.whatLearned || " " : " "}</Text>
+              </View>
+              <View style={[styles.tableCell, { width: "29%" }]}>
+                <Text style={styles.cellText}>{isFirst ? reflection?.whatRetained || " " : " "}</Text>
+              </View>
+              <View style={[styles.tableCellLast, { width: "28.6%" }]}>
+                <Text style={styles.cellText}>{isFirst ? reflection?.whatChange || " " : " "}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </Page>
+  );
+}
+
+export interface IntegraalSprintLogboekPdfDocumentProps {
+  sprints: MinorSprintFull[];
+}
+
+export function IntegraalSprintLogboekPdfDocument({ sprints }: IntegraalSprintLogboekPdfDocumentProps) {
+  return (
+    <Document title="Integraal Sprint Logboek v4">
+      {/* Page 1: Dashboard */}
+      <DashboardPdfPage sprints={sprints} />
+
+      {/* Pages 2..9: Sprints 1 t/m 8 */}
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((sprintNum) => (
+        <SprintPdfPage
+          key={sprintNum}
+          sprintNum={sprintNum}
+          sprint={findSprintByNumber(sprints, sprintNum)}
+        />
       ))}
     </Document>
   );
+}
 
+export async function downloadAllSprintsPDF(providedSprints: MinorSprintFull[] = []): Promise<void> {
+  let sprintsToUse: MinorSprintFull[] = providedSprints;
+
+  if (sprintsToUse.length < 8) {
+    try {
+      const sprintList = await api.minor.sprints.list();
+      if (sprintList && sprintList.length > 0) {
+        const fullSprints = await Promise.all(
+          sprintList.map((s) => api.minor.sprints.get(s.id))
+        );
+        sprintsToUse = fullSprints;
+      }
+    } catch (err) {
+      console.warn("Could not fetch all sprints for PDF:", err);
+    }
+  }
+
+  let name = "";
+  try {
+    const me = await api.me();
+    if (me?.user?.username) {
+      name = me.user.username;
+    }
+  } catch {
+    // ignore
+  }
+
+  const filename = name
+    ? `Integraal_Sprint_Logboek_${name}.pdf`
+    : `Integraal_Sprint_Logboek_v4.pdf`;
+
+  const doc = <IntegraalSprintLogboekPdfDocument sprints={sprintsToUse} />;
   const blob = await pdf(doc).toBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Minor_Portfolio_Alle_Sprints.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  if (typeof window !== "undefined") {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+}
+
+export async function downloadSprintPDF(sprint: MinorSprintFull): Promise<void> {
+  await downloadAllSprintsPDF([sprint]);
 }
