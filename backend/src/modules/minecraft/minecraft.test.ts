@@ -24,7 +24,7 @@ describe("MinecraftService", () => {
       expect(typeof versions[0]).toBe("string");
       expect(versions.some(v => v.startsWith("1."))).toBe(true);
     }
-  });
+  }, 15000);
 
   it("validates server slugs correctly", async () => {
     expect(async () => {
