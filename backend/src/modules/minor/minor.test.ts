@@ -242,8 +242,13 @@ describe("MinorService", () => {
   });
 
   it("validates learning outcomes and generates dashboard stats & warnings", () => {
+    // Start a few days ago so the sprint reliably spans "today" regardless of when the test runs.
+    const startObj = new Date();
+    startObj.setDate(startObj.getDate() - 3);
+    const startStr = `${startObj.getFullYear()}-${String(startObj.getMonth() + 1).padStart(2, "0")}-${String(startObj.getDate()).padStart(2, "0")}`;
+
     const sprint = minor.createSprint(testerId, {
-      startDate: "2026-09-01",
+      startDate: startStr,
       status: "active",
     });
 
