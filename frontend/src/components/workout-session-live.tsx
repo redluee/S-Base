@@ -473,6 +473,7 @@ export function WorkoutSessionLive({
             category: ex.category ?? "resistance",
             equipment: ex.equipment ?? "none",
             perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
+            isAssisted: ex.isAssisted != null ? (ex.isAssisted ? 1 : 0) : (ex.templateExercise?.isAssisted ? 1 : 0),
             sets: ex.sets?.map((s: SessionSet) => ({
               setId: s.setId,
               setNumber: s.setNumber,
@@ -538,6 +539,14 @@ export function WorkoutSessionLive({
     if (!session) return;
     const exercises = [...(session.exercises ?? [])];
     exercises[exerciseIndex] = { ...exercises[exerciseIndex], equipment };
+    setSession({ ...session, exercises });
+    await saveExercises(exercises);
+  }
+
+  async function updateIsAssisted(exerciseIndex: number, isAssisted: boolean) {
+    if (!session) return;
+    const exercises = [...(session.exercises ?? [])];
+    exercises[exerciseIndex] = { ...exercises[exerciseIndex], isAssisted: isAssisted ? 1 : 0 };
     setSession({ ...session, exercises });
     await saveExercises(exercises);
   }
@@ -709,6 +718,7 @@ export function WorkoutSessionLive({
     defaultReps?: number,
     equipmentOverride?: string,
     perSideOverride?: boolean,
+    isAssistedOverride?: boolean,
     defaultWeight?: number,
     defaultDistance?: number,
     defaultDuration?: number,
@@ -787,6 +797,7 @@ export function WorkoutSessionLive({
       category: cat,
       equipment: eq,
       perSide: perSideOverride ? 1 : 0,
+      isAssisted: isAssistedOverride ? 1 : 0,
       sets: initialSets,
     });
 
@@ -805,7 +816,9 @@ export function WorkoutSessionLive({
     const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
     const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
     const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
-    const weightVal = (draft.trackingFields.weight && draft.weight) ? parseFloat(draft.weight) : null;
+    const weightVal = (draft.trackingFields.weight && draft.weight)
+      ? (draft.isAssisted ? -Math.abs(parseFloat(draft.weight)) : Math.abs(parseFloat(draft.weight)))
+      : null;
     let distVal = (draft.trackingFields.distance && draft.distance) ? parseFloat(draft.distance) : null;
     if (distVal !== null && draft.distanceUnit === "m") {
       distVal = distVal / 1000;
@@ -831,6 +844,7 @@ export function WorkoutSessionLive({
       category: cat,
       equipment: eq,
       perSide: draft.perSide ? 1 : 0,
+      isAssisted: draft.isAssisted ? 1 : 0,
       sets: initialSets,
     });
 
@@ -859,6 +873,7 @@ export function WorkoutSessionLive({
     defaultDistance?: number,
     defaultDuration?: number,
     perSide?: boolean,
+    isAssisted?: boolean,
     lastSets?: Array<{
       setNumber: number;
       reps?: number | null;
@@ -923,13 +938,14 @@ export function WorkoutSessionLive({
         category: "Free Weights",
         sets: "3",
         reps: "8",
-        weight: defaultWeight?.toString() ?? "",
+        weight: defaultWeight != null ? Math.abs(defaultWeight).toString() : "",
         distance: defaultDistance?.toString() ?? "",
         distanceUnit: "km",
         duration: defaultDuration ? formatDuration(defaultDuration) : "",
         defaultRestTime: formatDuration(defaultRestTime ?? 90),
         equipment: equipment || "",
         perSide: Boolean(perSide),
+        isAssisted: Boolean(isAssisted),
         trackingFields: { reps: true, time: false, weight: true, distance: false }
       });
       setEditingExerciseIdx(idx);
@@ -979,6 +995,7 @@ export function WorkoutSessionLive({
       category: cat,
       equipment: eq,
       perSide: isPerSide,
+      isAssisted: isAssisted ? 1 : 0,
       sets: initialSets,
     };
 
@@ -997,11 +1014,12 @@ export function WorkoutSessionLive({
     const numSets = ex.sets?.length ? String(ex.sets.length) : "3";
 
     const reps = firstSet?.reps != null ? String(firstSet.reps) : (ex.templateExercise?.defaultReps?.toString() ?? "8");
-    const weight = firstSet?.weight != null ? String(firstSet.weight) : (ex.templateExercise?.defaultWeight?.toString() ?? "");
+    const weight = firstSet?.weight != null ? String(Math.abs(firstSet.weight)) : (ex.templateExercise?.defaultWeight != null ? String(Math.abs(ex.templateExercise.defaultWeight)) : "");
     const distance = firstSet?.distance != null ? String(firstSet.distance) : (ex.templateExercise?.defaultDistance?.toString() ?? "");
     const duration = firstSet?.duration != null ? formatDuration(firstSet.duration) : formatDuration(ex.templateExercise?.defaultDuration);
     const defaultRestTime = formatDuration(ex.templateExercise?.defaultRestTime ?? 90);
     const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
+    const isAssisted = ex.isAssisted != null ? Boolean(ex.isAssisted) : Boolean(ex.templateExercise?.isAssisted);
 
     const hasReps = ex.sets?.some((s) => s.reps != null && s.reps > 0) ?? (cat !== "Cardio");
     const hasTime = ex.sets?.some((s) => s.duration != null && s.duration > 0) ?? (cat === "Cardio");
@@ -1020,6 +1038,7 @@ export function WorkoutSessionLive({
       defaultRestTime,
       equipment: eq,
       perSide,
+      isAssisted,
       trackingFields: {
         reps: hasReps,
         time: hasTime,
@@ -1043,7 +1062,7 @@ export function WorkoutSessionLive({
     const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
     const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
     const hasWeightInput = draft.trackingFields.weight && draft.weight !== undefined && draft.weight !== null && draft.weight.trim() !== "";
-    const weightVal = hasWeightInput ? parseFloat(draft.weight) : null;
+    const weightVal = hasWeightInput ? (draft.isAssisted ? -Math.abs(parseFloat(draft.weight)) : Math.abs(parseFloat(draft.weight))) : null;
     let distVal = (draft.trackingFields.distance && draft.distance && draft.distance.trim() !== "") ? parseFloat(draft.distance) : null;
     if (distVal !== null && draft.distanceUnit === "m") {
       distVal = distVal / 1000;
@@ -1087,6 +1106,7 @@ export function WorkoutSessionLive({
       category: cat,
       equipment: eq,
       perSide: draft.perSide ? 1 : 0,
+      isAssisted: draft.isAssisted ? 1 : 0,
       sets: updatedSets,
       templateExercise: {
         ...(targetEx.templateExercise ?? {}),
@@ -1096,6 +1116,7 @@ export function WorkoutSessionLive({
         defaultDistance: draft.trackingFields.distance ? distVal : null,
         defaultRestTime: defaultRestTimeSecs,
         perSide: draft.perSide ? 1 : 0,
+        isAssisted: draft.isAssisted ? 1 : 0,
       },
     };
 
@@ -1276,6 +1297,7 @@ export function WorkoutSessionLive({
             category: ex.category ?? "resistance",
             equipment: ex.equipment ?? "none",
             perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
+            isAssisted: ex.isAssisted != null ? (ex.isAssisted ? 1 : 0) : (ex.templateExercise?.isAssisted ? 1 : 0),
             sets: ex.sets?.map((st: SessionSet) => ({
               setId: st.setId,
               setNumber: st.setNumber,
@@ -1550,22 +1572,23 @@ export function WorkoutSessionLive({
                     <ExerciseAutocomplete
                       value={newExerciseName}
                       onChange={setNewExerciseName}
-                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets) => {
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration, lastSets);
+                          addExercise(name, category, sets, reps, equipment, perSide, isAssisted, defaultWeight, defaultDistance, defaultDuration, lastSets);
                         } else {
                           setUnknownExerciseDraft({
                             name,
                             category: "Free Weights",
                             sets: (sets ?? 3).toString(),
                             reps: (reps ?? 8).toString(),
-                            weight: defaultWeight?.toString() ?? "",
+                            weight: defaultWeight != null ? Math.abs(defaultWeight).toString() : "",
                             distance: defaultDistance?.toString() ?? "",
                             distanceUnit: "km",
                             duration: defaultDuration ? formatDuration(defaultDuration) : "",
                             defaultRestTime: formatDuration(defaultRestTime ?? 90),
                             equipment: equipment || "",
                             perSide: Boolean(perSide),
+                            isAssisted: Boolean(isAssisted),
                             trackingFields: { reps: true, time: false, weight: true, distance: false }
                           });
                         }
@@ -1596,6 +1619,7 @@ export function WorkoutSessionLive({
                         defaultRestTime: "01:30",
                         equipment: "",
                         perSide: false,
+                        isAssisted: false,
                         trackingFields: { reps: true, time: false, weight: true, distance: false }
                       });
                     }}
@@ -1660,6 +1684,7 @@ export function WorkoutSessionLive({
                 onStartEditing={startEditingExercise}
                 updateCategory={updateCategory}
                 updateEquipment={updateEquipment}
+                updateIsAssisted={updateIsAssisted}
                 removeExercise={removeExercise}
                 moveExerciseUpDirect={moveExerciseUpDirect}
                 moveExerciseDownDirect={moveExerciseDownDirect}
@@ -1713,22 +1738,23 @@ export function WorkoutSessionLive({
                     <ExerciseAutocomplete
                       value={newExerciseName}
                       onChange={setNewExerciseName}
-                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets) => {
+                      onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide, defaultWeight, defaultDistance, defaultDuration, lastSets);
+                          addExercise(name, category, sets, reps, equipment, perSide, isAssisted, defaultWeight, defaultDistance, defaultDuration, lastSets);
                         } else {
                           setUnknownExerciseDraft({
                             name,
                             category: "Free Weights",
                             sets: (sets ?? 3).toString(),
                             reps: (reps ?? 8).toString(),
-                            weight: defaultWeight?.toString() ?? "",
+                            weight: defaultWeight != null ? Math.abs(defaultWeight).toString() : "",
                             distance: defaultDistance?.toString() ?? "",
                             distanceUnit: "km",
                             duration: defaultDuration ? formatDuration(defaultDuration) : "",
                             defaultRestTime: formatDuration(defaultRestTime ?? 90),
                             equipment: equipment || "",
                             perSide: Boolean(perSide),
+                            isAssisted: Boolean(isAssisted),
                             trackingFields: { reps: true, time: false, weight: true, distance: false }
                           });
                         }
@@ -1759,6 +1785,7 @@ export function WorkoutSessionLive({
                         defaultRestTime: "01:30",
                         equipment: "",
                         perSide: false,
+                        isAssisted: false,
                         trackingFields: { reps: true, time: false, weight: true, distance: false }
                       });
                     }}

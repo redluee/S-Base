@@ -82,7 +82,9 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
             {/* Stats */}
             {(() => {
               const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
-              const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+              const weightVals = allSets.filter((s: ProgressSet) => s.weight != null).map((s: ProgressSet) => s.weight as number);
+              const hasWeightData = weightVals.length > 0;
+              const maxWeight = hasWeightData ? Math.max(...weightVals) : 0;
               const totalVolume = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
               const totalReps = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.reps ?? 0), 0);
               const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
@@ -90,7 +92,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               const maxDuration = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.duration ?? 0), 0);
 
               const statMode: "weight" | "reps" | "time" =
-                maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+                hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
               const formatSec = (totalSec: number) => {
                 const min = Math.floor(totalSec / 60);
@@ -150,10 +152,10 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5">
                 {(() => {
                   const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
-                  const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+                  const hasWeightData = allSets.some((s: ProgressSet) => s.weight != null);
                   const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
                   const statMode: "weight" | "reps" | "time" =
-                    maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+                    hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
                   const chartLabel =
                     statMode === "weight"
@@ -168,10 +170,10 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                   <line x1="0" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
                   {(() => {
                     const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
-                    const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+                    const hasWeightData = allSets.some((s: ProgressSet) => s.weight != null);
                     const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
                     const statMode: "weight" | "reps" | "time" =
-                      maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+                      hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
                     const values = historyData.sessions.map((s: ProgressSession) =>
                       statMode === "weight"
@@ -180,10 +182,12 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                         ? s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.reps ?? 0), 0)
                         : s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.duration ?? 0), 0)
                     );
-                    const maxVal = Math.max(...values, 1);
+                    const dataMin = Math.min(...values, 0);
+                    const dataMax = Math.max(...values, 0, 1);
+                    const range = dataMax - dataMin || 1;
                     const points = values.map((v: number, i: number) => {
                       const x = historyData.sessions.length > 1 ? (i / (historyData.sessions.length - 1)) * 280 + 10 : 150;
-                      const y = 90 - (v / maxVal) * 80;
+                      const y = 90 - ((v - dataMin) / range) * 80;
                       return `${x},${y}`;
                     });
 
@@ -199,7 +203,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                         />
                         {values.map((v: number, i: number) => {
                           const x = historyData.sessions.length > 1 ? (i / (historyData.sessions.length - 1)) * 280 + 10 : 150;
-                          const y = 90 - (v / maxVal) * 80;
+                          const y = 90 - ((v - dataMin) / range) * 80;
                           return (
                             <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" />
                           );
@@ -216,14 +220,15 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               {[...historyData.sessions].reverse().map((sessionItem: ProgressSession, idx: number) => {
                 const date = new Date(sessionItem.startedAt);
                 const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
-                const maxWeight = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.weight ?? 0), 0);
+                const hasWeightData = allSets.some((s: ProgressSet) => s.weight != null);
                 const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
                 const statMode: "weight" | "reps" | "time" =
-                  maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+                  hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
                 const vol = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
                 const reps = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.reps ?? 0), 0);
                 const dur = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.duration ?? 0), 0);
+                const sessionHasWeightTracking = sessionItem.sets.some((s: ProgressSet) => s.weight != null);
 
                 const formatSec = (totalSec: number) => {
                   const min = Math.floor(totalSec / 60);
@@ -233,7 +238,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                 };
 
                 const sessionBadgeText =
-                  statMode === "weight" && vol > 0
+                  statMode === "weight" && sessionHasWeightTracking
                     ? `${vol} kg volume`
                     : statMode === "reps" && reps > 0
                     ? `${reps} reps`

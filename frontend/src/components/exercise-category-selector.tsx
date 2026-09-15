@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/lang";
-import { X, Plus, ChevronRight, ChevronLeft, ChevronDown, Folder, Check } from "lucide-react";
+import { X, Plus, ChevronRight, ChevronLeft, ChevronDown, Folder, Check, HeartHandshake } from "lucide-react";
 
 export const CATEGORY_MAP = {
   "Bodyweight": [
@@ -53,6 +53,8 @@ interface ExerciseCategorySelectorProps {
   equipment: string; // Comma separated string e.g. "Plyo Box, Dumbbell"
   onChange: (category: string, equipment: string) => void;
   readOnlyCategory?: boolean;
+  isAssisted?: boolean;
+  onToggleAssisted?: (val: boolean) => void;
 }
 
 export function ExerciseCategorySelector({
@@ -60,6 +62,8 @@ export function ExerciseCategorySelector({
   equipment,
   onChange,
   readOnlyCategory = false,
+  isAssisted = false,
+  onToggleAssisted,
 }: ExerciseCategorySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCatOpen, setIsCatOpen] = useState(false);
@@ -91,6 +95,9 @@ export function ExerciseCategorySelector({
     const newEq = [...selectedEquipment, eq].join(", ");
     // Note: We use the existing category prop so changing equipment doesn't affect category
     onChange(category, newEq);
+    if (eq === "Assisted Machine") {
+      onToggleAssisted?.(true);
+    }
     setIsOpen(false);
     setActiveTab(null);
   };
@@ -145,6 +152,9 @@ export function ExerciseCategorySelector({
                     onClick={() => {
                       // Change category without affecting equipment selection
                       onChange(catKey, equipment);
+                      if (catKey !== "Bodyweight") {
+                        onToggleAssisted?.(false);
+                      }
                       setIsCatOpen(false);
                     }}
                     className={cn(
@@ -179,6 +189,23 @@ export function ExerciseCategorySelector({
             </button>
           </div>
         ))}
+
+        {/* Assisted Toggle */}
+        {currentCategory === "Bodyweight" && onToggleAssisted && (
+          <button
+            type="button"
+            onClick={() => onToggleAssisted(!isAssisted)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs leading-none font-semibold border transition-all cursor-pointer",
+              isAssisted
+                ? "bg-brand text-brand-foreground border-brand shadow-sm"
+                : "bg-white/5 border-border/80 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            )}
+          >
+            <HeartHandshake className="size-3.5" />
+            {t("Assisted")}
+          </button>
+        )}
 
         {/* + Material Button */}
         <button

@@ -185,5 +185,104 @@ describe("WorkoutService", () => {
     });
     expect(updated?.exercises?.[0].perSide).toBe(0);
   });
+
+  it("rejects negative weight unless the exercise is marked assisted", () => {
+    expect(() =>
+      workoutService.createTemplate(adminId, {
+        name: "Non-Assisted Negative Weight",
+        exercises: [{ exerciseName: "Pull-Up", category: "Bodyweight", sets: 3, reps: 8, weight: -20 }],
+      })
+    ).toThrow("weight cannot be negative");
+
+    const tmpl = workoutService.createTemplate(adminId, {
+      name: "Assisted Negative Weight",
+      exercises: [{ exerciseName: "Pull-Up", category: "Bodyweight", sets: 3, reps: 8, weight: -20, isAssisted: 1 }],
+    });
+    expect(tmpl.exercises[0].defaultWeight).toBe(-20);
+    expect(tmpl.exercises[0].isAssisted).toBe(1);
+
+    const session = workoutService.createSession(adminId);
+    expect(() =>
+      workoutService.updateSession(session!.sessionId, adminId, {
+        exercises: [
+          {
+            exerciseName: "Pull-Up",
+            sortOrder: 0,
+            category: "Bodyweight",
+            sets: [{ setNumber: 1, reps: 8, weight: -20, completed: 1 }],
+          },
+        ],
+      })
+    ).toThrow("Weight cannot be negative");
+
+    const updated = workoutService.updateSession(session!.sessionId, adminId, {
+      exercises: [
+        {
+          exerciseName: "Pull-Up",
+          sortOrder: 0,
+          category: "Bodyweight",
+          isAssisted: 1,
+          sets: [{ setNumber: 1, reps: 8, weight: -20, completed: 1 }],
+        },
+      ],
+    });
+    expect(updated?.exercises?.[0].sets?.[0].weight).toBe(-20);
+  });
+
+  it("fires a weight PR when assistance decreases and keeps one continuous progress series across the assisted-to-added transition", () => {
+    // Session 1: heavily assisted (-20kg support)
+    const s1 = workoutService.createSession(adminId);
+    workoutService.updateSession(s1.sessionId, adminId, {
+      exercises: [
+        {
+          exerciseName: "Assisted Pull-Up",
+          category: "Bodyweight",
+          isAssisted: 1,
+          sets: [{ setNumber: 1, reps: 8, weight: -20, completed: 1 }],
+        },
+      ],
+    });
+    workoutService.completeSession(s1.sessionId, adminId);
+
+    // Session 2: less assistance (-15kg support) -> should register a weight PR
+    const s2 = workoutService.createSession(adminId);
+    workoutService.updateSession(s2.sessionId, adminId, {
+      exercises: [
+        {
+          exerciseName: "Assisted Pull-Up",
+          category: "Bodyweight",
+          isAssisted: 1,
+          sets: [{ setNumber: 1, reps: 8, weight: -15, completed: 1 }],
+        },
+      ],
+    });
+    workoutService.completeSession(s2.sessionId, adminId);
+
+    const prs = workoutService.getSessionPRs(s2.sessionId, adminId);
+    const weightPr = prs.find((p) => p.type === "weight");
+    expect(weightPr).toBeDefined();
+    expect(weightPr?.prevValue).toBe(-20);
+    expect(weightPr?.newValue).toBe(-15);
+
+    // Session 3: same exercise, now with added weight instead of assistance
+    const s3 = workoutService.createSession(adminId);
+    workoutService.updateSession(s3.sessionId, adminId, {
+      exercises: [
+        {
+          exerciseName: "Assisted Pull-Up",
+          category: "Bodyweight",
+          isAssisted: 0,
+          sets: [{ setNumber: 1, reps: 8, weight: 5, completed: 1 }],
+        },
+      ],
+    });
+    workoutService.completeSession(s3.sessionId, adminId);
+
+    const progress = workoutService.exerciseProgress(adminId, "Assisted Pull-Up");
+    expect(progress.sessions.length).toBe(3);
+    expect(progress.sessions[0].sets[0].weight).toBe(-20);
+    expect(progress.sessions[1].sets[0].weight).toBe(-15);
+    expect(progress.sessions[2].sets[0].weight).toBe(5);
+  });
 });
 

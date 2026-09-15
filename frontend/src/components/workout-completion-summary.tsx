@@ -207,7 +207,7 @@ export function WorkoutCompletionSummary({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
-            <div className="text-2xl font-bold text-brand">{totalVolume} kg</div>
+            <div className="text-2xl font-bold text-brand">{Math.max(0, totalVolume)} kg</div>
             <div className="text-xs text-muted-foreground mt-1">{t("Total volume lifted")}</div>
           </div>
           <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center flex flex-col justify-center items-center">

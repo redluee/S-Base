@@ -17,7 +17,7 @@ function validateSetParams(params: {
   rpe?: number;
   heartRate?: number;
   defaultRestTime?: number;
-}, prefix: string = "") {
+}, prefix: string = "", allowNegativeWeight: boolean = false) {
   const getMsg = (field: string, suffix: string) => {
     if (prefix) {
       return `${prefix} ${field} ${suffix}`;
@@ -26,7 +26,7 @@ function validateSetParams(params: {
   };
 
   if (params.reps !== undefined && params.reps < 0) throw new Error(getMsg("reps", "cannot be negative"));
-  if (params.weight !== undefined && params.weight < 0) throw new Error(getMsg("weight", "cannot be negative"));
+  if (params.weight !== undefined && params.weight < 0 && !allowNegativeWeight) throw new Error(getMsg("weight", "cannot be negative"));
   if (params.distance !== undefined && params.distance < 0) throw new Error(getMsg("distance", "cannot be negative"));
   if (params.duration !== undefined && params.duration < 0) throw new Error(getMsg("duration", "cannot be negative"));
   if (params.rpe !== undefined && (params.rpe < 0 || params.rpe > 10)) throw new Error(getMsg("RPE", "must be 0-10"));
@@ -96,6 +96,7 @@ export class WorkoutService {
       defaultRestTime?: number;
       equipment?: string;
       perSide?: number;
+      isAssisted?: number;
     }[];
   }) {
     if (data.estimatedTime !== undefined && data.estimatedTime < 0) {
@@ -105,7 +106,7 @@ export class WorkoutService {
       for (let i = 0; i < data.exercises.length; i++) {
         const ex = data.exercises[i];
         if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-        validateSetParams(ex, `Exercise "${ex.exerciseName}"`);
+        validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
       }
     }
     const template = db.insert(workoutTemplates).values({
@@ -134,6 +135,7 @@ export class WorkoutService {
           defaultRestTime: ex.defaultRestTime,
           equipment: ex.equipment,
           perSide: ex.perSide ?? 0,
+          isAssisted: ex.isAssisted ?? 0,
         }).run();
       }
     }
@@ -159,6 +161,7 @@ export class WorkoutService {
       defaultRestTime?: number;
       equipment?: string;
       perSide?: number;
+      isAssisted?: number;
     }[];
   }) {
     const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
@@ -171,7 +174,7 @@ export class WorkoutService {
       for (let i = 0; i < data.exercises.length; i++) {
         const ex = data.exercises[i];
         if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-        validateSetParams(ex, `Exercise "${ex.exerciseName}"`);
+        validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
       }
     }
 
@@ -202,6 +205,7 @@ export class WorkoutService {
           defaultRestTime: ex.defaultRestTime,
           equipment: ex.equipment,
           perSide: ex.perSide ?? 0,
+          isAssisted: ex.isAssisted ?? 0,
         }).run();
       }
     }
@@ -333,6 +337,7 @@ export class WorkoutService {
           defaultRestTime: templateExercises.defaultRestTime,
           equipment: templateExercises.equipment,
           perSide: templateExercises.perSide,
+          isAssisted: templateExercises.isAssisted,
         })
           .from(templateExercises);
 
@@ -364,6 +369,7 @@ export class WorkoutService {
           defaultRestTime: templateEx.defaultRestTime,
           equipment: templateEx.equipment,
           perSide: templateEx.perSide,
+          isAssisted: templateEx.isAssisted,
         } : null
       };
     });
@@ -402,6 +408,7 @@ export class WorkoutService {
             category: tex.category ?? "Free Weights",
             equipment: tex.equipment,
             perSide: tex.perSide ?? 0,
+            isAssisted: tex.isAssisted ?? 0,
           }).returning().get();
 
           for (let s = 1; s <= tex.defaultSets; s++) {
@@ -434,6 +441,7 @@ export class WorkoutService {
       category?: string;
       equipment?: string;
       perSide?: number;
+      isAssisted?: number;
       sets?: {
         setId?: number;
         setNumber: number;
@@ -455,7 +463,7 @@ export class WorkoutService {
         const ex = data.exercises[i];
         if (ex.sets?.length) {
           for (let j = 0; j < ex.sets.length; j++) {
-            validateSetParams(ex.sets[j]);
+            validateSetParams(ex.sets[j], undefined, Boolean(ex.isAssisted));
           }
         }
       }
@@ -496,6 +504,7 @@ export class WorkoutService {
               category: ex.category ?? "Free Weights",
               equipment: ex.equipment,
               perSide: ex.perSide ?? 0,
+              isAssisted: ex.isAssisted ?? 0,
             }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
 
             if (ex.sets) {
@@ -523,6 +532,7 @@ export class WorkoutService {
               category: ex.category ?? "Free Weights",
               equipment: ex.equipment,
               perSide: ex.perSide ?? 0,
+              isAssisted: ex.isAssisted ?? 0,
             }).returning().get();
 
             if (ex.sets) {
@@ -576,6 +586,7 @@ export class WorkoutService {
       category: sessionExercises.category,
       equipment: sessionExercises.equipment,
       perSide: sessionExercises.perSide,
+      isAssisted: sessionExercises.isAssisted,
       completedAt: workoutSessions.completedAt,
       startedAt: workoutSessions.startedAt,
       sessionId: workoutSessions.sessionId,
@@ -601,6 +612,7 @@ export class WorkoutService {
       defaultRestTime: templateExercises.defaultRestTime,
       equipment: templateExercises.equipment,
       perSide: templateExercises.perSide,
+      isAssisted: templateExercises.isAssisted,
     })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
@@ -617,6 +629,7 @@ export class WorkoutService {
         category: string;
         equipment: string | null;
         perSide: number;
+        isAssisted: number;
         defaultSets: number;
         defaultReps: number | null;
         defaultWeight: number | null;
@@ -660,6 +673,7 @@ export class WorkoutService {
           category: r.category ?? "Free Weights",
           equipment: eqNorm,
           perSide: r.perSide ?? 0,
+          isAssisted: r.isAssisted ?? 0,
           defaultSets: sets.length > 0 ? sets.length : 3,
           defaultReps: lastSetWithValues?.reps ?? (sets[0]?.reps ?? 10),
           defaultWeight: lastSetWithValues?.weight ?? (sets[0]?.weight ?? null),
@@ -688,6 +702,9 @@ export class WorkoutService {
         if (existing.defaultRestTime == null && r.defaultRestTime != null) {
           existing.defaultRestTime = r.defaultRestTime;
         }
+        if (!existing.isAssisted && r.isAssisted) {
+          existing.isAssisted = r.isAssisted;
+        }
       } else {
         const numSets = r.defaultSets || 3;
         const numReps = r.defaultReps ?? 10;
@@ -709,6 +726,7 @@ export class WorkoutService {
           category: r.category ?? "Free Weights",
           equipment: eqNorm,
           perSide: r.perSide ?? 0,
+          isAssisted: r.isAssisted ?? 0,
           defaultSets: numSets,
           defaultReps: numReps,
           defaultWeight: r.defaultWeight ?? null,
@@ -732,6 +750,7 @@ export class WorkoutService {
       defaultRestTime: data.defaultRestTime,
       equipment: data.equipment,
       perSide: data.perSide,
+      isAssisted: data.isAssisted,
       lastSets: data.lastSets,
     }));
   }
@@ -1265,16 +1284,20 @@ export class WorkoutService {
       const cSets = currentSetsByExercise[exerciseName];
       const pSets = previousSetsByExercise[exerciseName] ?? [];
 
-      const cMaxWeight = Math.max(...cSets.map(s => s.weight ?? 0), 0);
-      const pMaxWeight = pSets.length > 0 ? Math.max(...pSets.map(s => s.weight ?? 0), 0) : 0;
-      if (cMaxWeight > pMaxWeight && cMaxWeight > 0) {
-        prs.push({
-          type: "weight",
-          exerciseName,
-          prevValue: pMaxWeight,
-          newValue: cMaxWeight,
-          unit: "kg",
-        });
+      const cWeightVals = cSets.filter(s => s.weight != null).map(s => s.weight as number);
+      const pWeightVals = pSets.filter(s => s.weight != null).map(s => s.weight as number);
+      if (cWeightVals.length > 0) {
+        const cMaxWeight = Math.max(...cWeightVals);
+        const pMaxWeight = pWeightVals.length > 0 ? Math.max(...pWeightVals) : 0;
+        if (cMaxWeight > pMaxWeight) {
+          prs.push({
+            type: "weight",
+            exerciseName,
+            prevValue: pMaxWeight,
+            newValue: cMaxWeight,
+            unit: "kg",
+          });
+        }
       }
 
       const cMaxReps = Math.max(...cSets.map(s => s.reps ?? 0), 0);
@@ -1306,12 +1329,13 @@ export class WorkoutService {
       }
 
       const cVolume = cSets.reduce((sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+      const cHasWeightTracking = cSets.some(s => s.weight != null);
       const pVolumeBySession: { [id: number]: number } = {};
       for (const s of pSets) {
         pVolumeBySession[s.sessionId] = (pVolumeBySession[s.sessionId] ?? 0) + (s.weight ?? 0) * (s.reps ?? 0);
       }
       const pMaxVolume = Object.keys(pVolumeBySession).length > 0 ? Math.max(...Object.values(pVolumeBySession)) : 0;
-      if (cVolume > pMaxVolume && cVolume > 0) {
+      if (cHasWeightTracking && cVolume > pMaxVolume) {
         prs.push({
           type: "volume",
           exerciseName,
@@ -1347,12 +1371,13 @@ export class WorkoutService {
     }
 
     const cSessionVolume = currentSets.reduce((sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+    const cSessionHasWeightTracking = currentSets.some(s => s.weight != null);
     const pVolumeBySessionId: { [id: number]: number } = {};
     for (const s of previousSets) {
       pVolumeBySessionId[s.sessionId] = (pVolumeBySessionId[s.sessionId] ?? 0) + (s.weight ?? 0) * (s.reps ?? 0);
     }
     const pMaxSessionVolume = Object.keys(pVolumeBySessionId).length > 0 ? Math.max(...Object.values(pVolumeBySessionId)) : 0;
-    if (cSessionVolume > pMaxSessionVolume && cSessionVolume > 0) {
+    if (cSessionHasWeightTracking && cSessionVolume > pMaxSessionVolume) {
       prs.push({
         type: "session_volume",
         prevValue: pMaxSessionVolume,

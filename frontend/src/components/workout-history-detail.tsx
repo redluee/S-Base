@@ -275,7 +275,7 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
                                     <div>{t("Reps")}</div>
                                     {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
                                   </th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Added/Assisted (kg)")}</th>
+                                  <th className="text-right p-2 text-muted-foreground font-normal">{ex.isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)")}</th>
                                 </>
                               )}
                               {cat === "cardio" && (

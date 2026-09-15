@@ -76,7 +76,9 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   });
 
   const allSets = filteredSessions.flatMap((s: WorkoutSession) => s.sets);
-  const maxWeight = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.weight ?? 0), 0);
+  const weightVals = allSets.filter((s: SetItem) => s.weight != null).map((s: SetItem) => s.weight as number);
+  const hasWeightData = weightVals.length > 0;
+  const maxWeight = hasWeightData ? Math.max(...weightVals) : 0;
   const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
   const totalReps = allSets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0);
   const maxReps = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.reps ?? 0), 0);
@@ -85,7 +87,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
   // Determine stat mode: "weight", "reps", or "time"
   const statMode: "weight" | "reps" | "time" =
-    maxWeight > 0 ? "weight" : maxReps > 0 ? "reps" : "time";
+    hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
   const formatSeconds = (totalSec: number) => {
     const min = Math.floor(totalSec / 60);
@@ -187,9 +189,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
           <div className="text-lg sm:text-2xl font-bold text-amber-400">
             {statMode === "weight"
-              ? totalVolume > 0
-                ? `${totalVolume}`
-                : "-"
+              ? `${totalVolume}`
               : statMode === "reps"
               ? totalReps > 0
                 ? `${totalReps}`
@@ -247,11 +247,13 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     ? s.sets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0)
                     : s.sets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0)
                 );
-                const maxVal = Math.max(...values, 1);
-                
+                const dataMin = Math.min(...values, 0);
+                const dataMax = Math.max(...values, 0, 1);
+                const range = dataMax - dataMin || 1;
+
                 const points = values.map((v: number, i: number) => {
                   const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
-                  const y = 105 - (v / maxVal) * 95;
+                  const y = 105 - ((v - dataMin) / range) * 95;
                   return `${x},${y}`;
                 });
 
@@ -271,9 +273,9 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 return (
                   <>
                     {/* Y Axis Labels */}
-                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(maxVal)}</text>
-                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(Math.round(maxVal / 2))}</text>
-                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{statMode === "time" ? "0s" : "0"}</text>
+                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(dataMax)}</text>
+                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(Math.round((dataMax + dataMin) / 2))}</text>
+                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(dataMin)}</text>
 
                     {/* X Axis Labels */}
                     {filteredSessions.length === 1 && (
@@ -298,7 +300,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     {/* Plot Dots */}
                     {values.map((v: number, i: number) => {
                       const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
-                      const y = 105 - (v / maxVal) * 95;
+                      const y = 105 - ((v - dataMin) / range) * 95;
                       return (
                         <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" className="hover:r-4 transition-all">
                           <title>{formatYLabel(v)}</title>
@@ -353,7 +355,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 <div className="flex flex-wrap gap-2 pt-1">
                   {session.sets.map((set: SetItem) => {
                     const hasReps = set.reps != null && set.reps > 0;
-                    const hasWeight = set.weight != null && set.weight > 0;
+                    const hasWeight = set.weight != null && set.weight !== 0;
                     const hasDuration = set.duration != null && set.duration > 0;
                     const hasDistance = set.distance != null && set.distance > 0;
 

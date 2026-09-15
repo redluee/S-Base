@@ -65,6 +65,7 @@ export interface WorkoutExerciseCardProps {
     defaultDistance?: number,
     defaultDuration?: number,
     perSide?: boolean,
+    isAssisted?: boolean,
     lastSets?: Array<{
       setNumber: number;
       reps?: number | null;
@@ -77,6 +78,7 @@ export interface WorkoutExerciseCardProps {
   ) => void;
   updateCategory: (idx: number, category: string) => Promise<void>;
   updateEquipment: (idx: number, equipment: string) => Promise<void>;
+  updateIsAssisted: (idx: number, isAssisted: boolean) => Promise<void>;
   removeExercise: (id: number) => void;
   moveExerciseUpDirect: (idx: number) => void;
   moveExerciseDownDirect: (idx: number) => void;
@@ -200,6 +202,7 @@ export function WorkoutExerciseCard({
   replaceExercise,
   updateCategory,
   updateEquipment,
+  updateIsAssisted,
   removeExercise,
   moveExerciseUpDirect,
   moveExerciseDownDirect,
@@ -248,8 +251,8 @@ export function WorkoutExerciseCard({
                   <ExerciseAutocomplete
                     value={replaceName}
                     onChange={setReplaceName}
-                    onSelect={(v, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets) => {
-                      replaceExercise(ex.sessionExerciseId!, v, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, lastSets);
+                    onSelect={(v, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets) => {
+                      replaceExercise(ex.sessionExerciseId!, v, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets);
                     }}
                     placeholder={t("Search exercise") + "..."}
                     className="w-full h-8 text-sm"
@@ -300,6 +303,8 @@ export function WorkoutExerciseCard({
                     }
                     updateEquipment(exIdx, eq);
                   }}
+                  isAssisted={Boolean(ex.isAssisted)}
+                  onToggleAssisted={(val) => updateIsAssisted(exIdx, val)}
                 />
               </div>
             </div>
@@ -433,7 +438,7 @@ export function WorkoutExerciseCard({
                   )}
                   {cat === "bodyweight" && (
                     <>
-                      <th className="text-center py-2 px-3 font-normal w-28">{t("Added/Assisted (kg)")}</th>
+                      <th className="text-center py-2 px-3 font-normal w-28">{ex.isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)")}</th>
                       <th className="text-center py-2 px-3 font-normal w-24">
                         <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
                         {perSide && (
@@ -651,9 +656,12 @@ export function WorkoutExerciseCard({
                                 type="number"
                                 min="0"
                                 step="any"
-                                placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
-                                value={set.weight != null ? set.weight : (targetSource?.weight ?? null)}
-                                onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
+                                placeholder={targetSource?.weight != null ? String(Math.abs(targetSource.weight)) : "0"}
+                                value={set.weight != null ? Math.abs(set.weight) : (targetSource?.weight != null ? Math.abs(targetSource.weight) : null)}
+                                onSave={(val) => {
+                                  const n = val ? Math.abs(Number(val)) : null;
+                                  updateSet(exIdx, setIdx, "weight", n != null ? (ex.isAssisted ? -n : n) : null);
+                                }}
                                 className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                               />
                             </td>

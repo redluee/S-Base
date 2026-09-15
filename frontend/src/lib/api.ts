@@ -344,6 +344,7 @@ export const api = {
           defaultRestTime?: number | null;
           equipment: string | null;
           perSide?: number | null;
+          isAssisted?: number | null;
           lastSets?: Array<{
             setNumber: number;
             reps?: number | null;

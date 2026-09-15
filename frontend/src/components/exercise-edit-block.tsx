@@ -33,6 +33,7 @@ export interface ExerciseRowData {
   defaultRestTime: string;
   equipment: string;
   perSide: boolean;
+  isAssisted: boolean;
   trackingFields: TrackingFields;
 }
 
@@ -123,7 +124,8 @@ export function ExerciseEditBlock({
     defaultWeight?: number,
     defaultDistance?: number,
     defaultDuration?: number,
-    perSide?: boolean
+    perSide?: boolean,
+    isAssisted?: boolean
   ) {
     const updates: Partial<ExerciseRowData> = { name };
     if (category) {
@@ -134,11 +136,12 @@ export function ExerciseEditBlock({
     if (equipment) updates.equipment = mapEquipment(equipment);
     if (sets !== undefined) updates.sets = sets.toString();
     if (reps !== undefined) updates.reps = reps.toString();
-    if (defaultWeight !== undefined && defaultWeight !== null) updates.weight = defaultWeight.toString();
+    if (defaultWeight !== undefined && defaultWeight !== null) updates.weight = Math.abs(defaultWeight).toString();
     if (defaultDistance !== undefined && defaultDistance !== null) updates.distance = defaultDistance.toString();
     if (defaultDuration !== undefined && defaultDuration !== null) updates.duration = formatDuration(defaultDuration);
     if (defaultRestTime !== undefined && defaultRestTime !== null) updates.defaultRestTime = formatDuration(defaultRestTime);
     if (perSide !== undefined) updates.perSide = Boolean(perSide);
+    if (isAssisted !== undefined) updates.isAssisted = Boolean(isAssisted);
 
     onChange(updates);
   }
@@ -214,6 +217,8 @@ export function ExerciseEditBlock({
           onChange={(cat, eq) => {
             onChange({ category: cat, equipment: eq });
           }}
+          isAssisted={ex.isAssisted}
+          onToggleAssisted={(val) => onChange({ isAssisted: val })}
         />
       </div>
 
@@ -354,16 +359,15 @@ export function ExerciseEditBlock({
         {ex.trackingFields.weight && (
           <div className="grid gap-1.5 flex-1 min-w-[100px] max-w-[140px]">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              {ex.category === "Bodyweight" ? t("Added Weight") : t("Weight")}
+              {ex.category === "Bodyweight" ? (ex.isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)")) : t("Weight")}
             </Label>
             <Input
               type="text"
               inputMode="decimal"
               value={ex.weight}
               onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9.-]/g, "");
+                const val = e.target.value.replace(/[^0-9.]/g, "");
                 if ((val.match(/\./g) || []).length > 1) return;
-                if (val.indexOf("-") > 0) return;
                 onChange({ weight: val });
               }}
               placeholder="kg"

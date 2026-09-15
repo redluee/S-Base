@@ -18,6 +18,7 @@ interface Suggestion {
   defaultDistance?: number | null;
   defaultDuration?: number | null;
   perSide?: number | null;
+  isAssisted?: number | null;
   lastSets?: Array<{
     setNumber: number;
     reps?: number | null;
@@ -48,6 +49,7 @@ export function ExerciseAutocomplete({
     defaultDistance?: number,
     defaultDuration?: number,
     perSide?: boolean,
+    isAssisted?: boolean,
     lastSets?: Array<{
       setNumber: number;
       reps?: number | null;
@@ -122,6 +124,7 @@ export function ExerciseAutocomplete({
       suggestion.defaultDistance ?? undefined,
       suggestion.defaultDuration ?? undefined,
       Boolean(suggestion.perSide),
+      Boolean(suggestion.isAssisted),
       suggestion.lastSets,
     );
     setOpen(false);

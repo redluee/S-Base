@@ -54,6 +54,7 @@ export interface TemplateExercise {
   defaultRestTime: number | null;
   equipment: string | null;
   perSide?: number | null;
+  isAssisted?: number | null;
 }
 
 export interface FullWorkoutTemplate extends WorkoutTemplate {
@@ -94,6 +95,7 @@ export interface SessionExercise {
   category?: string;
   equipment?: string | null;
   perSide?: number | null;
+  isAssisted?: number | null;
   sets: SessionSet[];
   templateExercise?: {
     defaultReps?: number | null;
@@ -105,6 +107,7 @@ export interface SessionExercise {
     defaultRestTime?: number | null;
     equipment?: string | null;
     perSide?: number | null;
+    isAssisted?: number | null;
   } | null;
 }
 

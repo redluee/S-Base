@@ -53,6 +53,7 @@ interface ExerciseRow {
   defaultRestTime: string;
   equipment: string;
   perSide: boolean;
+  isAssisted: boolean;
   trackingFields: TrackingFields;
 }
 
@@ -115,7 +116,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
         category: cat,
         sets: e.defaultSets?.toString() || "3",
         reps: e.defaultReps?.toString() ?? "8",
-        weight: e.defaultWeight?.toString() ?? "",
+        weight: e.defaultWeight != null ? Math.abs(e.defaultWeight).toString() : "",
         distance: e.defaultDistance?.toString() ?? "",
         distanceUnit: "km",
         duration: formatDuration(e.defaultDuration),
@@ -123,6 +124,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
         defaultRestTime: formatDuration(e.defaultRestTime ?? 90),
         equipment: mapEquipment(e.equipment),
         perSide: Boolean(e.perSide),
+        isAssisted: Boolean(e.isAssisted),
         trackingFields: getInitialTracking(e, cat)
       };
     }) ?? [{ 
@@ -136,9 +138,10 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       distanceUnit: "km",
       duration: "", 
       heartRate: "", 
-      defaultRestTime: "01:30", 
+      defaultRestTime: "01:30",
       equipment: "",
       perSide: false,
+      isAssisted: false,
       trackingFields: { reps: true, time: false, weight: true, distance: false }
     }]
   );
@@ -203,9 +206,10 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
         distanceUnit: "km",
         duration: "", 
         heartRate: "", 
-        defaultRestTime: "01:30", 
+        defaultRestTime: "01:30",
         equipment: "",
         perSide: false,
+        isAssisted: false,
         trackingFields: { reps: true, time: false, weight: true, distance: false }
       }
     ]);
@@ -328,13 +332,16 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
             category: ex.category,
             sets: Number(ex.sets),
             reps: ex.trackingFields.reps ? Number(ex.reps) : 0,
-            weight: (ex.trackingFields.weight && ex.weight) ? Number(ex.weight) : undefined,
+            weight: (ex.trackingFields.weight && ex.weight)
+              ? (ex.isAssisted ? -Math.abs(Number(ex.weight)) : Math.abs(Number(ex.weight)))
+              : undefined,
             distance: (ex.trackingFields.distance && dist) ? dist : undefined,
             duration: ex.trackingFields.time ? parseDuration(ex.duration) : undefined,
             heartRate: (ex.category === "Cardio" && ex.heartRate) ? Number(ex.heartRate) : undefined,
             defaultRestTime: parseDuration(ex.defaultRestTime) ?? 90,
             equipment: ex.equipment || "none",
             perSide: ex.perSide ? 1 : 0,
+            isAssisted: ex.isAssisted ? 1 : 0,
           };
         }),
     };
