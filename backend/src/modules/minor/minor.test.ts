@@ -625,7 +625,7 @@ describe("MinorService", () => {
     expect(gen1?.argumentation).toContain("Voltooide stories voor LU 1:");
   });
 
-  it("handles dashboard official passes and prognosis based on reflection completeness for finished sprints", () => {
+  it("handles dashboard official passes and prognosis for finished sprints regardless of reflection", () => {
     // Use an isolated user so existing test sprints don't affect stats
     const isolatedUser = db.insert(users).values({
       username: `iso_user_${Date.now()}`,
@@ -654,11 +654,11 @@ describe("MinorService", () => {
       status: "done",
     });
 
-    // Without reflection filled in:
+    // Without reflection filled in: official pass must STILL count because teacher gave 'V'!
     let stats = minor.getDashboardStats(isoId);
-    // Because pastSprint is completed and reflection is NOT filled in, officialPasses should NOT count it yet!
-    expect(stats.officialPasses[1]).toBe(0);
-    // And for projectedPasses, finished sprint with teacher assessment 'V' is 1, but unpassed LU 2 is excluded (0)
+    expect(stats.officialPasses[1]).toBe(1);
+    // For projectedPasses, finished sprint with teacher assessment 'V' is 1, but unpassed LU 2 is excluded (0)
+    expect(stats.projectedPasses[1]).toBe(1);
     expect(stats.projectedPasses[2]).toBe(0);
 
     // Now fill in reflection for pastSprint
@@ -669,11 +669,74 @@ describe("MinorService", () => {
     });
 
     stats = minor.getDashboardStats(isoId);
-    // Now that reflection is filled, officialPasses LU 1 should be counted
     expect(stats.officialPasses[1]).toBe(1);
-    // Projected passes for LU 1 is 1; LU 2 was not given 'V' by teacher, so prognosis does not include LU 2
     expect(stats.projectedPasses[1]).toBe(1);
     expect(stats.projectedPasses[2]).toBe(0);
   });
+
+  it("preserves Sprint 1 teacher assessments as official passes when creating Sprint 2 with stories", () => {
+    const user = db.insert(users).values({
+      username: `iso_sprint2_${Date.now()}`,
+      pswdHash: "hash",
+      email: `iso_s2_${Date.now()}@test.com`,
+    }).returning().get();
+    const userId = user.userId;
+
+    // Sprint 1 completed with teacher feedback awarding LU 1, 2, 4, 5
+    const sprint1 = minor.createSprint(userId, {
+      startDate: "2026-01-05",
+      endDate: "2026-01-23",
+      status: "completed",
+    });
+
+    minor.saveTeacherAssessments(sprint1.id, userId, [
+      { learningOutcome: 1, assessment: "V" },
+      { learningOutcome: 2, assessment: "V" },
+      { learningOutcome: 3, assessment: "-" },
+      { learningOutcome: 4, assessment: "V" },
+      { learningOutcome: 5, assessment: "V" },
+    ]);
+
+    // Reflection is empty/unfilled
+    let stats = minor.getDashboardStats(userId);
+    expect(stats.officialPasses[1]).toBe(1);
+    expect(stats.officialPasses[2]).toBe(1);
+    expect(stats.officialPasses[3]).toBe(0);
+    expect(stats.officialPasses[4]).toBe(1);
+    expect(stats.officialPasses[5]).toBe(1);
+
+    // Now create Sprint 2 with a story covering LU 1 (dates in the present/future so it is active)
+    const sprint2 = minor.createSprint(userId, {
+      startDate: "2026-09-15",
+      endDate: "2026-10-05",
+    });
+
+    minor.createStory(userId, sprint2.id, {
+      title: "User Story covering LU 1",
+      learningOutcomes: [1],
+      status: "in_progress",
+    });
+
+    stats = minor.getDashboardStats(userId);
+    // Official passes from Sprint 1 MUST remain intact as official passes (not reverted to predictions!)
+    expect(stats.officialPasses[1]).toBe(1);
+    expect(stats.officialPasses[2]).toBe(1);
+    expect(stats.officialPasses[3]).toBe(0);
+    expect(stats.officialPasses[4]).toBe(1);
+    expect(stats.officialPasses[5]).toBe(1);
+
+    // Projected passes: Sprint 1 contributed 1 for each of LU 1, 2, 4, 5. Sprint 2 story adds +1 projection for LU 1.
+    expect(stats.projectedPasses[1]).toBe(2);
+    expect(stats.projectedPasses[2]).toBe(1);
+    expect(stats.projectedPasses[3]).toBe(0);
+    expect(stats.projectedPasses[4]).toBe(1);
+    expect(stats.projectedPasses[5]).toBe(1);
+
+    // Also verify sprint1 status is preserved as completed in listSprints
+    const sprints = minor.listSprints(userId);
+    const s1 = sprints.find((s) => s.id === sprint1.id);
+    expect(s1?.status).toBe("completed");
+  });
 });
+
 

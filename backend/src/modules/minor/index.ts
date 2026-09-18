@@ -123,10 +123,12 @@ function addDays(date: Date, days: number): Date {
 export function calculateSprintStatus(
   startDate: string,
   endDate: string,
-  today: string = formatDate(new Date())
+  today: string = formatDate(new Date()),
+  currentStatus?: "planned" | "active" | "completed"
 ): "planned" | "active" | "completed" {
   if (startDate > today) return "planned";
   if (endDate < today) return "completed";
+  if (currentStatus === "completed") return "completed";
   return "active";
 }
 
@@ -435,7 +437,7 @@ export class MinorService {
     const today = formatDate(new Date());
 
     return sprints.map((s) => {
-      const computedStatus = calculateSprintStatus(s.startDate, s.endDate, today);
+      const computedStatus = calculateSprintStatus(s.startDate, s.endDate, today, s.status as any);
       if (s.status !== computedStatus) {
         db.update(minorSprints)
           .set({ status: computedStatus, updatedAt: sql`CURRENT_TIMESTAMP` })
@@ -452,7 +454,7 @@ export class MinorService {
     if (!sprintRaw) return null;
 
     const today = formatDate(new Date());
-    const computedStatus = calculateSprintStatus(sprintRaw.startDate, sprintRaw.endDate, today);
+    const computedStatus = calculateSprintStatus(sprintRaw.startDate, sprintRaw.endDate, today, sprintRaw.status as any);
     if (sprintRaw.status !== computedStatus) {
       db.update(minorSprints)
         .set({ status: computedStatus, updatedAt: sql`CURRENT_TIMESTAMP` })
@@ -1668,41 +1670,24 @@ export class MinorService {
     const sprintIds = sprints.map((s) => s.id);
     if (sprintIds.length > 0) {
       const allAssessments = db.select().from(minorTeacherAssessments).where(inArray(minorTeacherAssessments.sprintId, sprintIds)).all();
-      const allReflections = db.select().from(minorReflections).where(inArray(minorReflections.sprintId, sprintIds)).all();
-
-      const isReflectionFilled = (sprintId: number) => {
-        const ref = allReflections.find((r) => r.sprintId === sprintId);
-        return Boolean(ref && ref.whatLearned?.trim() && ref.whatRetained?.trim() && ref.whatChange?.trim());
-      };
 
       for (const s of sprints) {
         const isFinished = s.status === "completed" || s.endDate < today;
-        const refFilled = isReflectionFilled(s.id);
         const sprintAssessments = allAssessments.filter((a) => a.sprintId === s.id);
 
-        // Official passes:
-        // Counts teacher assessment 'V'.
-        // However, if the sprint is past its end date or completed, it ONLY counts if the sprint reflection is filled in!
-        if (!isFinished || refFilled) {
-          for (const a of sprintAssessments) {
-            if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
-              officialPasses[a.learningOutcome] = (officialPasses[a.learningOutcome] || 0) + 1;
-            }
+        for (const a of sprintAssessments) {
+          if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
+            officialPasses[a.learningOutcome] = (officialPasses[a.learningOutcome] || 0) + 1;
           }
         }
 
-        // Prognosis / Projected passes:
-        // If a sprint is finished OR reflection is already filled in:
-        // only outcomes that received an actual 'V' from the teacher count.
-        // Stories that were chosen in the sprint but not awarded 'V' do not count towards the prognosis.
-        if (isFinished || refFilled) {
+        if (isFinished) {
           for (const a of sprintAssessments) {
             if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
               projectedPasses[a.learningOutcome] = (projectedPasses[a.learningOutcome] || 0) + 1;
             }
           }
         } else {
-          // For active / planned sprints that are NOT yet finished and reflection not yet filled:
           const officiallyPassedInSprint = new Set<number>();
           for (const a of sprintAssessments) {
             if (a.assessment === "V" && a.learningOutcome >= 1 && a.learningOutcome <= 5) {
@@ -1711,7 +1696,6 @@ export class MinorService {
             }
           }
 
-          // Stories in sprint define targeted LUs (at most 1 projected V per covered LU for this sprint)
           const stories = db.select().from(minorStories).where(eq(minorStories.sprintId, s.id)).all();
           const coveredLUs = new Set<number>();
           for (const st of stories) {

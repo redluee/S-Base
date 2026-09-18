@@ -108,8 +108,8 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ## Key Business Rules & Invariants
 1. **Passes & Prognosis**:
-   - Official pass (`officialPasses`): Teacher assessment `V` on an LU (at most 1 per sprint). If sprint is finished (`endDate < today` or `status === "completed"`), it **only** counts if the sprint reflection (`whatLearned`, `whatRetained`, `whatChange`) is completely filled in!
-   - Prognosis (`projectedPasses`): For finished sprints, only actual teacher `V`s count. For active/planned sprints, stories planned in that sprint project a `V` for each covered LU unless assessed with `O`.
+   - Official pass (`officialPasses`): Teacher assessment `V` on an LU (at most 1 per sprint per LU). Official passes awarded by the teacher always count regardless of reflection state (reflection completeness is checked during export validation).
+   - Prognosis (`projectedPasses`): For finished sprints, only actual teacher `V`s count. For active/planned sprints, stories planned in that sprint project a `V` for each covered LU unless assessed with `O` (at most 1 projected pass per LU per sprint).
 2. **Vacations**: Overlapping vacations extend sprint duration automatically and adjust the Show & Grow date (Wednesday in the last week).
 3. **Dual Criteria**: Each story has two criteria groups: `acceptance` criteria (story specific) and `quality` criteria (process/DoD related, often pre-filled from story type). Both support 1-level indentation (`indent: 1`).
 4. **Presentation Data**: `presentationData` in `minor_stories` stores JSON for Show & Grow slides (custom title, notes, demo URLs, screenshots, bullet points).
