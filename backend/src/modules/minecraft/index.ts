@@ -115,7 +115,7 @@ const MIME_TYPES: Record<string, string> = {
   ".otf": "font/otf",
 };
 
-export const DEFAULT_AUTO_SHUTDOWN_MINUTES = 10;
+export const DEFAULT_AUTO_SHUTDOWN_MINUTES = 15;
 export const DEFAULT_IDLE_CHECK_INTERVAL_MS = 15000;
 
 export class MinecraftService {

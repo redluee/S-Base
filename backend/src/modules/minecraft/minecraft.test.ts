@@ -563,7 +563,7 @@ describe("MinecraftService", () => {
     db.delete(mc_servers).where(eq(mc_servers.slug, "test-pl3xmap-server")).run();
   });
 
-  it("automatically stops server after 10 minutes when no players are online", async () => {
+  it("automatically stops server after 15 minutes when no players are online", async () => {
     const srvDir = join(testDir, "test-server-autostop");
     await mkdir(srvDir, { recursive: true });
 
@@ -603,15 +603,15 @@ describe("MinecraftService", () => {
     minecraft.parsePlayerEvent("test-server-autostop", `[12:05:00] [Server]: Alice left the game`);
     expect(minecraft.getEmptySince("test-server-autostop")).not.toBeNull();
 
-    // If checked before 10 minutes (e.g. 5 minutes in), server does not stop
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    minecraft.markEmpty("test-server-autostop", fiveMinutesAgo);
+    // If checked before 15 minutes (e.g. 10 minutes in), server does not stop
+    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+    minecraft.markEmpty("test-server-autostop", tenMinutesAgo);
     await minecraft.checkIdleServers();
     expect(serverStopped).toBe(false);
 
-    // If checked after 10 minutes (e.g. 10 minutes and 1 second ago), server automatically shuts down
-    const tenMinutesAndOneSecAgo = Date.now() - (10 * 60 * 1000 + 1000);
-    minecraft.markEmpty("test-server-autostop", tenMinutesAndOneSecAgo);
+    // If checked after 15 minutes (e.g. 15 minutes and 1 second ago), server automatically shuts down
+    const fifteenMinutesAndOneSecAgo = Date.now() - (15 * 60 * 1000 + 1000);
+    minecraft.markEmpty("test-server-autostop", fifteenMinutesAndOneSecAgo);
     await minecraft.checkIdleServers();
     expect(serverStopped).toBe(true);
     expect(minecraft.getEmptySince("test-server-autostop")).toBeNull();

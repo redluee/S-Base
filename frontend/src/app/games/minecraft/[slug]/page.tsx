@@ -43,6 +43,7 @@ export default function ServerDashboardPage() {
   }, []);
 
   const consoleRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
   const handleCopyPath = async () => {
     if (!server?.serverDir) return;
@@ -125,10 +126,17 @@ export default function ServerDashboardPage() {
   }, [slug, refreshStatus]);
 
   useEffect(() => {
-    if (consoleRef.current) {
+    if (consoleRef.current && isNearBottomRef.current) {
       consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
     }
   }, [consoleLines]);
+
+  const handleConsoleScroll = () => {
+    const el = consoleRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isNearBottomRef.current = distanceFromBottom < 40;
+  };
 
   const handleAction = async (action: "start" | "stop" | "restart") => {
     if (!slug) return;
@@ -338,18 +346,21 @@ export default function ServerDashboardPage() {
             <Terminal className="size-4" />
             {t("Console")}
           </div>
-          <div ref={consoleRef} className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-snug text-zinc-300">
+          <div ref={consoleRef} onScroll={handleConsoleScroll} className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-snug text-zinc-300">
             {consoleLines.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap break-words">{line}</div>
             ))}
           </div>
           <form onSubmit={handleCommand} className="p-2 bg-zinc-900 border-t border-white/10">
-            <Input 
+            <Input
               value={cmd}
               onChange={(e) => setCmd(e.target.value)}
               placeholder={t("Type a command...")}
               className="bg-black/50 border-white/10 font-mono text-sm focus-visible:ring-sky-500"
               disabled={!status.online || !hasFullAccess}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
             />
           </form>
         </div>
