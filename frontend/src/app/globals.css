@@ -217,6 +217,48 @@ input[type="number"] {
   animation: particle-4 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
+/* ─── Squircle Shape Utilities ─── */
+/* Smooth continuous curvature (squircle / superellipse) */
+.squircle-card {
+  border-radius: 24px;
+}
+@supports (corner-shape: squircle) {
+  .squircle-card {
+    border-radius: 24px;
+    corner-shape: squircle;
+  }
+}
+
+.squircle-icon {
+  border-radius: 14px;
+}
+@supports (corner-shape: squircle) {
+  .squircle-icon {
+    border-radius: 14px;
+    corner-shape: squircle;
+  }
+}
+
+.squircle-action {
+  border-radius: 12px;
+}
+@supports (corner-shape: squircle) {
+  .squircle-action {
+    border-radius: 12px;
+    corner-shape: squircle;
+  }
+}
+
+.squircle-pill {
+  border-radius: 9999px;
+}
+@supports (corner-shape: squircle) {
+  .squircle-pill {
+    border-radius: 9999px;
+    corner-shape: squircle;
+  }
+}
+
 /* ─── Dashboard module hover animations ─── */
 
 /* Workout: dumbbell lies horizontal and drops with gravity */

@@ -79,13 +79,13 @@ export function RunningWorkoutCard({
 
   if (compact) {
     return (
-      <div className="relative group overflow-hidden rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-[#00E676]/40 p-3.5 sm:p-4 shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.3)] hover:border-[#00E676]/70 transition-all duration-300">
+      <div className="relative group overflow-hidden squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-[#00E676]/40 p-3.5 sm:p-4 shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.3)] hover:border-[#00E676]/70 transition-all duration-300">
         <div className="absolute inset-0 bg-gradient-to-r from-[#00E676]/10 via-transparent to-[#00E676]/5 pointer-events-none" />
         <div className="flex items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex items-center justify-center shrink-0">
-              <span className="absolute inline-flex size-9 animate-ping rounded-full bg-[#00E676]/20" />
-              <div className="size-9 rounded-xl bg-[#00E676]/15 border border-[#00E676]/40 flex items-center justify-center text-[#00E676] shadow-[0_0_12px_rgba(0,230,118,0.3)]">
+              <span className="absolute inline-flex size-9 animate-ping squircle-icon bg-[#00E676]/20" />
+              <div className="size-9 squircle-icon bg-[#00E676]/15 border border-[#00E676]/40 flex items-center justify-center text-[#00E676] shadow-[0_0_12px_rgba(0,230,118,0.3)]">
                 <Dumbbell className="size-4" />
               </div>
             </div>
@@ -107,12 +107,12 @@ export function RunningWorkoutCard({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/30 px-2.5 py-1 rounded-lg">
+            <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/30 px-2.5 py-1 squircle-pill">
               <Timer className="size-3.5" />
               <span>{formatElapsedTime(elapsed)}</span>
             </div>
             <Link href={`/workouts/session/${session.sessionId}`}>
-              <Button size="sm" className="bg-[#00E676] text-zinc-950 hover:bg-[#00E676]/90 font-bold text-xs h-8 px-3 rounded-xl shadow-md shadow-[#00E676]/20 active:scale-95 transition-all">
+              <Button size="sm" className="bg-[#00E676] text-zinc-950 hover:bg-[#00E676]/90 font-bold text-xs h-8 px-3 squircle-action shadow-md shadow-[#00E676]/20 active:scale-95 transition-all">
                 <span>{t("Hervatten")}</span>
                 <Play className="size-3 ml-1 fill-zinc-950" />
               </Button>

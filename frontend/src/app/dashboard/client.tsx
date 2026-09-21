@@ -270,9 +270,9 @@ export function DashboardClient({
       <header
         className={`absolute ${
           isImpersonated ? "top-14" : "top-6"
-        } right-4 sm:right-6 z-30 flex items-center gap-2 p-1.5 px-3 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-[16px] shadow-lg`}
+        } right-4 sm:right-6 z-30 flex items-center gap-2 p-1.5 px-3.5 squircle-pill bg-zinc-900/80 border border-white/10 backdrop-blur-[16px] shadow-lg`}
       >
-        <div className="size-6 sm:size-7 rounded-full bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shadow-[0_0_8px_rgba(0,230,118,0.3)]">
+        <div className="size-6 sm:size-7 squircle-pill bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shadow-[0_0_8px_rgba(0,230,118,0.3)]">
           <User className="size-3.5 sm:size-4" />
         </div>
         <span className="text-xs font-semibold text-zinc-200 tracking-wide">{username}</span>
@@ -308,12 +308,12 @@ export function DashboardClient({
         {canAccess("workout") && (
           <Link
             href="/workouts"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00E676]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,230,118,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00E676]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,230,118,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00E676]/10 via-transparent to-[#00E676]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
-              <div className="size-11 rounded-2xl bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,230,118,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.6)] transition-all duration-300">
+              <div className="size-11 squircle-icon bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,230,118,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.6)] transition-all duration-300">
                 <Dumbbell className="size-5 anim-dumbbell rotate-90" />
               </div>
               <div className="min-w-0">
@@ -326,7 +326,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-8 rounded-full bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] group-hover:bg-[#00E676] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+            <div className="size-8 squircle-action bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] group-hover:bg-[#00E676] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
@@ -336,12 +336,12 @@ export function DashboardClient({
         {canAccess("recipes") && (
           <Link
             href="/recipes"
-            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FFB300]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,179,0,0.35)] overflow-hidden"
+            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FFB300]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,179,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FFB300]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
-              <div className="size-11 rounded-2xl bg-[#FFB300]/15 border border-[#FFB300]/30 flex items-center justify-center text-[#FFB300] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,179,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(255,179,0,0.6)] transition-all duration-300 relative overflow-visible">
+              <div className="size-11 squircle-icon bg-[#FFB300]/15 border border-[#FFB300]/30 flex items-center justify-center text-[#FFB300] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,179,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(255,179,0,0.6)] transition-all duration-300 relative overflow-visible">
                 <ChefHat className="size-5 anim-hat" />
                 <svg
                   className="absolute size-5 anim-tomato opacity-0 pointer-events-none"
@@ -367,7 +367,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-8 rounded-full bg-[#FFB300]/15 border border-[#FFB300]/30 flex items-center justify-center text-[#FFB300] group-hover:bg-[#FFB300] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+            <div className="size-8 squircle-action bg-[#FFB300]/15 border border-[#FFB300]/30 flex items-center justify-center text-[#FFB300] group-hover:bg-[#FFB300] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
@@ -377,12 +377,12 @@ export function DashboardClient({
         {canAccess("minecraft") && (
           <Link
             href="/games/minecraft"
-            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#76FF03]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)] overflow-hidden"
+            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#76FF03]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#76FF03]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
-              <div className="size-11 rounded-2xl bg-[#76FF03]/15 border border-[#76FF03]/30 flex items-center justify-center text-[#76FF03] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(118,255,3,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(118,255,3,0.6)] transition-all duration-300">
+              <div className="size-11 squircle-icon bg-[#76FF03]/15 border border-[#76FF03]/30 flex items-center justify-center text-[#76FF03] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(118,255,3,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(118,255,3,0.6)] transition-all duration-300">
                 <Gamepad2 className="size-5" />
               </div>
               <div className="min-w-0">
@@ -400,7 +400,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-8 rounded-full bg-[#76FF03]/15 border border-[#76FF03]/30 flex items-center justify-center text-[#76FF03] group-hover:bg-[#76FF03] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+            <div className="size-8 squircle-action bg-[#76FF03]/15 border border-[#76FF03]/30 flex items-center justify-center text-[#76FF03] group-hover:bg-[#76FF03] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
@@ -410,12 +410,12 @@ export function DashboardClient({
         {canAccess("cashflow") && (
           <Link
             href="/cashflow"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00B0FF]/10 via-transparent to-[#00B0FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
-              <div className="size-11 rounded-2xl bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,176,255,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,176,255,0.6)] transition-all duration-300 relative overflow-visible">
+              <div className="size-11 squircle-icon bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,176,255,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,176,255,0.6)] transition-all duration-300 relative overflow-visible">
                 <Banknote className="size-4.5 absolute anim-bill-back opacity-0 text-[#00B0FF]/70" aria-hidden="true" />
                 <Banknote className="size-5 relative anim-bill-front" />
               </div>
@@ -429,7 +429,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-8 rounded-full bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] group-hover:bg-[#00B0FF] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+            <div className="size-8 squircle-action bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] group-hover:bg-[#00B0FF] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
@@ -439,12 +439,12 @@ export function DashboardClient({
         {canAccess("minor") && (
           <Link
             href="/minor"
-            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
+            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FF9100]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
-              <div className="size-11 rounded-2xl bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,145,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(255,145,0,0.6)] transition-all duration-300">
+              <div className="size-11 squircle-icon bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,145,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(255,145,0,0.6)] transition-all duration-300">
                 <GraduationCap className="size-5" />
               </div>
               <div className="min-w-0">
@@ -457,7 +457,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-8 rounded-full bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] group-hover:bg-[#FF9100] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+            <div className="size-8 squircle-action bg-[#FF9100]/15 border border-[#FF9100]/30 flex items-center justify-center text-[#FF9100] group-hover:bg-[#FF9100] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
@@ -476,12 +476,12 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/lyric_quotes/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#7C4DFF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(124,77,255,0.35)] overflow-hidden"
+                className="group relative flex flex-col justify-between p-3.5 sm:p-4 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#7C4DFF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(124,77,255,0.35)] overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#7C4DFF]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
                 <div className="flex items-center justify-between mb-2 relative z-10">
-                  <div className="size-9 rounded-xl bg-[#7C4DFF]/15 border border-[#7C4DFF]/30 flex items-center justify-center text-[#7C4DFF] shadow-[0_0_12px_rgba(124,77,255,0.3)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+                  <div className="size-9 squircle-icon bg-[#7C4DFF]/15 border border-[#7C4DFF]/30 flex items-center justify-center text-[#7C4DFF] shadow-[0_0_12px_rgba(124,77,255,0.3)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                     <Music className="size-4" />
                     <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-1 opacity-0 pointer-events-none select-none text-[#7C4DFF]" aria-hidden="true">♪</span>
                     <span className="absolute inset-0 flex items-center justify-center text-[10px] anim-note-2 opacity-0 pointer-events-none select-none text-[#7C4DFF]" aria-hidden="true">♫</span>
@@ -505,12 +505,12 @@ export function DashboardClient({
                 href="https://stevenheijn.nl/you"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF4081]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,64,129,0.35)] overflow-hidden"
+                className="group relative flex flex-col justify-between p-3.5 sm:p-4 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF4081]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,64,129,0.35)] overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#FF4081]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
                 <div className="flex items-center justify-between mb-2 relative z-10">
-                  <div className="size-9 rounded-xl bg-[#FF4081]/15 border border-[#FF4081]/30 flex items-center justify-center text-[#FF4081] shadow-[0_0_12px_rgba(255,64,129,0.3)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
+                  <div className="size-9 squircle-icon bg-[#FF4081]/15 border border-[#FF4081]/30 flex items-center justify-center text-[#FF4081] shadow-[0_0_12px_rgba(255,64,129,0.3)] group-hover:scale-110 transition-transform duration-300 relative overflow-visible">
                     <Heart className="size-4" />
                     <Heart className="absolute size-2 text-[#FF4081]/70 anim-heart-1 opacity-0 pointer-events-none" aria-hidden="true" />
                     <Heart className="absolute size-2 text-[#FF4081] anim-heart-2 opacity-0 pointer-events-none" aria-hidden="true" />
@@ -544,12 +544,12 @@ export function DashboardClient({
 
           <Link
             href="/pulse"
-            className="group relative flex items-center justify-between p-4 sm:p-5 rounded-[20px] bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF1744]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,23,68,0.35)] overflow-hidden"
+            className="group relative flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF1744]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,23,68,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#FF1744]/10 via-transparent to-[#FF1744]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
-              <div className="size-11 rounded-2xl bg-[#FF1744]/15 border border-[#FF1744]/30 flex items-center justify-center text-[#FF1744] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,23,68,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(255,23,68,0.6)] transition-all duration-300 relative overflow-visible">
+              <div className="size-11 squircle-icon bg-[#FF1744]/15 border border-[#FF1744]/30 flex items-center justify-center text-[#FF1744] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(255,23,68,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(255,23,68,0.6)] transition-all duration-300 relative overflow-visible">
                 <Activity className="size-5" />
                 <svg
                   viewBox="0 0 60 20"
@@ -576,7 +576,7 @@ export function DashboardClient({
                   <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
                     Pulse
                   </h2>
-                  <span className="text-[10px] font-semibold text-[#FF1744] bg-[#FF1744]/15 border border-[#FF1744]/30 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-[#FF1744] bg-[#FF1744]/15 border border-[#FF1744]/30 px-2.5 py-0.5 squircle-pill">
                     Admin
                   </span>
                 </div>
@@ -586,7 +586,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="size-8 rounded-full bg-[#FF1744]/15 border border-[#FF1744]/30 flex items-center justify-center text-[#FF1744] group-hover:bg-[#FF1744] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+            <div className="size-8 squircle-action bg-[#FF1744]/15 border border-[#FF1744]/30 flex items-center justify-center text-[#FF1744] group-hover:bg-[#FF1744] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
               <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           </Link>
@@ -596,7 +596,7 @@ export function DashboardClient({
       {/* Settings Toggle Button (Bottom Right) */}
       <button
         onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-        className="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-zinc-900/80 border border-white/10 text-zinc-300 hover:text-white hover:border-[#00E676]/40 hover:bg-zinc-800/90 backdrop-blur-md shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-[#00E676]/40"
+        className="fixed bottom-6 right-6 z-40 p-3.5 squircle-icon bg-zinc-900/80 border border-white/10 text-zinc-300 hover:text-white hover:border-[#00E676]/40 hover:bg-zinc-800/90 backdrop-blur-md shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-[#00E676]/40"
         title={t("Background Settings")}
         aria-label={t("Background Settings")}
       >
@@ -609,7 +609,7 @@ export function DashboardClient({
 
       {/* Settings Menu Panel */}
       {isSettingsOpen && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 rounded-[20px] bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl p-5 text-zinc-100 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 squircle-card bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl p-5 text-zinc-100 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Sliders className="size-4.5 text-[#00E676]" />
@@ -619,7 +619,7 @@ export function DashboardClient({
             </div>
             <button
               onClick={() => setIsSettingsOpen(false)}
-              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-1 squircle-action text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
             >
               <X className="size-4" />
             </button>
@@ -681,7 +681,7 @@ export function DashboardClient({
                 <button
                   type="button"
                   onClick={() => setBgImage("/karp-350.jpg")}
-                  className={`flex items-center justify-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-center gap-2 p-2.5 squircle-icon border text-xs font-semibold transition-all ${
                     bgImage === "/karp-350.jpg"
                       ? "bg-[#00E676]/15 border-[#00E676] text-[#00E676]"
                       : "bg-zinc-800/60 border-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
@@ -693,7 +693,7 @@ export function DashboardClient({
                 <button
                   type="button"
                   onClick={() => setBgImage("none")}
-                  className={`flex items-center justify-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-center gap-2 p-2.5 squircle-icon border text-xs font-semibold transition-all ${
                     bgImage === "none"
                       ? "bg-[#00E676]/15 border-[#00E676] text-[#00E676]"
                       : "bg-zinc-800/60 border-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
@@ -705,7 +705,7 @@ export function DashboardClient({
 
               {/* Custom Image Upload */}
               <div>
-                <label className="flex items-center justify-center gap-2 w-full p-2.5 rounded-xl border border-dashed border-zinc-700 bg-zinc-800/40 hover:bg-zinc-800/80 text-zinc-300 hover:text-white cursor-pointer transition-all">
+                <label className="flex items-center justify-center gap-2 w-full p-2.5 squircle-icon border border-dashed border-zinc-700 bg-zinc-800/40 hover:bg-zinc-800/80 text-zinc-300 hover:text-white cursor-pointer transition-all">
                   <Upload className="size-3.5 text-zinc-400" />
                   <span className="font-medium text-xs">{t("Upload Image")}</span>
                   <input
