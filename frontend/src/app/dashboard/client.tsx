@@ -8,10 +8,9 @@ import { api, type AuthUser } from "@/lib/api";
 import type { WorkoutSession } from "@backend/types/shared";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { DumbbellIcon } from "@/components/icons";
 import {
-  Dumbbell,
   ChefHat,
-  Banknote,
   User,
   Music,
   Heart,
@@ -314,7 +313,7 @@ export function DashboardClient({
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
               <div className="size-11 squircle-icon bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,230,118,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.6)] transition-all duration-300">
-                <Dumbbell className="size-5 anim-dumbbell rotate-90" />
+                <DumbbellIcon className="size-5 anim-dumbbell" />
               </div>
               <div className="min-w-0">
                 <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
@@ -416,8 +415,27 @@ export function DashboardClient({
 
             <div className="flex items-center gap-3.5 relative z-10 min-w-0">
               <div className="size-11 squircle-icon bg-[#00B0FF]/15 border border-[#00B0FF]/30 flex items-center justify-center text-[#00B0FF] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(0,176,255,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(0,176,255,0.6)] transition-all duration-300 relative overflow-visible">
-                <Banknote className="size-4.5 absolute anim-bill-back opacity-0 text-[#00B0FF]/70" aria-hidden="true" />
-                <Banknote className="size-5 relative anim-bill-front" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="size-5 overflow-visible"
+                  aria-hidden="true"
+                >
+                  <g className="anim-bill-back text-[#00B0FF]/70">
+                    <rect width="20" height="12" x="2" y="6" rx="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <path d="M6 12h.01M18 12h.01" />
+                  </g>
+                  <g className="anim-bill-front">
+                    <rect width="20" height="12" x="2" y="6" rx="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <path d="M6 12h.01M18 12h.01" />
+                  </g>
+                </svg>
               </div>
               <div className="min-w-0">
                 <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">

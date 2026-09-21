@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
-import { Play, CheckCircle2, Trash2, Timer, Dumbbell } from "lucide-react";
+import { DumbbellIcon } from "@/components/icons";
+import { Play, CheckCircle2, Trash2, Timer } from "lucide-react";
 import type { WorkoutSession } from "@backend/types/shared";
 
 function parseSessionDate(dateStr: string): Date {
@@ -86,7 +87,7 @@ export function RunningWorkoutCard({
             <div className="relative flex items-center justify-center shrink-0">
               <span className="absolute inline-flex size-9 animate-ping squircle-icon bg-[#00E676]/20" />
               <div className="size-9 squircle-icon bg-[#00E676]/15 border border-[#00E676]/40 flex items-center justify-center text-[#00E676] shadow-[0_0_12px_rgba(0,230,118,0.3)]">
-                <Dumbbell className="size-4" />
+                <DumbbellIcon className="size-4" />
               </div>
             </div>
 
