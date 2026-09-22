@@ -153,6 +153,7 @@ export default function ProjectsPage() {
               <button
                 onClick={() => setDeleteModalProject(null)}
                 className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+                aria-label={t("Sluiten")}
               >
                 <X className="size-4" />
               </button>

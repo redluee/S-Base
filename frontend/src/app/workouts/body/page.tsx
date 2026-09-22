@@ -1121,6 +1121,7 @@ export default function BodyPage() {
           <button
             onClick={() => setActivePhotoUrl(null)}
             className="absolute top-6 right-6 size-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+            aria-label={t("Sluiten")}
           >
             <X className="size-5" />
           </button>
