@@ -98,7 +98,7 @@ export default function TemplatesPage() {
             <div key={tmpl.templateId} className="flex flex-col p-5 rounded-2xl bg-zinc-900 border border-white/10 relative group">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-zinc-100">{tmpl.name}</h3>
+                  <h2 className="text-lg font-bold text-zinc-100">{tmpl.name}</h2>
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md ${tmpl.engine === 'fabric' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
                       {tmpl.engine}

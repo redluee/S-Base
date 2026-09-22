@@ -52,9 +52,9 @@ function ClientContractModal({
               <FileText className="size-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-semibold text-white truncate">
+              <h2 className="text-base font-semibold text-white truncate">
                 {client.name} — {t("Contract details")}
-              </h3>
+              </h2>
               <p className="text-xs text-zinc-400 truncate">
                 {client.contractPdfName || "Contract.pdf"}
               </p>
@@ -167,7 +167,7 @@ function ClientForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-      <h3 className="text-sm font-semibold text-white">{initial?.id ? t("Klant bewerken") : t("Klant aanmaken")}</h3>
+      <h2 className="text-sm font-semibold text-white">{initial?.id ? t("Klant bewerken") : t("Klant aanmaken")}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5 sm:col-span-2">
           <Label className="text-xs text-zinc-400">{t("Klantnaam")}</Label>

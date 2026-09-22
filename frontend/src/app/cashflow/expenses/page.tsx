@@ -77,9 +77,9 @@ function ExpenseReceiptModal({
               <FileText className="size-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-semibold text-white truncate">
+              <h2 className="text-base font-semibold text-white truncate">
                 {expense.description} — {t("Bon / Factuur")}
-              </h3>
+              </h2>
               <p className="text-xs text-zinc-400 truncate">
                 {expense.receiptPdfName || "Bon.pdf"}
               </p>
@@ -223,9 +223,9 @@ function ExpenseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-      <h3 className="text-sm font-semibold text-white">
+      <h2 className="text-sm font-semibold text-white">
         {initial?.id ? t("Uitgave bewerken") : t("Nieuwe uitgave")}
-      </h3>
+      </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Description */}
