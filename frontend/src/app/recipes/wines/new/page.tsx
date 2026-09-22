@@ -17,7 +17,7 @@ export default async function NewWinePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <NavHeader username={user.username} />
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
+      <main id="main-content" className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <Link

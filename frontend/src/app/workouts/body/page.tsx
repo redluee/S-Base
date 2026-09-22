@@ -551,7 +551,7 @@ export default function BodyPage() {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <NavHeader username={user.username} />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <main id="main-content" className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2.5">

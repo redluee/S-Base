@@ -11,7 +11,7 @@ export default async function CashflowLayout({ children }: { children: React.Rea
     <div className="min-h-full flex flex-col">
       <NavHeader username={user.username} />
       <CashflowSubnav />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">{children}</main>
     </div>
   );
 }

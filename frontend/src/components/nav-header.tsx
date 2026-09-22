@@ -88,6 +88,12 @@ export function NavHeader({
 
   return (
     <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-zinc-900 focus:border focus:border-brand focus:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus:font-semibold focus:text-sm"
+      >
+        {t("Skip to content")}
+      </a>
       {isImpersonated && impersonatedBy && (
         <ImpersonationBanner username={username} impersonatedBy={impersonatedBy} />
       )}

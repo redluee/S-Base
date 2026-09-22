@@ -248,7 +248,7 @@ export function PulseClient({
     <div className="min-h-screen flex flex-col bg-zinc-950 text-foreground">
       <NavHeader username={username} />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main id="main-content" className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Floating Notification */}
         {statusMsg && (
           <div
