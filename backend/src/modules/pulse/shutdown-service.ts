@@ -228,6 +228,11 @@ export class ServerShutdownService {
     }
   }
 
+  async triggerManualShutdown() {
+    console.log("[ShutdownService] Manual shutdown triggered via Pulse.");
+    await this.executeFullShutdown();
+  }
+
   async executeFullShutdown() {
     console.log("[ShutdownService] Starting scheduled system shutdown sequence...");
     await this.stopAllMinecraftServers();

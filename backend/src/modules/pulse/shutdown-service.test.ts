@@ -129,4 +129,24 @@ describe("ServerShutdownService", () => {
     await service.checkScheduleTick(testNow10m);
     expect(sentCommands.length).toBe(0);
   });
+
+  it("stops all running servers immediately on manual shutdown trigger", async () => {
+    const stoppedServers: string[] = [];
+    const mockMc: any = {
+      listServers: () => [{ slug: "server-a" }, { slug: "server-b" }],
+      isRunning: () => true,
+      getOnlinePlayers: () => [],
+      sendCommand: async () => {},
+      stopServer: async (slug: string) => {
+        stoppedServers.push(slug);
+        return { ok: true };
+      },
+    };
+
+    const service = new ServerShutdownService(mockMc, false);
+    await service.triggerManualShutdown();
+
+    expect(stoppedServers).toContain("server-a");
+    expect(stoppedServers).toContain("server-b");
+  });
 });

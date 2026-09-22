@@ -819,6 +819,12 @@ export const app = new Elysia()
       })
       .post("/shutdown-schedule/block", () => shutdownService.blockShutdown())
       .post("/shutdown-schedule/unblock", () => shutdownService.unblockShutdown())
+      .post("/shutdown-now", async () => {
+        shutdownService.triggerManualShutdown().catch((err) => {
+          console.error("[Pulse] Manual shutdown failed:", err);
+        });
+        return { ok: true };
+      })
       .put("/users/:id/email", ({ params: { id }, body }) => {
         const { email } = (body ?? {}) as { email?: string | null };
         const u = pulse.updateEmail(Number(id), email ?? null);

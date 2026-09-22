@@ -572,6 +572,10 @@ export const api = {
       request<ShutdownSchedule>("/pulse/shutdown-schedule/unblock", {
         method: "POST",
       }),
+    shutdownNow: () =>
+      request<{ ok: boolean }>("/pulse/shutdown-now", {
+        method: "POST",
+      }),
   },
 
   minecraft: {

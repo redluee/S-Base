@@ -22,6 +22,7 @@ import {
   LogIn,
   Gamepad2,
   Power,
+  PowerOff,
   Clock,
   ShieldAlert,
   Moon,
@@ -29,6 +30,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialogRoot,
+  AlertDialogPopup,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogActions,
+  AlertDialogClose,
+} from "@/components/ui/alert-dialog";
 
 export function PulseClient({
   username,
@@ -53,6 +62,8 @@ export function PulseClient({
   const [shutdownSchedule, setShutdownSchedule] = useState<ShutdownSchedule | null>(initialShutdownSchedule ?? null);
   const [shutdownTimeInput, setShutdownTimeInput] = useState<string>(initialShutdownSchedule?.time ?? "01:00");
   const [isSavingShutdown, setIsSavingShutdown] = useState<boolean>(false);
+  const [isShutdownNowOpen, setIsShutdownNowOpen] = useState(false);
+  const [isShuttingDownNow, setIsShuttingDownNow] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingEmailUserId, setEditingEmailUserId] = useState<number | null>(null);
   const [emailInput, setEmailInput] = useState("");
@@ -108,6 +119,19 @@ export function PulseClient({
       showNotification(t("Opslaan mislukt"), "error");
     } finally {
       setIsSavingShutdown(false);
+    }
+  };
+
+  const handleShutdownNow = async () => {
+    setIsShuttingDownNow(true);
+    try {
+      await api.pulse.shutdownNow();
+      showNotification(t("Shutdown initiated"));
+      setIsShutdownNowOpen(false);
+    } catch {
+      showNotification(t("Failed to initiate shutdown"), "error");
+    } finally {
+      setIsShuttingDownNow(false);
     }
   };
 
@@ -428,6 +452,17 @@ export function PulseClient({
                   <Power className="size-3.5 mr-1.5" />
                   {shutdownSchedule.enabled ? t("Uitschakelen") : t("Inschakelen")}
                 </Button>
+
+                {/* Immediate Manual Shutdown */}
+                <Button
+                  size="sm"
+                  onClick={() => setIsShutdownNowOpen(true)}
+                  disabled={isShuttingDownNow}
+                  className="h-9 px-3.5 text-xs font-bold rounded-xl transition-all border bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+                >
+                  <PowerOff className="size-3.5 mr-1.5" />
+                  {t("Shutdown Now")}
+                </Button>
               </div>
             </div>
 
@@ -440,6 +475,45 @@ export function PulseClient({
             </div>
           </div>
         )}
+
+        <AlertDialogRoot
+          open={isShutdownNowOpen}
+          onOpenChange={(open) => {
+            if (!isShuttingDownNow) setIsShutdownNowOpen(open);
+          }}
+        >
+          <AlertDialogPopup>
+            <AlertDialogTitle className="text-zinc-100 font-bold text-lg flex items-center gap-2">
+              <PowerOff className="size-4 text-red-400" />
+              {t("Shut down server now?")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-zinc-400 mt-2">
+              {t(
+                "This will immediately stop all Minecraft servers and power off the Fedora host. This cannot be undone."
+              )}
+            </AlertDialogDescription>
+            <AlertDialogActions className="mt-6 flex flex-wrap items-center justify-end gap-2">
+              <AlertDialogClose
+                render={
+                  <Button
+                    variant="ghost"
+                    disabled={isShuttingDownNow}
+                    className="text-zinc-400 hover:text-zinc-200"
+                  >
+                    {t("Cancel")}
+                  </Button>
+                }
+              />
+              <Button
+                onClick={handleShutdownNow}
+                disabled={isShuttingDownNow}
+                className="bg-red-500 text-zinc-950 font-bold hover:bg-red-400"
+              >
+                {isShuttingDownNow ? t("Shutting down...") : t("Shutdown Now")}
+              </Button>
+            </AlertDialogActions>
+          </AlertDialogPopup>
+        </AlertDialogRoot>
 
         {/* Search & Filter Bar */}
         <div className="flex items-center gap-3 mb-6">
