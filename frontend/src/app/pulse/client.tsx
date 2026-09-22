@@ -459,7 +459,7 @@ export function PulseClient({
         {/* Users List Container */}
         <div className="space-y-4">
           {filteredUsers.length === 0 ? (
-            <div className="rounded-2xl bg-zinc-900/50 border border-white/5 p-12 text-center text-zinc-500 text-sm">
+            <div className="rounded-2xl bg-zinc-900/50 border border-white/5 p-12 text-center text-zinc-400 text-sm">
               {t("No users found.")}
             </div>
           ) : (
@@ -540,7 +540,7 @@ export function PulseClient({
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                              <span>{u.email || <span className="italic text-zinc-600">Geen e-mailadres</span>}</span>
+                              <span>{u.email || <span className="italic text-zinc-400">Geen e-mailadres</span>}</span>
                               <button
                                 onClick={() => handleStartEditEmail(u)}
                                 className="p-1 rounded-md text-zinc-500 hover:text-teal-400 hover:bg-zinc-800 transition-colors"

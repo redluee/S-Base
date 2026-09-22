@@ -659,7 +659,7 @@ export function DashboardClient({
                 onChange={(e) => setBlur(Number(e.target.value))}
                 className="w-full accent-[#00E676] bg-zinc-800 rounded-lg cursor-pointer h-2"
               />
-              <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+              <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
                 <span>0px</span>
                 <span>25px</span>
                 <span>50px</span>
@@ -681,7 +681,7 @@ export function DashboardClient({
                 onChange={(e) => setBrightness(Number(e.target.value))}
                 className="w-full accent-[#00E676] bg-zinc-800 rounded-lg cursor-pointer h-2"
               />
-              <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+              <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
                 <span>0%</span>
                 <span>50%</span>
                 <span>100%</span>

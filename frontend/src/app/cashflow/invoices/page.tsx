@@ -488,7 +488,7 @@ export default function InvoicesPage() {
                     ) : inv.name ? (
                       <p className="text-xs text-zinc-400 truncate font-italic" title={inv.name}>{inv.name}</p>
                     ) : (
-                      <p className="text-xs text-zinc-600">—</p>
+                      <p className="text-xs text-zinc-400">—</p>
                     )}
                   </div>
 
