@@ -343,6 +343,9 @@ export function WorkoutExerciseCard({
                   activeMenuExerciseId === ex.sessionExerciseId ? null : (ex.sessionExerciseId ?? null)
                 )
               }
+              aria-label={t("Meer opties")}
+              aria-haspopup="menu"
+              aria-expanded={activeMenuExerciseId === ex.sessionExerciseId}
               className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
             >
               <MoreVertical className="size-5" />
