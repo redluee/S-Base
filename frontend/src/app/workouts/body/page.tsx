@@ -1010,12 +1010,18 @@ export default function BodyPage() {
                         <div className="flex items-center gap-2 overflow-x-auto">
                           {log.photos.map((p) => (
                             <div key={p.photoId} className="relative group/photo shrink-0 size-11 rounded-lg border border-border overflow-hidden bg-background">
-                              <img 
-                                src={p.filePath} 
-                                alt="Meting foto" 
+                              <button
+                                type="button"
                                 onClick={() => setActivePhotoUrl(p.filePath)}
-                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
-                              />
+                                aria-label={t("Bekijk foto groot")}
+                                className="absolute inset-0 w-full h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                              >
+                                <img
+                                  src={p.filePath}
+                                  alt="Meting foto"
+                                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                />
+                              </button>
                               <button 
                                 onClick={() => handleDeletePhoto(p.photoId)}
                                 className="absolute top-0.5 right-0.5 size-4 rounded bg-destructive/90 flex items-center justify-center text-white opacity-0 group-hover/photo:opacity-100 transition-opacity cursor-pointer"
