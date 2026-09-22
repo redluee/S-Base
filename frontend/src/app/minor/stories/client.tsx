@@ -1156,8 +1156,18 @@ function StoryCard({
   return (
     <div
       onClick={onView}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onView();
+        }
+      }}
+      aria-label={story.title}
       style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-      className={`p-4 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 transition-all space-y-3 sm:space-y-4 cursor-pointer group`}
+      className={`p-4 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 transition-all space-y-3 sm:space-y-4 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand`}
     >
       {/* Top Row: Type Badge, Story Number, Sprint Tag, Status Select & Story Title */}
       <div className="space-y-2">
