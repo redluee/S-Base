@@ -459,13 +459,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Offline Mode</Label>
+                      <Label htmlFor="prop-online-mode" className="text-zinc-200 cursor-pointer">Offline Mode</Label>
                       {renderStatusBadge("online-mode")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow cracked / unauthenticated clients (online-mode=false)</p>
                     <p className="text-[10px] text-zinc-500 font-mono">online-mode={props["online-mode"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-online-mode"
                     checked={props["online-mode"] === "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("online-mode", v ? "false" : "true")}
@@ -477,13 +478,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Whitelist</Label>
+                      <Label htmlFor="prop-white-list" className="text-zinc-200 cursor-pointer">Whitelist</Label>
                       {renderStatusBadge("white-list")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Restrict server access to whitelisted players</p>
                     <p className="text-[10px] text-zinc-500 font-mono">white-list={props["white-list"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-white-list"
                     checked={props["white-list"] === "true"}
                     onCheckedChange={(v) => handleToggle("white-list", v ? "true" : "false")}
                   />
@@ -494,13 +496,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Enforce Whitelist</Label>
+                      <Label htmlFor="prop-enforce-whitelist" className="text-zinc-200 cursor-pointer">Enforce Whitelist</Label>
                       {renderStatusBadge("enforce-whitelist")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Kick non-whitelisted players when whitelist is reloaded</p>
                     <p className="text-[10px] text-zinc-500 font-mono">enforce-whitelist={props["enforce-whitelist"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-enforce-whitelist"
                     checked={props["enforce-whitelist"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("enforce-whitelist", v ? "true" : "false")}
@@ -512,13 +515,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Hide Online Players</Label>
+                      <Label htmlFor="prop-hide-online-players" className="text-zinc-200 cursor-pointer">Hide Online Players</Label>
                       {renderStatusBadge("hide-online-players")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Do not display player names in server list status</p>
                     <p className="text-[10px] text-zinc-500 font-mono">hide-online-players={props["hide-online-players"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-hide-online-players"
                     checked={props["hide-online-players"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("hide-online-players", v ? "true" : "false")}
@@ -590,13 +594,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Hardcore Mode</Label>
+                      <Label htmlFor="prop-hardcore" className="text-zinc-200 cursor-pointer">Hardcore Mode</Label>
                       {renderStatusBadge("hardcore")}
                     </div>
                     <p className="text-[11px] text-zinc-400">One life only; players cannot respawn in survival</p>
                     <p className="text-[10px] text-zinc-500 font-mono">hardcore={props["hardcore"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-hardcore"
                     checked={props["hardcore"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("hardcore", v ? "true" : "false")}
@@ -608,13 +613,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">PvP Combat</Label>
+                      <Label htmlFor="prop-pvp" className="text-zinc-200 cursor-pointer">PvP Combat</Label>
                       {renderStatusBadge("pvp")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Enable player vs player combat</p>
                     <p className="text-[10px] text-zinc-500 font-mono">pvp={props["pvp"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-pvp"
                     checked={props["pvp"] !== "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("pvp", v ? "true" : "false")}
@@ -626,13 +632,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Allow Flight</Label>
+                      <Label htmlFor="prop-allow-flight" className="text-zinc-200 cursor-pointer">Allow Flight</Label>
                       {renderStatusBadge("allow-flight")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow players to fly in survival mode if enabled by mods/abilities</p>
                     <p className="text-[10px] text-zinc-500 font-mono">allow-flight={props["allow-flight"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-allow-flight"
                     checked={props["allow-flight"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("allow-flight", v ? "true" : "false")}
@@ -644,13 +651,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Enable Command Blocks</Label>
+                      <Label htmlFor="prop-enable-command-block" className="text-zinc-200 cursor-pointer">Enable Command Blocks</Label>
                       {renderStatusBadge("enable-command-block")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow execution of command blocks</p>
                     <p className="text-[10px] text-zinc-500 font-mono">enable-command-block={props["enable-command-block"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-enable-command-block"
                     checked={props["enable-command-block"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("enable-command-block", v ? "true" : "false")}
@@ -662,13 +670,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Force Gamemode</Label>
+                      <Label htmlFor="prop-force-gamemode" className="text-zinc-200 cursor-pointer">Force Gamemode</Label>
                       {renderStatusBadge("force-gamemode")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Force players to join in the default game mode</p>
                     <p className="text-[10px] text-zinc-500 font-mono">force-gamemode={props["force-gamemode"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-force-gamemode"
                     checked={props["force-gamemode"] === "true"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("force-gamemode", v ? "true" : "false")}
@@ -680,13 +689,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Fire Tick</Label>
+                      <Label htmlFor="prop-do-fire-tick" className="text-zinc-200 cursor-pointer">Fire Tick</Label>
                       {renderStatusBadge("do-fire-tick")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow fire to spread and naturally extinguish (gamerule doFireTick)</p>
                     <p className="text-[10px] text-zinc-500 font-mono">do-fire-tick={(props["do-fire-tick"] ?? props["doFireTick"]) !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-do-fire-tick"
                     checked={(props["do-fire-tick"] ?? props["doFireTick"]) !== "false"}
                     onCheckedChange={(v) => handleToggle("do-fire-tick", v ? "true" : "false")}
                   />
@@ -791,13 +801,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Generate Structures</Label>
+                      <Label htmlFor="prop-generate-structures" className="text-zinc-200 cursor-pointer">Generate Structures</Label>
                       {renderStatusBadge("generate-structures")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Generate structures (villages, dungeons, temples, etc.)</p>
                     <p className="text-[10px] text-zinc-500 font-mono">generate-structures={props["generate-structures"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-generate-structures"
                     checked={props["generate-structures"] !== "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("generate-structures", v ? "true" : "false")}
@@ -809,13 +820,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Allow Nether</Label>
+                      <Label htmlFor="prop-allow-nether" className="text-zinc-200 cursor-pointer">Allow Nether</Label>
                       {renderStatusBadge("allow-nether")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Enable portals and the Nether dimension</p>
                     <p className="text-[10px] text-zinc-500 font-mono">allow-nether={props["allow-nether"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-allow-nether"
                     checked={props["allow-nether"] !== "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("allow-nether", v ? "true" : "false")}
@@ -827,13 +839,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Spawn Monsters</Label>
+                      <Label htmlFor="prop-spawn-monsters" className="text-zinc-200 cursor-pointer">Spawn Monsters</Label>
                       {renderStatusBadge("spawn-monsters")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow hostile monsters to spawn naturally</p>
                     <p className="text-[10px] text-zinc-500 font-mono">spawn-monsters={props["spawn-monsters"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-spawn-monsters"
                     checked={props["spawn-monsters"] !== "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("spawn-monsters", v ? "true" : "false")}
@@ -845,13 +858,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Spawn Animals</Label>
+                      <Label htmlFor="prop-spawn-animals" className="text-zinc-200 cursor-pointer">Spawn Animals</Label>
                       {renderStatusBadge("spawn-animals")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow passive animals to spawn naturally</p>
                     <p className="text-[10px] text-zinc-500 font-mono">spawn-animals={props["spawn-animals"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-spawn-animals"
                     checked={props["spawn-animals"] !== "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("spawn-animals", v ? "true" : "false")}
@@ -863,13 +877,14 @@ export default function PropertiesPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-200 cursor-pointer">Spawn NPCs (Villagers)</Label>
+                      <Label htmlFor="prop-spawn-npcs" className="text-zinc-200 cursor-pointer">Spawn NPCs (Villagers)</Label>
                       {renderStatusBadge("spawn-npcs")}
                     </div>
                     <p className="text-[11px] text-zinc-400">Allow NPC villagers to spawn in villages</p>
                     <p className="text-[10px] text-zinc-500 font-mono">spawn-npcs={props["spawn-npcs"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
+                    id="prop-spawn-npcs"
                     checked={props["spawn-npcs"] !== "false"}
                     disabled={isRunning}
                     onCheckedChange={(v) => handleToggle("spawn-npcs", v ? "true" : "false")}

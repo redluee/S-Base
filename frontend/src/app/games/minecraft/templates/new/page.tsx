@@ -371,18 +371,18 @@ export default function NewTemplatePage() {
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Offline mode")}</Label>
+                    <Label htmlFor="template-offline-mode" className="cursor-pointer">{t("Offline mode")}</Label>
                     <p className="text-xs text-zinc-500">{t("Allow cracked clients")}</p>
                   </div>
-                  <Switch checked={!onlineMode} onCheckedChange={(v) => setOnlineMode(!v)} />
+                  <Switch id="template-offline-mode" checked={!onlineMode} onCheckedChange={(v) => setOnlineMode(!v)} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Whitelist")}</Label>
+                    <Label htmlFor="template-whitelist" className="cursor-pointer">{t("Whitelist")}</Label>
                     <p className="text-xs text-zinc-500">{t("Whitelist")}</p>
                   </div>
-                  <Switch checked={whiteList} onCheckedChange={setWhiteList} />
+                  <Switch id="template-whitelist" checked={whiteList} onCheckedChange={setWhiteList} />
                 </div>
               </div>
             )}
@@ -419,42 +419,42 @@ export default function NewTemplatePage() {
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("PvP Combat")}</Label>
+                    <Label htmlFor="template-pvp" className="cursor-pointer">{t("PvP Combat")}</Label>
                     <p className="text-xs text-zinc-500">{t("PvP Combat")}</p>
                   </div>
-                  <Switch checked={pvp} onCheckedChange={setPvp} />
+                  <Switch id="template-pvp" checked={pvp} onCheckedChange={setPvp} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Hardcore Mode")}</Label>
+                    <Label htmlFor="template-hardcore" className="cursor-pointer">{t("Hardcore Mode")}</Label>
                     <p className="text-xs text-zinc-500">{t("One life only, players cannot respawn in survival")}</p>
                   </div>
-                  <Switch checked={hardcore} onCheckedChange={setHardcore} />
+                  <Switch id="template-hardcore" checked={hardcore} onCheckedChange={setHardcore} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Allow Flight")}</Label>
+                    <Label htmlFor="template-allow-flight" className="cursor-pointer">{t("Allow Flight")}</Label>
                     <p className="text-xs text-zinc-500">{t("Allow Flight")}</p>
                   </div>
-                  <Switch checked={allowFlight} onCheckedChange={setAllowFlight} />
+                  <Switch id="template-allow-flight" checked={allowFlight} onCheckedChange={setAllowFlight} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Enable Command Blocks")}</Label>
+                    <Label htmlFor="template-command-blocks" className="cursor-pointer">{t("Enable Command Blocks")}</Label>
                     <p className="text-xs text-zinc-500">{t("Enable Command Blocks")}</p>
                   </div>
-                  <Switch checked={enableCommandBlock} onCheckedChange={setEnableCommandBlock} />
+                  <Switch id="template-command-blocks" checked={enableCommandBlock} onCheckedChange={setEnableCommandBlock} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Fire tick")}</Label>
+                    <Label htmlFor="template-fire-tick" className="cursor-pointer">{t("Fire tick")}</Label>
                     <p className="text-xs text-zinc-500">Vuur verspreidt zich en dooft uit (doFireTick)</p>
                   </div>
-                  <Switch checked={doFireTick} onCheckedChange={setDoFireTick} />
+                  <Switch id="template-fire-tick" checked={doFireTick} onCheckedChange={setDoFireTick} />
                 </div>
               </div>
             )}
@@ -486,34 +486,34 @@ export default function NewTemplatePage() {
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Generate Structures")}</Label>
+                    <Label htmlFor="template-generate-structures" className="cursor-pointer">{t("Generate Structures")}</Label>
                     <p className="text-xs text-zinc-500">{t("Generate Structures")}</p>
                   </div>
-                  <Switch checked={generateStructures} onCheckedChange={setGenerateStructures} />
+                  <Switch id="template-generate-structures" checked={generateStructures} onCheckedChange={setGenerateStructures} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Allow Nether")}</Label>
+                    <Label htmlFor="template-allow-nether" className="cursor-pointer">{t("Allow Nether")}</Label>
                     <p className="text-xs text-zinc-500">{t("Allow Nether")}</p>
                   </div>
-                  <Switch checked={allowNether} onCheckedChange={setAllowNether} />
+                  <Switch id="template-allow-nether" checked={allowNether} onCheckedChange={setAllowNether} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Spawn Monsters")}</Label>
+                    <Label htmlFor="template-spawn-monsters" className="cursor-pointer">{t("Spawn Monsters")}</Label>
                     <p className="text-xs text-zinc-500">{t("Spawn Monsters")}</p>
                   </div>
-                  <Switch checked={spawnMonsters} onCheckedChange={setSpawnMonsters} />
+                  <Switch id="template-spawn-monsters" checked={spawnMonsters} onCheckedChange={setSpawnMonsters} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label className="cursor-pointer">{t("Spawn Animals")}</Label>
+                    <Label htmlFor="template-spawn-animals" className="cursor-pointer">{t("Spawn Animals")}</Label>
                     <p className="text-xs text-zinc-500">{t("Spawn Animals")}</p>
                   </div>
-                  <Switch checked={spawnAnimals} onCheckedChange={setSpawnAnimals} />
+                  <Switch id="template-spawn-animals" checked={spawnAnimals} onCheckedChange={setSpawnAnimals} />
                 </div>
               </div>
             )}
