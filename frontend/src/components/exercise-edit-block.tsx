@@ -422,11 +422,12 @@ export function ExerciseEditBlock({
 
         {/* Per Side Switch */}
         <div className="grid gap-1.5 shrink-0 min-w-[80px] justify-center sm:justify-start">
-          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground text-center sm:text-left">
+          <Label htmlFor={`per-side-toggle-${exId}`} className="text-[11px] uppercase tracking-wider text-muted-foreground text-center sm:text-left">
             {t("Per Side")}
           </Label>
           <div className="flex items-center h-10 pt-1">
             <Switch
+              id={`per-side-toggle-${exId}`}
               checked={ex.perSide}
               onCheckedChange={(val) => onChange({ perSide: val })}
             />
