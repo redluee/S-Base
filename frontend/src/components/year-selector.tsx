@@ -88,7 +88,7 @@ export function YearSelector({
           onChange={(e) => setInputValue(e.target.value)}
           onBlur={commitValue}
           onKeyDown={handleKeyDown}
-          className="w-14 h-6 text-center bg-zinc-800 text-white font-semibold text-sm rounded border border-blue-500/50 outline-none leading-none px-0 box-border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-14 h-6 text-center bg-zinc-800 text-white font-semibold text-sm rounded border border-blue-500/50 outline-none focus-visible:ring-2 focus-visible:ring-brand leading-none px-0 box-border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       ) : (
         <button

@@ -240,7 +240,7 @@ export function SearchBar() {
             if (suggestions.length > 0) setOpen(true);
           }}
           placeholder={isWorkouts ? t("Search workouts…") : t("Search recipes…")}
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-brand rounded min-w-0"
         />
       </div>
       {open &&

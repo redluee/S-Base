@@ -313,7 +313,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                 role="switch"
                 aria-checked={enabled}
                 onClick={() => setEnabled((prev) => !prev)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                   enabled ? "bg-brand" : "bg-zinc-800"
                 }`}
                 title={enabled ? t("Dia ingeschakeld in presentatie") : t("Dia uitgeschakeld")}

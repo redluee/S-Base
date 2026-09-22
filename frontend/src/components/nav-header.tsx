@@ -149,7 +149,7 @@ export function NavHeader({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 p-1 px-2.5 rounded-full bg-zinc-900 border border-border hover:border-brand/30 hover:bg-zinc-800 transition-all duration-150 focus:outline-none cursor-pointer"
+              className="flex items-center gap-1.5 p-1 px-2.5 rounded-full bg-zinc-900 border border-border hover:border-brand/30 hover:bg-zinc-800 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand cursor-pointer"
             >
               <div
                 className={`size-6 rounded-full flex items-center justify-center border ${

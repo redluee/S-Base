@@ -753,7 +753,7 @@ export default function BodyPage() {
                                       value={formWaist}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormWaist(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -766,7 +766,7 @@ export default function BodyPage() {
                                       value={formChest}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormChest(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -779,7 +779,7 @@ export default function BodyPage() {
                                       value={formHips}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormHips(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -792,7 +792,7 @@ export default function BodyPage() {
                                       value={formBiceps}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormBiceps(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -805,7 +805,7 @@ export default function BodyPage() {
                                       value={formThighs}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormThighs(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -818,7 +818,7 @@ export default function BodyPage() {
                                       value={formShoulders}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormShoulders(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -831,7 +831,7 @@ export default function BodyPage() {
                                       value={formNeck}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormNeck(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                   <div className="bg-background border border-border/60 rounded-md p-2">
@@ -844,7 +844,7 @@ export default function BodyPage() {
                                       value={formCalves}
                                       onKeyDown={preventInvalidInput}
                                       onChange={(e) => setFormCalves(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none"
+                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
                                     />
                                   </div>
                                 </div>

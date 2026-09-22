@@ -1638,7 +1638,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                               )
                             );
                           }}
-                          className={`bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer ${
+                          className={`bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand cursor-pointer ${
                             assessItem?.assessment === "V"
                               ? "border-emerald-500/40 text-emerald-400"
                               : assessItem?.assessment === "O"
@@ -2615,7 +2615,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                               prev.map((item, i) => (i === idx ? { ...item, type: val } : item))
                             );
                           }}
-                          className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
+                          className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-brand"
                         >
                           <option value="github">GitHub</option>
                           <option value="document">Document</option>
@@ -2641,7 +2641,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             prev.map((item, i) => (i === idx ? { ...item, title: val } : item))
                           );
                         }}
-                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none"
+                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-brand"
                       />
                       <input
                         type="text"
@@ -2653,7 +2653,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             prev.map((item, i) => (i === idx ? { ...item, url: val } : item))
                           );
                         }}
-                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none font-mono"
+                        className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-brand font-mono"
                       />
                       <div className="hidden sm:flex justify-end">
                         <button

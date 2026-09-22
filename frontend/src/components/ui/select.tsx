@@ -120,7 +120,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-pointer items-center rounded-lg px-2.5 py-2 text-sm text-zinc-200 outline-none select-none transition-colors",
+        "relative flex w-full cursor-pointer items-center rounded-lg px-2.5 py-2 text-sm text-zinc-200 outline-none select-none transition-colors focus-visible:ring-2 focus-visible:ring-brand",
         "data-[highlighted]:bg-zinc-800 data-[highlighted]:text-zinc-100",
         "data-[selected]:bg-brand/20 data-[selected]:text-brand data-[selected]:font-bold data-[selected]:border data-[selected]:border-brand/30",
         "data-[checked]:bg-brand/20 data-[checked]:text-brand data-[checked]:font-bold data-[checked]:border data-[checked]:border-brand/30",
