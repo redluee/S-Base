@@ -36,7 +36,7 @@ function TradeNameForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-      <h3 className="text-sm font-semibold text-white">{initial?.id ? t("Handelsnaam bewerken") : t("Handelsnaam aanmaken")}</h3>
+      <h2 className="text-sm font-semibold text-white">{initial?.id ? t("Handelsnaam bewerken") : t("Handelsnaam aanmaken")}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5 sm:col-span-2">
           <Label className="text-xs text-zinc-400">{t("Handelsnaam")}</Label>
