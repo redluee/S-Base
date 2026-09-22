@@ -241,9 +241,11 @@ function ClientForm({
               </div>
             </div>
           ) : (
-            <div
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="group flex flex-col items-center justify-center p-4 border border-dashed border-zinc-700 hover:border-blue-500/60 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/70 transition-all cursor-pointer text-center"
+              disabled={uploadingContract}
+              className="group flex flex-col items-center justify-center w-full p-4 border border-dashed border-zinc-700 hover:border-blue-500/60 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/70 transition-all cursor-pointer text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               {uploadingContract ? (
                 <div className="flex items-center gap-2 text-xs text-blue-400">
@@ -261,7 +263,7 @@ function ClientForm({
                   </p>
                 </div>
               )}
-            </div>
+            </button>
           )}
 
           <input
