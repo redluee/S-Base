@@ -50,6 +50,7 @@ import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-ty
 import { getLUShortDesc } from "@/lib/minor-constants";
 import { SprintPresentation } from "@/components/minor-presentation/sprint-presentation";
 import { PresentationStoryEditor } from "@/components/minor-presentation/presentation-story-editor";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorSprintDetailClientProps {
   initialSprint: MinorSprintFull;
@@ -1891,7 +1892,12 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {/* Story View Modal */}
       {viewingStory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setViewingStoryId(null)}
+          label={viewingStory.storyNumber ? `${t("Story")} ${viewingStory.storyNumber}` : t("Story details")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2181,12 +2187,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Story Create / Edit Modal */}
       {isStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsStoryModalOpen(false)}
+          label={editingStory ? t("Story Bewerken") : t("Nieuwe Story Aanmaken")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
@@ -2717,12 +2728,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Story Import Modal */}
       {isImportStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsImportStoryModalOpen(false)}
+          label={t("Story Importeren (JSON)")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -2795,12 +2811,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Link Concept Story Modal */}
       {isLinkStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsLinkStoryModalOpen(false)}
+          label={t("Concept Story Koppelen")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-2xl w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -2941,12 +2962,17 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Story Unlink / Move Modal */}
       {isUnlinkModalOpen && storyToUnlink && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsUnlinkModalOpen(false)}
+          label={t("Story loskoppelen")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
@@ -3025,12 +3051,16 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Pre-export Validation Warning Dialog Modal */}
       {pendingExportType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <ModalOverlay
+          open
+          onClose={() => setPendingExportType(null)}
+          label={t("Controleer sprint voor export")}
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
             <div className="flex items-center gap-2.5 text-amber-400 font-bold">
               <AlertTriangle className="size-5 shrink-0" />
@@ -3080,7 +3110,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Presentation Fullscreen Mode */}

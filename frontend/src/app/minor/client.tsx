@@ -22,6 +22,7 @@ import {
 import { t } from "@/lib/lang";
 import { api, type MinorDashboardStats, type MinorSprint } from "@/lib/api";
 import { getLUShortDesc } from "@/lib/minor-constants";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 const TOTAL_REQUIRED_LUS = 24;
 
@@ -618,7 +619,11 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
 
       {/* Modal: Quick Add Peer Help */}
       {isPeerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <ModalOverlay
+          open
+          onClose={() => setIsPeerModalOpen(false)}
+          label={t("Kennisdeling Registreren")}
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -701,12 +706,17 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Create Sprint Modal */}
       {isSprintModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsSprintModalOpen(false)}
+          label={t("Nieuwe Sprint Aanmaken")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -839,7 +849,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );

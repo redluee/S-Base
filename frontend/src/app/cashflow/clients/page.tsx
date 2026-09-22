@@ -7,6 +7,7 @@ import type { CashflowClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import {
   Users,
   Plus,
@@ -36,7 +37,13 @@ function ClientContractModal({
   if (!client.contractPdfPath) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <ModalOverlay
+      open
+      onClose={onClose}
+      label={`${client.name} — ${t("Contract details")}`}
+      className="p-3 sm:p-6"
+      backdropClassName="bg-black/80"
+    >
       <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-800 bg-zinc-900/90">
@@ -89,7 +96,7 @@ function ClientContractModal({
           />
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

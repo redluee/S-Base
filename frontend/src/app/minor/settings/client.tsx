@@ -5,6 +5,7 @@ import { Calendar, Plus, Trash2, Edit2, Tag, CornerDownRight, CheckSquare, X } f
 import { t } from "@/lib/lang";
 import { api, type MinorVacation, type MinorStoryType } from "@/lib/api";
 import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorSettingsClientProps {
   initialVacations: MinorVacation[];
@@ -414,7 +415,12 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
 
       {/* Vacation Modal */}
       {isVacModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsVacModalOpen(false)}
+          label={editingVac ? t("Vakantie bewerken") : t("Vakantie toevoegen")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -499,12 +505,17 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Story Type Modal (Create & Edit) */}
       {isTypeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsTypeModalOpen(false)}
+          label={editingType ? t("Story Type bewerken") : t("Story Type toevoegen")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -692,7 +703,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );

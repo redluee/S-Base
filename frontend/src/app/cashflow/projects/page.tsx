@@ -6,6 +6,7 @@ import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowProject, CashflowClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { FolderOpen, Plus, Pencil, Trash2, FileText, Euro, AlertTriangle, X } from "lucide-react";
 
 function formatEuro(amount: number) {
@@ -132,7 +133,12 @@ export default function ProjectsPage() {
 
       {/* Delete Project Modal */}
       {deleteModalProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <ModalOverlay
+          open
+          onClose={() => setDeleteModalProject(null)}
+          label={`${t("Project verwijderen")} — ${deleteModalProject.name}`}
+          backdropClassName="bg-black/70"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 max-w-md w-full space-y-4 shadow-xl">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5">
@@ -212,7 +218,7 @@ export default function ProjectsPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );

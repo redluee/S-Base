@@ -16,6 +16,7 @@ import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
 import { downloadAllSprintsPDF } from "@/components/minor-pdf";
 import { downloadAllSprintsExcel, validateSprintForExport } from "@/lib/minor-excel";
 import { downloadMultipleSprintsJson } from "@/lib/minor-sprint-export";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorExportClientProps {
   initialSprints: MinorSprint[];
@@ -287,7 +288,14 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
 
       {/* Pre-export Validation Warning Modal */}
       {exportIssues.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <ModalOverlay
+          open
+          onClose={() => {
+            setExportIssues([]);
+            setPendingExcelSprints(null);
+          }}
+          label={t("Aandachtspunten voor Excel export")}
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
             <div className="flex items-center gap-2.5 text-amber-400 font-bold shrink-0">
               <AlertTriangle className="size-5 shrink-0" />
@@ -337,7 +345,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );

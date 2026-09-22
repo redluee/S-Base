@@ -27,6 +27,7 @@ import {
 } from "@/lib/api";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { getLUShortDesc } from "@/lib/minor-constants";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorStoriesClientProps {
   initialStories: MinorStoryWithSprint[];
@@ -589,14 +590,13 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
 
       {/* Story View Modal */}
       {viewingStory && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto"
-          onClick={() => setViewingStoryId(null)}
+        <ModalOverlay
+          open
+          onClose={() => setViewingStoryId(null)}
+          label={viewingStory.storyNumber ? `${t("Story")} ${viewingStory.storyNumber}` : t("Story details")}
+          className="p-3 sm:p-4 overflow-y-auto"
         >
-          <div
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -892,12 +892,17 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Create Story Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsCreateModalOpen(false)}
+          label={t("Nieuwe Story Aanmaken")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
@@ -1116,7 +1121,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );

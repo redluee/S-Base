@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { X, GitMerge, AlertCircle, Check } from "lucide-react";
 
 interface ExerciseMergeModalProps {
@@ -97,7 +98,7 @@ export function ExerciseMergeModal({
   const otherExercises = exercises.filter((ex) => ex.name !== sourceName);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <ModalOverlay open={isOpen} onClose={onClose} label={`${t("Merge Exercise")} — ${sourceName}`}>
       <div className="relative w-full max-w-md bg-card rounded-2xl ring-1 ring-foreground/10 shadow-2xl p-6 overflow-hidden">
         <button
           type="button"
@@ -211,6 +212,6 @@ export function ExerciseMergeModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

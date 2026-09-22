@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import {
   X,
   CheckSquare,
@@ -12,6 +12,7 @@ import {
 import { t } from "@/lib/lang";
 import { api, type MinorStory, type MinorStoryType } from "@/lib/api";
 import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface PresentationCriteriaModalProps {
   story: MinorStory;
@@ -48,19 +49,6 @@ export function PresentationCriteriaModal({
   const completedAcceptanceCount = acceptanceCriteria.filter((c) => c.isCompleted).length;
   const completedQualityCount = qualityCriteria.filter((c) => c.isCompleted).length;
 
-  // ESC key handler
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onClose]);
-
   // Toggle criterion completion status
   async function handleToggleCriterion(critId: number, currentStatus: boolean) {
     try {
@@ -80,13 +68,15 @@ export function PresentationCriteriaModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
-      onClick={onClose}
+    <ModalOverlay
+      open
+      onClose={onClose}
+      label={story.title}
+      className="z-[120]"
+      backdropClassName="z-[120] bg-black/85"
     >
       <div
         className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-7 max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl space-y-5"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
@@ -307,6 +297,6 @@ export function PresentationCriteriaModal({
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

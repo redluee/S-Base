@@ -22,6 +22,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 import { compressImage } from "@/lib/image";
 
@@ -1105,9 +1106,14 @@ export default function BodyPage() {
 
       {/* Lightbox photo viewer */}
       {activePhotoUrl && (
-        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
-          <button 
-            onClick={() => setActivePhotoUrl(null)} 
+        <ModalOverlay
+          open
+          onClose={() => setActivePhotoUrl(null)}
+          label={t("Meting groot scherm")}
+          backdropClassName="bg-background/90 backdrop-blur-md"
+        >
+          <button
+            onClick={() => setActivePhotoUrl(null)}
             className="absolute top-6 right-6 size-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer"
           >
             <X className="size-5" />
@@ -1115,7 +1121,7 @@ export default function BodyPage() {
           <div className="max-w-4xl max-h-[85vh] overflow-hidden rounded-xl border border-border bg-card">
             <img src={activePhotoUrl} alt="Meting groot scherm" className="max-w-full max-h-[85vh] object-contain mx-auto" />
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
     </div>

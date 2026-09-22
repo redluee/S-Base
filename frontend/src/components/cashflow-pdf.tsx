@@ -5,6 +5,7 @@ import { Download, AlertTriangle, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 export function getInvoiceValidationWarnings(invoice: CashflowInvoiceFull): string[] {
   const warnings: string[] = [];
@@ -111,7 +112,12 @@ export function CashflowPDFButton({ invoice: initialInvoice, invoiceId, iconOnly
   }, [initialInvoice, invoiceId, startDownload]);
 
   const modal = showWarningModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs" onClick={e => e.stopPropagation()}>
+    <ModalOverlay
+      open
+      onClose={() => setShowWarningModal(false)}
+      label={t("Waarschuwing bij PDF downloaden")}
+      backdropClassName="bg-black/70"
+    >
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 max-w-md w-full space-y-4 shadow-xl text-left">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-amber-400">
@@ -151,7 +157,7 @@ export function CashflowPDFButton({ invoice: initialInvoice, invoiceId, iconOnly
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 
   if (iconOnly) {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, ZoomIn, ZoomOut, RotateCcw, ExternalLink } from "lucide-react";
 import { t } from "@/lib/lang";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface PresentationLightboxProps {
   image: { url: string; caption?: string } | null;
@@ -11,17 +12,6 @@ interface PresentationLightboxProps {
 
 export function PresentationLightbox({ image, onClose }: PresentationLightboxProps) {
   const [scale, setScale] = useState<number>(1);
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
 
   if (!image) return null;
 
@@ -38,14 +28,17 @@ export function PresentationLightbox({ image, onClose }: PresentationLightboxPro
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={onClose}
+    <ModalOverlay
+      open
+      onClose={onClose}
+      label={image.caption || t("Screenshot")}
+      className="z-[120]"
+      backdropClassName="z-[120] bg-black/90 backdrop-blur-md"
     >
+      <div className="relative">
       {/* Lightbox Toolbar */}
       <div
         className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-zinc-900/90 border border-white/10 rounded-xl p-1.5 shadow-xl backdrop-blur-md"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -99,7 +92,6 @@ export function PresentationLightbox({ image, onClose }: PresentationLightboxPro
       {/* Image Container */}
       <div
         className="max-w-[92vw] max-h-[86vh] flex flex-col items-center justify-center select-none"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="overflow-auto max-h-[78vh] flex items-center justify-center p-2 rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -118,6 +110,7 @@ export function PresentationLightbox({ image, onClose }: PresentationLightboxPro
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </ModalOverlay>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Play, Pause, RotateCcw, Check, X, Plus, Minus, Timer as TimerIcon, Target, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { t } from "@/lib/lang";
 import {
   triggerSetTimerCompletion,
@@ -236,7 +237,12 @@ export function RepTimerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <ModalOverlay
+      open
+      onClose={onClose}
+      label={`${exerciseName} — ${t("Set")} ${setNumber}`}
+      backdropClassName="backdrop-blur-md"
+    >
       <div className="relative w-full max-w-md bg-zinc-900/95 border border-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl flex flex-col items-center gap-4 text-zinc-100">
         
         {/* Header */}
@@ -389,6 +395,6 @@ export function RepTimerModal({
         </div>
 
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

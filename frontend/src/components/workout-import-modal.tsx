@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Download, Upload, X, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function normalizeImportedWorkout(data: any) {
@@ -172,7 +173,11 @@ export function WorkoutImportModal() {
       </Button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <ModalOverlay
+          open
+          onClose={handleClose}
+          label={t("Import Workout Sjabloon")}
+        >
           <div className="relative w-full max-w-lg bg-card rounded-2xl ring-1 ring-foreground/10 shadow-2xl p-5 sm:p-6 overflow-hidden max-h-[90vh] flex flex-col">
             <button
               type="button"
@@ -287,7 +292,7 @@ export function WorkoutImportModal() {
               </Button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </>
   );

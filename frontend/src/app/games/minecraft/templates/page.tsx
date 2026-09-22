@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 export default function TemplatesPage() {
   const router = useRouter();
@@ -132,7 +133,11 @@ export default function TemplatesPage() {
       )}
 
       {showSpeedrunModal !== null && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <ModalOverlay
+          open
+          onClose={() => setShowSpeedrunModal(null)}
+          label={t("1-Click Speedrun")}
+        >
           <form onSubmit={handleSpeedrun} className="bg-zinc-900 rounded-2xl p-6 border border-white/10 w-full max-w-md space-y-6">
             <div>
               <h2 className="text-xl font-bold flex items-center gap-2 mb-2">
@@ -157,7 +162,7 @@ export default function TemplatesPage() {
               </Button>
             </div>
           </form>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );

@@ -22,6 +22,7 @@ import { t } from "@/lib/lang";
 import { api, type MinorSprint } from "@/lib/api";
 import { MinorSprintImportModal } from "@/components/minor-sprint-import-modal";
 import { copySprintJsonToClipboard } from "@/lib/minor-sprint-export";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorSprintsClientProps {
   initialSprints: MinorSprint[];
@@ -334,7 +335,12 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
       {/* Create / Edit Sprint Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <ModalOverlay
+          open
+          onClose={() => setIsModalOpen(false)}
+          label={editingSprint ? t("Sprint Bewerken") : t("Nieuwe Sprint Aanmaken")}
+          className="p-3 sm:p-4 overflow-y-auto"
+        >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -481,7 +487,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Sprint Import Modal */}
