@@ -308,6 +308,7 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
                 size="icon"
                 onClick={() => removeStep(step.id)}
                 className="text-muted-foreground hover:text-red-400 hover:bg-red-950/50 transition-all active:scale-[0.92]"
+                aria-label={t("Sluiten")}
               >
                 <X className="size-3.5" />
               </Button>

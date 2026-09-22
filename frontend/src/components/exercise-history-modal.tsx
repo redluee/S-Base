@@ -68,6 +68,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
           <button
             onClick={onClose}
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
+            aria-label={t("Sluiten")}
           >
             <X className="size-5" />
           </button>

@@ -377,6 +377,7 @@ export default function PropertiesPage() {
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              aria-label={t("Sluiten")}
             >
               <X className="size-3.5" />
             </button>

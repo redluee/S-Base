@@ -202,6 +202,7 @@ export function ExerciseEditBlock({
               onClick={onRemove}
               className="p-2 text-muted-foreground hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors shrink-0"
               title={t("Remove")}
+              aria-label={t("Sluiten")}
             >
               <X className="size-5" />
             </button>

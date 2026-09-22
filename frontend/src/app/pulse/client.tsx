@@ -534,6 +534,7 @@ export function PulseClient({
                                 variant="ghost"
                                 onClick={() => setEditingEmailUserId(null)}
                                 className="h-7 px-2 text-zinc-400 hover:text-white rounded-lg"
+                                aria-label={t("Sluiten")}
                               >
                                 <X className="size-3.5" />
                               </Button>

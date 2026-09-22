@@ -272,6 +272,7 @@ export function RepTimerModal({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+              aria-label={t("Sluiten")}
             >
               <X className="size-5" />
             </button>

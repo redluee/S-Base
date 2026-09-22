@@ -104,6 +104,7 @@ export function ExerciseMergeModal({
           type="button"
           onClick={onClose}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 rounded-lg transition-colors cursor-pointer"
+          aria-label={t("Sluiten")}
         >
           <X className="size-5" />
         </button>

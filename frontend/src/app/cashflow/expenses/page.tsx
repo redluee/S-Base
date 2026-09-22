@@ -106,6 +106,7 @@ function ExpenseReceiptModal({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+              aria-label={t("Sluiten")}
             >
               <X className="size-5" />
             </button>

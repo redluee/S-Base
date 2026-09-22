@@ -168,6 +168,7 @@ export function ExerciseList({
               type="button"
               onClick={() => setQ("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              aria-label={t("Sluiten")}
             >
               <X className="size-4" />
             </button>

@@ -638,6 +638,7 @@ export function DashboardClient({
             <button
               onClick={() => setIsSettingsOpen(false)}
               className="p-1 squircle-action text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              aria-label={t("Sluiten")}
             >
               <X className="size-4" />
             </button>

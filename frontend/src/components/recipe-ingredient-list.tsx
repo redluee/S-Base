@@ -350,6 +350,7 @@ export function RecipeIngredientList({
                 size="icon"
                 onClick={() => removeIngredient(ing.id)}
                 className="sm:hidden h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/50 transition-all active:scale-[0.92] shrink-0"
+                aria-label={t("Sluiten")}
               >
                 <X className="size-3.5" />
               </Button>

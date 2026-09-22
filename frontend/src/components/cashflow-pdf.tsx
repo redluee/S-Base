@@ -127,6 +127,7 @@ export function CashflowPDFButton({ invoice: initialInvoice, invoiceId, iconOnly
           <button
             onClick={() => setShowWarningModal(false)}
             className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+            aria-label={t("Sluiten")}
           >
             <X className="size-4" />
           </button>
