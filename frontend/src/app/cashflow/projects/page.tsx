@@ -64,11 +64,12 @@ export default function ProjectsPage() {
           <h1 className="text-xl font-bold text-white flex items-center gap-2"><FolderOpen className="size-5 text-blue-400" />{t("Projecten")}</h1>
           <p className="text-xs text-zinc-400 mt-0.5">{filtered.length} project{filtered.length !== 1 ? "en" : ""}</p>
         </div>
-        <Link href="/cashflow/projects/new">
-          <Button className="bg-blue-500 hover:bg-blue-400 text-white text-xs px-3 py-1.5">
-            <Plus className="size-3.5 mr-1" />{t("Nieuw project")}
-          </Button>
-        </Link>
+        <Button
+          render={<Link href="/cashflow/projects/new" />}
+          className="bg-blue-500 hover:bg-blue-400 text-white text-xs px-3 py-1.5"
+        >
+          <Plus className="size-3.5 mr-1" />{t("Nieuw project")}
+        </Button>
       </div>
 
       {/* Filters */}

@@ -74,11 +74,14 @@ export default async function WorkoutHistoryPage({
               {q ? t('No sessions found for "{q}".', { q }) : t("No completed sessions yet.")}
             </p>
             {q && (
-              <Link href="/workouts/history">
-                <Button size="sm" variant="outline" className="cursor-pointer">
-                  {t("Clear search")}
-                </Button>
-              </Link>
+              <Button
+                render={<Link href="/workouts/history" />}
+                size="sm"
+                variant="outline"
+                className="cursor-pointer"
+              >
+                {t("Clear search")}
+              </Button>
             )}
           </div>
         ) : (

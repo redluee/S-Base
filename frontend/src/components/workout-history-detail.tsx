@@ -177,16 +177,15 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
               {copied ? t("Copied!") : t("Export")}
             </span>
           </Button>
-          <Link href={`/workouts/session/${session.sessionId}`}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-brand/40 text-brand hover:bg-brand/10 hover:text-brand"
-            >
-              <Pencil className="size-4 mr-1.5" />
-              {t("Edit")}
-            </Button>
-          </Link>
+          <Button
+            render={<Link href={`/workouts/session/${session.sessionId}`} />}
+            variant="outline"
+            size="sm"
+            className="border-brand/40 text-brand hover:bg-brand/10 hover:text-brand"
+          >
+            <Pencil className="size-4 mr-1.5" />
+            {t("Edit")}
+          </Button>
           <Button
             variant="outline"
             size="sm"

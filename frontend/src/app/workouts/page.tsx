@@ -149,25 +149,28 @@ export default async function WorkoutsPage() {
             <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
             <div className="flex items-center gap-2">
               <WorkoutImportModal />
-              <Link href="/workouts/new">
-                <Button size="sm" className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium">
-                  <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  {t("New Template")}
-                </Button>
-              </Link>
+              <Button
+                render={<Link href="/workouts/new" />}
+                size="sm"
+                className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium"
+              >
+                <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                {t("New Template")}
+              </Button>
             </div>
           </div>
 
           {templates.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl bg-card border border-white/5 p-6">
               <p className="text-sm text-muted-foreground mb-4">{t("No templates yet.")}</p>
-              <Link href="/workouts/new">
-                <Button className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm">
-                  {t("Create your first template")}
-                </Button>
-              </Link>
+              <Button
+                render={<Link href="/workouts/new" />}
+                className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm"
+              >
+                {t("Create your first template")}
+              </Button>
             </div>
           ) : (
             templates.map((template: any) => (

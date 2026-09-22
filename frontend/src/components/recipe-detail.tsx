@@ -113,11 +113,13 @@ export function RecipeDetail({ recipe }: { recipe: FullRecipe }) {
 					</div>
 				</div>
 				<div className="flex gap-2 shrink-0">
-					<Link href={`/recipes/${recipe.recipeId}/edit`}>
-						<Button variant="outline" size="sm">
-							{t("Edit")}
-						</Button>
-					</Link>
+					<Button
+						render={<Link href={`/recipes/${recipe.recipeId}/edit`} />}
+						variant="outline"
+						size="sm"
+					>
+						{t("Edit")}
+					</Button>
 				<AlertDialogRoot open={open} onOpenChange={setOpen}>
 					<AlertDialogTrigger
 						render={

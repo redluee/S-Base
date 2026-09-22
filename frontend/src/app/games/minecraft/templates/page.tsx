@@ -79,12 +79,13 @@ export default function TemplatesPage() {
           </h1>
         </div>
 
-        <Link href="/games/minecraft/templates/new">
-          <Button className="bg-brand text-zinc-950 font-bold hover:bg-brand/90 flex items-center gap-2">
-            <Plus className="size-4" />
-            {t("New Template")}
-          </Button>
-        </Link>
+        <Button
+          render={<Link href="/games/minecraft/templates/new" />}
+          className="bg-brand text-zinc-950 font-bold hover:bg-brand/90 flex items-center gap-2"
+        >
+          <Plus className="size-4" />
+          {t("New Template")}
+        </Button>
       </div>
 
       {templates.length === 0 ? (

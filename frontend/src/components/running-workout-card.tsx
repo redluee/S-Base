@@ -112,12 +112,14 @@ export function RunningWorkoutCard({
               <Timer className="size-3.5" />
               <span>{formatElapsedTime(elapsed)}</span>
             </div>
-            <Link href={`/workouts/session/${session.sessionId}`}>
-              <Button size="sm" className="bg-[#00E676] text-zinc-950 hover:bg-[#00E676]/90 font-bold text-xs h-8 px-3 squircle-action shadow-md shadow-[#00E676]/20 active:scale-95 transition-all">
-                <span>{t("Hervatten")}</span>
-                <Play className="size-3 ml-1 fill-zinc-950" />
-              </Button>
-            </Link>
+            <Button
+              render={<Link href={`/workouts/session/${session.sessionId}`} />}
+              size="sm"
+              className="bg-[#00E676] text-zinc-950 hover:bg-[#00E676]/90 font-bold text-xs h-8 px-3 squircle-action shadow-md shadow-[#00E676]/20 active:scale-95 transition-all"
+            >
+              <span>{t("Hervatten")}</span>
+              <Play className="size-3 ml-1 fill-zinc-950" />
+            </Button>
           </div>
         </div>
       </div>
@@ -174,18 +176,21 @@ export function RunningWorkoutCard({
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10 mt-1">
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Link href={`/workouts/session/${session.sessionId}`} className="flex-1 sm:flex-initial">
-              <Button className="w-full sm:w-auto bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all duration-200 active:scale-95">
-                <Play className="size-4 mr-1.5 fill-zinc-950" />
-                {t("Hervatten")}
-              </Button>
-            </Link>
-            <Link href={`/workouts/session/${session.sessionId}`} className="flex-1 sm:flex-initial">
-              <Button variant="outline" className="w-full sm:w-auto border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60 font-semibold text-sm">
-                <CheckCircle2 className="size-4 mr-1.5 text-emerald-400" />
-                {t("Workout afronden")}
-              </Button>
-            </Link>
+            <Button
+              render={<Link href={`/workouts/session/${session.sessionId}`} />}
+              className="flex-1 sm:flex-initial w-full sm:w-auto bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all duration-200 active:scale-95"
+            >
+              <Play className="size-4 mr-1.5 fill-zinc-950" />
+              {t("Hervatten")}
+            </Button>
+            <Button
+              render={<Link href={`/workouts/session/${session.sessionId}`} />}
+              variant="outline"
+              className="flex-1 sm:flex-initial w-full sm:w-auto border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60 font-semibold text-sm"
+            >
+              <CheckCircle2 className="size-4 mr-1.5 text-emerald-400" />
+              {t("Workout afronden")}
+            </Button>
           </div>
 
           {/* Delete / Discard Session */}

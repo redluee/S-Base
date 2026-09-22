@@ -54,14 +54,15 @@ export default async function WinesPage({
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href="/recipes/wines/new">
-              <Button className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4">
-                <svg className="size-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {t("New Wine")}
-              </Button>
-            </Link>
+            <Button
+              render={<Link href="/recipes/wines/new" />}
+              className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+            >
+              <svg className="size-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              {t("New Wine")}
+            </Button>
           </div>
         </div>
 
@@ -137,11 +138,12 @@ export default async function WinesPage({
                   ? t('No recipes with status "{status}".', { status: t(type) })
                   : t("No wines yet.")}
             </p>
-            <Link href="/recipes/wines/new">
-              <Button className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm px-4 py-2">
-                {t("Add your first wine")}
-              </Button>
-            </Link>
+            <Button
+              render={<Link href="/recipes/wines/new" />}
+              className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm px-4 py-2"
+            >
+              {t("Add your first wine")}
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

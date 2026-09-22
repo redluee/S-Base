@@ -133,11 +133,13 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
               {copied ? t("Copied!") : t("Export")}
             </span>
           </Button>
-          <Link href={`/workouts/t/${template.templateId}/edit`}>
-            <Button variant="outline" size="sm">
-              {t("Edit")}
-            </Button>
-          </Link>
+          <Button
+            render={<Link href={`/workouts/t/${template.templateId}/edit`} />}
+            variant="outline"
+            size="sm"
+          >
+            {t("Edit")}
+          </Button>
           <Button
             variant="outline"
             size="sm"
