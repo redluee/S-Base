@@ -160,6 +160,7 @@ export function ExerciseList({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("Filter exercises...")}
+            aria-label={t("Filter oefeningen")}
             className="w-full pl-10 pr-9 py-2.5 bg-background text-foreground text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
           />
           {q && (

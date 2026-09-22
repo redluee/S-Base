@@ -448,6 +448,7 @@ export function PulseClient({
             <Input
               type="text"
               placeholder={t("Search users...")}
+              aria-label={t("Zoek gebruikers")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-10 bg-zinc-900/90 border-white/10 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-teal-500/50 rounded-xl"
