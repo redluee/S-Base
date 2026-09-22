@@ -451,7 +451,17 @@ export default function InvoicesPage() {
                 {/* Desktop view row */}
                 <div
                   onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
-                  className={`hidden sm:grid sm:grid-cols-[160px_1.5fr_1fr_1fr_110px_165px] gap-4 items-center px-4 py-3 bg-zinc-900 border rounded-xl transition-colors cursor-pointer ${
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${t("Details bekijken")}: ${inv.invoiceNumber} — ${inv.clientName}`}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/cashflow/invoices/${inv.id}`);
+                    }
+                  }}
+                  className={`hidden sm:grid sm:grid-cols-[160px_1.5fr_1fr_1fr_110px_165px] gap-4 items-center px-4 py-3 bg-zinc-900 border rounded-xl transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                     isOverdue ? "border-rose-500/30 hover:border-rose-500/50" : "border-zinc-800 hover:border-zinc-700"
                   }`}
                 >
@@ -538,7 +548,17 @@ export default function InvoicesPage() {
                 {/* Mobile view card */}
                 <div
                   onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
-                  className={`sm:hidden p-4 bg-zinc-900 border rounded-xl space-y-3 cursor-pointer hover:border-zinc-700 transition-colors ${
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${t("Details bekijken")}: ${inv.invoiceNumber} — ${inv.clientName}`}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/cashflow/invoices/${inv.id}`);
+                    }
+                  }}
+                  className={`sm:hidden p-4 bg-zinc-900 border rounded-xl space-y-3 cursor-pointer hover:border-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                     isOverdue ? "border-rose-500/30 hover:border-rose-500/50" : "border-zinc-800"
                   }`}
                 >
