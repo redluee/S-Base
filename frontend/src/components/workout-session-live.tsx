@@ -1452,6 +1452,7 @@ export function WorkoutSessionLive({
                 <div className="flex items-center gap-1 font-mono text-base font-semibold text-zinc-200">
                   <input
                     type="number"
+                    aria-label={t("Uren")}
                     value={Math.floor(elapsed / 3600)}
                     onChange={(e) => {
                       const h = Math.max(0, parseInt(e.target.value) || 0);
@@ -1465,6 +1466,7 @@ export function WorkoutSessionLive({
                   <span className="text-zinc-500">:</span>
                   <input
                     type="number"
+                    aria-label={t("Minuten")}
                     value={Math.floor((elapsed % 3600) / 60)}
                     onChange={(e) => {
                       const h = Math.floor(elapsed / 3600);
@@ -1479,6 +1481,7 @@ export function WorkoutSessionLive({
                   <span className="text-zinc-500">:</span>
                   <input
                     type="number"
+                    aria-label={t("Seconden")}
                     value={elapsed % 60}
                     onChange={(e) => {
                       const h = Math.floor(elapsed / 3600);

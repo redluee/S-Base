@@ -650,7 +650,8 @@ export function SprintPresentation({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
               {/* Slide 0: Intro */}
-              <div
+              <button
+                type="button"
                 onClick={() => goToSlide(0)}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                   currentSlideIndex === 0
@@ -665,7 +666,7 @@ export function SprintPresentation({
                 <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
                   {sprint.sprintNumber}
                 </span>
-              </div>
+              </button>
 
               {/* Story Slides */}
               {presentedStories.map((st, idx) => {
@@ -674,7 +675,8 @@ export function SprintPresentation({
                 const typeDetails = getStoryTypeDetails(st.storyTypeCode, storyTypes);
                 const color = typeDetails.color || "#00e3a4";
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={st.id}
                     onClick={() => goToSlide(slideNum)}
                     className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
@@ -708,12 +710,13 @@ export function SprintPresentation({
                     <span className="text-[10px] text-zinc-500 font-mono block truncate mt-0.5">
                       {st.storyNumber || "Story"}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
 
               {/* Last Slide: Outro */}
-              <div
+              <button
+                type="button"
                 onClick={() => goToSlide(totalSlides - 1)}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                   currentSlideIndex === totalSlides - 1
@@ -730,7 +733,7 @@ export function SprintPresentation({
                 <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
                   {t("Q&A")}
                 </span>
-              </div>
+              </button>
             </div>
           </div>
         </div>
