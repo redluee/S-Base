@@ -18,7 +18,7 @@ export default async function SessionPage({
   if (id === "quick") {
     return (
       <div className="min-h-screen flex flex-col">
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
+        <main id="main-content" className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
           <WorkoutSessionLive userId={user.id} />
         </main>
       </div>
@@ -30,7 +30,7 @@ export default async function SessionPage({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      <main id="main-content" className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
         <WorkoutSessionLive session={session} userId={user.id} />
       </main>
     </div>

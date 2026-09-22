@@ -23,7 +23,7 @@ export default async function ExercisesPage({
   return (
     <div className="min-h-screen flex flex-col">
       <NavHeader username={user.username} />
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
+      <main id="main-content" className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2">
             <Dumbbell className="size-6 sm:size-7 text-brand" />

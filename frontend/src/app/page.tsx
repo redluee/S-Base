@@ -9,7 +9,7 @@ export default async function LoginPage() {
     redirect("/dashboard");
   }
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 relative overflow-hidden">
+    <main id="main-content" className="flex min-h-screen flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,227,164,0.06)_0%,transparent_70%)] pointer-events-none" />
 
       {/* Decorative signal rings */}

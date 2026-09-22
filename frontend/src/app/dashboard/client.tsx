@@ -245,7 +245,7 @@ export function DashboardClient({
   };
 
   return (
-    <main className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 pt-20 sm:pt-24 pb-28 relative overflow-x-hidden bg-zinc-950 text-foreground w-full font-sans">
+    <main id="main-content" className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 pt-20 sm:pt-24 pb-28 relative overflow-x-hidden bg-zinc-950 text-foreground w-full font-sans">
       {/* Impersonation Banner */}
       {isImpersonated && impersonatedBy && (
         <div className="fixed top-0 left-0 right-0 z-50">

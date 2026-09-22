@@ -24,7 +24,7 @@ export default async function ExerciseDetailPage({
   return (
     <div className="min-h-screen flex flex-col">
       <NavHeader username={user.username} />
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      <main id="main-content" className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
         <ExerciseProgress data={data} />
       </main>
     </div>

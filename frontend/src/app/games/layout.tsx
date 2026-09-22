@@ -9,7 +9,7 @@ export default async function GamesLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen flex flex-col">
       <NavHeader username={user.username} />
-      <main className="flex-1 w-full">{children}</main>
+      <main id="main-content" className="flex-1 w-full">{children}</main>
     </div>
   );
 }
