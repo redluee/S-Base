@@ -1,6 +1,11 @@
 import { describe, expect, it, beforeEach } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { setupTestDb } from "../../test-utils";
 import { MeasurementService } from "./index";
+
+const uploadsDir = join(import.meta.dir, "../../../uploads");
 
 describe("MeasurementService", () => {
   let measurements: MeasurementService;
@@ -56,11 +61,16 @@ describe("MeasurementService", () => {
     const entry = measurements.save(adminId, { date: "2026-08-01", weight: 75.0 });
     expect(entry).not.toBeNull();
 
+    await mkdir(uploadsDir, { recursive: true });
+    const photoPath = join(uploadsDir, "photo1.jpg");
+    await writeFile(photoPath, "test");
+
     const withPhoto = measurements.addPhoto(entry!.measurementId, "/uploads/photo1.jpg");
     expect(withPhoto?.photos.length).toBe(1);
 
     const deleted = await measurements.deleteMeasurement(entry!.measurementId, adminId);
     expect(deleted).toBe(true);
     expect(measurements.getById(entry!.measurementId)).toBeNull();
+    expect(existsSync(photoPath)).toBe(false);
   });
 });
