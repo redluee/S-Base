@@ -401,6 +401,7 @@ export function SprintPresentation({
       onMouseMove={resetIdleTimer}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      data-minor-theme="dark"
       className="fixed inset-0 z-[100] bg-black text-white flex flex-col justify-between select-none overflow-hidden outline-none"
     >
       {/* Dynamic Animated Ambient Background */}

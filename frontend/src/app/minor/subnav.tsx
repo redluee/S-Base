@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Layers, ListChecks, Users, Settings, Upload } from "lucide-react";
 import { t } from "@/lib/lang";
+import { MinorThemeToggle } from "./theme";
 
 const links = [
   { href: "/minor", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -17,7 +18,7 @@ const links = [
 export function MinorSubnav() {
   const pathname = usePathname();
   return (
-    <nav className="flex items-center gap-1.5 overflow-x-auto px-4 sm:px-6 py-2 border-b border-border bg-zinc-950/60 backdrop-blur-sm scrollbar-none">
+    <nav className="flex items-center gap-1.5 overflow-x-auto px-4 sm:px-6 py-2 border-b border-border bg-background/60 backdrop-blur-sm scrollbar-none">
       {links.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
         return (
@@ -35,6 +36,7 @@ export function MinorSubnav() {
           </Link>
         );
       })}
+      <MinorThemeToggle />
     </nav>
   );
 }

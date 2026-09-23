@@ -746,6 +746,8 @@ const nl: Record<string, string> = {
   "Detected Version": "Gedetecteerde versie",
   "Engine & Version": "Engine & Versie",
   "Settings": "Instellingen",
+  "Light theme": "Licht thema",
+  "Dark theme": "Donker thema",
   "Mods & Files": "Mods & Bestanden",
   "Upload Mods (.jar)": "Mods uploaden (.jar)",
   "Upload Datapacks (.zip)": "Datapacks uploaden (.zip)",
