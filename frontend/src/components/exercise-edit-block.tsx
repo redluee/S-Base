@@ -152,7 +152,6 @@ export function ExerciseEditBlock({
       data-exercise-id={ex.id}
       className="scroll-mt-24 relative flex flex-col gap-5 p-5 bg-card/40 border border-border/50 rounded-xl group shadow-sm"
     >
-      <div className="absolute top-0 left-0 w-1 h-full bg-brand/40 rounded-l-xl" />
 
       {/* Header with Exercise Autocomplete */}
       <div className="flex items-center justify-between gap-3">
