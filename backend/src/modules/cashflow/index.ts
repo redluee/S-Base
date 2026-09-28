@@ -8,6 +8,7 @@ import {
   cashflowInvoiceLines,
   cashflowExpenses,
 } from "../../db/schema";
+import { sendMail } from "../../lib/mailer";
 
 const INVOICE_STATUSES = ["draft", "sent", "paid", "overdue"] as const;
 
@@ -584,6 +585,33 @@ export class CashflowService {
     if (!existing) return null;
     db.delete(cashflowInvoices).where(eq(cashflowInvoices.id, id)).run();
     return { deleted: true };
+  }
+
+  async sendInvoiceEmail(id: number, data: { to: string; subject: string; message: string; pdfBase64: string }) {
+    const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
+    if (!existing) return null;
+
+    const to = data.to?.trim();
+    if (!to) throw new Error("E-mailadres is verplicht");
+    const subject = data.subject?.trim();
+    if (!subject) throw new Error("Onderwerp is verplicht");
+    if (!data.message?.trim()) throw new Error("Bericht is verplicht");
+    if (!data.pdfBase64) throw new Error("PDF-bijlage ontbreekt");
+
+    await sendMail({
+      to,
+      subject,
+      text: data.message,
+      attachments: [
+        {
+          filename: `factuur-${existing.invoiceNumber}.pdf`,
+          content: Buffer.from(data.pdfBase64, "base64"),
+          contentType: "application/pdf",
+        },
+      ],
+    });
+
+    return { sent: true };
   }
 
   listExpenses(userId: number, options?: { year?: number; category?: string; tradeNameId?: number }) {
