@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverApi, getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +7,7 @@ import { MotivationalQuote } from "@/components/motivational-quote";
 import { WorkoutSubnav } from "@/components/workout-subnav";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { WorkoutImportModal } from "@/components/workout-import-modal";
+import { WorkoutTemplateList } from "@/components/workout-template-list";
 import { t } from "@/lib/lang";
 
 function getMilestoneStats(totalWorkouts: number) {
@@ -116,7 +116,7 @@ export default async function WorkoutsPage() {
             })()}
           </div>
           <div className="rounded-xl bg-card p-2.5 sm:p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[90px] sm:min-h-[130px]">
-            <span className="text-lg sm:text-4xl md:text-5xl font-black text-amber-400 font-display truncate max-w-full">{stats.totalVolume.toLocaleString()} kg</span>
+            <span className="text-lg sm:text-4xl md:text-5xl font-black text-amber-400 font-display leading-normal">{stats.totalVolume.toLocaleString()} kg</span>
             <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("volume verplaatst")}</span>
           </div>
         </div>
@@ -145,77 +145,24 @@ export default async function WorkoutsPage() {
             </div>
           </Link>
 
-          <div className="flex items-center justify-between mt-3 mb-1">
-            <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
-            <div className="flex items-center gap-2">
-              <WorkoutImportModal />
-              <Button
-                render={<Link href="/workouts/new" />}
-                size="sm"
-                className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium"
-              >
-                <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {t("New Template")}
-              </Button>
-            </div>
-          </div>
-
-          {templates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl bg-card border border-white/5 p-6">
-              <p className="text-sm text-muted-foreground mb-4">{t("No templates yet.")}</p>
-              <Button
-                render={<Link href="/workouts/new" />}
-                className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm"
-              >
-                {t("Create your first template")}
-              </Button>
-            </div>
-          ) : (
-            templates.map((template: any) => (
-              <Link
-                key={template.templateId}
-                href={`/workouts/t/${template.templateId}`}
-                className="block rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/30 transition-all duration-200 active:scale-[0.99]"
-              >
-                <div className="px-4 sm:px-5 py-3 sm:py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h2 className="font-workout-title font-medium text-foreground text-sm sm:text-base truncate">
-                        {template.name}
-                      </h2>
-                      {template.description && (
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-1">
-                          {template.description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-2 text-[10px] sm:text-xs">
-                        {template.exerciseCount !== undefined && (
-                          <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                            🏋️‍♂️ {template.exerciseCount} {template.exerciseCount === 1 ? t("exercise") : t("exercises")}
-                          </span>
-                        )}
-                        {template.targetMuscleGroups && (
-                          <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                            💪 {template.targetMuscleGroups}
-                          </span>
-                        )}
-                        {template.estimatedTime && (
-                          <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                            ⏱️ {template.estimatedTime} {t("min")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <svg className="size-4 sm:size-5 text-muted-foreground shrink-0 self-end" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
+          <WorkoutTemplateList
+            templates={templates}
+            actions={
+              <>
+                <WorkoutImportModal />
+                <Button
+                  render={<Link href="/workouts/new" />}
+                  size="sm"
+                  className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium"
+                >
+                  <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  {t("New Template")}
+                </Button>
+              </>
+            }
+          />
         </div>
       </main>
     </div>

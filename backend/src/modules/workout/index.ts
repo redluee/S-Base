@@ -57,8 +57,29 @@ export class WorkoutService {
     })
     .from(workoutTemplates)
     .where(eq(workoutTemplates.userId, userId))
-    .orderBy(desc(workoutTemplates.createdAt))
+    .orderBy(asc(workoutTemplates.sortOrder), desc(workoutTemplates.createdAt))
     .all();
+  }
+
+  reorderTemplates(userId: number, orderedIds: number[]) {
+    const owned = db.select({ templateId: workoutTemplates.templateId })
+      .from(workoutTemplates)
+      .where(eq(workoutTemplates.userId, userId))
+      .all();
+    const ownedIds = new Set(owned.map((o) => o.templateId));
+
+    if (orderedIds.length !== ownedIds.size || orderedIds.some((id) => !ownedIds.has(id))) {
+      throw new Error("Template order must include exactly the current templates");
+    }
+
+    orderedIds.forEach((templateId, index) => {
+      db.update(workoutTemplates)
+        .set({ sortOrder: index })
+        .where(and(eq(workoutTemplates.templateId, templateId), eq(workoutTemplates.userId, userId)))
+        .run();
+    });
+
+    return this.listTemplates(userId);
   }
 
   getTemplate(id: number, userId?: number) {
@@ -109,12 +130,17 @@ export class WorkoutService {
         validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
       }
     }
+    const nextSortOrder = db.select({
+      nextSortOrder: sql<number>`COALESCE(MAX(${workoutTemplates.sortOrder}), -1) + 1`
+    }).from(workoutTemplates).where(eq(workoutTemplates.userId, userId)).get()!.nextSortOrder;
+
     const template = db.insert(workoutTemplates).values({
       userId,
       name: data.name,
       description: data.description,
       targetMuscleGroups: data.targetMuscleGroups,
       estimatedTime: data.estimatedTime,
+      sortOrder: nextSortOrder,
     }).returning().get();
 
     if (data.exercises?.length) {
