@@ -9,6 +9,7 @@ export const workoutTemplates = sqliteTable("workout_templates", {
   description: text("description"),
   targetMuscleGroups: text("target_muscle_groups"),
   estimatedTime: integer("estimated_time"),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
