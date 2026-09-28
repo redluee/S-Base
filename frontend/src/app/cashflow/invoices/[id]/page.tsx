@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
 import { Check, Pencil, ArrowLeft, Building2, User, CreditCard, Hash, Trash2 } from "lucide-react";
 import { CashflowPDFButton } from "@/components/cashflow-pdf";
+import { CashflowEmailInvoiceButton } from "@/components/cashflow-email-modal";
 
 function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
@@ -142,6 +143,7 @@ export default function InvoiceDetailPage() {
             <span className="hidden sm:inline">{t("Edit")}</span>
           </Link>
           <CashflowPDFButton invoice={invoice} />
+          <CashflowEmailInvoiceButton invoice={invoice} />
           <button
             onClick={handleDelete}
             disabled={deleting}

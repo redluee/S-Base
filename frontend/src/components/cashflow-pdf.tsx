@@ -209,7 +209,7 @@ function formatDate(ts: number | null | undefined): string {
 }
 
 // Lazy-loads @react-pdf/renderer only on click to avoid SSR issues
-async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
+export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise<Blob> {
   const { pdf, Document, Page, Text, View, StyleSheet } = await import("@react-pdf/renderer");
 
   const accentColor = "#008767";
@@ -572,7 +572,11 @@ async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
     </Document>
   );
 
-  const blob = await pdf(doc).toBlob();
+  return pdf(doc).toBlob();
+}
+
+async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
+  const blob = await buildInvoicePDFBlob(invoice);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
