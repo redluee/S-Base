@@ -291,6 +291,12 @@ export const api = {
 
       delete: (id: number) =>
         request<{ deleted: boolean }>(`/workouts/templates/${id}`, { method: "DELETE" }),
+
+      reorder: (templateIds: number[]) =>
+        request<WorkoutTemplate[]>("/workouts/templates/reorder", {
+          method: "PATCH",
+          body: JSON.stringify({ templateIds }),
+        }),
     },
 
     sessions: {
@@ -512,6 +518,8 @@ export const api = {
       update: (id: number, data: unknown) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/invoices/${id}`, { method: "DELETE" }),
       markAsPaid: (id: number, datePaid?: number) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}/paid`, { method: "PATCH", body: datePaid !== undefined ? JSON.stringify({ datePaid }) : undefined }),
+      sendEmail: (id: number, data: { to: string; subject: string; message: string; pdfBase64: string }) =>
+        request<{ sent: boolean }>(`/cashflow/invoices/${id}/send-email`, { method: "POST", body: JSON.stringify(data) }),
     },
     expenses: {
       list: (options?: { year?: number; category?: string; tradeNameId?: number }) => {

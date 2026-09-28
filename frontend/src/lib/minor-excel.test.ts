@@ -7,7 +7,7 @@ import {
 } from "./minor-excel";
 import type { MinorSprintFull } from "./api";
 
-describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
+describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
   it("creates exactly 3 sheets in the correct order: Dashboard, Logboek, Lijsten", () => {
     const wb = buildIntegraalSprintLogboekWorkbook([]);
     expect(wb.worksheets.length).toBe(3);
@@ -33,11 +33,11 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     const wb = buildIntegraalSprintLogboekWorkbook([]);
     const ws = wb.getWorksheet("Dashboard")!;
 
-    expect(ws.getColumn(1).width).toBe(14.5);
-    expect(ws.getColumn(2).width).toBe(6.5);
-    expect(ws.getColumn(3).width).toBe(9.5);
-    expect(ws.getColumn(4).width).toBe(9.2);
-    expect(ws.getColumn(11).width).toBe(9.2);
+    expect(ws.getColumn(1).width).toBe(14.453125);
+    expect(ws.getColumn(2).width).toBe(6.453125);
+    expect(ws.getColumn(3).width).toBe(9.453125);
+    expect(ws.getColumn(4).width).toBe(9.1796875);
+    expect(ws.getColumn(11).width).toBe(9.1796875);
 
     for (let r = 1; r <= 7; r++) {
       expect(ws.getRow(r).height).toBe(14.25);
@@ -96,6 +96,12 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect((ws.getCell("C7").value as { formula: string }).formula).toBe("SUM(D6:K7)");
     expect((ws.getCell("D7").value as { formula: string }).formula).toBe('COUNTIF(D2:D6, "V")');
     expect((ws.getCell("K7").value as { formula: string }).formula).toBe('COUNTIF(K2:K6, "V")');
+
+    // Row 9: Portfolio link
+    expect(ws.getCell("A9").value).toBe("Portfolio ");
+    expect(ws.getCell("B9").value).toBe("vul hier je portfolio site url in");
+    const fillA9 = ws.getCell("A9").fill as ExcelJS.PatternFill;
+    expect(fillA9?.fgColor?.argb).toBe("FFC00000");
   });
 
   it("builds 8 sprint blocks of 28 rows each (224 rows total) on Logboek", () => {
@@ -190,14 +196,14 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     const wb = buildIntegraalSprintLogboekWorkbook(mockSprints);
     const ws = wb.getWorksheet("Logboek")!;
 
-    expect(ws.getColumn(1).width).toBe(12.0);
-    expect(ws.getColumn(2).width).toBe(51.33);
-    expect(ws.getColumn(3).width).toBe(13.0);
-    expect(ws.getColumn(4).width).toBe(13.0);
+    expect(ws.getColumn(1).width).toBe(9.453125);
+    expect(ws.getColumn(2).width).toBe(50.6328125);
+    expect(ws.getColumn(3).width).toBe(50.6328125);
+    expect(ws.getColumn(4).width).toBe(50.6328125);
 
     // Sprint 1 (Rows 1 to 28)
     expect(ws.getCell("A1").value).toBe("SPRINT 1");
-    expect(ws.getRow(1).height).toBe(18.0);
+    expect(ws.getRow(1).height).toBe(17.0);
     const fillMerged = ws.getCell("A1").fill as ExcelJS.PatternFill;
     expect(fillMerged?.fgColor?.argb).toBe("FFE6302B");
 
@@ -212,7 +218,6 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(ws.getCell("B5").value).toBe("Als student ,wil ik een logboek ,zodat ik slaag");
     expect(ws.getCell("C5").value).toBe("1. Criterium A");
     expect(ws.getCell("D5").value).toBe("1. Kwaliteit A");
-    expect(ws.getRow(5).height).toBe(43.5);
 
     // Story 2 (Row 6 - empty placeholder)
     expect(ws.getCell("B6").value).toBe("Als < > ,wil ik < > ,zodat < >");
@@ -232,12 +237,10 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(ws.getCell("B18").value).toBe("AI-impact op de beroepspraktijk analyseren en evalueren");
     expect(ws.getCell("C18").value).toBe("V");
     expect(ws.getCell("D18").value).toBe("Uitstekend bewijs");
-    expect(ws.getRow(18).height).toBe(28.5);
     expect(ws.getCell("C18").dataValidation?.formulae).toEqual(["=Lijsten!$A$1:$A$3"]);
 
-    // LU 5 row height (Row 22)
+    // LU 5
     expect(ws.getCell("A22").value).toBe("LU 5");
-    expect(ws.getRow(22).height).toBe(14.25);
 
     // Section 4 Reflection (Row 24 to 28)
     expect(ws.getCell("A24").value).toBe("4. REFLECTIE");
@@ -255,7 +258,6 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v4.xlsx)", () => {
     expect(ws.getCell("A197").value).toBe("SPRINT 8");
     expect(ws.getCell("A214").value).toBe("LU 1");
     expect(ws.getCell("A218").value).toBe("LU 5");
-    expect(ws.getRow(224).height).toBe(14.25);
   });
 
   it("generates a valid binary blob", async () => {

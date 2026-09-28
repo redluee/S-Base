@@ -388,6 +388,10 @@ export const app = new Elysia()
       .get("/templates", ({ userId }) => {
         return workout.listTemplates(userId);
       })
+      .patch("/templates/reorder", async ({ body, userId }) => {
+        const { templateIds } = body as { templateIds: number[] };
+        return workout.reorderTemplates(userId, templateIds);
+      })
       .get("/templates/:id", ({ params: { id }, userId }) => {
         const t = workout.getTemplate(Number(id), userId);
         if (!t) return new Response("Not Found", { status: 404 });
@@ -640,6 +644,15 @@ export const app = new Elysia()
         const inv = cashflow.markAsPaid(Number(id), datePaid);
         if (!inv) return new Response("Not Found", { status: 404 });
         return inv;
+      })
+      .post("/invoices/:id/send-email", async ({ params: { id }, body }) => {
+        try {
+          const result = await cashflow.sendInvoiceEmail(Number(id), body as any);
+          if (!result) return new Response("Not Found", { status: 404 });
+          return result;
+        } catch (e: unknown) {
+          return new Response(e instanceof Error ? e.message : "Fout bij verzenden e-mail", { status: 400 });
+        }
       })
       .get("/expenses", ({ userId, query }) => {
         const year = query?.year ? Number(query.year) : undefined;

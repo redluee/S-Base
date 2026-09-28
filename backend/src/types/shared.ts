@@ -35,6 +35,7 @@ export interface WorkoutTemplate {
   description: string | null;
   targetMuscleGroups: string | null;
   estimatedTime: number | null;
+  sortOrder: number;
   createdAt: string;
 }
 
