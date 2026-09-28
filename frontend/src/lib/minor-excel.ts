@@ -114,47 +114,48 @@ const FONT_ARIAL_10: Partial<ExcelJS.Font> = {
   color: { argb: "FF000000" },
 };
 
+const FONT_CALIBRI_11_ITALIC_GREY: Partial<ExcelJS.Font> = {
+  name: "Calibri",
+  size: 11,
+  italic: true,
+  color: { argb: "FF808080" },
+};
+
 export const LU_MASTER_DEFINITIONS: Array<{
   lu: number;
   label: string;
   name: string;
   target: number;
-  height: number;
 }> = [
   {
     lu: 1,
     label: "LU 1: Impact",
     name: "AI-impact op de beroepspraktijk analyseren en evalueren",
     target: 2,
-    height: 28.5,
   },
   {
     lu: 2,
     label: "LU 2: Oplossing",
     name: "Praktijkgerikte AI oplossing ontwerpen, realiseren en presenteren",
     target: 4,
-    height: 28.5,
   },
   {
     lu: 3,
     label: "LU 3: Ethiek",
     name: "Ethiek en verantwoordelijk AI-gebruik beoordelen",
     target: 2,
-    height: 28.5,
   },
   {
     lu: 4,
     label: "LU 4: Tools",
     name: "AI Tools en technieken gebruiken",
     target: 4,
-    height: 14.25,
   },
   {
     lu: 5,
     label: "LU 5: Zelfsturing",
     name: "Zelfstandig en zelfsturend werken",
     target: 6,
-    height: 14.25,
   },
 ];
 
@@ -258,11 +259,11 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     views: [{ showGridLines: true }],
   });
 
-  wsDashboard.getColumn(1).width = 14.5;
-  wsDashboard.getColumn(2).width = 6.5;
-  wsDashboard.getColumn(3).width = 9.5;
+  wsDashboard.getColumn(1).width = 14.453125;
+  wsDashboard.getColumn(2).width = 6.453125;
+  wsDashboard.getColumn(3).width = 9.453125;
   for (let col = 4; col <= 11; col++) {
-    wsDashboard.getColumn(col).width = 9.2;
+    wsDashboard.getColumn(col).width = 9.1796875;
   }
 
   // Header Row 1
@@ -404,6 +405,21 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     cell.alignment = { vertical: "middle", horizontal: "center" };
   }
 
+  // Rij 9: Portfolio link
+  wsDashboard.mergeCells("B9:K9");
+  const cellA9 = wsDashboard.getCell("A9");
+  cellA9.value = "Portfolio ";
+  cellA9.fill = FILL_CARMINE_RED;
+  cellA9.font = FONT_CALIBRI_11_BOLD_WHITE;
+  cellA9.border = THIN_BORDER;
+  cellA9.alignment = { vertical: "middle", horizontal: "left" };
+
+  const cellB9 = wsDashboard.getCell("B9");
+  cellB9.value = "vul hier je portfolio site url in";
+  cellB9.font = FONT_CALIBRI_11_ITALIC_GREY;
+  cellB9.border = THIN_BORDER;
+  cellB9.alignment = { vertical: "middle", horizontal: "center" };
+
   // ==========================================
   // TABBLAD 2: Logboek
   // ==========================================
@@ -411,10 +427,10 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     views: [{ showGridLines: true }],
   });
 
-  wsLogboek.getColumn(1).width = 12.0;
-  wsLogboek.getColumn(2).width = 51.33;
-  wsLogboek.getColumn(3).width = 13.0;
-  wsLogboek.getColumn(4).width = 13.0;
+  wsLogboek.getColumn(1).width = 9.453125;
+  wsLogboek.getColumn(2).width = 50.6328125;
+  wsLogboek.getColumn(3).width = 50.6328125;
+  wsLogboek.getColumn(4).width = 50.6328125;
 
   for (let sprintNum = 1; sprintNum <= 8; sprintNum++) {
     const R = (sprintNum - 1) * 28;
@@ -430,7 +446,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     // 1. Sprint Header & Scheiding
     // Rij R+1: SPRINT {N} (Merged A..D)
     const rowR1 = wsLogboek.getRow(R + 1);
-    rowR1.height = 18.0;
+    rowR1.height = 17.0;
     wsLogboek.mergeCells(`A${R + 1}:D${R + 1}`);
     const cellMergedHeader = wsLogboek.getCell(`A${R + 1}`);
     cellMergedHeader.value = `SPRINT ${sprintNum}`;
@@ -440,7 +456,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+2: Lege scheidingsrij
     const rowR2 = wsLogboek.getRow(R + 2);
-    rowR2.height = 14.25;
     for (let c = 1; c <= 4; c++) {
       rowR2.getCell(c).fill = cellFill;
     }
@@ -448,7 +463,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     // 2. Sectie 1: PLANNING (User Stories)
     // Rij R+3: Sectieheader
     const rowR3 = wsLogboek.getRow(R + 3);
-    rowR3.height = 18.0;
+    rowR3.height = 15.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR3.getCell(c);
       cell.fill = sectionFill;
@@ -463,7 +478,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+4: Koprij
     const rowR4 = wsLogboek.getRow(R + 4);
-    rowR4.height = 14.25;
     const planningHeaders = ["Story", "Story Omschrijving", "Acceptatie Criteria", "Kwaliteitscriteria"];
     planningHeaders.forEach((h, idx) => {
       const cell = rowR4.getCell(idx + 1);
@@ -483,7 +497,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     for (let i = 0; i < 5; i++) {
       const storyRowIndex = R + 5 + i;
       const storyRow = wsLogboek.getRow(storyRowIndex);
-      storyRow.height = 43.5;
       const story = stories[i];
 
       // Kolom A: Story Type (met validatie Lijsten!$B$1:$B$4)
@@ -546,7 +559,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+10: Lege scheidingsrij
     const rowR10 = wsLogboek.getRow(R + 10);
-    rowR10.height = 14.25;
     for (let c = 1; c <= 4; c++) {
       rowR10.getCell(c).fill = cellFill;
     }
@@ -554,7 +566,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     // 3. Sectie 2: FEEDBACK (Ontvangen van anderen)
     // Rij R+11: Sectieheader
     const rowR11 = wsLogboek.getRow(R + 11);
-    rowR11.height = 18.0;
+    rowR11.height = 15.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR11.getCell(c);
       cell.fill = sectionFill;
@@ -565,7 +577,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+12: Koprij
     const rowR12 = wsLogboek.getRow(R + 12);
-    rowR12.height = 14.25;
     const feedbackHeaders = ["Datum", "Van wie", "Feedback", "Jouw actie"];
     feedbackHeaders.forEach((h, idx) => {
       const cell = rowR12.getCell(idx + 1);
@@ -585,7 +596,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     for (let i = 0; i < 3; i++) {
       const fbRowIndex = R + 13 + i;
       const fbRow = wsLogboek.getRow(fbRowIndex);
-      fbRow.height = 14.25;
       const fb = feedbackList[i];
 
       const cellA = fbRow.getCell(1);
@@ -619,7 +629,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+16: Sectie 3 Header
     const rowR16 = wsLogboek.getRow(R + 16);
-    rowR16.height = 18.0;
+    rowR16.height = 15.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR16.getCell(c);
       cell.fill = sectionFill;
@@ -630,7 +640,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+17: Koprij
     const rowR17 = wsLogboek.getRow(R + 17);
-    rowR17.height = 14.25;
     const evalHeaders = ["LU", "Leeruitkomst", "Niveau", "Argumentatie en bewijs"];
     evalHeaders.forEach((h, idx) => {
       const cell = rowR17.getCell(idx + 1);
@@ -649,7 +658,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     LU_MASTER_DEFINITIONS.forEach((luDef, idx) => {
       const luRowIndex = R + 18 + idx;
       const luRow = wsLogboek.getRow(luRowIndex);
-      luRow.height = luDef.height;
 
       const level = resolveSprintLuLevel(currentSprint, luDef.lu);
       const argumentation = resolveSprintLuArgumentation(currentSprint, luDef.lu);
@@ -694,7 +702,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+23: Lege scheidingsrij
     const rowR23 = wsLogboek.getRow(R + 23);
-    rowR23.height = 14.25;
     for (let c = 1; c <= 4; c++) {
       rowR23.getCell(c).fill = cellFill;
     }
@@ -702,7 +709,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     // 5. Sectie 4: REFLECTIE
     // Rij R+24: Sectieheader
     const rowR24 = wsLogboek.getRow(R + 24);
-    rowR24.height = 18.0;
+    rowR24.height = 15.0;
     for (let c = 1; c <= 4; c++) {
       const cell = rowR24.getCell(c);
       cell.fill = sectionFill;
@@ -713,7 +720,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
 
     // Rij R+25: Koprij
     const rowR25 = wsLogboek.getRow(R + 25);
-    rowR25.height = 14.25;
     const reflectionHeaders = [
       "Datum",
       "Wat heb je geleerd?",
@@ -738,7 +744,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     for (let i = 0; i < 3; i++) {
       const refRowIndex = R + 26 + i;
       const refRow = wsLogboek.getRow(refRowIndex);
-      refRow.height = 14.25;
 
       const cellA = refRow.getCell(1);
       cellA.value = i === 0 ? reflection?.date || "" : "";
@@ -838,7 +843,7 @@ export async function downloadIntegraalSprintLogboek(
 
   const filename = name
     ? `Integraal_Sprint_Logboek_${name}.xlsx`
-    : `Integraal_Sprint_Logboek_v4.xlsx`;
+    : `Integraal_Sprint_Logboek_v5.xlsx`;
 
   const blob = await generateIntegraalSprintLogboekBlob(sprintsToUse);
 

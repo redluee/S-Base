@@ -478,7 +478,7 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
               key={luDef.lu}
               style={[
                 styles.tableRow,
-                { backgroundColor: cellBg, minHeight: luDef.height > 20 ? 18 : 14 },
+                { backgroundColor: cellBg, minHeight: 14 },
                 idx === 4 ? { borderBottomWidth: 0 } : {},
               ]}
             >
