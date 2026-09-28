@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-cf-email": cfEmail,
+        "x-internal-auth": process.env.INTERNAL_AUTH_SECRET ?? "",
       },
       body: JSON.stringify({ email: cfEmail }),
     });
