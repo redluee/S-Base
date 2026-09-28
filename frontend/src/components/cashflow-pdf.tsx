@@ -208,8 +208,20 @@ function formatDate(ts: number | null | undefined): string {
   return new Date(ts).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-// Lazy-loads @react-pdf/renderer only on click to avoid SSR issues
 async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
+  const blob = await buildInvoicePDFBlob(invoice);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `factuur-${invoice.invoiceNumber}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Lazy-loads @react-pdf/renderer only on click to avoid SSR issues
+export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise<Blob> {
   const { pdf, Document, Page, Text, View, StyleSheet } = await import("@react-pdf/renderer");
 
   const accentColor = "#008767";
@@ -572,13 +584,5 @@ async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
     </Document>
   );
 
-  const blob = await pdf(doc).toBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `factuur-${invoice.invoiceNumber}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return pdf(doc).toBlob();
 }

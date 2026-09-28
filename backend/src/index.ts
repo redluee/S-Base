@@ -641,6 +641,11 @@ export const app = new Elysia()
         if (!inv) return new Response("Not Found", { status: 404 });
         return inv;
       })
+      .post("/invoices/:id/send-email", async ({ params: { id }, body }) => {
+        const inv = await cashflow.sendInvoiceEmail(Number(id), body as any);
+        if (!inv) return new Response("Not Found", { status: 404 });
+        return inv;
+      })
       .get("/expenses", ({ userId, query }) => {
         const year = query?.year ? Number(query.year) : undefined;
         const category = query?.category as string | undefined;
