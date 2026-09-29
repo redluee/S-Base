@@ -92,15 +92,15 @@ export function ResumePdfPreview({ data }: { data: ResumeFull }) {
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
         await page.render({ canvas, canvasContext: ctx, viewport }).promise;
-        if (cancelled) return;
+        if (cancelled || docRef.current !== doc) return;
         canvases.push(canvas);
       }
-      if (cancelled) return;
+      if (cancelled || docRef.current !== doc) return;
       container.replaceChildren(...canvases);
       setRenderedData(versionData.current);
       setRendering(false);
     })().catch(() => {
-      if (!cancelled) {
+      if (!cancelled && docRef.current === doc) {
         setError(true);
         setRendering(false);
       }
