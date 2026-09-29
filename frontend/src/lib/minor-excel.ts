@@ -237,7 +237,7 @@ export function resolveSprintLuArgumentation(sprint: MinorSprintFull | undefined
   return evalItem?.argumentation?.trim() || "";
 }
 
-export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] = []): ExcelJS.Workbook {
+export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] = [], portfolioUrl?: string | null): ExcelJS.Workbook {
   const wb = new ExcelJS.Workbook();
   wb.creator = "S-Base Minor Module";
   wb.created = new Date();
@@ -415,8 +415,8 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   cellA9.alignment = { vertical: "middle", horizontal: "left" };
 
   const cellB9 = wsDashboard.getCell("B9");
-  cellB9.value = "vul hier je portfolio site url in";
-  cellB9.font = FONT_CALIBRI_11_ITALIC_GREY;
+  cellB9.value = portfolioUrl || "vul hier je portfolio site url in";
+  cellB9.font = portfolioUrl ? FONT_CALIBRI_11 : FONT_CALIBRI_11_ITALIC_GREY;
   cellB9.border = THIN_BORDER;
   cellB9.alignment = { vertical: "middle", horizontal: "center" };
 
@@ -799,8 +799,8 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   return wb;
 }
 
-export async function generateIntegraalSprintLogboekBlob(sprints: MinorSprintFull[] = []): Promise<Blob> {
-  const wb = buildIntegraalSprintLogboekWorkbook(sprints);
+export async function generateIntegraalSprintLogboekBlob(sprints: MinorSprintFull[] = [], portfolioUrl?: string | null): Promise<Blob> {
+  const wb = buildIntegraalSprintLogboekWorkbook(sprints, portfolioUrl);
   const buffer = await wb.xlsx.writeBuffer();
   return new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -816,28 +816,32 @@ export async function downloadIntegraalSprintLogboek(
   // any of Sprint 1 t/m 8 not present here renders as a blank placeholder block.
   const sprintsToUse: MinorSprintFull[] = providedSprints || [];
 
-  // Bepaal de bestandsnaam
+  // Bepaal de bestandsnaam en portfolio link
   let name = studentName;
-  if (!name) {
-    try {
-      const [me, settings] = await Promise.all([
-        api.me().catch(() => null),
-        api.minor.settings.get().catch(() => null),
-      ]);
+  let portfolioUrl: string | null = null;
+  try {
+    const [me, settings] = await Promise.all([
+      api.me().catch(() => null),
+      api.minor.settings.get().catch(() => null),
+    ]);
+    if (!name) {
       if (me?.user?.username) {
         name = settings?.lastName ? `${me.user.username}_${settings.lastName}` : me.user.username;
       } else if (settings?.lastName) {
         name = settings.lastName;
       }
-    } catch {
-      // ignore
     }
+    if (settings?.portfolioUrl) {
+      portfolioUrl = settings.portfolioUrl;
+    }
+  } catch {
+    // ignore
   }
 
   const baseFilename = (customFilename?.trim() || (name ? `Integraal_Sprint_Logboek_${name}` : "Integraal_Sprint_Logboek_v5")).replace(/\.xlsx$/i, "");
   const filename = `${baseFilename}.xlsx`;
 
-  const blob = await generateIntegraalSprintLogboekBlob(sprintsToUse);
+  const blob = await generateIntegraalSprintLogboekBlob(sprintsToUse, portfolioUrl);
 
   if (typeof window !== "undefined") {
     const url = window.URL.createObjectURL(blob);
