@@ -627,7 +627,10 @@ export function IntegraalSprintLogboekPdfDocument({ sprints, portfolioUrl }: Int
   );
 }
 
-export async function downloadAllSprintsPDF(providedSprints: MinorSprintFull[] = []): Promise<void> {
+export async function downloadAllSprintsPDF(
+  providedSprints: MinorSprintFull[] = [],
+  customFilename?: string
+): Promise<void> {
   // Only the sprints explicitly provided are treated as "selected" and get their data filled in;
   // any of Sprint 1 t/m 8 not present here renders as a blank placeholder page.
   const sprintsToUse: MinorSprintFull[] = providedSprints;
@@ -640,7 +643,9 @@ export async function downloadAllSprintsPDF(providedSprints: MinorSprintFull[] =
       api.minor.settings.get().catch(() => null),
     ]);
     if (me?.user?.username) {
-      name = me.user.username;
+      name = settings?.lastName ? `${me.user.username}_${settings.lastName}` : me.user.username;
+    } else if (settings?.lastName) {
+      name = settings.lastName;
     }
     if (settings?.portfolioUrl) {
       portfolioUrl = settings.portfolioUrl;
@@ -649,9 +654,8 @@ export async function downloadAllSprintsPDF(providedSprints: MinorSprintFull[] =
     // ignore
   }
 
-  const filename = name
-    ? `Integraal_Sprint_Logboek_${name}.pdf`
-    : `Integraal_Sprint_Logboek_v4.pdf`;
+  const baseFilename = (customFilename?.trim() || (name ? `Integraal_Sprint_Logboek_${name}` : "Integraal_Sprint_Logboek_v4")).replace(/\.pdf$/i, "");
+  const filename = `${baseFilename}.pdf`;
 
   const doc = <IntegraalSprintLogboekPdfDocument sprints={sprintsToUse} portfolioUrl={portfolioUrl} />;
   const blob = await pdf(doc).toBlob();

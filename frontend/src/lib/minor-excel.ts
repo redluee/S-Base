@@ -809,7 +809,8 @@ export async function generateIntegraalSprintLogboekBlob(sprints: MinorSprintFul
 
 export async function downloadIntegraalSprintLogboek(
   providedSprints?: MinorSprintFull[],
-  studentName?: string
+  studentName?: string,
+  customFilename?: string
 ): Promise<void> {
   let sprintsToUse: MinorSprintFull[] = providedSprints || [];
 
@@ -832,18 +833,22 @@ export async function downloadIntegraalSprintLogboek(
   let name = studentName;
   if (!name) {
     try {
-      const me = await api.me();
+      const [me, settings] = await Promise.all([
+        api.me().catch(() => null),
+        api.minor.settings.get().catch(() => null),
+      ]);
       if (me?.user?.username) {
-        name = me.user.username;
+        name = settings?.lastName ? `${me.user.username}_${settings.lastName}` : me.user.username;
+      } else if (settings?.lastName) {
+        name = settings.lastName;
       }
     } catch {
       // ignore
     }
   }
 
-  const filename = name
-    ? `Integraal_Sprint_Logboek_${name}.xlsx`
-    : `Integraal_Sprint_Logboek_v5.xlsx`;
+  const baseFilename = (customFilename?.trim() || (name ? `Integraal_Sprint_Logboek_${name}` : "Integraal_Sprint_Logboek_v5")).replace(/\.xlsx$/i, "");
+  const filename = `${baseFilename}.xlsx`;
 
   const blob = await generateIntegraalSprintLogboekBlob(sprintsToUse);
 
@@ -918,7 +923,7 @@ export async function downloadSprintExcel(sprint: MinorSprintFull): Promise<void
   await downloadIntegraalSprintLogboek([sprint]);
 }
 
-export async function downloadAllSprintsExcel(sprints: MinorSprintFull[]): Promise<void> {
-  await downloadIntegraalSprintLogboek(sprints);
+export async function downloadAllSprintsExcel(sprints: MinorSprintFull[], customFilename?: string): Promise<void> {
+  await downloadIntegraalSprintLogboek(sprints, undefined, customFilename);
 }
 

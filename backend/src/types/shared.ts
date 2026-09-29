@@ -326,6 +326,7 @@ export interface MinorSprintExportData {
 export interface MinorSettings {
   userId: number;
   portfolioUrl: string | null;
+  lastName: string | null;
 }
 
 export interface MinorPeerHelp {

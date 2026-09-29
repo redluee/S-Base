@@ -992,7 +992,7 @@ export const api = {
     },
     settings: {
       get: () => request<MinorSettings>("/minor/settings"),
-      update: (data: { portfolioUrl?: string | null }) =>
+      update: (data: { portfolioUrl?: string | null; lastName?: string | null }) =>
         request<MinorSettings>("/minor/settings", { method: "PUT", body: JSON.stringify(data) }),
     },
     upload: async (file: File) => {

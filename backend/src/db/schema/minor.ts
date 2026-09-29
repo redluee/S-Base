@@ -118,6 +118,7 @@ export const minorReflections = sqliteTable("minor_reflections", {
 export const minorSettings = sqliteTable("minor_settings", {
   userId: integer("user_id").primaryKey().references(() => users.userId, { onDelete: "cascade" }),
   portfolioUrl: text("portfolio_url"),
+  lastName: text("last_name"),
 });
 
 export const minorPeerHelp = sqliteTable("minor_peer_help", {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FileText,
   FileSpreadsheet,
@@ -10,6 +10,7 @@ import {
   Download,
   Layers,
   AlertTriangle,
+  FileSignature,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
@@ -37,6 +38,18 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportIssues, setExportIssues] = useState<SprintExportIssue[]>([]);
   const [pendingExcelSprints, setPendingExcelSprints] = useState<MinorSprintFull[] | null>(null);
+  const [filename, setFilename] = useState("");
+
+  useEffect(() => {
+    Promise.all([api.me().catch(() => null), api.minor.settings.get().catch(() => null)]).then(
+      ([me, settings]) => {
+        const username = me?.user?.username;
+        const lastName = settings?.lastName;
+        const name = username && lastName ? `${username}_${lastName}` : lastName || username;
+        setFilename(name ? `Integraal_Sprint_Logboek_${name}` : "Integraal_Sprint_Logboek");
+      }
+    );
+  }, []);
 
   function handleToggleAll() {
     if (selectedSprintIds.length === sprints.length) {
@@ -66,7 +79,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     setExportingPdf(true);
     try {
       const fullSprints = await fetchFullSprints();
-      await downloadAllSprintsPDF(fullSprints);
+      await downloadAllSprintsPDF(fullSprints, filename.trim() || undefined);
     } catch (err) {
       console.error("Batch PDF export failed:", err);
     } finally {
@@ -96,7 +109,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
         setExportIssues(allIssues);
         setPendingExcelSprints(fullSprints);
       } else {
-        await downloadAllSprintsExcel(fullSprints);
+        await downloadAllSprintsExcel(fullSprints, filename.trim() || undefined);
       }
     } catch (err) {
       console.error("Batch Excel export failed:", err);
@@ -109,7 +122,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     if (!pendingExcelSprints) return;
     setExportingExcel(true);
     try {
-      await downloadAllSprintsExcel(pendingExcelSprints);
+      await downloadAllSprintsExcel(pendingExcelSprints, filename.trim() || undefined);
     } catch (err) {
       console.error("Batch Excel export failed:", err);
     } finally {
@@ -126,7 +139,8 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     setExportingJson(true);
     try {
       const fullSprints = await fetchFullSprints();
-      downloadMultipleSprintsJson(fullSprints);
+      const base = filename.trim() || "sprints_portfolio_export";
+      downloadMultipleSprintsJson(fullSprints, `${base}.json`);
     } catch (err) {
       console.error("Batch JSON export failed:", err);
     } finally {
@@ -145,6 +159,24 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
           {t("Genereer met één klik een compleet verzamelbestand van alle gewenste sprints voor je eindbeoordeling.")}
         </p>
       </div>
+
+      {/* Filename Section */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <FileSignature className="size-4 text-brand" />
+          <h2 className="text-base font-bold text-white">{t("Bestandsnaam")}</h2>
+        </div>
+        <input
+          type="text"
+          value={filename}
+          onChange={(e) => setFilename(e.target.value)}
+          placeholder={t("Bestandsnaam zonder extensie")}
+          className="w-full min-h-11 px-3.5 py-2.5 rounded-xl bg-zinc-900/80 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
+        />
+        <p className="text-[11px] text-zinc-500">
+          {t("Deze naam wordt gebruikt voor het gedownloade bestand (de extensie wordt automatisch toegevoegd).")}
+        </p>
+      </section>
 
       {/* Export Format Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
