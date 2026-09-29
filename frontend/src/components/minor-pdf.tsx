@@ -504,13 +504,13 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
           <View style={[styles.koprijCell, { width: "13.4%", alignItems: "center" }]}>
             <Text style={styles.koprijText}>LU</Text>
           </View>
-          <View style={[styles.koprijCell, { width: "57.5%" }]}>
+          <View style={[styles.koprijCell, { width: "28.75%" }]}>
             <Text style={styles.koprijText}>Leeruitkomst</Text>
           </View>
           <View style={[styles.koprijCell, { width: "10%", alignItems: "center" }]}>
             <Text style={styles.koprijText}>Niveau</Text>
           </View>
-          <View style={[styles.tableCellLast, { width: "19.1%" }]}>
+          <View style={[styles.tableCellLast, { width: "47.85%" }]}>
             <Text style={styles.koprijText}>Argumentatie en bewijs</Text>
           </View>
         </View>
@@ -532,13 +532,13 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
               <View style={[styles.tableCell, { width: "13.4%", alignItems: "center" }]}>
                 <Text style={styles.cellText}>LU {luDef.lu}</Text>
               </View>
-              <View style={[styles.tableCell, { width: "57.5%" }]}>
+              <View style={[styles.tableCell, { width: "28.75%" }]}>
                 <Text style={styles.cellText}>{luDef.name}</Text>
               </View>
               <View style={[styles.tableCell, { width: "10%", alignItems: "center" }]}>
                 <Text style={styles.cellTextBold}>{level}</Text>
               </View>
-              <View style={[styles.tableCellLast, { width: "19.1%" }]}>
+              <View style={[styles.tableCellLast, { width: "47.85%" }]}>
                 <Text style={styles.cellText}>{argumentation || " "}</Text>
               </View>
             </View>
