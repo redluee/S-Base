@@ -542,44 +542,6 @@ export class CashflowService {
     return this.getInvoiceById(id);
   }
 
-  async sendInvoiceEmail(id: number, data: { to: string; subject: string; body: string; pdfBase64: string }) {
-    const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
-    if (!existing) return null;
-
-    const to = data.to?.trim();
-    if (!to) throw new Error("Recipient email is required");
-    const subject = data.subject?.trim();
-    if (!subject) throw new Error("Subject is required");
-    const body = data.body?.trim();
-    if (!body) throw new Error("Body is required");
-    if (!data.pdfBase64) throw new Error("PDF attachment is required");
-
-    const webhookUrl = process.env.N8N_INVOICE_EMAIL_WEBHOOK_URL;
-    if (!webhookUrl) throw new Error("Invoice email webhook is not configured");
-
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.N8N_WEBHOOK_SECRET ? { "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET } : {}),
-      },
-      body: JSON.stringify({
-        to,
-        subject,
-        body,
-        pdfBase64: data.pdfBase64,
-        fileName: `factuur-${existing.invoiceNumber}.pdf`,
-        invoiceNumber: existing.invoiceNumber,
-      }),
-    });
-    if (!res.ok) throw new Error(`Failed to send invoice email (status ${res.status})`);
-
-    if (existing.status === "draft") {
-      db.update(cashflowInvoices).set({ status: "sent" }).where(eq(cashflowInvoices.id, id)).run();
-    }
-    return this.getInvoiceById(id);
-  }
-
   removeInvoice(id: number) {
     const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
     if (!existing) return null;
