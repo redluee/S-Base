@@ -186,6 +186,15 @@ export const serverApi = {
       scan: () => serverFetch<import("./api").McUnregisteredServerScan[]>("/minecraft/import/scan"),
     },
   },
+  resume: {
+    profile: () => serverFetch<import("@backend/types/shared").ResumeProfile>("/resume/profile"),
+    experiences: () => serverFetch<import("@backend/types/shared").ResumeExperience[]>("/resume/experiences"),
+    educations: () => serverFetch<import("@backend/types/shared").ResumeEducation[]>("/resume/educations"),
+    resumes: {
+      list: () => serverFetch<import("@backend/types/shared").Resume[]>("/resume/resumes"),
+      get: (id: number) => serverFetch<import("@backend/types/shared").ResumeFull>(`/resume/resumes/${id}`),
+    },
+  },
   minor: {
     dashboard: () => serverFetch<import("./api").MinorDashboardStats>("/minor/dashboard"),
     sprints: {

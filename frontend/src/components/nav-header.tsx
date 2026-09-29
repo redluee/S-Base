@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { SearchBar } from "@/components/search-bar";
-import { User, LogOut, ChevronDown, Dumbbell, ChefHat, Banknote, Gamepad2, ArrowRightLeft, GraduationCap } from "lucide-react";
+import { User, LogOut, ChevronDown, Dumbbell, ChefHat, Banknote, Gamepad2, ArrowRightLeft, GraduationCap, FileUser } from "lucide-react";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 
 interface NavHeaderProps {
@@ -68,6 +68,7 @@ export function NavHeader({
   const isCashflow = pathname.includes("/cashflow");
   const isGames = pathname.includes("/games");
   const isMinor = pathname.includes("/minor");
+  const isResume = pathname.includes("/resume");
 
   async function handleLogout() {
     await api.logout();
@@ -145,6 +146,15 @@ export function NavHeader({
             >
               <GraduationCap className="size-3.5" />
               <span className="hidden xs:inline">{t("Minor Tracker")}</span>
+            </Link>
+          )}
+          {isResume && (
+            <Link
+              href="/resume"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all cursor-pointer"
+            >
+              <FileUser className="size-3.5" />
+              <span className="hidden xs:inline">{t("CV Builder")}</span>
             </Link>
           )}
         </div>

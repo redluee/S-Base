@@ -25,6 +25,7 @@ import {
   GraduationCap,
   Shield,
   ArrowUpRight,
+  FileUser,
 } from "lucide-react";
 
 const DEFAULT_BG = "/karp-350.jpg";
@@ -87,6 +88,15 @@ const MODULES: ModuleDefinition[] = [
     accentColor: "#FF9100",
     glowColor: "rgba(255, 145, 0, 0.35)",
     href: "/minor",
+  },
+  {
+    id: "resume",
+    title: "CV Builder",
+    subtitle: "Resume & PDF",
+    roles: ["user", "admin"],
+    accentColor: "#E040FB",
+    glowColor: "rgba(224, 64, 251, 0.35)",
+    href: "/resume",
   },
   {
     id: "lyric_quotes",
@@ -302,12 +312,12 @@ export function DashboardClient({
       )}
 
       {/* Module Grid Hierarchy (Asymmetric Bento Grid) */}
-      <nav className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 w-full max-w-3xl mb-8 relative z-10">
+      <nav className="grid grid-cols-1 sm:grid-cols-6 gap-4 sm:gap-5 w-full max-w-3xl mb-8 relative z-10">
         {/* 1. Workout Studio Card */}
         {canAccess("workout") && (
           <Link
             href="/workouts"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00E676]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,230,118,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-6 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00E676]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,230,118,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00E676]/10 via-transparent to-[#00E676]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -335,7 +345,7 @@ export function DashboardClient({
         {canAccess("recipes") && (
           <Link
             href="/recipes"
-            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FFB300]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,179,0,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-3 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FFB300]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,179,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FFB300]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -376,7 +386,7 @@ export function DashboardClient({
         {canAccess("minecraft") && (
           <Link
             href="/games/minecraft"
-            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#76FF03]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-3 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#76FF03]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(118,255,3,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#76FF03]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -409,7 +419,7 @@ export function DashboardClient({
         {canAccess("cashflow") && (
           <Link
             href="/cashflow"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-4 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00B0FF]/10 via-transparent to-[#00B0FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -453,11 +463,39 @@ export function DashboardClient({
           </Link>
         )}
 
+        {/* 5b. Resume Card */}
+        {canAccess("resume") && (
+          <Link
+            href="/resume"
+            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#E040FB]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(224,64,251,0.35)] overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E040FB]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+            <div className="flex items-center gap-3.5 relative z-10 min-w-0">
+              <div className="size-11 squircle-icon bg-[#E040FB]/15 border border-[#E040FB]/30 flex items-center justify-center text-[#E040FB] shrink-0 shadow-[0_0_1.5rem_-0.25rem_rgba(224,64,251,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_2rem_-0.25rem_rgba(224,64,251,0.6)] transition-all duration-300">
+                <FileUser className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-base sm:text-lg text-zinc-100 group-hover:text-white transition-colors tracking-tight truncate">
+                  {t("CV Builder")}
+                </h2>
+                <p className="text-xs text-zinc-400 font-medium tracking-wide truncate">
+                  {t("Resume & PDF")}
+                </p>
+              </div>
+            </div>
+
+            <div className="size-8 squircle-action bg-[#E040FB]/15 border border-[#E040FB]/30 flex items-center justify-center text-[#E040FB] group-hover:bg-[#E040FB] group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-3">
+              <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </div>
+          </Link>
+        )}
+
         {/* 5. Minor Card */}
         {canAccess("minor") && (
           <Link
             href="/minor"
-            className="group relative col-span-1 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
+            className="group relative col-span-1 sm:col-span-3 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#FF9100]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(255,145,0,0.35)] overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#FF9100]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -484,7 +522,7 @@ export function DashboardClient({
         {/* 6. Lyric Quotes & You (Side-by-side compact partner tiles in 1 column) */}
         {(canAccess("lyric_quotes") || canAccess("you")) && (
           <div
-            className={`col-span-1 grid gap-2.5 sm:gap-3 ${
+            className={`col-span-1 sm:col-span-3 grid gap-2.5 sm:gap-3 ${
               canAccess("lyric_quotes") && canAccess("you") ? "grid-cols-2" : "grid-cols-1"
             }`}
           >

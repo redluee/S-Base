@@ -40,6 +40,7 @@ Backend routes and frontend views are structured around discrete domain modules:
 - **Pulse** (`pulse`): System administration, active user management, module permission toggles, system metrics.
 - **Minecraft** (`minecraft`): Server instance monitoring, player tracking, backups.
 - **Minor** (`minor`): Minor study tracking (portfolio/sprints, user stories, dual acceptance/quality criteria checklists, evidence links, Show & Grow presentation mode, self-evaluations, teacher assessments, reflections, peer help / knowledge sharing, vacation sprint date auto-extensions, JSON/Excel/PDF export). See `backend/src/modules/minor/AGENTS.md` and `frontend/src/app/minor/AGENTS.md`.
+- **Resume** (`resume`): Per-user CV builder (profile, ervaring/opleidingen library, multiple named resumes with fonts/column widths, live preview, PDF export). See `backend/src/modules/resume/AGENTS.md` and `frontend/src/app/resume/AGENTS.md`.
 
 ## Environments & Infrastructure
 
