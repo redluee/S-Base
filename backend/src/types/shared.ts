@@ -349,3 +349,94 @@ export interface MinorDashboardStats {
   recentPeerHelp: MinorPeerHelp[];
 }
 
+
+export interface ResumeLink {
+  label: string;
+  url: string;
+}
+
+export interface ResumeProfile {
+  fullName: string;
+  headline: string;
+  photoPath: string | null;
+  photoShape: "circle" | "square";
+  residence: string;
+  phone: string;
+  email: string;
+  birthDate: string;
+  drivingLicense: string;
+  links: ResumeLink[];
+  skills: string[];
+  languages: string[];
+  hobbies: string[];
+}
+
+export interface ResumePeriod {
+  startMonth: number;
+  startYear: number;
+  endMonth: number | null;
+  endYear: number | null;
+  isCurrent: boolean;
+}
+
+export interface ResumeExperience extends ResumePeriod {
+  id: number;
+  company: string;
+  place: string;
+  jobTitle: string;
+  description: string;
+  logoPath: string | null;
+}
+
+export interface ResumeEducation extends ResumePeriod {
+  id: number;
+  institution: string;
+  place: string;
+  degree: string;
+  description: string;
+  logoPath: string | null;
+}
+
+export interface Resume {
+  id: number;
+  name: string;
+  titleFont: string;
+  textFont: string;
+  accentColor: string;
+  leftWidthPct: number;
+  titleScalePct: number;
+  textScalePct: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResumeItemInput {
+  kind: "experience" | "education";
+  refId: number;
+  descriptionOverride?: string | null;
+}
+
+export interface ResumeEntry extends ResumePeriod {
+  kind: "experience" | "education";
+  refId: number;
+  title: string;
+  organization: string;
+  place: string;
+  description: string;
+  hasDescriptionOverride: boolean;
+  logoPath: string | null;
+}
+
+export interface ResumeFull {
+  resume: Resume;
+  profile: ResumeProfile;
+  experiences: ResumeEntry[];
+  educations: ResumeEntry[];
+  selected: ResumeItemInput[];
+}
+
+export interface ResumeGoogleFont {
+  family: string;
+  regularUrl: string;
+  boldUrl: string;
+}

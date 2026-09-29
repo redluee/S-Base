@@ -44,6 +44,7 @@ export const DEFAULT_MODULES = [
   { name: "minecraft", alias: "Lobby Control", description: "Beheer van Minecraft server instances" },
   { name: "minecraft:monitor", alias: "Minecraft (Monitor)", description: "Alleen server starten en monitoren, niet aanpassen of stoppen" },
   { name: "minor", alias: "Minor Tracker", description: "Module voor sprintbeheer, leeruitkomsten, bewijslast en Show & Grow portfolio" },
+  { name: "resume", alias: "CV Builder", description: "Module voor het samenstellen en exporteren van CV's op basis van ervaring en opleidingen" },
 ];
 
 export async function ensureDefaultModules() {

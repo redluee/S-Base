@@ -8,6 +8,7 @@
     "bot": "bun run src/modules/minecraft/bot-runner.ts",
     "db:migrate": "bun run src/db/migrate.ts",
     "db:seed": "bun run src/db/seed.ts",
+    "db:seed:resume": "bun run src/db/seed-resume.ts",
     "db:user": "bun run src/db/user-manager.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate"
