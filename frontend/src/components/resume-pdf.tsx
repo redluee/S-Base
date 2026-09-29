@@ -116,7 +116,7 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
             )}
           </View>
 
-          <View style={{ flex: 1, textAlign: "right", ...(swap ? { borderRightWidth: 0.75, borderRightColor: accent, borderRightStyle: "solid", paddingRight: PAGE.gap / 2 } : { borderLeftWidth: 0.75, borderLeftColor: accent, borderLeftStyle: "solid", paddingLeft: PAGE.gap / 2 }) }}>
+          <View style={{ flex: 1, ...(swap ? { borderRightWidth: 0.75, borderRightColor: accent, borderRightStyle: "solid", paddingRight: PAGE.gap / 2 } : { borderLeftWidth: 0.75, borderLeftColor: accent, borderLeftStyle: "solid", paddingLeft: PAGE.gap / 2 }) }}>
             {photo ? (
               // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt
               <Image
@@ -127,7 +127,6 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
                   objectFit: "cover",
                   borderRadius: profile.photoShape === "circle" ? photoSize / 2 : photoSize * 0.08,
                   marginBottom: 20,
-                  alignSelf: "flex-end",
                 }}
               />
             ) : null}
@@ -136,21 +135,23 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
               <View style={{ marginBottom: 26 }}>
                 {label(t("Persoonsgegevens"))}
                 {rows.map((r) => (
-                  <Text key={r.label} style={{ fontSize: th.side, lineHeight: 1.5, marginBottom: 1 }}>
-                    <Text style={bold(textFamily)}>{t(r.label)}: </Text>
-                    {r.value}
-                  </Text>
+                  <View key={r.label} style={{ flexDirection: "row", marginBottom: 1 }}>
+                    <Text style={{ ...bold(textFamily), fontSize: th.side, lineHeight: 1.5, width: th.sideLabelWidth, paddingRight: 4 }}>{t(r.label)}:</Text>
+                    <Text style={{ fontSize: th.side, lineHeight: 1.5, flex: 1 }}>{r.value}</Text>
+                  </View>
                 ))}
                 {profile.links.length > 0 && (
-                  <Text style={{ fontSize: th.side, lineHeight: 1.5 }}>
-                    <Text style={bold(textFamily)}>{t("Online")}: </Text>
-                    {profile.links.map((l, i) => (
-                      <Text key={i}>
-                        {i > 0 ? " / " : ""}
-                        <Link src={l.url} style={{ color: accent, textDecoration: "underline" }}>{l.label}</Link>
-                      </Text>
-                    ))}
-                  </Text>
+                  <View style={{ flexDirection: "row" }}>
+                    <Text style={{ ...bold(textFamily), fontSize: th.side, lineHeight: 1.5, width: th.sideLabelWidth, paddingRight: 4 }}>{t("Online")}:</Text>
+                    <Text style={{ fontSize: th.side, lineHeight: 1.5, flex: 1 }}>
+                      {profile.links.map((l, i) => (
+                        <Text key={i}>
+                          {i > 0 ? " / " : ""}
+                          <Link src={l.url} style={{ color: accent, textDecoration: "underline" }}>{l.label}</Link>
+                        </Text>
+                      ))}
+                    </Text>
+                  </View>
                 )}
               </View>
             )}

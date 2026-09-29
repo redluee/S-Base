@@ -119,6 +119,7 @@ export function scaledTheme(resume: { titleScalePct: number; textScalePct: numbe
     period: round(resumeTheme.period * xs),
     body: round(resumeTheme.body * xs),
     side: round(resumeTheme.side * xs),
+    sideLabelWidth: round(74 * xs),
   };
 }
 
