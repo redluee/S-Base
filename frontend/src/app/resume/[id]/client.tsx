@@ -136,28 +136,42 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
   }
 
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
-  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [drag, setDrag] = useState<{ kind: Kind; refId: number; insertAt: number } | null>(null);
 
   function startDrag(e: ReactPointerEvent<HTMLElement>, kind: Kind, refId: number) {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDragKey(`${kind}${refId}`);
+    const idx = selection.filter((s) => s.kind === kind).findIndex((s) => s.refId === refId);
+    setDrag({ kind, refId, insertAt: idx });
   }
 
-  function dragOver(e: ReactPointerEvent<HTMLElement>, kind: Kind, refId: number) {
-    if (dragKey !== `${kind}${refId}`) return;
-    const same = selection.filter((s) => s.kind === kind);
-    const from = same.findIndex((s) => s.refId === refId);
-    const to = same.findIndex((s) => {
-      const rect = rowRefs.current.get(`${kind}${s.refId}`)?.getBoundingClientRect();
-      return !!rect && e.clientY >= rect.top && e.clientY <= rect.bottom;
-    });
-    if (from < 0 || to < 0 || from === to) return;
+  function dragOver(e: ReactPointerEvent<HTMLElement>) {
+    if (!drag) return;
+    const margin = 60;
+    if (e.clientY < margin) window.scrollBy(0, -Math.ceil((margin - e.clientY) / 3));
+    else if (e.clientY > window.innerHeight - margin) window.scrollBy(0, Math.ceil((e.clientY - (window.innerHeight - margin)) / 3));
+    let insertAt = 0;
+    for (const s of selection.filter((x) => x.kind === drag.kind)) {
+      const rect = rowRefs.current.get(`${drag.kind}${s.refId}`)?.getBoundingClientRect();
+      if (rect && e.clientY > rect.top + rect.height / 2) insertAt++;
+    }
+    if (insertAt !== drag.insertAt) setDrag({ ...drag, insertAt });
+  }
+
+  function endDrag(commit: boolean) {
+    if (!drag) return;
+    setDrag(null);
+    if (!commit) return;
+    const same = selection.filter((s) => s.kind === drag.kind);
+    const from = same.findIndex((s) => s.refId === drag.refId);
+    if (from < 0) return;
+    const to = drag.insertAt > from ? drag.insertAt - 1 : drag.insertAt;
+    if (to === from) return;
     const reordered = [...same];
     const [moved] = reordered.splice(from, 1);
     reordered.splice(to, 0, moved);
-    const others = selection.filter((s) => s.kind !== kind);
-    changeSelection(kind === "experience" ? [...reordered, ...others] : [...others, ...reordered]);
+    const others = selection.filter((s) => s.kind !== drag.kind);
+    changeSelection(drag.kind === "experience" ? [...reordered, ...others] : [...others, ...reordered]);
   }
 
   function setOverride(kind: Kind, refId: number, override: string | null) {
@@ -186,6 +200,11 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
     const row = (src: Source, sel: Selection | null, index: number) => {
       const entry = toEntry(kind, src, sel ?? { kind, refId: src.id, override: null });
       const key = `${kind}${src.id}`;
+      const dragFrom = drag?.kind === kind ? selectedItems.findIndex((x) => x.src.id === drag.refId) : -1;
+      const noop = !drag || dragFrom < 0 || drag.insertAt === dragFrom || drag.insertAt === dragFrom + 1;
+      const dragging = !!sel && drag?.kind === kind && drag.refId === src.id;
+      const showLineBefore = !!sel && !noop && drag!.insertAt === index;
+      const showLineAfter = !!sel && !noop && index === selectedItems.length - 1 && drag!.insertAt === selectedItems.length;
       return (
         <li
           key={key}
@@ -193,24 +212,32 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
             if (el) rowRefs.current.set(key, el);
             else rowRefs.current.delete(key);
           }}
-          className={`rounded-xl border bg-zinc-950/60 ${dragKey === key ? "border-brand" : "border-border"}`}
+          className={`relative rounded-xl border bg-zinc-950/60 transition-opacity ${dragging ? "border-brand opacity-40" : "border-border"}`}
         >
+          {showLineBefore && <div className="pointer-events-none absolute -top-[5px] left-0 right-0 h-0.5 rounded-full bg-brand" />}
+          {showLineAfter && <div className="pointer-events-none absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-brand" />}
           <div className="flex items-center gap-1 pr-1">
-            <label className="flex-1 min-w-0 flex items-start gap-3 p-3 cursor-pointer min-h-[44px]">
+            <label className="flex items-center justify-center pl-3 pr-1 self-stretch min-w-[44px] sm:min-w-[32px] cursor-pointer">
               <input
                 type="checkbox"
                 checked={!!sel}
                 onChange={() => toggle(kind, src.id)}
-                className="size-4 mt-0.5 accent-[#00e3a4] shrink-0"
+                aria-label={t("Opnemen in dit CV")}
+                className="size-4 accent-[#00e3a4] shrink-0"
               />
-              <span className="min-w-0">
-                <span className="block text-sm text-zinc-100 truncate">
-                  <span className="font-semibold">{entry.title}</span>
-                  <span className="text-zinc-400"> — {entry.organization}</span>
-                </span>
-                <span className="block text-xs text-zinc-500">{formatPeriod(entry)}</span>
-              </span>
             </label>
+            <button
+              type="button"
+              disabled={!sel}
+              onClick={() => setOpenOverride(openOverride === key ? null : key)}
+              className={`flex-1 min-w-0 text-left py-3 pr-2 min-h-[44px] ${sel ? "cursor-pointer" : "cursor-default"}`}
+            >
+              <span className="block text-sm text-zinc-100 truncate">
+                <span className="font-semibold">{entry.title}</span>
+                <span className="text-zinc-400"> — {entry.organization}</span>
+              </span>
+              <span className="block text-xs text-zinc-500">{formatPeriod(entry)}</span>
+            </button>
             {sel && (
               <>
                 <button
@@ -245,10 +272,10 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
                   aria-label={t("Sleep om te verplaatsen")}
                   title={t("Sleep om te verplaatsen")}
                   onPointerDown={(e) => startDrag(e, kind, src.id)}
-                  onPointerMove={(e) => dragOver(e, kind, src.id)}
-                  onPointerUp={() => setDragKey(null)}
-                  onPointerCancel={() => setDragKey(null)}
-                  className="hidden lg:flex h-8 w-6 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-grab active:cursor-grabbing touch-none"
+                  onPointerMove={dragOver}
+                  onPointerUp={() => endDrag(true)}
+                  onPointerCancel={() => endDrag(false)}
+                  className="flex h-11 w-9 sm:h-8 sm:w-6 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-grab active:cursor-grabbing touch-none"
                 >
                   <GripVertical className="size-4" />
                 </div>

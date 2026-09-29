@@ -4,7 +4,7 @@
 | Path | Page | Client | Responsibility |
 |------|------|--------|----------------|
 | `/resume` | `page.tsx` | `client.tsx` | List of resumes, create (with all items selected), duplicate, delete |
-| `/resume/[id]` | `[id]/page.tsx` | `[id]/client.tsx` | Editor: name, fonts (`font-picker.tsx`), column width slider (5% steps), accent colour, select/reorder items (drag handle on `lg+`, arrows on mobile), per-CV description override, live preview, PDF export. Autosaves (600ms debounce) |
+| `/resume/[id]` | `[id]/page.tsx` | `[id]/client.tsx` | Editor: name, fonts (`font-picker.tsx`), column width slider (5% steps), accent colour, select/reorder items (drag handle with insertion line, arrows on mobile), per-CV description override, live preview, PDF export. Autosaves (600ms debounce) |
 | `/resume/profile` | `profile/page.tsx` | `profile/client.tsx` | Photo (circle/square), persoonsgegevens, links, skills/languages/hobbies |
 | `/resume/experience`, `/resume/education` | `*/page.tsx` | `library.tsx` (shared) | CRUD for the ervaring/opleiding library |
 
