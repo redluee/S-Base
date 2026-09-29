@@ -812,22 +812,9 @@ export async function downloadIntegraalSprintLogboek(
   studentName?: string,
   customFilename?: string
 ): Promise<void> {
-  let sprintsToUse: MinorSprintFull[] = providedSprints || [];
-
-  // Als er geen sprints zijn meegegeven of minder dan 8, haal alle actuele sprints op
-  if (sprintsToUse.length < 8) {
-    try {
-      const sprintList = await api.minor.sprints.list();
-      if (sprintList && sprintList.length > 0) {
-        const fullSprints = await Promise.all(
-          sprintList.map((s) => api.minor.sprints.get(s.id))
-        );
-        sprintsToUse = fullSprints;
-      }
-    } catch (err) {
-      console.warn("Kon sprints niet verifiëren via API, fallback naar meegegeven data:", err);
-    }
-  }
+  // Only the sprints explicitly provided are treated as "selected" and get their data filled in;
+  // any of Sprint 1 t/m 8 not present here renders as a blank placeholder block.
+  const sprintsToUse: MinorSprintFull[] = providedSprints || [];
 
   // Bepaal de bestandsnaam
   let name = studentName;
