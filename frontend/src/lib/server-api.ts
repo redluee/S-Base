@@ -214,5 +214,8 @@ export const serverApi = {
     peerHelp: {
       list: () => serverFetch<import("./api").MinorPeerHelp[]>("/minor/peer-help"),
     },
+    settings: {
+      get: () => serverFetch<import("./api").MinorSettings>("/minor/settings"),
+    },
   },
 };

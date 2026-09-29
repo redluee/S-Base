@@ -12,6 +12,7 @@ import {
   minorVacations,
   minorStoryTypes,
   minorPeerHelp,
+  minorSettings,
 } from "../../db/schema";
 import type {
   MinorSprint,
@@ -28,6 +29,7 @@ import type {
   MinorStoryType,
   MinorDefaultQualityCriterion,
   MinorPeerHelp,
+  MinorSettings,
   MinorDashboardStats,
   MinorStoryPresentationData,
   MinorSprintExportData,
@@ -1618,6 +1620,23 @@ export class MinorService {
     if (!existing) return null;
     db.delete(minorPeerHelp).where(eq(minorPeerHelp.id, id)).run();
     return { success: true };
+  }
+
+  // --- Settings ---
+
+  getSettings(userId: number): MinorSettings {
+    const existing = db.select().from(minorSettings).where(eq(minorSettings.userId, userId)).get();
+    if (existing) return existing as MinorSettings;
+    return { userId, portfolioUrl: null };
+  }
+
+  saveSettings(userId: number, data: { portfolioUrl?: string | null }): MinorSettings {
+    const portfolioUrl = data.portfolioUrl?.trim() || null;
+    const existing = db.select().from(minorSettings).where(eq(minorSettings.userId, userId)).get();
+    if (existing) {
+      return db.update(minorSettings).set({ portfolioUrl }).where(eq(minorSettings.userId, userId)).returning().get() as MinorSettings;
+    }
+    return db.insert(minorSettings).values({ userId, portfolioUrl }).returning().get() as MinorSettings;
   }
 
   // --- Dashboard Stats & Validation Warnings ---

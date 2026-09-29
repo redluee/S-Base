@@ -1,20 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Plus, Trash2, Edit2, Tag, CornerDownRight, CheckSquare, X } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit2, Tag, CornerDownRight, CheckSquare, X, Link2 } from "lucide-react";
 import { t } from "@/lib/lang";
-import { api, type MinorVacation, type MinorStoryType } from "@/lib/api";
+import { api, type MinorVacation, type MinorStoryType, type MinorSettings } from "@/lib/api";
 import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorSettingsClientProps {
   initialVacations: MinorVacation[];
   initialStoryTypes: MinorStoryType[];
+  initialSettings: MinorSettings | null;
 }
 
-export function MinorSettingsClient({ initialVacations, initialStoryTypes }: MinorSettingsClientProps) {
+export function MinorSettingsClient({ initialVacations, initialStoryTypes, initialSettings }: MinorSettingsClientProps) {
   const [vacations, setVacations] = useState<MinorVacation[]>(initialVacations);
   const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
+
+  // Portfolio Settings
+  const [portfolioUrl, setPortfolioUrl] = useState(initialSettings?.portfolioUrl || "");
+  const [savingPortfolioUrl, setSavingPortfolioUrl] = useState(false);
+  const [portfolioUrlSaved, setPortfolioUrlSaved] = useState(false);
 
   // Vacation Modal
   const [isVacModalOpen, setIsVacModalOpen] = useState(false);
@@ -38,6 +44,23 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
   useEffect(() => {
     api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
   }, []);
+
+  // Portfolio Settings Handlers
+  async function handleSavePortfolioUrl(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPortfolioUrl(true);
+    setPortfolioUrlSaved(false);
+    try {
+      const updated = await api.minor.settings.update({ portfolioUrl: portfolioUrl.trim() || null });
+      setPortfolioUrl(updated.portfolioUrl || "");
+      setPortfolioUrlSaved(true);
+      setTimeout(() => setPortfolioUrlSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to save portfolio URL:", err);
+    } finally {
+      setSavingPortfolioUrl(false);
+    }
+  }
 
   // Vacation Handlers
   function openCreateVacModal() {
@@ -184,6 +207,44 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes }: Min
           {t("Configureer vakantieperiodes voor automatische sprintverlenging en beheer kwaliteitscriteria per story type.")}
         </p>
       </div>
+
+      {/* Portfolio Settings Section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2.5">
+          <Link2 className="size-5 text-brand" />
+          <h2 className="text-lg font-bold text-white tracking-tight">
+            {t("Portfolio Link")}
+          </h2>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/60 p-4 sm:p-6">
+          <form onSubmit={handleSavePortfolioUrl} className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1 space-y-1.5">
+              <label htmlFor="portfolio-url" className="text-xs font-semibold text-zinc-400">
+                {t("Portfolio site URL")}
+              </label>
+              <input
+                id="portfolio-url"
+                type="url"
+                value={portfolioUrl}
+                onChange={(e) => setPortfolioUrl(e.target.value)}
+                placeholder={t("vul hier je portfolio site url in")}
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
+              />
+              <p className="text-[11px] text-zinc-500">
+                {t("Deze link wordt automatisch ingevuld op de eerste pagina van de PDF-export.")}
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={savingPortfolioUrl}
+              className="flex items-center justify-center gap-2 min-h-11 py-2.5 px-4 rounded-xl bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              {portfolioUrlSaved ? t("Opgeslagen") : savingPortfolioUrl ? t("Opslaan...") : t("Opslaan")}
+            </button>
+          </form>
+        </div>
+      </section>
 
       {/* Vacation Management Section */}
       <section className="space-y-4">

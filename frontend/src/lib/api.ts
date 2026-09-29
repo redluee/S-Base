@@ -20,6 +20,7 @@ import type {
   MinorStoryType,
   MinorDefaultQualityCriterion,
   MinorPeerHelp,
+  MinorSettings,
   MinorDashboardStats,
   MinorStoryPresentationData,
   MinorStoryPresentationImage,
@@ -989,6 +990,11 @@ export const api = {
         request<MinorPeerHelp>(`/minor/peer-help/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ success: boolean }>(`/minor/peer-help/${id}`, { method: "DELETE" }),
     },
+    settings: {
+      get: () => request<MinorSettings>("/minor/settings"),
+      update: (data: { portfolioUrl?: string | null }) =>
+        request<MinorSettings>("/minor/settings", { method: "PUT", body: JSON.stringify(data) }),
+    },
     upload: async (file: File) => {
       const form = new FormData();
       form.append("file", file);
@@ -1020,6 +1026,7 @@ export type {
   MinorStoryType,
   MinorDefaultQualityCriterion,
   MinorPeerHelp,
+  MinorSettings,
   MinorDashboardStats,
   MinorStoryPresentationData,
   MinorStoryPresentationImage,

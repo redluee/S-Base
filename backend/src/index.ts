@@ -820,6 +820,8 @@ export const app = new Elysia()
         if (!r) return new Response("Not Found", { status: 404 });
         return r;
       })
+      .get("/settings", ({ userId }) => minor.getSettings(userId))
+      .put("/settings", ({ userId, body }) => minor.saveSettings(userId, (body ?? {}) as any))
       .post("/upload", async ({ body }) => {
         const { file } = (body ?? {}) as any;
         if (!file) {

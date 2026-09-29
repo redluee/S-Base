@@ -323,6 +323,11 @@ export interface MinorSprintExportData {
   reflection?: { date: string; whatLearned?: string | null; whatRetained?: string | null; whatChange?: string | null } | null;
 }
 
+export interface MinorSettings {
+  userId: number;
+  portfolioUrl: string | null;
+}
+
 export interface MinorPeerHelp {
   id: number;
   userId: number;

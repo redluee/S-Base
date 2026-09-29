@@ -158,13 +158,49 @@ const styles = StyleSheet.create({
   spacer: {
     height: 4,
   },
+
+  // Portfolio Link Row (Dashboard Page)
+  portfolioRow: {
+    flexDirection: "row",
+    marginTop: 8,
+  },
+  portfolioLabelCell: {
+    backgroundColor: COLOR_CARMINE_RED,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    justifyContent: "center",
+    width: "20%",
+  },
+  portfolioLabelText: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8,
+    color: COLOR_WHITE,
+  },
+  portfolioValueCell: {
+    flex: 1,
+    borderWidth: 0.5,
+    borderColor: COLOR_BORDER,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    justifyContent: "center",
+  },
+  portfolioValueText: {
+    fontSize: 8,
+    color: COLOR_BLACK,
+  },
+  portfolioValueTextPlaceholder: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Oblique",
+    color: "#999999",
+  },
 });
 
 interface DashboardPageProps {
   sprints: MinorSprintFull[];
+  portfolioUrl?: string | null;
 }
 
-function DashboardPdfPage({ sprints }: DashboardPageProps) {
+function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) {
   // Pre-calculate evaluation levels across all 8 sprints for dashboard
   const sprintLuLevels: Record<number, Record<number, string>> = {};
   for (let sNum = 1; sNum <= 8; sNum++) {
@@ -284,6 +320,17 @@ function DashboardPdfPage({ sprints }: DashboardPageProps) {
           ))}
         </View>
       </View>
+
+      <View style={styles.portfolioRow}>
+        <View style={styles.portfolioLabelCell}>
+          <Text style={styles.portfolioLabelText}>Portfolio</Text>
+        </View>
+        <View style={styles.portfolioValueCell}>
+          <Text style={portfolioUrl ? styles.portfolioValueText : styles.portfolioValueTextPlaceholder}>
+            {portfolioUrl || "vul hier je portfolio site url in"}
+          </Text>
+        </View>
+      </View>
     </Page>
   );
 }
@@ -300,6 +347,7 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
   const cellBg = isEven ? COLOR_EVEN_CELL : COLOR_ODD_CELL;
   const koprijBg = isEven ? COLOR_EVEN_SECTION : COLOR_ODD_CELL;
 
+  const isSelected = Boolean(sprint);
   const stories = sprint?.stories || [];
   const feedbackList = sprint?.feedback || [];
   const reflection = sprint?.reflection;
@@ -325,20 +373,19 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
           <View style={[styles.koprijCell, { width: "13.4%", alignItems: "center" }]}>
             <Text style={styles.koprijText}>Story</Text>
           </View>
-          <View style={[styles.koprijCell, { width: "57.5%" }]}>
+          <View style={[styles.koprijCell, { width: "28.87%" }]}>
             <Text style={styles.koprijText}>Story Omschrijving</Text>
           </View>
-          <View style={[styles.koprijCell, { width: "14.55%" }]}>
+          <View style={[styles.koprijCell, { width: "28.87%" }]}>
             <Text style={styles.koprijText}>Acceptatie Criteria</Text>
           </View>
-          <View style={[styles.tableCellLast, { width: "14.55%" }]}>
+          <View style={[styles.tableCellLast, { width: "28.86%" }]}>
             <Text style={styles.koprijText}>Kwaliteitscriteria</Text>
           </View>
         </View>
 
-        {/* 5 Story Rows */}
-        {[0, 1, 2, 3, 4].map((i) => {
-          const story = stories[i];
+        {/* Story Rows: unselected sprints get a single placeholder row, selected sprints show only their actual stories */}
+        {(isSelected ? (stories.length > 0 ? stories : [undefined]) : [undefined]).map((story, i, arr) => {
           const accCriteria = (story?.criteria || []).filter((c) => c.type === "acceptance");
           const qualCriteria = (story?.criteria || []).filter((c) => c.type === "quality");
 
@@ -363,23 +410,23 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
           return (
             <View
-              key={i}
+              key={story?.id ?? i}
               style={[
                 styles.tableRow,
                 { backgroundColor: cellBg, minHeight: 28 },
-                i === 4 ? { borderBottomWidth: 0 } : {},
+                i === arr.length - 1 ? { borderBottomWidth: 0 } : {},
               ]}
             >
               <View style={[styles.tableCell, { width: "13.4%", alignItems: "center" }]}>
                 <Text style={styles.cellText}>{story?.storyTypeCode || "US"}</Text>
               </View>
-              <View style={[styles.tableCell, { width: "57.5%" }]}>
+              <View style={[styles.tableCell, { width: "28.87%" }]}>
                 <Text style={styles.cellText}>{storyDesc}</Text>
               </View>
-              <View style={[styles.tableCell, { width: "14.55%" }]}>
+              <View style={[styles.tableCell, { width: "28.87%" }]}>
                 <Text style={styles.cellText}>{accText}</Text>
               </View>
-              <View style={[styles.tableCellLast, { width: "14.55%" }]}>
+              <View style={[styles.tableCellLast, { width: "28.86%" }]}>
                 <Text style={styles.cellText}>{qualText}</Text>
               </View>
             </View>
@@ -559,13 +606,14 @@ function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
 export interface IntegraalSprintLogboekPdfDocumentProps {
   sprints: MinorSprintFull[];
+  portfolioUrl?: string | null;
 }
 
-export function IntegraalSprintLogboekPdfDocument({ sprints }: IntegraalSprintLogboekPdfDocumentProps) {
+export function IntegraalSprintLogboekPdfDocument({ sprints, portfolioUrl }: IntegraalSprintLogboekPdfDocumentProps) {
   return (
     <Document title="Integraal Sprint Logboek v4">
       {/* Page 1: Dashboard */}
-      <DashboardPdfPage sprints={sprints} />
+      <DashboardPdfPage sprints={sprints} portfolioUrl={portfolioUrl} />
 
       {/* Pages 2..9: Sprints 1 t/m 8 */}
       {[1, 2, 3, 4, 5, 6, 7, 8].map((sprintNum) => (
@@ -580,27 +628,22 @@ export function IntegraalSprintLogboekPdfDocument({ sprints }: IntegraalSprintLo
 }
 
 export async function downloadAllSprintsPDF(providedSprints: MinorSprintFull[] = []): Promise<void> {
-  let sprintsToUse: MinorSprintFull[] = providedSprints;
-
-  if (sprintsToUse.length < 8) {
-    try {
-      const sprintList = await api.minor.sprints.list();
-      if (sprintList && sprintList.length > 0) {
-        const fullSprints = await Promise.all(
-          sprintList.map((s) => api.minor.sprints.get(s.id))
-        );
-        sprintsToUse = fullSprints;
-      }
-    } catch (err) {
-      console.warn("Could not fetch all sprints for PDF:", err);
-    }
-  }
+  // Only the sprints explicitly provided are treated as "selected" and get their data filled in;
+  // any of Sprint 1 t/m 8 not present here renders as a blank placeholder page.
+  const sprintsToUse: MinorSprintFull[] = providedSprints;
 
   let name = "";
+  let portfolioUrl: string | null = null;
   try {
-    const me = await api.me();
+    const [me, settings] = await Promise.all([
+      api.me().catch(() => null),
+      api.minor.settings.get().catch(() => null),
+    ]);
     if (me?.user?.username) {
       name = me.user.username;
+    }
+    if (settings?.portfolioUrl) {
+      portfolioUrl = settings.portfolioUrl;
     }
   } catch {
     // ignore
@@ -610,7 +653,7 @@ export async function downloadAllSprintsPDF(providedSprints: MinorSprintFull[] =
     ? `Integraal_Sprint_Logboek_${name}.pdf`
     : `Integraal_Sprint_Logboek_v4.pdf`;
 
-  const doc = <IntegraalSprintLogboekPdfDocument sprints={sprintsToUse} />;
+  const doc = <IntegraalSprintLogboekPdfDocument sprints={sprintsToUse} portfolioUrl={portfolioUrl} />;
   const blob = await pdf(doc).toBlob();
 
   if (typeof window !== "undefined") {

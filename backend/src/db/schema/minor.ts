@@ -115,6 +115,11 @@ export const minorReflections = sqliteTable("minor_reflections", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const minorSettings = sqliteTable("minor_settings", {
+  userId: integer("user_id").primaryKey().references(() => users.userId, { onDelete: "cascade" }),
+  portfolioUrl: text("portfolio_url"),
+});
+
 export const minorPeerHelp = sqliteTable("minor_peer_help", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
