@@ -61,6 +61,7 @@ export const resumes = sqliteTable("resumes", {
   textFont: text("text_font").notNull().default("carlito"),
   accentColor: text("accent_color").notNull().default("#1f7bc4"),
   leftWidthPct: integer("left_width_pct").notNull().default(70),
+  swapColumns: integer("swap_columns", { mode: "boolean" }).notNull().default(false),
   titleScalePct: integer("title_scale_pct").notNull().default(100),
   textScalePct: integer("text_scale_pct").notNull().default(100),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),

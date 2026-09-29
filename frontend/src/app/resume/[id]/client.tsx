@@ -53,12 +53,13 @@ interface Props {
 }
 
 export function ResumeEditorClient({ initial, experiences, educations }: Props) {
-  const [settings, setSettings] = useState<Pick<Resume, "name" | "titleFont" | "textFont" | "accentColor" | "leftWidthPct" | "titleScalePct" | "textScalePct">>({
+  const [settings, setSettings] = useState<Pick<Resume, "name" | "titleFont" | "textFont" | "accentColor" | "leftWidthPct" | "swapColumns" | "titleScalePct" | "textScalePct">>({
     name: initial.resume.name,
     titleFont: initial.resume.titleFont,
     textFont: initial.resume.textFont,
     accentColor: initial.resume.accentColor,
     leftWidthPct: initial.resume.leftWidthPct,
+    swapColumns: initial.resume.swapColumns,
     titleScalePct: initial.resume.titleScalePct,
     textScalePct: initial.resume.textScalePct,
   });
@@ -377,13 +378,23 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
         <div className="border-t border-border pt-4">
           <SliderField
             label={t("Kolombreedte")}
-            display={`${settings.leftWidthPct} / ${100 - settings.leftWidthPct}`}
+            display={settings.swapColumns ? `${100 - settings.leftWidthPct} / ${settings.leftWidthPct}` : `${settings.leftWidthPct} / ${100 - settings.leftWidthPct}`}
             min={RESUME_COLUMN_MIN}
             max={RESUME_COLUMN_MAX}
             step={RESUME_COLUMN_STEP}
             value={settings.leftWidthPct}
             onChange={(v) => changeSettings({ leftWidthPct: snapColumnWidth(v) })}
+            inverted={settings.swapColumns}
           />
+          <label className="mt-2 flex items-center gap-3 min-h-11 sm:min-h-8 text-sm text-zinc-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.swapColumns}
+              onChange={(e) => changeSettings({ swapColumns: e.target.checked })}
+              className="size-5 sm:size-4 accent-[#00e3a4]"
+            />
+            {t("Kolommen omwisselen")}
+          </label>
         </div>
         <p className="text-xs text-zinc-500">
           {t("Foto, persoonsgegevens, vaardigheden, talen en hobby's beheer je op de")}{" "}

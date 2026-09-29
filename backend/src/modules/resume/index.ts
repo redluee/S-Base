@@ -260,7 +260,7 @@ export class ResumeService {
     return db.select().from(resumes).where(and(eq(resumes.id, id), eq(resumes.userId, userId))).get();
   }
 
-  private resumeSettings(data: any, base: { titleFont: string; textFont: string; accentColor: string; leftWidthPct: number; titleScalePct: number; textScalePct: number; name: string }) {
+  private resumeSettings(data: any, base: { titleFont: string; textFont: string; accentColor: string; leftWidthPct: number; swapColumns: boolean; titleScalePct: number; textScalePct: number; name: string }) {
     const name = data.name !== undefined ? str(data.name, 100) : base.name;
     if (!name) throw new Error("Name is required");
     const titleFont = data.titleFont !== undefined ? data.titleFont : base.titleFont;
@@ -272,16 +272,17 @@ export class ResumeService {
     if (!Number.isInteger(leftWidthPct) || leftWidthPct % 5 !== 0 || leftWidthPct < 50 || leftWidthPct > 80) {
       throw new Error("Invalid column width");
     }
+    const swapColumns = data.swapColumns !== undefined ? Boolean(data.swapColumns) : base.swapColumns;
     const titleScalePct = data.titleScalePct !== undefined ? Number(data.titleScalePct) : base.titleScalePct;
     const textScalePct = data.textScalePct !== undefined ? Number(data.textScalePct) : base.textScalePct;
     for (const scale of [titleScalePct, textScalePct]) {
       if (!Number.isInteger(scale) || scale % 5 !== 0 || scale < 80 || scale > 140) throw new Error("Invalid font size");
     }
-    return { name, titleFont, textFont, accentColor, leftWidthPct, titleScalePct, textScalePct };
+    return { name, titleFont, textFont, accentColor, leftWidthPct, swapColumns, titleScalePct, textScalePct };
   }
 
   createResume(userId: number, data: any): Resume {
-    const values = this.resumeSettings(data, { name: "", titleFont: "carlito", textFont: "carlito", accentColor: "#1f7bc4", leftWidthPct: 70, titleScalePct: 100, textScalePct: 100 });
+    const values = this.resumeSettings(data, { name: "", titleFont: "carlito", textFont: "carlito", accentColor: "#1f7bc4", leftWidthPct: 70, swapColumns: false, titleScalePct: 100, textScalePct: 100 });
     const row = db.insert(resumes).values({ userId, ...values }).returning().get();
     const items: ResumeItemInput[] = [
       ...this.listExperiences(userId).map((e) => ({ kind: "experience" as const, refId: e.id })),
@@ -317,6 +318,7 @@ export class ResumeService {
       textFont: existing.textFont,
       accentColor: existing.accentColor,
       leftWidthPct: existing.leftWidthPct,
+      swapColumns: existing.swapColumns,
       titleScalePct: existing.titleScalePct,
       textScalePct: existing.textScalePct,
     }).returning().get();

@@ -88,6 +88,7 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
       <Text key={i} style={{ fontSize: th.side, lineHeight: 1.5 }}>{item}</Text>
     ));
 
+  const swap = resume.swapColumns;
   const columnWidth = PAGE.width - PAGE.padding * 2 - PAGE.gap;
   const rightWidth = (columnWidth * (100 - resume.leftWidthPct)) / 100;
   const photoSize = Math.min(150, rightWidth - PAGE.gap / 2 - 0.75);
@@ -95,8 +96,8 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
   const doc = (
     <Document title={resume.name} author={profile.fullName || undefined}>
       <Page size="A4" style={{ padding: PAGE.padding, fontFamily: textFamily, color: th.text, backgroundColor: "#ffffff" }}>
-        <View style={{ flexDirection: "row" }}>
-          <View style={{ width: `${resume.leftWidthPct}%`, marginRight: PAGE.gap / 2 }}>
+        <View style={{ flexDirection: swap ? "row-reverse" : "row" }}>
+          <View style={{ width: `${resume.leftWidthPct}%`, ...(swap ? { marginLeft: PAGE.gap / 2 } : { marginRight: PAGE.gap / 2 }) }}>
             <View style={{ paddingTop: 34, marginBottom: 26 }}>
               <Text style={{ ...bold(titleFamily), fontSize: th.name, lineHeight: 1.1 }}>{profile.fullName || " "}</Text>
               {profile.headline ? <Text style={{ fontSize: th.headline, marginTop: 12 }}>{profile.headline}</Text> : null}
@@ -115,7 +116,7 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
             )}
           </View>
 
-          <View style={{ flex: 1, borderLeftWidth: 0.75, borderLeftColor: accent, borderLeftStyle: "solid", paddingLeft: PAGE.gap / 2 }}>
+          <View style={{ flex: 1, textAlign: "right", ...(swap ? { borderRightWidth: 0.75, borderRightColor: accent, borderRightStyle: "solid", paddingRight: PAGE.gap / 2 } : { borderLeftWidth: 0.75, borderLeftColor: accent, borderLeftStyle: "solid", paddingLeft: PAGE.gap / 2 }) }}>
             {photo ? (
               // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt
               <Image
@@ -126,6 +127,7 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
                   objectFit: "cover",
                   borderRadius: profile.photoShape === "circle" ? photoSize / 2 : photoSize * 0.08,
                   marginBottom: 20,
+                  alignSelf: "flex-end",
                 }}
               />
             ) : null}
@@ -134,23 +136,21 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
               <View style={{ marginBottom: 26 }}>
                 {label(t("Persoonsgegevens"))}
                 {rows.map((r) => (
-                  <View key={r.label} style={{ flexDirection: "row", marginBottom: 1 }}>
-                    <Text style={{ ...bold(textFamily), fontSize: th.side, lineHeight: 1.5, width: th.sideLabelWidth, paddingRight: 4 }}>{t(r.label)}:</Text>
-                    <Text style={{ fontSize: th.side, lineHeight: 1.5, flex: 1 }}>{r.value}</Text>
-                  </View>
+                  <Text key={r.label} style={{ fontSize: th.side, lineHeight: 1.5, marginBottom: 1 }}>
+                    <Text style={bold(textFamily)}>{t(r.label)}: </Text>
+                    {r.value}
+                  </Text>
                 ))}
                 {profile.links.length > 0 && (
-                  <View style={{ flexDirection: "row" }}>
-                    <Text style={{ ...bold(textFamily), fontSize: th.side, lineHeight: 1.5, width: th.sideLabelWidth, paddingRight: 4 }}>{t("Online")}:</Text>
-                    <Text style={{ fontSize: th.side, lineHeight: 1.5, flex: 1 }}>
-                      {profile.links.map((l, i) => (
-                        <Text key={i}>
-                          {i > 0 ? " / " : ""}
-                          <Link src={l.url} style={{ color: accent, textDecoration: "underline" }}>{l.label}</Link>
-                        </Text>
-                      ))}
-                    </Text>
-                  </View>
+                  <Text style={{ fontSize: th.side, lineHeight: 1.5 }}>
+                    <Text style={bold(textFamily)}>{t("Online")}: </Text>
+                    {profile.links.map((l, i) => (
+                      <Text key={i}>
+                        {i > 0 ? " / " : ""}
+                        <Link src={l.url} style={{ color: accent, textDecoration: "underline" }}>{l.label}</Link>
+                      </Text>
+                    ))}
+                  </Text>
                 )}
               </View>
             )}

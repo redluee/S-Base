@@ -90,6 +90,7 @@ export function SliderField({
   step,
   value,
   onChange,
+  inverted = false,
 }: {
   label: string;
   display: string;
@@ -98,6 +99,7 @@ export function SliderField({
   step: number;
   value: number;
   onChange: (value: number) => void;
+  inverted?: boolean;
 }) {
   return (
     <label className="block">
@@ -112,6 +114,7 @@ export function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        style={inverted ? { direction: "rtl" } : undefined}
         className="w-full h-11 sm:h-7 accent-[#00e3a4]"
       />
     </label>

@@ -404,6 +404,7 @@ export interface Resume {
   textFont: string;
   accentColor: string;
   leftWidthPct: number;
+  swapColumns: boolean;
   titleScalePct: number;
   textScalePct: number;
   createdAt: string;
