@@ -1,4 +1,4 @@
-import type { ResumePeriod } from "@backend/types/shared";
+import type { ResumeFull, ResumePeriod } from "@backend/types/shared";
 
 const MONTHS_NL = [
   "Januari", "Februari", "Maart", "April", "Mei", "Juni",
@@ -121,4 +121,14 @@ export function scaledTheme(resume: { titleScalePct: number; textScalePct: numbe
     side: round(resumeTheme.side * xs),
     sideLabelWidth: round(74 * xs),
   };
+}
+
+export function detailRows(profile: ResumeFull["profile"]) {
+  return [
+    { label: "Woonplaats", value: profile.residence },
+    { label: "Telefoonnummer", value: profile.phone },
+    { label: "Email", value: profile.email },
+    { label: "Geboortedatum", value: profile.birthDate },
+    { label: "Rijbewijs", value: profile.drivingLicense },
+  ].filter((r) => r.value);
 }

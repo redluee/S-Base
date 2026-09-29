@@ -9,8 +9,8 @@
 | `/resume/experience`, `/resume/education` | `*/page.tsx` | `library.tsx` (shared) | CRUD for the ervaring/opleiding library |
 
 ## Key Components & Libraries
-- `components/resume-document.tsx`: HTML preview (`ResumePreview` scales an A4 page, `ResumeDocument` is the layout).
-- `components/resume-pdf.tsx`: `@react-pdf/renderer` version of the same layout (lazy loaded, `downloadResumePDF`). Keep both in sync; sizes come from `resumeTheme`/`PAGE` in `lib/resume.ts` (pt units).
+- `components/resume-pdf-preview.tsx`: live preview. Renders the actual PDF from `buildResumePDFBlob` (debounced 400ms) to canvas pages with `pdfjs-dist`, so it is identical to the download.
+- `components/resume-pdf.tsx`: `@react-pdf/renderer` layout, the single source for both preview and download (lazy loaded, `downloadResumePDF`). Sizes come from `resumeTheme`/`PAGE` in `lib/resume.ts` (pt units).
 - `lib/resume.ts`: date formatting (Dutch months), column snapping, curated fonts. `lib/resume-fonts.ts`: resolves curated/Google fonts to URLs.
 - Curated font TTFs are in `public/fonts/resume/` (react-pdf needs TTF, not woff2).
 - Entries show the job title/degree in bold first, then organisation and place.

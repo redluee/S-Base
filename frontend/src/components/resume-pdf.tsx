@@ -1,10 +1,22 @@
 import type { ResumeFull, ResumeEntry } from "@backend/types/shared";
-import { PAGE, scaledTheme, formatPeriod, type ResolvedFont } from "@/lib/resume";
+import { PAGE, scaledTheme, formatPeriod, detailRows, type ResolvedFont } from "@/lib/resume";
 import { resolveResumeFont } from "@/lib/resume-fonts";
-import { detailRows } from "@/components/resume-document";
 import { t } from "@/lib/lang";
 
-async function photoToDataUrl(path: string): Promise<string | null> {
+const registeredFonts = new Set<string>();
+const photoCache = new Map<string, Promise<string | null>>();
+
+function photoToDataUrl(path: string): Promise<string | null> {
+  let cached = photoCache.get(path);
+  if (!cached) {
+    cached = fetchPhotoDataUrl(path);
+    photoCache.set(path, cached);
+    cached.then((v) => { if (!v) photoCache.delete(path); });
+  }
+  return cached;
+}
+
+async function fetchPhotoDataUrl(path: string): Promise<string | null> {
   try {
     const res = await fetch(path, { credentials: "include" });
     if (!res.ok) return null;
@@ -30,7 +42,7 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
     profile.photoPath ? photoToDataUrl(profile.photoPath) : Promise.resolve(null),
   ]);
 
-  const registered = new Set<string>();
+  const registered = registeredFonts;
   const register = (font: ResolvedFont | null) => {
     if (!font) return "Helvetica";
     if (!registered.has(font.family)) {

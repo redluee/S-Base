@@ -14,9 +14,8 @@ import type {
 } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
-import { formatPeriod, snapColumnWidth, RESUME_COLUMN_MIN, RESUME_COLUMN_MAX, RESUME_COLUMN_STEP, RESUME_SCALE_MIN, RESUME_SCALE_MAX, RESUME_SCALE_STEP, snapScale, type ResolvedFont } from "@/lib/resume";
-import { resolveResumeFont } from "@/lib/resume-fonts";
-import { ResumePreview } from "@/components/resume-document";
+import { formatPeriod, snapColumnWidth, RESUME_COLUMN_MIN, RESUME_COLUMN_MAX, RESUME_COLUMN_STEP, RESUME_SCALE_MIN, RESUME_SCALE_MAX, RESUME_SCALE_STEP, snapScale } from "@/lib/resume";
+import { ResumePdfPreview } from "@/components/resume-pdf-preview";
 import { downloadResumePDF } from "@/components/resume-pdf";
 import { FontPicker, SliderField } from "./font-picker";
 
@@ -67,23 +66,12 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
     initial.selected.map((s) => ({ kind: s.kind, refId: s.refId, override: s.descriptionOverride ?? null }))
   );
   const [profile] = useState<ResumeProfile>(initial.profile);
-  const [titleFont, setTitleFont] = useState<ResolvedFont | null>(null);
-  const [textFont, setTextFont] = useState<ResolvedFont | null>(null);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [openOverride, setOpenOverride] = useState<string | null>(null);
   const dirty = useRef(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    resolveResumeFont(settings.titleFont).then((f) => !cancelled && setTitleFont(f));
-    resolveResumeFont(settings.textFont).then((f) => !cancelled && setTextFont(f));
-    return () => {
-      cancelled = true;
-    };
-  }, [settings.titleFont, settings.textFont]);
 
   useEffect(() => {
     if (!dirty.current) return;
@@ -270,7 +258,7 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
           {sel && openOverride === key && (
             <div className="px-3 pb-3 space-y-2">
               <textarea
-                rows={4}
+                style={{ height: 100 }}
                 className={`${inputCls} py-2 resize-y text-xs`}
                 value={sel.override ?? src.description}
                 onChange={(e) => setOverride(kind, src.id, e.target.value)}
@@ -427,7 +415,7 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-6 items-start">
         <div className={tab === "edit" ? "block" : "hidden lg:block"}>{editor}</div>
         <div className={`${tab === "preview" ? "block" : "hidden lg:block"} lg:sticky lg:top-24`}>
-          <ResumePreview data={full} titleFont={titleFont} textFont={textFont} />
+          <ResumePdfPreview data={full} />
         </div>
       </div>
     </div>
