@@ -520,7 +520,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                       key={idx}
                       className="p-2.5 rounded-xl bg-zinc-900/90 border border-white/10 space-y-2"
                     >
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,6fr)_minmax(0,5fr)_auto] gap-2 items-center">
                         <input
                           type="text"
                           value={site.title || site.name || ""}
@@ -531,7 +531,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                             );
                           }}
                           placeholder={t("Weergavenaam (bijv. Live Applicatie, Staging Omgeving)")}
-                          className="sm:col-span-6 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand font-medium"
+                          className="min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand font-medium"
                         />
                         <input
                           type="text"
@@ -543,9 +543,9 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                             );
                           }}
                           placeholder="https://..."
-                          className="sm:col-span-5 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-brand"
+                          className="min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-brand"
                         />
-                        <div className="sm:col-span-1 flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1">
                           {site.url.trim().length > 0 && (
                             <a
                               href={site.url}
@@ -654,7 +654,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                             );
                           }}
                           placeholder="Titel (bijv. Onderzoeksrapport, Figma, Live Link)"
-                          className="sm:col-span-6 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand font-medium"
+                          className="min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand font-medium"
                         />
                         <input
                           type="text"
@@ -666,9 +666,9 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                             );
                           }}
                           placeholder="/api/minor/uploads/... of https://..."
-                          className="sm:col-span-5 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-brand"
+                          className="min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-brand"
                         />
-                        <div className="sm:col-span-1 flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1">
                           {doc.url.trim().length > 0 && (
                             <a
                               href={doc.url}
