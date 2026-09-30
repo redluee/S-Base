@@ -6,7 +6,7 @@ This guide enables AI models to navigate and understand the Minor module without
 - **Module key**: `minor`
 - **Auth middleware**: `createAuthPlugin("minor")` in `backend/src/index.ts`
 - **Service instance**: `MinorService` instantiated at startup in `backend/src/index.ts`
-- **Routes group**: `.group("/api/minor", ...)` located in `backend/src/index.ts` lines ~670-806
+- **Routes group**: `.group("/api/minor", ...)` located in `backend/src/index.ts` (search for `// --- Minor App`)
 - **Test file**: `backend/src/modules/minor/minor.test.ts` (run with `DB_PATH=:memory: bun test backend/src/modules/minor/minor.test.ts`)
 
 ---
@@ -113,3 +113,28 @@ This guide enables AI models to navigate and understand the Minor module without
 2. **Vacations**: Overlapping vacations extend sprint duration automatically and adjust the Show & Grow date (Wednesday in the last week).
 3. **Dual Criteria**: Each story has two criteria groups: `acceptance` criteria (story specific) and `quality` criteria (process/DoD related, often pre-filled from story type). Both support 1-level indentation (`indent: 1`).
 4. **Presentation Data**: `presentationData` in `minor_stories` stores JSON for Show & Grow slides (custom title, notes, demo URLs, screenshots, bullet points).
+
+
+---
+
+## Publishing to minor.stevenheijn.nl (snapshot + n8n)
+
+The public one-pager `minor.stevenheijn.nl` (repo `redluee/future-proof-met-ai`, local `~/Development/future-proof-met-ai`, Vercel) is a **read-only view** of a snapshot produced here. S-Base is the only source of truth. Do not change the snapshot format, the routes or the env vars without also updating the n8n workflow (`docs/n8n/minor-publish.workflow.json`) and the site repo (`src/types/snapshot.ts`, bump `version`). Never edit the site repo on its own to add data, auth or a database.
+
+Flow: `saveSelfEvaluations` -> `PublishNotifier` POSTs to n8n (`N8N_WEBHOOK_URL`, header `X-Webhook-Secret`) -> n8n GETs `/api/minor/public/snapshot` (Bearer `MINOR_SNAPSHOT_TOKEN`) -> n8n commits `data/minor-snapshot.json` and `public/minor/*` to the site repo -> Vercel rebuilds.
+
+| Piece | File |
+|-------|------|
+| Snapshot builder (`buildPublicSnapshot`), bearer check, asset rules | `public-snapshot.ts` |
+| Webhook notifier (fire-and-forget, 3s timeout, never throws) | `publish-notifier.ts` |
+| Routes (outside `minorAuth`, token only) | `GET /api/minor/public/snapshot`, `GET /api/minor/public/assets/:filename` in `backend/src/index.ts` |
+| Tests | `public-snapshot.test.ts` |
+
+Rules baked into the snapshot:
+- A sprint is published once any self-evaluation has `level != "-"` or a non-empty argumentation.
+- No ids, no `feedback.fromWhom`, no `peerHelp.peerName`, no presentation `notes`.
+- Upload URLs `/api/uploads/minor_*` are rewritten to `/minor/<file>` and listed in `assets[]` (sha256, size, max 5 MB).
+- `contentHash` covers everything except `generatedAt`; n8n skips the commit when it is unchanged.
+- `autoGenerateSelfEvaluations` and `saveTeacherAssessments` do not trigger a publish.
+
+Env vars (see `.env.example`): `MINOR_SNAPSHOT_TOKEN`, `MINOR_PUBLISH_USERNAME`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`. Without them the routes answer 503 and the notifier does nothing.

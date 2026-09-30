@@ -35,6 +35,7 @@ import type {
   MinorSprintExportData,
   MinorSprintExportStory,
 } from "../../types/shared";
+import { PublishNotifier } from "./publish-notifier";
 
 export const DEFAULT_STORY_TYPES: Array<{
   code: string;
@@ -135,6 +136,8 @@ export function calculateSprintStatus(
 }
 
 export class MinorService {
+  private notifier = new PublishNotifier();
+
   // --- Vacation & Date Calculation Engine ---
 
   listVacations(userId: number): MinorVacation[] {
@@ -1488,7 +1491,9 @@ export class MinorService {
       }
     }
 
-    return db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, sprintId)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
+    const saved = db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, sprintId)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
+    this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId });
+    return saved;
   }
 
   saveTeacherAssessments(sprintId: number, userId: number, items: { learningOutcome: number; assessment: "V" | "O" | "-"; notes?: string; evaluatedAt?: string }[]): MinorTeacherAssessment[] {

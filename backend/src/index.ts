@@ -10,6 +10,7 @@ import { PulseService, ServerShutdownService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
 import { createDiscordBot } from "./modules/minecraft/discord-bot";
 import { MinorService } from "./modules/minor";
+import { ASSET_NAME_PATTERN, bearerTokenCheck, buildPublicSnapshot, defaultUploadsDir, resolvePublishUserId } from "./modules/minor/public-snapshot";
 import { ResumeService } from "./modules/resume";
 import { ensureGoogleFont, googleFamilyOf, resolveFontFile } from "./modules/resume/fonts";
 import db from "./db/client";
@@ -565,6 +566,27 @@ export const app = new Elysia()
       return new Response(file);
     }
     return new Response("Not Found", { status: 404 });
+  })
+
+  .get("/api/minor/public/snapshot", ({ request }) => {
+    const denied = bearerTokenCheck(request, "MINOR_SNAPSHOT_TOKEN");
+    if (denied) return denied;
+    const ownerId = resolvePublishUserId();
+    if (ownerId === null) {
+      return new Response(JSON.stringify({ error: "Publish user not configured" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return buildPublicSnapshot(minor, ownerId);
+  })
+  .get("/api/minor/public/assets/:filename", async ({ params: { filename }, request }) => {
+    const denied = bearerTokenCheck(request, "MINOR_SNAPSHOT_TOKEN");
+    if (denied) return denied;
+    if (!ASSET_NAME_PATTERN.test(filename)) return new Response("Not Found", { status: 404 });
+    const file = Bun.file(join(defaultUploadsDir, filename));
+    if (!(await file.exists())) return new Response("Not Found", { status: 404 });
+    return new Response(file);
   })
 
   // --- Cashflow routes ---

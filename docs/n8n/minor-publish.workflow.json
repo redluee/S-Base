@@ -1,0 +1,712 @@
+{
+  "name": "Minor publish",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "minor-publish",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "minor-publish",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "SBase Webhook"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "nightly",
+      "name": "Nightly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://172.17.0.1:3001/api/minor/public/snapshot",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fetch-snapshot",
+      "name": "Fetch Snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "SBase Snapshot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const snap = $input.first().json;\nif (snap.version !== 1 || !snap.contentHash || !Array.isArray(snap.sprints) || !Array.isArray(snap.assets)) {\n  throw new Error('Invalid snapshot envelope');\n}\nfor (const s of snap.sprints) {\n  if (!Array.isArray(s.stories) || !Array.isArray(s.selfEvaluations)) throw new Error('Invalid sprint in snapshot');\n}\nif (/fromWhom|peerName/.test(JSON.stringify(snap))) throw new Error('Snapshot contains person names');\nreturn [{ json: { snapshot: snap, contentHash: snap.contentHash, assetFiles: snap.assets.map((a) => a.path.replace('public/minor/', '')) } }];"
+      },
+      "id": "validate-snapshot",
+      "name": "Validate Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/contents/data/minor-snapshot.json?ref=main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-repo-snapshot",
+      "name": "Get Repo Snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Validate Snapshot').first().json.contentHash;\nconst repo = $input.first().json;\nlet previous = '';\nif (repo.content) {\n  try { previous = JSON.parse(Buffer.from(repo.content, 'base64').toString('utf8')).contentHash || ''; } catch (e) {}\n}\nif (previous === current) return [];\nreturn [{ json: {} }];"
+      },
+      "id": "changed",
+      "name": "Changed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/ref/heads/main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-main-ref",
+      "name": "Get Main Ref",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/commits/{{ $json.object.sha }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-commit",
+      "name": "Get Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/trees/{{ $json.tree.sha }}?recursive=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-tree",
+      "name": "Get Tree",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const tree = $('Get Tree').first().json.tree || [];\nconst existing = new Set(tree.filter((t) => t.path.startsWith('public/minor/')).map((t) => t.path));\nconst needed = $('Validate Snapshot').first().json.assetFiles;\nconst missing = needed.filter((f) => !existing.has('public/minor/' + f));\nif (!missing.length) return [{ json: { file: null } }];\nreturn missing.map((file) => ({ json: { file } }));"
+      },
+      "id": "plan-assets",
+      "name": "Plan Assets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-file",
+              "leftValue": "={{ $json.file }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-missing-assets",
+      "name": "Has Missing Assets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2340,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://172.17.0.1:3001/api/minor/public/assets/{{ $json.file }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "fetch-asset",
+      "name": "Fetch Asset",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2600,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "SBase Snapshot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nconst files = $('Plan Assets').all();\nfor (let i = 0; i < items.length; i++) {\n  const buf = await this.helpers.getBinaryDataBuffer(i, 'data');\n  out.push({ json: { file: files[i].json.file, content: buf.toString('base64') } });\n}\nreturn out;"
+      },
+      "id": "to-base64",
+      "name": "To Base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/blobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: $json.content, encoding: 'base64' }) }}"
+      },
+      "id": "create-asset-blob",
+      "name": "Create Asset Blob",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3120,
+        0
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const validate = $('Validate Snapshot').first().json;\nconst headSha = $('Get Main Ref').first().json.object.sha;\nconst baseTree = $('Get Commit').first().json.tree.sha;\nconst existing = ($('Get Tree').first().json.tree || []).filter((t) => t.type === 'blob' && t.path.startsWith('public/minor/') && !t.path.endsWith('.gitkeep'));\nconst entries = [{ path: 'data/minor-snapshot.json', mode: '100644', type: 'blob', content: JSON.stringify(validate.snapshot, null, 2) + '\\n' }];\nconst uploaded = $input.all().filter((i) => i.json.sha);\nconst files = uploaded.length ? $('To Base64').all() : [];\nuploaded.forEach((item, i) => entries.push({ path: 'public/minor/' + files[i].json.file, mode: '100644', type: 'blob', sha: item.json.sha }));\nconst keep = new Set(validate.assetFiles.map((f) => 'public/minor/' + f));\nfor (const t of existing) if (!keep.has(t.path)) entries.push({ path: t.path, mode: '100644', type: 'blob', sha: null });\nreturn [{ json: { headSha, baseTree, tree: entries, message: 'chore(minor): sync snapshot ' + validate.contentHash.slice(0, 7) } }];"
+      },
+      "id": "build-tree",
+      "name": "Build Tree",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3380,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/trees",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ base_tree: $json.baseTree, tree: $json.tree }) }}"
+      },
+      "id": "create-tree",
+      "name": "Create Tree",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3640,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/commits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $('Build Tree').first().json.message, tree: $json.sha, parents: [$('Build Tree').first().json.headSha] }) }}"
+      },
+      "id": "create-commit",
+      "name": "Create Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3900,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.github.com/repos/redluee/future-proof-met-ai/git/refs/heads/main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sha: $json.sha }) }}"
+      },
+      "id": "update-ref",
+      "name": "Update Ref",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4160,
+        100
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Minor Site"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nightly": {
+      "main": [
+        [
+          {
+            "node": "Fetch Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Validate Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Get Repo Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Repo Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Changed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Changed": {
+      "main": [
+        [
+          {
+            "node": "Get Main Ref",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Main Ref": {
+      "main": [
+        [
+          {
+            "node": "Get Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Commit": {
+      "main": [
+        [
+          {
+            "node": "Get Tree",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tree": {
+      "main": [
+        [
+          {
+            "node": "Plan Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Assets": {
+      "main": [
+        [
+          {
+            "node": "Has Missing Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Asset": {
+      "main": [
+        [
+          {
+            "node": "To Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To Base64": {
+      "main": [
+        [
+          {
+            "node": "Create Asset Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Asset Blob": {
+      "main": [
+        [
+          {
+            "node": "Build Tree",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Tree": {
+      "main": [
+        [
+          {
+            "node": "Create Tree",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Tree": {
+      "main": [
+        [
+          {
+            "node": "Create Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Commit": {
+      "main": [
+        [
+          {
+            "node": "Update Ref",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Missing Assets": {
+      "main": [
+        [
+          {
+            "node": "Fetch Asset",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Tree",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
