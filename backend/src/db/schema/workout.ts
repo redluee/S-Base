@@ -40,6 +40,8 @@ export const workoutSessions = sqliteTable("workout_sessions", {
   completedAt: text("completed_at"),
   notes: text("notes"),
   name: text("name"),
+  pausedAt: text("paused_at"),
+  pausedSeconds: integer("paused_seconds").notNull().default(0),
 });
 
 export const sessionExercises = sqliteTable("session_exercises", {
@@ -51,6 +53,7 @@ export const sessionExercises = sqliteTable("session_exercises", {
   equipment: text("equipment"),
   perSide: integer("per_side").notNull().default(0),
   isAssisted: integer("is_assisted").notNull().default(0),
+  restTime: integer("rest_time"),
 });
 
 export const sessionSets = sqliteTable("session_sets", {

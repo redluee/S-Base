@@ -70,6 +70,8 @@ export interface WorkoutSession {
   completedAt: string | null;
   notes: string | null;
   name: string | null;
+  pausedAt?: string | null;
+  pausedSeconds?: number;
   exerciseCount?: number;
   completedSetsCount?: number;
   totalSetsCount?: number;
@@ -97,6 +99,7 @@ export interface SessionExercise {
   equipment?: string | null;
   perSide?: number | null;
   isAssisted?: number | null;
+  restTime?: number | null;
   sets: SessionSet[];
   templateExercise?: {
     defaultReps?: number | null;
@@ -122,6 +125,7 @@ export interface PersonalRecord {
   prevValue: number;
   newValue: number;
   unit: string;
+  assisted?: boolean;
 }
 
 export interface MinorVacation {
