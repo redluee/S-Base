@@ -69,6 +69,10 @@ export function ExerciseCategorySelector({
   const [isCatOpen, setIsCatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const catTriggerRef = useRef<HTMLButtonElement>(null);
+  const matTriggerRef = useRef<HTMLButtonElement>(null);
+  const catMenuRef = useRef<HTMLDivElement>(null);
+  const matMenuRef = useRef<HTMLDivElement>(null);
 
   const currentCategory = normalizeCategoryName(category);
 
@@ -90,6 +94,31 @@ export function ExerciseCategorySelector({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isCatOpen) catMenuRef.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus();
+  }, [isCatOpen]);
+
+  useEffect(() => {
+    if (isOpen) matMenuRef.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus();
+  }, [isOpen, activeTab]);
+
+  const closeMenus = (restoreFocus: boolean) => {
+    const trigger = isCatOpen ? catTriggerRef.current : isOpen ? matTriggerRef.current : null;
+    setIsOpen(false);
+    setIsCatOpen(false);
+    setActiveTab(null);
+    if (restoreFocus) trigger?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && (isOpen || isCatOpen)) {
+      e.stopPropagation();
+      closeMenus(true);
+    }
+  };
+
+  const pillHit = "relative min-h-9 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']";
+
   const addEquipment = (eq: string) => {
     if (!eq || selectedEquipment.includes(eq)) return;
     const newEq = [...selectedEquipment, eq].join(", ");
@@ -100,6 +129,7 @@ export function ExerciseCategorySelector({
     }
     setIsOpen(false);
     setActiveTab(null);
+    matTriggerRef.current?.focus();
   };
 
   const removeEquipment = (eqToRemove: string) => {
@@ -108,26 +138,30 @@ export function ExerciseCategorySelector({
   };
 
   return (
-    <div className="flex flex-col gap-2 relative" ref={containerRef}>
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2 relative" ref={containerRef} onKeyDown={handleKeyDown}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
         {/* Category Pill Dropdown */}
         <div className="relative">
           {readOnlyCategory ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 border-border/80 text-foreground cursor-default select-none">
+            <div className="flex items-center gap-1.5 px-3 min-h-9 rounded-full text-xs font-semibold border bg-white/5 border-border/80 text-foreground cursor-default select-none">
               <Folder className="size-3.5 text-brand" />
               <span>{t(currentCategory)}</span>
             </div>
           ) : (
             <button
+              ref={catTriggerRef}
               type="button"
+              aria-haspopup="menu"
+              aria-expanded={isCatOpen}
               onClick={() => {
                 setIsCatOpen(!isCatOpen);
                 setIsOpen(false);
               }}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer",
+                pillHit,
+                "flex items-center gap-1.5 px-3 rounded-full text-xs font-semibold border transition-all cursor-pointer",
                 isCatOpen
-                  ? "bg-brand text-brand-foreground border-brand shadow-sm"
+                  ? "bg-brand text-brand-foreground border-brand"
                   : "bg-white/5 border-border/80 text-foreground hover:bg-white/10"
               )}
             >
@@ -139,7 +173,7 @@ export function ExerciseCategorySelector({
 
           {/* Category Dropdown Popover */}
           {!readOnlyCategory && isCatOpen && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-popover border border-border shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100">
+            <div ref={catMenuRef} role="menu" aria-label={t("Categorie")} className="absolute top-full left-0 mt-2 w-48 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
                 {t("Categorie")}
               </div>
@@ -149,6 +183,8 @@ export function ExerciseCategorySelector({
                   <button
                     key={catKey}
                     type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected}
                     onClick={() => {
                       // Change category without affecting equipment selection
                       onChange(catKey, equipment);
@@ -158,7 +194,7 @@ export function ExerciseCategorySelector({
                       setIsCatOpen(false);
                     }}
                     className={cn(
-                      "flex items-center justify-between w-full px-3.5 py-2 text-xs font-medium transition-colors text-left",
+                      "flex items-center justify-between w-full px-3.5 min-h-11 text-xs font-medium transition-colors text-left",
                       isSelected
                         ? "bg-brand/10 text-brand font-semibold"
                         : "hover:bg-muted/50 text-popover-foreground"
@@ -177,15 +213,16 @@ export function ExerciseCategorySelector({
         {selectedEquipment.map((eq) => (
           <div 
             key={eq} 
-            className="flex items-center gap-1 bg-brand/10 border border-brand/20 text-brand rounded-full px-2.5 py-1 leading-none shadow-sm"
+            className="flex items-center gap-0.5 bg-brand/10 border border-brand/20 text-brand rounded-full pl-3 pr-1 min-h-9 leading-none max-w-full"
           >
             <span className="text-xs font-semibold">{t(eq)}</span>
             <button 
               type="button" 
               onClick={() => removeEquipment(eq)}
-              className="text-brand/70 hover:text-brand hover:bg-brand/20 p-0.5 rounded-full transition-colors ml-1"
+              aria-label={`${t("Remove")}: ${t(eq)}`}
+              className="relative inline-flex items-center justify-center size-9 shrink-0 text-brand/70 hover:text-brand hover:bg-brand/20 rounded-full transition-colors after:absolute after:-inset-1 after:content-['']"
             >
-              <X className="size-3" />
+              <X className="size-3.5" />
             </button>
           </div>
         ))}
@@ -194,11 +231,13 @@ export function ExerciseCategorySelector({
         {currentCategory === "Bodyweight" && onToggleAssisted && (
           <button
             type="button"
+            aria-pressed={isAssisted}
             onClick={() => onToggleAssisted(!isAssisted)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs leading-none font-semibold border transition-all cursor-pointer",
+              pillHit,
+              "flex items-center gap-1.5 px-3 rounded-full text-xs leading-none font-semibold border transition-all cursor-pointer",
               isAssisted
-                ? "bg-brand text-brand-foreground border-brand shadow-sm"
+                ? "bg-brand text-brand-foreground border-brand"
                 : "bg-white/5 border-border/80 text-muted-foreground hover:bg-white/10 hover:text-foreground"
             )}
           >
@@ -209,16 +248,20 @@ export function ExerciseCategorySelector({
 
         {/* + Material Button */}
         <button
+          ref={matTriggerRef}
           type="button"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
           onClick={() => {
             setIsOpen(!isOpen);
             setIsCatOpen(false);
             if (isOpen) setActiveTab(null);
           }}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs leading-none font-semibold border transition-all",
+            pillHit,
+            "flex items-center gap-1.5 px-3 rounded-full text-xs leading-none font-semibold border transition-all",
             isOpen 
-              ? "bg-brand text-brand-foreground border-brand shadow-md"
+              ? "bg-brand text-brand-foreground border-brand"
               : "bg-white/5 border-border/80 text-muted-foreground hover:bg-white/10 hover:text-foreground"
           )}
         >
@@ -229,7 +272,7 @@ export function ExerciseCategorySelector({
 
       {/* Equipment Dropdown Popover */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-popover border border-border shadow-xl rounded-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div ref={matMenuRef} role="menu" aria-label={t("Kies materiaal categorie")} className="absolute top-full left-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           {!activeTab ? (
             <div className="flex flex-col py-1">
               <div className="px-3 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
@@ -239,8 +282,9 @@ export function ExerciseCategorySelector({
                 <button
                   key={cat}
                   type="button"
+                  role="menuitem"
                   onClick={() => setActiveTab(cat)}
-                  className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors text-left"
+                  className="flex items-center justify-between w-full px-4 min-h-11 text-sm font-medium hover:bg-muted/50 transition-colors text-left"
                 >
                   {t(cat)}
                   <ChevronRight className="size-4 text-muted-foreground" />
@@ -253,7 +297,8 @@ export function ExerciseCategorySelector({
                 <button
                   type="button"
                   onClick={() => setActiveTab(null)}
-                  className="p-1 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+                  aria-label={t("Terug")}
+                  className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground transition-colors"
                 >
                   <ChevronLeft className="size-4" />
                 </button>
@@ -268,10 +313,11 @@ export function ExerciseCategorySelector({
                     <button
                       key={eq}
                       type="button"
+                      role="menuitem"
                       disabled={isSelected}
                       onClick={() => addEquipment(eq)}
                       className={cn(
-                        "w-full px-4 py-2.5 text-sm font-medium text-left transition-colors",
+                        "w-full px-4 min-h-11 text-sm font-medium text-left transition-colors",
                         isSelected 
                           ? "opacity-50 cursor-not-allowed bg-muted/30" 
                           : "hover:bg-muted/50"

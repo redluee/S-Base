@@ -7,6 +7,8 @@ import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
 import {
   ArrowLeft,
@@ -38,20 +40,33 @@ import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { WorkoutCompletionSummary } from "@/components/workout-completion-summary";
 import { ExerciseEditBlock, type ExerciseRowData, mapCategory, unmapCategory, mapEquipment, formatDuration } from "@/components/exercise-edit-block";
 import { RepTimerModal } from "@/components/rep-timer-modal";
+import { SessionConflictDialog } from "@/components/session-conflict-dialog";
+import { parseSessionConflict, type ActiveSessionInfo } from "@/lib/session-conflict";
+import { pauseSession, resumeSession, sessionElapsedSeconds } from "@/lib/workout-time";
+import { loadSetTimerSnapshot, clearSetTimerSnapshot, type SetTimerSnapshot } from "@/lib/set-timer";
+import { applySetUpdate, type SetValueField } from "@/lib/set-values";
+import { parseDecimal, toInputString } from "@/lib/number-input";
 import type { FullWorkoutSession, SessionExercise, SessionSet, PersonalRecord } from "@backend/types/shared";
 import {
   getOfflineSession,
   saveOfflineSession,
   clearOfflineSession,
   syncOfflineSession,
+  recordSyncFailure,
+  buildSessionExercisesPayload,
+  createTempExerciseId,
+  ensureExerciseIds,
+  setExerciseAssisted,
 } from "@/lib/offline-workout";
 
 
 export function WorkoutSessionLive({
   session: initialSession,
+  autoFinish = false,
 }: {
   session?: FullWorkoutSession | null;
   userId?: number;
+  autoFinish?: boolean;
 }) {
   const router = useRouter();
   const [session, setSession] = useState<FullWorkoutSession | null>(() => {
@@ -61,7 +76,7 @@ export function WorkoutSessionLive({
         return {
           ...initialSession,
           ...offlineData.session,
-          exercises: offlineData.session.exercises ?? initialSession.exercises,
+          exercises: ensureExerciseIds(offlineData.session.exercises ?? initialSession.exercises ?? []),
         };
       }
     }
@@ -69,10 +84,21 @@ export function WorkoutSessionLive({
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [unsynced, setUnsynced] = useState(false);
+  const touchedRef = useRef<Set<string>>(new Set());
+  const elapsedSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingElapsedRef = useRef<number | null>(null);
+  const nameCancelRef = useRef(false);
 
   // Timer state
   const [elapsed, setElapsed] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const isPaused = Boolean(session?.pausedAt) && !session?.completedAt;
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   // Rep Timer state
   const [activeRepTimer, setActiveRepTimer] = useState<{
@@ -81,6 +107,7 @@ export function WorkoutSessionLive({
     exerciseName: string;
     setNumber: number;
     targetDurationSeconds?: number | null;
+    restored?: SetTimerSnapshot | null;
   } | null>(null);
 
   // Rest Timer State
@@ -144,6 +171,9 @@ export function WorkoutSessionLive({
   const [summaryMinutes, setSummaryMinutes] = useState("0");
   const [summarySeconds, setSummarySeconds] = useState("0");
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
+  const [savedLocally, setSavedLocally] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   // Leave confirmation state
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
@@ -153,36 +183,39 @@ export function WorkoutSessionLive({
   const syncVersionRef = useRef(0);
   const syncPromiseChain = useRef<Promise<unknown>>(Promise.resolve());
 
+  const [startConflict, setStartConflict] = useState<ActiveSessionInfo | null>(null);
+  const creatingRef = useRef(false);
+
   // Fetch initial session if not provided
-  const createSession = useCallback(async () => {
+  const createSession = useCallback(async (force = false) => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setLoading(true);
+    setCreateError(null);
     try {
-      const activeSessions = await api.workouts.sessions.list("active");
-      if (activeSessions && activeSessions.length > 0) {
-        const active = activeSessions[0];
-        const fullActive = await api.workouts.sessions.get(active.sessionId);
-        if (fullActive) {
-          setSession(fullActive);
-          router.replace(`/workouts/session/${fullActive.sessionId}`);
-          return;
-        }
-      }
-      const s = await api.workouts.sessions.create();
+      const s = await api.workouts.sessions.create(undefined, force);
       setSession(s);
       router.replace(`/workouts/session/${s.sessionId}`);
     } catch (err) {
-      console.error("Failed to create session", err);
+      const active = parseSessionConflict(err);
+      if (active) {
+        setStartConflict(active);
+      } else {
+        console.error("Failed to create session", err);
+        setCreateError(t("Failed to start workout. Please try again."));
+      }
     } finally {
+      creatingRef.current = false;
       setLoading(false);
     }
   }, [router]);
 
   useEffect(() => {
-    if (!session) {
+    if (!session && !createError) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       createSession();
     }
-  }, [session, createSession]);
+  }, [session, createSession, createError]);
 
   // Trigger sync if offline data is pending and connection is online
   useEffect(() => {
@@ -196,18 +229,21 @@ export function WorkoutSessionLive({
     }
   }, [session?.sessionId]);
 
-  // Sync session details when loaded
+  // Sync name and notes only when a different session is loaded, never on set updates
+  const loadedSessionId = session?.sessionId;
+  useEffect(() => {
+    const current = sessionRef.current;
+    if (current) {
+      setSessionName(current.name || t("Workout Session"));
+      setSummaryNotes(current.notes || "");
+    }
+  }, [loadedSessionId]);
+
+  // Derive elapsed time from the persisted timestamps and pause state
   useEffect(() => {
     if (session) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSessionName(session.name || t("Workout Session"));
-      setSummaryNotes(session.notes || "");
-      
-      const started = parseDateString(session.startedAt);
-      const completed = session.completedAt ? parseDateString(session.completedAt) : null;
-      const diffMs = completed ? completed.getTime() - started.getTime() : Date.now() - started.getTime();
-      const diffSecs = Math.max(0, Math.floor(diffMs / 1000));
-      setElapsed(diffSecs);
+      setElapsed(sessionElapsedSeconds(session, Date.now()));
     }
   }, [session]);
 
@@ -254,7 +290,8 @@ export function WorkoutSessionLive({
     if (!session?.sessionId || isPaused || isSummaryView || session?.completedAt) return;
 
     const interval = setInterval(() => {
-      setElapsed((prev) => prev + 1);
+      const current = sessionRef.current;
+      if (current) setElapsed(sessionElapsedSeconds(current, Date.now()));
     }, 1000);
 
     return () => clearInterval(interval);
@@ -330,14 +367,26 @@ export function WorkoutSessionLive({
     };
   }, []);
 
-  // Alert on window leave & cleanup sound on unmount/close
+  useEffect(() => {
+    return () => {
+      if (elapsedSaveTimerRef.current) clearTimeout(elapsedSaveTimerRef.current);
+    };
+  }, []);
+
+  const refreshUnsynced = useCallback(() => {
+    const id = sessionRef.current?.sessionId;
+    setUnsynced(Boolean(id && getOfflineSession(id)?.pendingSync));
+  }, []);
+
+  // Warn on window leave only while changes exist that the server has not received yet
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       cancelScheduledSound();
       clearActiveNotifications();
       if (bypassWarningRef.current || !session || isSummaryView || session.completedAt) return;
+      if (!getOfflineSession(session.sessionId)?.pendingSync) return;
       e.preventDefault();
-      e.returnValue = t("You have an active workout. Leaving will lose unsaved progress.");
+      e.returnValue = t("Je laatste wijzigingen zijn nog niet naar de server gestuurd. Ze blijven op dit apparaat bewaard.");
       return e.returnValue;
     };
 
@@ -350,12 +399,24 @@ export function WorkoutSessionLive({
   }, [session, isSummaryView]);
 
   // Stop / start functions
-  function togglePause() {
-    setIsPaused((p) => !p);
+  async function togglePause() {
+    if (!session || session.completedAt) return;
+    const now = Date.now();
+    const next = session.pausedAt ? resumeSession(session, now) : pauseSession(session, now);
+    setSession(next);
+    setElapsed(sessionElapsedSeconds(next, now));
+    saveOfflineSession(next, false);
+
+    const currentVersion = ++syncVersionRef.current;
+    syncPromiseChain.current = syncPromiseChain.current.then(async () => {
+      const synced = await syncOfflineSession(next.sessionId);
+      if (synced && currentVersion === syncVersionRef.current) setSession(synced);
+    });
+    await syncPromiseChain.current;
   }
 
   function getExerciseRestTime(ex: SessionExercise): number {
-    return ex.templateExercise?.defaultRestTime ?? 90;
+    return ex.restTime ?? ex.templateExercise?.defaultRestTime ?? 90;
   }
 
   function startRestTimer(exIdx: number, setIdx: number, customTime?: number) {
@@ -408,6 +469,32 @@ export function WorkoutSessionLive({
     }
   }
 
+  useEffect(() => {
+    const current = sessionRef.current;
+    if (!current?.sessionId) return;
+    const snap = loadSetTimerSnapshot(current.sessionId);
+    if (!snap) return;
+    const ex = current.exercises?.[snap.exIdx];
+    const set = ex?.sets?.[snap.setIdx];
+    if (current.completedAt || !ex || !set || set.completed === 1 || ex.exerciseName !== snap.exerciseName) {
+      clearSetTimerSnapshot(current.sessionId);
+      return;
+    }
+    setActiveRepTimer({
+      exIdx: snap.exIdx,
+      setIdx: snap.setIdx,
+      exerciseName: snap.exerciseName,
+      setNumber: snap.setNumber,
+      targetDurationSeconds: snap.targetDurationSeconds,
+      restored: snap,
+    });
+  }, [loadedSessionId]);
+
+  function closeRepTimer() {
+    if (session) clearSetTimerSnapshot(session.sessionId);
+    setActiveRepTimer(null);
+  }
+
   function handleStartRepTimer(exIdx: number, setIdx: number, targetDurationSeconds?: number | null) {
     if (!session?.exercises?.[exIdx]) return;
     const ex = session.exercises[exIdx];
@@ -425,30 +512,47 @@ export function WorkoutSessionLive({
     if (!activeRepTimer || !session?.exercises) return;
     const { exIdx, setIdx } = activeRepTimer;
 
-    setActiveRepTimer(null);
+    closeRepTimer();
     await updateSetAndComplete(exIdx, setIdx, elapsedSeconds);
   }
 
-  async function updateElapsedSeconds(newSeconds: number) {
-    setElapsed(newSeconds);
-    const h = Math.floor(newSeconds / 3600);
-    const m = Math.floor((newSeconds % 3600) / 60);
-    const s = newSeconds % 60;
-    setSummaryHours(String(h));
-    setSummaryMinutes(String(m));
-    setSummarySeconds(String(s));
-
-    if (!session) return;
+  async function persistElapsedSeconds(newSeconds: number) {
+    const current = sessionRef.current;
+    if (!current) return;
+    pendingElapsedRef.current = null;
     try {
-      const startedTime = parseDateString(session.startedAt).getTime();
+      const startedTime = parseDateString(current.startedAt).getTime();
       const finalCompletedAt = new Date(startedTime + newSeconds * 1000).toISOString();
-      const sRes = await api.workouts.sessions.update(session.sessionId, {
+      const sRes = await api.workouts.sessions.update(current.sessionId, {
         completedAt: finalCompletedAt,
       });
-      setSession(sRes);
+      setSession((prev) => (prev ? { ...prev, completedAt: sRes.completedAt } : prev));
     } catch (err) {
       console.error("Failed to update elapsed time", err);
+      setActionError(t("Duur opslaan mislukt. Probeer het opnieuw."));
     }
+  }
+
+  function updateElapsedSeconds(newSeconds: number) {
+    setElapsed(newSeconds);
+    setSummaryHours(String(Math.floor(newSeconds / 3600)));
+    setSummaryMinutes(String(Math.floor((newSeconds % 3600) / 60)));
+    setSummarySeconds(String(newSeconds % 60));
+
+    pendingElapsedRef.current = newSeconds;
+    if (elapsedSaveTimerRef.current) clearTimeout(elapsedSaveTimerRef.current);
+    elapsedSaveTimerRef.current = setTimeout(() => {
+      elapsedSaveTimerRef.current = null;
+      void persistElapsedSeconds(newSeconds);
+    }, 700);
+  }
+
+  async function flushElapsedSeconds() {
+    if (elapsedSaveTimerRef.current) {
+      clearTimeout(elapsedSaveTimerRef.current);
+      elapsedSaveTimerRef.current = null;
+    }
+    if (pendingElapsedRef.current !== null) await persistElapsedSeconds(pendingElapsedRef.current);
   }
 
   // API operations
@@ -466,34 +570,22 @@ export function WorkoutSessionLive({
     syncPromiseChain.current = syncPromiseChain.current.then(async () => {
       try {
         const s = await api.workouts.sessions.update(session.sessionId, {
-          exercises: exercises.map((ex) => ({
-            sessionExerciseId: ex.sessionExerciseId,
-            exerciseName: ex.exerciseName,
-            sortOrder: ex.sortOrder,
-            category: ex.category ?? "resistance",
-            equipment: ex.equipment ?? "none",
-            perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
-            isAssisted: ex.isAssisted != null ? (ex.isAssisted ? 1 : 0) : (ex.templateExercise?.isAssisted ? 1 : 0),
-            sets: ex.sets?.map((s: SessionSet) => ({
-              setId: s.setId,
-              setNumber: s.setNumber,
-              reps: s.reps ?? null,
-              weight: s.weight,
-              distance: s.distance,
-              duration: s.duration,
-              rpe: s.rpe,
-              heartRate: s.heartRate,
-              completed: s.completed,
-            })),
-          })),
+          exercises: buildSessionExercisesPayload(exercises),
         });
 
         if (currentVersion === syncVersionRef.current) {
           setSession(s);
           clearOfflineSession(session.sessionId);
         }
+        refreshUnsynced();
       } catch (err) {
         console.warn("Failed to sync exercises to server (saved offline)", err);
+        const outcome = recordSyncFailure(session.sessionId, err);
+        if (outcome === "dropped" && currentVersion === syncVersionRef.current) {
+          const local = getOfflineSession(session.sessionId);
+          if (local) setSession({ ...session, exercises: local.session.exercises });
+        }
+        refreshUnsynced();
       } finally {
         if (currentVersion === syncVersionRef.current) {
           setSaving(false);
@@ -507,6 +599,7 @@ export function WorkoutSessionLive({
   async function saveWorkoutTitle() {
     if (!session || !sessionName.trim()) return;
     setIsEditingName(false);
+    if (sessionName.trim() === session.name) return;
     const updatedSession: FullWorkoutSession = {
       ...session,
       name: sessionName.trim(),
@@ -521,6 +614,7 @@ export function WorkoutSessionLive({
       clearOfflineSession(session.sessionId);
     } catch (err) {
       console.warn("Failed to save title to server (saved offline)", err);
+      recordSyncFailure(session.sessionId, err);
     }
   }
 
@@ -546,7 +640,7 @@ export function WorkoutSessionLive({
   async function updateIsAssisted(exerciseIndex: number, isAssisted: boolean) {
     if (!session) return;
     const exercises = [...(session.exercises ?? [])];
-    exercises[exerciseIndex] = { ...exercises[exerciseIndex], isAssisted: isAssisted ? 1 : 0 };
+    exercises[exerciseIndex] = setExerciseAssisted(exercises[exerciseIndex], isAssisted);
     setSession({ ...session, exercises });
     await saveExercises(exercises);
   }
@@ -567,17 +661,17 @@ export function WorkoutSessionLive({
     if (!session) return;
     const exercises = [...(session.exercises ?? [])];
     const ex = { ...exercises[exerciseIndex] };
-    const sets = [...(ex.sets ?? [])];
-    sets[setIndex] = { ...sets[setIndex], [field]: value } as SessionSet;
-    
-    // Copy the updated value to subsequent incomplete sets in the same exercise
-    for (let i = setIndex + 1; i < sets.length; i++) {
-      if (sets[i].completed !== 1) {
-        sets[i] = { ...sets[i], [field]: value } as SessionSet;
-      }
-    }
+    const exKey = ex.sessionExerciseId ?? exerciseIndex;
+    const keyFor = (i: number) => `${exKey}:${i}:${field}`;
+    touchedRef.current.add(keyFor(setIndex));
 
-    ex.sets = sets;
+    ex.sets = applySetUpdate(
+      ex.sets ?? [],
+      setIndex,
+      field as SetValueField,
+      (value ?? null) as number | null,
+      (i) => touchedRef.current.has(keyFor(i))
+    );
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });
 
@@ -589,20 +683,18 @@ export function WorkoutSessionLive({
     clearActiveNotifications();
     const exercises = [...(session.exercises ?? [])];
     const ex = { ...exercises[exerciseIndex] };
-    const sets = [...(ex.sets ?? [])];
-    const set = { ...sets[setIndex] };
+    const exKey = ex.sessionExerciseId ?? exerciseIndex;
+    const keyFor = (i: number) => `${exKey}:${i}:duration`;
+    touchedRef.current.add(keyFor(setIndex));
 
-    set.duration = durationSeconds;
-    set.completed = 1;
-
-    // Copy updated duration to subsequent incomplete sets in the same exercise
-    for (let i = setIndex + 1; i < sets.length; i++) {
-      if (sets[i].completed !== 1) {
-        sets[i] = { ...sets[i], duration: durationSeconds } as SessionSet;
-      }
-    }
-
-    sets[setIndex] = set;
+    const sets = applySetUpdate(
+      ex.sets ?? [],
+      setIndex,
+      "duration",
+      durationSeconds,
+      (i) => touchedRef.current.has(keyFor(i))
+    );
+    sets[setIndex] = { ...sets[setIndex], completed: 1 };
     ex.sets = sets;
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });
@@ -730,7 +822,8 @@ export function WorkoutSessionLive({
       duration?: number | null;
       rpe?: number | null;
       heartRate?: number | null;
-    }>
+    }>,
+    defaultRestTime?: number
   ) {
     const name = nameOverride || newExerciseName.trim();
     if (!session || !name) return;
@@ -792,12 +885,14 @@ export function WorkoutSessionLive({
     }
 
     exercises.push({
+      sessionExerciseId: createTempExerciseId(),
       exerciseName: name,
       sortOrder: exercises.length,
       category: cat,
       equipment: eq,
       perSide: perSideOverride ? 1 : 0,
       isAssisted: isAssistedOverride ? 1 : 0,
+      restTime: defaultRestTime ?? null,
       sets: initialSets,
     });
 
@@ -816,10 +911,11 @@ export function WorkoutSessionLive({
     const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
     const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
     const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
-    const weightVal = (draft.trackingFields.weight && draft.weight)
-      ? (draft.isAssisted ? -Math.abs(parseFloat(draft.weight)) : Math.abs(parseFloat(draft.weight)))
+    const parsedWeight = draft.trackingFields.weight ? parseDecimal(draft.weight) : null;
+    const weightVal = parsedWeight !== null
+      ? (draft.isAssisted ? -Math.abs(parsedWeight) : Math.abs(parsedWeight))
       : null;
-    let distVal = (draft.trackingFields.distance && draft.distance) ? parseFloat(draft.distance) : null;
+    let distVal = draft.trackingFields.distance ? parseDecimal(draft.distance) : null;
     if (distVal !== null && draft.distanceUnit === "m") {
       distVal = distVal / 1000;
     }
@@ -839,12 +935,14 @@ export function WorkoutSessionLive({
     }
 
     exercises.push({
+      sessionExerciseId: createTempExerciseId(),
       exerciseName: draft.name.trim(),
       sortOrder: exercises.length,
       category: cat,
       equipment: eq,
       perSide: draft.perSide ? 1 : 0,
       isAssisted: draft.isAssisted ? 1 : 0,
+      restTime: parseDurationHelper(draft.defaultRestTime) ?? 90,
       sets: initialSets,
     });
 
@@ -856,7 +954,7 @@ export function WorkoutSessionLive({
   }
 
   async function removeExercise(id: number) {
-    if (!session) return;
+    if (!session || id == null) return;
     const exercises = (session.exercises ?? []).filter((ex) => ex.sessionExerciseId !== id);
     const reindexed = exercises.map((ex, i) => ({ ...ex, sortOrder: i }));
     setSession({ ...session, exercises: reindexed });
@@ -938,8 +1036,8 @@ export function WorkoutSessionLive({
         category: "Free Weights",
         sets: "3",
         reps: "8",
-        weight: defaultWeight != null ? Math.abs(defaultWeight).toString() : "",
-        distance: defaultDistance?.toString() ?? "",
+        weight: defaultWeight != null ? toInputString(Math.abs(defaultWeight)) : "",
+        distance: toInputString(defaultDistance),
         distanceUnit: "km",
         duration: defaultDuration ? formatDuration(defaultDuration) : "",
         defaultRestTime: formatDuration(defaultRestTime ?? 90),
@@ -996,6 +1094,8 @@ export function WorkoutSessionLive({
       equipment: eq,
       perSide: isPerSide,
       isAssisted: isAssisted ? 1 : 0,
+      restTime: defaultRestTime ?? null,
+      templateExercise: null,
       sets: initialSets,
     };
 
@@ -1014,10 +1114,10 @@ export function WorkoutSessionLive({
     const numSets = ex.sets?.length ? String(ex.sets.length) : "3";
 
     const reps = firstSet?.reps != null ? String(firstSet.reps) : (ex.templateExercise?.defaultReps?.toString() ?? "8");
-    const weight = firstSet?.weight != null ? String(Math.abs(firstSet.weight)) : (ex.templateExercise?.defaultWeight != null ? String(Math.abs(ex.templateExercise.defaultWeight)) : "");
-    const distance = firstSet?.distance != null ? String(firstSet.distance) : (ex.templateExercise?.defaultDistance?.toString() ?? "");
+    const weight = firstSet?.weight != null ? toInputString(Math.abs(firstSet.weight)) : (ex.templateExercise?.defaultWeight != null ? toInputString(Math.abs(ex.templateExercise.defaultWeight)) : "");
+    const distance = firstSet?.distance != null ? toInputString(firstSet.distance) : toInputString(ex.templateExercise?.defaultDistance);
     const duration = firstSet?.duration != null ? formatDuration(firstSet.duration) : formatDuration(ex.templateExercise?.defaultDuration);
-    const defaultRestTime = formatDuration(ex.templateExercise?.defaultRestTime ?? 90);
+    const defaultRestTime = formatDuration(getExerciseRestTime(ex));
     const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
     const isAssisted = ex.isAssisted != null ? Boolean(ex.isAssisted) : Boolean(ex.templateExercise?.isAssisted);
 
@@ -1061,9 +1161,10 @@ export function WorkoutSessionLive({
     const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
     const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
     const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
-    const hasWeightInput = draft.trackingFields.weight && draft.weight !== undefined && draft.weight !== null && draft.weight.trim() !== "";
-    const weightVal = hasWeightInput ? (draft.isAssisted ? -Math.abs(parseFloat(draft.weight)) : Math.abs(parseFloat(draft.weight))) : null;
-    let distVal = (draft.trackingFields.distance && draft.distance && draft.distance.trim() !== "") ? parseFloat(draft.distance) : null;
+    const parsedWeight = draft.trackingFields.weight ? parseDecimal(draft.weight) : null;
+    const hasWeightInput = parsedWeight !== null;
+    const weightVal = hasWeightInput ? (draft.isAssisted ? -Math.abs(parsedWeight) : Math.abs(parsedWeight)) : null;
+    let distVal = draft.trackingFields.distance ? parseDecimal(draft.distance) : null;
     if (distVal !== null && draft.distanceUnit === "m") {
       distVal = distVal / 1000;
     }
@@ -1107,6 +1208,7 @@ export function WorkoutSessionLive({
       equipment: eq,
       perSide: draft.perSide ? 1 : 0,
       isAssisted: draft.isAssisted ? 1 : 0,
+      restTime: defaultRestTimeSecs,
       sets: updatedSets,
       templateExercise: {
         ...(targetEx.templateExercise ?? {}),
@@ -1166,7 +1268,9 @@ export function WorkoutSessionLive({
   async function handleSaveHistoryEdit() {
     if (!session) return;
     setSaving(true);
+    setActionError(null);
     try {
+      await flushElapsedSeconds();
       const updatePayload: { name?: string; notes?: string } = {};
       if (sessionName.trim()) {
         updatePayload.name = sessionName.trim();
@@ -1179,6 +1283,7 @@ export function WorkoutSessionLive({
       router.refresh();
     } catch (err) {
       console.error("Failed to save session edit", err);
+      setActionError(t("Opslaan mislukt. Probeer het opnieuw."));
     } finally {
       setSaving(false);
     }
@@ -1186,10 +1291,10 @@ export function WorkoutSessionLive({
 
   // Handle final completion
   function handleFinishClick() {
-    // Set duration fields first
-    const h = Math.floor(elapsed / 3600);
-    const m = Math.floor((elapsed % 3600) / 60);
-    const s = elapsed % 60;
+    const totalSecs = session ? sessionElapsedSeconds(session, Date.now()) : elapsed;
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
     setSummaryHours(String(h));
     setSummaryMinutes(String(m));
     setSummarySeconds(String(s));
@@ -1240,30 +1345,46 @@ export function WorkoutSessionLive({
 
   function proceedToSummary() {
     setShowFinishedWarning(false);
-    
-    // Load PRs details
+    setIsSummaryView(true);
+  }
+
+  const autoFinishedRef = useRef(false);
+  useEffect(() => {
+    if (!autoFinish || autoFinishedRef.current || !session || session.completedAt) return;
+    autoFinishedRef.current = true;
+    handleFinishClick();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFinish, session]);
+
+  useEffect(() => {
+    if (!isSummaryView || !loadedSessionId) return;
+    let cancelled = false;
     const h = parseInt(summaryHours, 10) || 0;
     const m = Math.min(59, parseInt(summaryMinutes, 10) || 0);
     const s = Math.min(59, parseInt(summarySeconds, 10) || 0);
     const finalSecs = h * 3600 + m * 60 + s;
 
-    if (session) {
-      api.workouts.sessions.getPRs(session.sessionId, finalSecs).then((prs) => {
-        setPersonalRecords(prs);
-      }).catch(err => {
+    const timer = setTimeout(async () => {
+      try {
+        await syncPromiseChain.current;
+        const prs = await api.workouts.sessions.getPRs(loadedSessionId, finalSecs);
+        if (!cancelled) setPersonalRecords(prs);
+      } catch (err) {
         console.error("Failed to load PRs", err);
-        setPersonalRecords([]);
-      });
-    } else {
-      setPersonalRecords([]);
-    }
+        if (!cancelled) setPersonalRecords([]);
+      }
+    }, 350);
 
-    setIsSummaryView(true);
-  }
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isSummaryView, loadedSessionId, summaryHours, summaryMinutes, summarySeconds]);
 
   async function saveWorkoutSummary() {
     if (!session) return;
     setSaving(true);
+    setActionError(null);
     try {
       // Calculate duration in seconds
       const h = parseInt(summaryHours, 10) || 0;
@@ -1281,64 +1402,68 @@ export function WorkoutSessionLive({
         completedAt: finalCompletedAt,
       };
 
+      ++syncVersionRef.current;
       setSession(completedSession);
       saveOfflineSession(completedSession, true, finalCompletedAt);
 
       bypassWarningRef.current = true;
+      clearSetTimerSnapshot(session.sessionId);
+      setSavedLocally(false);
 
+      await syncPromiseChain.current.catch(() => undefined);
+
+      let confirmed = false;
       try {
         await api.workouts.sessions.update(session.sessionId, {
           name: sessionName.trim(),
           notes: summaryNotes.trim(),
-          exercises: completedSession.exercises?.map((ex) => ({
-            sessionExerciseId: ex.sessionExerciseId,
-            exerciseName: ex.exerciseName,
-            sortOrder: ex.sortOrder,
-            category: ex.category ?? "resistance",
-            equipment: ex.equipment ?? "none",
-            perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
-            isAssisted: ex.isAssisted != null ? (ex.isAssisted ? 1 : 0) : (ex.templateExercise?.isAssisted ? 1 : 0),
-            sets: ex.sets?.map((st: SessionSet) => ({
-              setId: st.setId,
-              setNumber: st.setNumber,
-              reps: st.reps ?? null,
-              weight: st.weight,
-              distance: st.distance,
-              duration: st.duration,
-              rpe: st.rpe,
-              heartRate: st.heartRate,
-              completed: st.completed,
-            })),
-          })),
+          exercises: buildSessionExercisesPayload(completedSession.exercises),
         });
 
         await api.workouts.sessions.complete(session.sessionId, finalCompletedAt);
         clearOfflineSession(session.sessionId);
+        confirmed = true;
       } catch (err) {
         console.warn("Failed to complete session on server (saved offline for sync when online)", err);
-        syncOfflineSession(session.sessionId);
+        const synced = await syncOfflineSession(session.sessionId);
+        confirmed = Boolean(synced?.completedAt);
+      }
+
+      if (!confirmed) {
+        refreshUnsynced();
+        setSavedLocally(true);
+        return;
       }
 
       router.push(`/workouts/history/${session.sessionId}?celebrate=true`);
       router.refresh();
     } catch (err) {
       console.error("Failed to complete session summary", err);
+      bypassWarningRef.current = false;
+      setActionError(t("Opslaan mislukt. Probeer het opnieuw."));
     } finally {
       setSaving(false);
     }
   }
 
   async function discardWorkout() {
-    if (!session || !confirm(t("Are you sure you want to delete this active workout session? This cannot be undone."))) return;
-    bypassWarningRef.current = true;
-    clearOfflineSession(session.sessionId);
+    if (!session || discarding) return;
+    setDiscarding(true);
+    setActionError(null);
     try {
       await api.workouts.sessions.delete(session.sessionId);
+      bypassWarningRef.current = true;
+      clearSetTimerSnapshot(session.sessionId);
+      clearOfflineSession(session.sessionId);
+      setShowDiscardConfirm(false);
       router.push("/workouts");
       router.refresh();
     } catch (err) {
       console.error("Failed to discard session", err);
-      router.push("/workouts");
+      setShowDiscardConfirm(false);
+      setActionError(t("Workout verwijderen mislukt. Probeer het opnieuw."));
+    } finally {
+      setDiscarding(false);
     }
   }
 
@@ -1347,8 +1472,11 @@ export function WorkoutSessionLive({
     if (session?.completedAt) {
       bypassWarningRef.current = true;
       router.push(`/workouts/history/${session.sessionId}`);
-    } else {
+    } else if (unsynced) {
       setShowLeaveWarning(true);
+    } else {
+      bypassWarningRef.current = true;
+      router.push("/workouts");
     }
   }
 
@@ -1364,7 +1492,7 @@ export function WorkoutSessionLive({
         if (ex.sets) {
           for (const s of ex.sets) {
             if (s.completed === 1 && s.weight && s.reps) {
-              vol += s.weight * s.reps;
+              vol += Math.max(0, s.weight) * s.reps;
             }
           }
         }
@@ -1374,6 +1502,38 @@ export function WorkoutSessionLive({
   }
 
   const exercises = session?.exercises ?? [];
+
+  if (!session && startConflict) {
+    return (
+      <SessionConflictDialog
+        key={startConflict.sessionId}
+        session={startConflict}
+        busy={loading}
+        onResume={() => router.replace(`/workouts/session/${startConflict.sessionId}`)}
+        onStartNew={async () => {
+          setStartConflict(null);
+          await createSession();
+        }}
+        onCancel={() => router.push("/workouts")}
+      />
+    );
+  }
+
+  if (!session && createError) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center gap-4 text-center">
+        <InlineAlert>{createError}</InlineAlert>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button onClick={() => createSession()} className="min-h-11 bg-brand text-zinc-950 hover:bg-brand-hover font-semibold">
+            {t("Opnieuw proberen")}
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/workouts")} className="min-h-11">
+            {t("Terug naar workouts")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !session) {
     return (
@@ -1386,7 +1546,9 @@ export function WorkoutSessionLive({
 
   if (isSummaryView) {
     return (
+      <>
       <WorkoutCompletionSummary
+        error={actionError}
         sessionName={sessionName}
         setSessionName={setSessionName}
         summaryNotes={summaryNotes}
@@ -1402,108 +1564,133 @@ export function WorkoutSessionLive({
         saving={saving}
         onSave={saveWorkoutSummary}
         onCancel={() => setIsSummaryView(false)}
-        onDiscard={discardWorkout}
+        onDiscard={() => setShowDiscardConfirm(true)}
+        savedLocally={savedLocally}
+        onLeave={() => {
+          bypassWarningRef.current = true;
+          router.push("/workouts");
+        }}
       />
+      <ConfirmDialog
+        open={showDiscardConfirm}
+        title={t("Discard Workout")}
+        description={t("Are you sure you want to delete this active workout session? This cannot be undone.")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Delete")}
+        onCancel={() => setShowDiscardConfirm(false)}
+        onConfirm={discardWorkout}
+        tone="destructive"
+        busy={discarding}
+      />
+      </>
     );
   }
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Global Header (Sticky) */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-md z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-6 pt-6 pb-4 border-b border-border/40 mb-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky top-0 bg-background z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-6 pt-6 pb-4 border-b border-border/40 mb-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             {isEditingName ? (
               <div className="flex items-center gap-2">
                 <Input
                   value={sessionName}
+                  aria-label={t("Workout title")}
                   onChange={(e) => setSessionName(e.target.value)}
-                  onBlur={saveWorkoutTitle}
-                  onKeyDown={(e) => e.key === "Enter" && saveWorkoutTitle()}
+                  onBlur={() => {
+                    if (nameCancelRef.current) {
+                      nameCancelRef.current = false;
+                      return;
+                    }
+                    saveWorkoutTitle();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveWorkoutTitle();
+                    if (e.key === "Escape") {
+                      nameCancelRef.current = true;
+                      setSessionName(session.name || t("Workout Session"));
+                      setIsEditingName(false);
+                    }
+                  }}
                   autoFocus
-                  className="bg-white/5 border-brand/40 text-xl font-semibold h-9"
+                  className="bg-white/5 border-brand/40 text-xl font-semibold h-11"
                 />
-                <Button size="sm" onClick={saveWorkoutTitle} className="bg-brand text-zinc-900 h-9">
+                <Button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={saveWorkoutTitle}
+                  aria-label={t("Opslaan")}
+                  className="bg-brand text-zinc-900 min-h-11 min-w-11"
+                >
                   <Check className="size-4" />
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 group max-w-full">
+              <div className="flex items-center gap-1 max-w-full">
                 <button
+                  type="button"
                   onClick={handleBackClick}
-                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 mr-1"
+                  aria-label={t("Terug naar workouts")}
+                  className="min-h-11 min-w-11 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <ArrowLeft className="size-5" />
                 </button>
-                <h1
-                  onClick={() => setIsEditingName(true)}
-                  className="font-display text-xl sm:text-2xl text-foreground truncate cursor-pointer hover:text-brand transition-colors"
-                >
-                  {sessionName}
+                <h1 className="font-display text-xl sm:text-2xl text-foreground min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingName(true)}
+                    aria-label={`${t("Naam bewerken")}: ${sessionName}`}
+                    title={t("Naam bewerken")}
+                    className="min-h-11 max-w-full truncate text-left hover:text-brand transition-colors cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-md"
+                  >
+                    {sessionName}
+                  </button>
                 </h1>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3 justify-between sm:justify-end shrink-0">
-            <div className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-lg">
-              <Timer className="size-4 text-brand" />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-between sm:justify-end sm:shrink-0 min-w-0">
+            <div className="flex items-center gap-2 bg-card border border-border pl-3 pr-1 rounded-lg">
+              <Timer className="size-4 text-brand shrink-0" aria-hidden="true" />
               {session.completedAt ? (
-                <div className="flex items-center gap-1 font-mono text-base font-semibold text-zinc-200">
-                  <input
-                    type="number"
-                    aria-label={t("Uren")}
-                    value={Math.floor(elapsed / 3600)}
-                    onChange={(e) => {
-                      const h = Math.max(0, parseInt(e.target.value) || 0);
-                      const m = Math.floor((elapsed % 3600) / 60);
-                      const s = elapsed % 60;
-                      updateElapsedSeconds(h * 3600 + m * 60 + s);
-                    }}
-                    className="w-7 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min="0"
-                  />
-                  <span className="text-zinc-500">:</span>
-                  <input
-                    type="number"
-                    aria-label={t("Minuten")}
-                    value={Math.floor((elapsed % 3600) / 60)}
-                    onChange={(e) => {
-                      const h = Math.floor(elapsed / 3600);
-                      const m = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
-                      const s = elapsed % 60;
-                      updateElapsedSeconds(h * 3600 + m * 60 + s);
-                    }}
-                    className="w-7 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min="0"
-                    max="59"
-                  />
-                  <span className="text-zinc-500">:</span>
-                  <input
-                    type="number"
-                    aria-label={t("Seconden")}
-                    value={elapsed % 60}
-                    onChange={(e) => {
-                      const h = Math.floor(elapsed / 3600);
-                      const m = Math.floor((elapsed % 3600) / 60);
-                      const s = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
-                      updateElapsedSeconds(h * 3600 + m * 60 + s);
-                    }}
-                    className="w-7 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min="0"
-                    max="59"
-                  />
+                <div className="flex items-center gap-1 text-base font-semibold text-zinc-200 tabular-nums">
+                  {([
+                    { label: t("Uren"), value: Math.floor(elapsed / 3600), max: undefined as number | undefined, compose: (n: number) => n * 3600 + (elapsed % 3600) },
+                    { label: t("Minuten"), value: Math.floor((elapsed % 3600) / 60), max: 59, compose: (n: number) => Math.floor(elapsed / 3600) * 3600 + n * 60 + (elapsed % 60) },
+                    { label: t("Seconden"), value: elapsed % 60, max: 59, compose: (n: number) => Math.floor(elapsed / 60) * 60 + n },
+                  ]).map((part, i) => (
+                    <React.Fragment key={part.label}>
+                      {i > 0 && <span className="text-zinc-500" aria-hidden="true">:</span>}
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        aria-label={part.label}
+                        value={part.value}
+                        onFocus={(e) => e.currentTarget.select()}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                          const n = Math.max(0, parseInt(digits, 10) || 0);
+                          const clamped = part.max !== undefined ? Math.min(part.max, n) : n;
+                          updateElapsedSeconds(part.compose(clamped));
+                        }}
+                        className="w-11 min-h-11 bg-transparent border-b border-zinc-700 hover:border-zinc-500 focus:border-brand text-center focus:outline-none"
+                      />
+                    </React.Fragment>
+                  ))}
                 </div>
               ) : (
                 <>
-                  <span className="font-mono text-base tabular-nums font-semibold text-zinc-200">
+                  <span className="text-base tabular-nums font-semibold text-zinc-200">
                     {formatTime(elapsed)}
                   </span>
                   <button
+                    type="button"
                     onClick={togglePause}
-                    className="ml-1 p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={isPaused ? t("Resume") : t("Pause")}
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
-                    {isPaused ? <Play className="size-3.5 text-brand" /> : <Pause className="size-3.5" />}
+                    {isPaused ? <Play className="size-4 text-brand" /> : <Pause className="size-4" />}
                   </button>
                 </>
               )}
@@ -1513,7 +1700,7 @@ export function WorkoutSessionLive({
               <Button
                 onClick={handleSaveHistoryEdit}
                 disabled={saving}
-                className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 h-9 shadow-glow-sm"
+                className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 min-h-11"
               >
                 <Save className="size-4 mr-1.5" />
                 {t("Save")}
@@ -1521,7 +1708,7 @@ export function WorkoutSessionLive({
             ) : (
               <Button
                 onClick={handleFinishClick}
-                className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 h-9 shadow-glow-sm"
+                className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 min-h-11"
               >
                 <Trophy className="size-4 mr-1.5" />
                 {t("Finish")}
@@ -1529,6 +1716,12 @@ export function WorkoutSessionLive({
             )}
           </div>
         </div>
+        {unsynced && (
+          <p role="status" className="mt-2 text-xs text-muted-foreground">
+            {t("Wijzigingen nog niet gesynchroniseerd. Ze zijn op dit apparaat bewaard.")}
+          </p>
+        )}
+        {actionError && <InlineAlert className="mt-2">{actionError}</InlineAlert>}
       </div>
 
       {/* Workout Notes Card - Only in edit mode of a completed session */}
@@ -1577,15 +1770,15 @@ export function WorkoutSessionLive({
                       onChange={setNewExerciseName}
                       onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide, isAssisted, defaultWeight, defaultDistance, defaultDuration, lastSets);
+                          addExercise(name, category, sets, reps, equipment, perSide, isAssisted, defaultWeight, defaultDistance, defaultDuration, lastSets, defaultRestTime);
                         } else {
                           setUnknownExerciseDraft({
                             name,
                             category: "Free Weights",
                             sets: (sets ?? 3).toString(),
                             reps: (reps ?? 8).toString(),
-                            weight: defaultWeight != null ? Math.abs(defaultWeight).toString() : "",
-                            distance: defaultDistance?.toString() ?? "",
+                            weight: defaultWeight != null ? toInputString(Math.abs(defaultWeight)) : "",
+                            distance: toInputString(defaultDistance),
                             distanceUnit: "km",
                             duration: defaultDuration ? formatDuration(defaultDuration) : "",
                             defaultRestTime: formatDuration(defaultRestTime ?? 90),
@@ -1597,12 +1790,12 @@ export function WorkoutSessionLive({
                         }
                       }}
                       placeholder={t("Search exercise") + "..."}
-                      className="flex-1 h-10 text-sm"
+                      className="flex-1 h-11 text-sm"
                     />
                     <Button
                       variant="ghost"
                       onClick={() => setShowAddExercise(false)}
-                      className="h-10 text-xs text-muted-foreground hover:bg-white/5"
+                      className="min-h-11 text-xs text-muted-foreground hover:bg-white/5"
                     >
                       {t("Cancel")}
                     </Button>
@@ -1626,7 +1819,7 @@ export function WorkoutSessionLive({
                         trackingFields: { reps: true, time: false, weight: true, distance: false }
                       });
                     }}
-                    className="text-xs text-brand hover:underline font-medium text-center"
+                    className="min-h-11 text-xs text-brand hover:underline font-medium text-center"
                   >
                     + {t("Nieuwe oefening instellen")}
                   </button>
@@ -1634,7 +1827,7 @@ export function WorkoutSessionLive({
               ) : (
                 <Button
                   onClick={() => setShowAddExercise(true)}
-                  className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold"
+                  className="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold min-h-11"
                 >
                   <Plus className="size-4 mr-1.5" />
                   {t("Add Exercise")}
@@ -1743,15 +1936,15 @@ export function WorkoutSessionLive({
                       onChange={setNewExerciseName}
                       onSelect={(name, sets, reps, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets) => {
                         if (category) {
-                          addExercise(name, category, sets, reps, equipment, perSide, isAssisted, defaultWeight, defaultDistance, defaultDuration, lastSets);
+                          addExercise(name, category, sets, reps, equipment, perSide, isAssisted, defaultWeight, defaultDistance, defaultDuration, lastSets, defaultRestTime);
                         } else {
                           setUnknownExerciseDraft({
                             name,
                             category: "Free Weights",
                             sets: (sets ?? 3).toString(),
                             reps: (reps ?? 8).toString(),
-                            weight: defaultWeight != null ? Math.abs(defaultWeight).toString() : "",
-                            distance: defaultDistance?.toString() ?? "",
+                            weight: defaultWeight != null ? toInputString(Math.abs(defaultWeight)) : "",
+                            distance: toInputString(defaultDistance),
                             distanceUnit: "km",
                             duration: defaultDuration ? formatDuration(defaultDuration) : "",
                             defaultRestTime: formatDuration(defaultRestTime ?? 90),
@@ -1763,12 +1956,12 @@ export function WorkoutSessionLive({
                         }
                       }}
                       placeholder={t("Search exercise") + "..."}
-                      className="flex-1 h-10 text-sm"
+                      className="flex-1 h-11 text-sm"
                     />
                     <Button
                       variant="ghost"
                       onClick={() => setShowAddExercise(false)}
-                      className="h-10 text-xs text-zinc-400 hover:bg-white/5"
+                      className="min-h-11 text-xs text-muted-foreground hover:bg-white/5"
                     >
                       {t("Cancel")}
                     </Button>
@@ -1792,7 +1985,7 @@ export function WorkoutSessionLive({
                         trackingFields: { reps: true, time: false, weight: true, distance: false }
                       });
                     }}
-                    className="text-xs text-brand hover:underline font-medium text-center"
+                    className="min-h-11 text-xs text-brand hover:underline font-medium text-center"
                   >
                     + {t("Nieuwe oefening instellen")}
                   </button>
@@ -1800,7 +1993,7 @@ export function WorkoutSessionLive({
               ) : (
                 <Button
                   onClick={() => setShowAddExercise(true)}
-                  className="bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand font-semibold w-full sm:w-64 h-10"
+                  className="bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand font-semibold w-full sm:w-64 min-h-11"
                 >
                   <Plus className="size-4 mr-1.5" />
                   {t("Add Exercise")}
@@ -1811,65 +2004,36 @@ export function WorkoutSessionLive({
         </div>
       )}
 
-      {/* Leave warning modal */}
-      {showLeaveWarning && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 w-full max-w-sm flex flex-col gap-4 text-center">
-            <h3 className="font-bold text-lg text-foreground">{t("Leave session?")}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t("You have an active workout session. Leaving will lose unsaved progress.")}
-            </p>
-            <div className="flex gap-2 justify-center mt-2">
-              <Button onClick={() => setShowLeaveWarning(false)} className="bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 w-24">
-                {t("Cancel")}
-              </Button>
-              <Button onClick={confirmLeave} className="bg-red-600 hover:bg-red-700 text-white w-24">
-                {t("Leave")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showLeaveWarning}
+        title={t("Leave session?")}
+        description={t("Je laatste wijzigingen zijn nog niet naar de server gestuurd. Ze blijven op dit apparaat bewaard en worden later alsnog gesynchroniseerd.")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Leave")}
+        onCancel={() => setShowLeaveWarning(false)}
+        onConfirm={confirmLeave}
+        tone="destructive"
+      />
 
-      {/* Finished warning modal */}
-      {showFinishedWarning && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 w-full max-w-sm flex flex-col gap-4 text-center">
-            <h3 className="font-bold text-lg text-foreground">{t("Incomplete sets")}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t("You have sets that are not marked completed. Do you want to finish anyway?")}
-            </p>
-            <div className="flex gap-2 justify-center mt-2">
-              <Button onClick={() => setShowFinishedWarning(false)} className="bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 w-24">
-                {t("Cancel")}
-              </Button>
-              <Button onClick={proceedToSummary} className="bg-brand text-zinc-950 font-bold hover:bg-brand-hover w-24">
-                {t("Finish")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showFinishedWarning}
+        title={t("Incomplete sets")}
+        description={t("You have sets that are not marked completed. Do you want to finish anyway?")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Finish")}
+        onCancel={() => setShowFinishedWarning(false)}
+        onConfirm={proceedToSummary}
+      />
 
-      {/* Zero reps warning modal */}
-      {showZeroRepsWarning && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 w-full max-w-sm flex flex-col gap-4 text-center">
-            <h3 className="font-bold text-lg text-foreground">{t("Sets with 0 reps")}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t("You have completed sets with 0 reps. Do you want to finish anyway?")}
-            </p>
-            <div className="flex gap-2 justify-center mt-2">
-              <Button onClick={() => setShowZeroRepsWarning(false)} className="bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 w-24">
-                {t("Cancel")}
-              </Button>
-              <Button onClick={handleZeroRepsConfirm} className="bg-brand text-zinc-950 font-bold hover:bg-brand-hover w-24">
-                {t("Finish")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showZeroRepsWarning}
+        title={t("Sets with 0 reps")}
+        description={t("You have completed sets with 0 reps. Do you want to finish anyway?")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Finish")}
+        onCancel={() => setShowZeroRepsWarning(false)}
+        onConfirm={handleZeroRepsConfirm}
+      />
 
       {/* Exercise History View Modal Overlay */}
       {historyExerciseName && (
@@ -1883,11 +2047,16 @@ export function WorkoutSessionLive({
       {/* Active Rep Timer Modal Overlay */}
       {activeRepTimer && (
         <RepTimerModal
+          key={`${activeRepTimer.exIdx}-${activeRepTimer.setIdx}`}
+          sessionId={session.sessionId}
+          exIdx={activeRepTimer.exIdx}
+          setIdx={activeRepTimer.setIdx}
+          restored={activeRepTimer.restored ?? null}
           exerciseName={activeRepTimer.exerciseName}
           setNumber={activeRepTimer.setNumber}
           targetDurationSeconds={activeRepTimer.targetDurationSeconds}
           onFinish={handleFinishRepTimer}
-          onClose={() => setActiveRepTimer(null)}
+          onClose={closeRepTimer}
         />
       )}
     </div>

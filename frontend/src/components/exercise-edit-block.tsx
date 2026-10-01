@@ -11,6 +11,8 @@ import { TimeInput } from "@/components/ui/time-input";
 import { Switch } from "@/components/ui/switch";
 import { ChevronUp, ChevronDown, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toggleTrackingField } from "@/lib/tracking-fields";
+import { sanitizeDecimalInput, toInputString } from "@/lib/number-input";
 
 export interface TrackingFields {
   reps: boolean;
@@ -30,6 +32,7 @@ export interface ExerciseRowData {
   distanceUnit: string;
   duration: string;
   heartRate?: string;
+  rpe?: string;
   defaultRestTime: string;
   equipment: string;
   perSide: boolean;
@@ -136,8 +139,8 @@ export function ExerciseEditBlock({
     if (equipment) updates.equipment = mapEquipment(equipment);
     if (sets !== undefined) updates.sets = sets.toString();
     if (reps !== undefined) updates.reps = reps.toString();
-    if (defaultWeight !== undefined && defaultWeight !== null) updates.weight = Math.abs(defaultWeight).toString();
-    if (defaultDistance !== undefined && defaultDistance !== null) updates.distance = defaultDistance.toString();
+    if (defaultWeight !== undefined && defaultWeight !== null) updates.weight = toInputString(Math.abs(defaultWeight));
+    if (defaultDistance !== undefined && defaultDistance !== null) updates.distance = toInputString(defaultDistance);
     if (defaultDuration !== undefined && defaultDuration !== null) updates.duration = formatDuration(defaultDuration);
     if (defaultRestTime !== undefined && defaultRestTime !== null) updates.defaultRestTime = formatDuration(defaultRestTime);
     if (perSide !== undefined) updates.perSide = Boolean(perSide);
@@ -150,14 +153,14 @@ export function ExerciseEditBlock({
     <div
       id={`template-exercise-${ex.id}`}
       data-exercise-id={ex.id}
-      className="scroll-mt-24 relative flex flex-col gap-5 p-5 bg-card/40 border border-border/50 rounded-xl group shadow-sm"
+      className="scroll-mt-24 relative flex flex-col gap-5 p-4 sm:p-5 bg-card ring-1 ring-foreground/10 rounded-xl group"
     >
 
       {/* Header with Exercise Autocomplete */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex items-center gap-2 flex-1 min-w-[12rem]">
           {index !== undefined && (
-            <span className="flex items-center justify-center size-6 rounded-full bg-brand/20 border border-brand/30 text-xs font-bold text-brand shrink-0 shadow-xs">
+            <span className="flex items-center justify-center size-6 rounded-full bg-brand/20 text-xs font-bold text-brand shrink-0">
               {index + 1}
             </span>
           )}
@@ -171,15 +174,16 @@ export function ExerciseEditBlock({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center shrink-0 ml-auto">
           {onMoveUp && onMoveDown && (
-            <div className="flex items-center gap-0.5 mr-0.5">
+            <div className="flex items-center">
               <button
                 type="button"
                 disabled={!canMoveUp}
                 onClick={onMoveUp}
-                className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
                 title={t("Move Up")}
+                aria-label={t("Move Up")}
               >
                 <ChevronUp className="size-5" />
               </button>
@@ -187,8 +191,9 @@ export function ExerciseEditBlock({
                 type="button"
                 disabled={!canMoveDown}
                 onClick={onMoveDown}
-                className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
                 title={t("Move Down")}
+                aria-label={t("Move Down")}
               >
                 <ChevronDown className="size-5" />
               </button>
@@ -199,9 +204,9 @@ export function ExerciseEditBlock({
             <button
               type="button"
               onClick={onRemove}
-              className="p-2 text-muted-foreground hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors shrink-0"
+              className="min-h-11 min-w-11 inline-flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-white/5 rounded-lg transition-colors shrink-0"
               title={t("Remove")}
-              aria-label={t("Sluiten")}
+              aria-label={t("Remove")}
             >
               <X className="size-5" />
             </button>
@@ -210,7 +215,7 @@ export function ExerciseEditBlock({
       </div>
 
       {/* Category & Equipment Selector (Premium Chip UI) */}
-      <div className="bg-background/50 rounded-xl p-3 border border-border/40">
+      <div>
         <ExerciseCategorySelector
           category={ex.category}
           equipment={ex.equipment}
@@ -234,27 +239,20 @@ export function ExerciseEditBlock({
               <button
                 key={field}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => {
-                  const nextFields = { ...ex.trackingFields };
-                  if (field === "weight") {
-                    nextFields.weight = !isActive;
-                  } else {
-                    nextFields.reps = false;
-                    nextFields.time = false;
-                    nextFields.distance = false;
-                    nextFields[field] = !isActive;
-                  }
+                  const nextFields = toggleTrackingField(ex.trackingFields, field);
                   onChange({ trackingFields: nextFields });
                 }}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+                  "min-h-11 px-4 rounded-lg text-xs font-medium border transition-colors",
                   isActive
-                    ? "bg-brand/15 border-brand/50 text-brand shadow-sm"
+                    ? "bg-brand/15 border-brand/50 text-brand"
                     : "bg-white/5 border-border/80 text-muted-foreground hover:bg-white/10"
                 )}
               >
                 {t(field.charAt(0).toUpperCase() + field.slice(1))}
-                {isActive && <span className="ml-1 opacity-70 text-[10px]">✓</span>}
+                {isActive && <span aria-hidden="true" className="ml-1 opacity-70 text-[10px]">✓</span>}
               </button>
             );
           })}
@@ -262,7 +260,7 @@ export function ExerciseEditBlock({
       </div>
 
       {/* Fields Flex Container */}
-      <div className="flex flex-wrap items-end gap-3 bg-black/10 rounded-xl p-3 border border-border/30">
+      <div className="flex flex-wrap items-end gap-3">
         {/* Sets & Reps / Sets & Time / Sets */}
         {ex.trackingFields.reps ? (
           <div className="grid gap-1.5 flex-1 min-w-[120px] max-w-[160px]">
@@ -280,7 +278,7 @@ export function ExerciseEditBlock({
                   if (val.length <= 2) onChange({ sets: val });
                 }}
                 placeholder="3"
-                className={`bg-white/5 h-10 border-border text-sm font-medium text-center px-1 flex-1 min-w-0 ${
+                className={`bg-white/5 h-11 border-border text-sm font-medium text-center px-1 flex-1 min-w-0 ${
                   errors[`${exId}-sets`] ? "border-red-500/50 focus-visible:ring-red-500/50" : ""
                 }`}
               />
@@ -295,7 +293,7 @@ export function ExerciseEditBlock({
                   if (val.length <= 3) onChange({ reps: val });
                 }}
                 placeholder="10"
-                className={`bg-white/5 h-10 border-border text-sm font-medium text-center px-1 flex-1 min-w-0 ${
+                className={`bg-white/5 h-11 border-border text-sm font-medium text-center px-1 flex-1 min-w-0 ${
                   errors[`${exId}-reps`] ? "border-red-500/50 focus-visible:ring-red-500/50" : ""
                 }`}
               />
@@ -318,7 +316,7 @@ export function ExerciseEditBlock({
                     if (val.length <= 2) onChange({ sets: val });
                   }}
                   placeholder="3"
-                  className={`bg-white/5 h-10 border-border text-sm font-medium text-center px-1 w-full ${
+                  className={`bg-white/5 h-11 border-border text-sm font-medium text-center px-1 w-full ${
                     errors[`${exId}-sets`] ? "border-red-500/50 focus-visible:ring-red-500/50" : ""
                   }`}
                 />
@@ -328,7 +326,7 @@ export function ExerciseEditBlock({
                 <TimeInput
                   value={ex.duration}
                   onChange={(val) => onChange({ duration: val })}
-                  className="bg-white/5 h-10 border-border text-sm font-medium w-full"
+                  className="bg-white/5 h-11 border-border text-sm font-medium w-full"
                 />
               </div>
             </div>
@@ -348,7 +346,7 @@ export function ExerciseEditBlock({
                 if (val.length <= 2) onChange({ sets: val });
               }}
               placeholder="3"
-              className={`bg-white/5 h-10 border-border text-sm font-medium text-center ${
+              className={`bg-white/5 h-11 border-border text-sm font-medium text-center ${
                 errors[`${exId}-sets`] ? "border-red-500/50 focus-visible:ring-red-500/50" : ""
               }`}
             />
@@ -365,13 +363,9 @@ export function ExerciseEditBlock({
               type="text"
               inputMode="decimal"
               value={ex.weight}
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9.]/g, "");
-                if ((val.match(/\./g) || []).length > 1) return;
-                onChange({ weight: val });
-              }}
+              onChange={(e) => onChange({ weight: sanitizeDecimalInput(e.target.value) })}
               placeholder="kg"
-              className="bg-white/5 h-10 border-border text-sm font-medium"
+              className="bg-white/5 h-11 border-border text-sm font-medium"
             />
           </div>
         )}
@@ -387,20 +381,17 @@ export function ExerciseEditBlock({
                 type="text"
                 inputMode="decimal"
                 value={ex.distance}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9.]/g, "");
-                  if ((val.match(/\./g) || []).length > 1) return;
-                  onChange({ distance: val });
-                }}
-                placeholder="0.0"
-                className="bg-white/5 h-10 border-border text-sm font-medium w-full min-w-0 flex-1"
+                onChange={(e) => onChange({ distance: sanitizeDecimalInput(e.target.value) })}
+                placeholder="0,0"
+                className="bg-white/5 h-11 border-border text-sm font-medium w-full min-w-0 flex-1"
               />
               <button
                 type="button"
                 onClick={() =>
                   onChange({ distanceUnit: ex.distanceUnit === "km" ? "m" : "km" })
                 }
-                className="h-10 px-2 flex items-center justify-center bg-white/5 border border-border rounded-md text-xs font-semibold text-muted-foreground shrink-0"
+                aria-label={t("Afstandseenheid wisselen")}
+                className="min-h-11 min-w-11 px-2 flex items-center justify-center bg-white/5 border border-border rounded-md text-xs font-semibold text-muted-foreground shrink-0"
               >
                 {ex.distanceUnit}
               </button>
@@ -416,7 +407,7 @@ export function ExerciseEditBlock({
           <TimeInput
             value={ex.defaultRestTime}
             onChange={(val) => onChange({ defaultRestTime: val })}
-            className="bg-white/5 h-10 border-border text-sm font-medium"
+            className="bg-white/5 h-11 border-border text-sm font-medium"
           />
         </div>
 
@@ -425,7 +416,7 @@ export function ExerciseEditBlock({
           <Label htmlFor={`per-side-toggle-${exId}`} className="text-[11px] uppercase tracking-wider text-muted-foreground text-center sm:text-left">
             {t("Per Side")}
           </Label>
-          <div className="flex items-center h-10 pt-1">
+          <div className="flex items-center h-11">
             <Switch
               id={`per-side-toggle-${exId}`}
               checked={ex.perSide}
@@ -442,9 +433,8 @@ export function ExerciseEditBlock({
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={onCancel}
-              className="border-border text-muted-foreground hover:bg-white/5"
+              className="min-h-11 border-border text-muted-foreground hover:bg-white/5"
             >
               {t("Cancel")}
             </Button>
@@ -452,9 +442,8 @@ export function ExerciseEditBlock({
           {onSave && (
             <Button
               type="button"
-              size="sm"
               onClick={onSave}
-              className="bg-brand text-zinc-950 font-semibold hover:bg-brand-hover shadow-md"
+              className="min-h-11 bg-brand text-zinc-950 font-semibold hover:bg-brand-hover"
             >
               <Check className="size-4 mr-1.5" />
               {saveButtonLabel || t("Voeg toe aan training")}

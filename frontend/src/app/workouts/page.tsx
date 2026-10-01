@@ -9,6 +9,7 @@ import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { WorkoutImportModal } from "@/components/workout-import-modal";
 import { WorkoutTemplateList } from "@/components/workout-template-list";
 import { t } from "@/lib/lang";
+import { formatNumberNl } from "@/lib/number-input";
 
 function getMilestoneStats(totalWorkouts: number) {
   const milestones = [0, 5, 10, 20, 50];
@@ -45,7 +46,7 @@ export default async function WorkoutsPage() {
     serverApi.workouts.sessions.list("active")
   ]);
 
-  const runningSession = activeSessions?.[0] ?? null;
+  const runningSessions = activeSessions ?? [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -59,9 +60,18 @@ export default async function WorkoutsPage() {
         </div>
 
         {/* Running Workout Banner */}
-        {runningSession && (
-          <div className="mb-6">
-            <RunningWorkoutCard session={runningSession} />
+        {runningSessions.length > 0 && (
+          <div className="mb-6 flex flex-col gap-3">
+            {runningSessions.length > 1 && (
+              <p className="text-sm text-muted-foreground">
+                {t("You have {count} running workouts. Finish or cancel the ones you no longer need.", {
+                  count: String(runningSessions.length),
+                })}
+              </p>
+            )}
+            {runningSessions.map((session) => (
+              <RunningWorkoutCard key={session.sessionId} session={session} />
+            ))}
           </div>
         )}
 
@@ -116,7 +126,7 @@ export default async function WorkoutsPage() {
             })()}
           </div>
           <div className="rounded-xl bg-card p-2.5 sm:p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[90px] sm:min-h-[130px]">
-            <span className="text-lg sm:text-4xl md:text-5xl font-black text-amber-400 font-display leading-normal">{stats.totalVolume.toLocaleString()} kg</span>
+            <span className="text-lg sm:text-4xl md:text-5xl font-black text-foreground font-display leading-normal">{formatNumberNl(stats.totalVolume)} kg</span>
             <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("volume verplaatst")}</span>
           </div>
         </div>
@@ -152,10 +162,9 @@ export default async function WorkoutsPage() {
                 <WorkoutImportModal />
                 <Button
                   render={<Link href="/workouts/new" />}
-                  size="sm"
-                  className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium"
+                  className="min-h-11 bg-brand text-zinc-900 hover:bg-brand-hover font-medium"
                 >
-                  <svg className="size-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="size-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                   {t("New Template")}

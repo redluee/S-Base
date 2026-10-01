@@ -2,29 +2,44 @@
 
 import React, { useState, useEffect } from "react";
 import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, Trash, Timer, Plus, Volume2, VolumeX, RefreshCw } from "lucide-react";
+import { Menu } from "@base-ui/react/menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExerciseAutocomplete } from "@/components/exercise-autocomplete";
 import { ExerciseCategorySelector } from "@/components/exercise-category-selector";
 import { t } from "@/lib/lang";
+import { formatNumberNl, parseDecimal, parseInteger, sanitizeDecimalInput, sanitizeIntegerInput, toInputString } from "@/lib/number-input";
+import { isUntouchedDefault, type SetValueField } from "@/lib/set-values";
+import { cn } from "@/lib/utils";
+import { SwipeTr, useCoarsePointer } from "@/components/swipe-tr";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
-interface AutoSaveInputProps extends Omit<React.ComponentProps<typeof Input>, "value" | "onChange"> {
-  value: number | string | null | undefined;
+type InputKind = "decimal" | "integer" | "time";
+
+interface AutoSaveInputProps
+  extends Omit<React.ComponentProps<typeof Input>, "value" | "onChange" | "type" | "inputMode"> {
+  kind: InputKind;
+  value: string;
   onSave: (val: string) => void;
 }
 
-function AutoSaveInput({ value, onSave, ...props }: AutoSaveInputProps) {
-  const [localValue, setLocalValue] = useState<string>("");
+function sameInputValue(kind: InputKind, a: string, b: string): boolean {
+  if (kind === "decimal") return parseDecimal(a) === parseDecimal(b);
+  if (kind === "integer") return parseInteger(a) === parseInteger(b);
+  return a.trim() === b.trim();
+}
+
+function AutoSaveInput({ kind, value, onSave, ...props }: AutoSaveInputProps) {
+  const [localValue, setLocalValue] = useState<string>(value);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalValue(value != null ? String(value) : "");
+    setLocalValue(value);
   }, [value]);
 
   const handleBlur = () => {
-    const canonicalProp = value != null ? String(value) : "";
-    if (localValue !== canonicalProp) {
+    if (!sameInputValue(kind, localValue, value)) {
       onSave(localValue);
     }
   };
@@ -35,11 +50,22 @@ function AutoSaveInput({ value, onSave, ...props }: AutoSaveInputProps) {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (kind === "decimal") setLocalValue(sanitizeDecimalInput(raw));
+    else if (kind === "integer") setLocalValue(sanitizeIntegerInput(raw));
+    else setLocalValue(raw.replace(/[^0-9:]/g, "").slice(0, 8));
+  };
+
   return (
     <Input
       {...props}
+      type="text"
+      inputMode={kind === "decimal" ? "decimal" : "numeric"}
+      enterKeyHint="done"
+      autoComplete="off"
       value={localValue}
-      onChange={(e) => setLocalValue(e.target.value)}
+      onChange={handleChange}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
     />
@@ -191,6 +217,97 @@ function parseSecs(val: string): number | null {
   const parsed = parseInt(val, 10);
   return isNaN(parsed) ? null : parsed;
 }
+type ColumnKey = "weight" | "reps" | "distance" | "duration" | "heartRate";
+
+interface SetColumn {
+  key: ColumnKey;
+  label: string;
+  kind: InputKind;
+  perSide?: boolean;
+}
+
+function getColumns(
+  cat: ReturnType<typeof normalizeCategory>,
+  isTimed: boolean,
+  isAssisted: boolean,
+  perSide: boolean
+): SetColumn[] {
+  const repsOrTime: SetColumn = isTimed
+    ? { key: "duration", label: t("Time (MM:SS)"), kind: "time", perSide }
+    : { key: "reps", label: t("Reps"), kind: "integer", perSide };
+
+  if (cat === "cardio") {
+    return [
+      { key: "distance", label: t("Distance (km)"), kind: "decimal" },
+      { key: "duration", label: t("Time (MM:SS)"), kind: "time", perSide },
+      { key: "heartRate", label: t("Avg HR (bpm)"), kind: "integer" },
+    ];
+  }
+  if (cat === "bodyweight") {
+    return [
+      { key: "weight", label: isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)"), kind: "decimal" },
+      repsOrTime,
+    ];
+  }
+  if (cat === "isometric") {
+    return [{ key: "weight", label: t("Added weight (kg)"), kind: "decimal" }, repsOrTime];
+  }
+  return [{ key: "weight", label: "kg", kind: "decimal" }, repsOrTime];
+}
+
+function formatColumnValue(
+  col: SetColumn,
+  cat: ReturnType<typeof normalizeCategory>,
+  raw: number | null | undefined
+): string {
+  if (raw === null || raw === undefined) return "";
+  if (col.kind === "time") return formatSecs(raw);
+  if (col.kind === "decimal") return toInputString(cat === "bodyweight" && col.key === "weight" ? Math.abs(raw) : raw);
+  return String(raw);
+}
+
+export function describeTarget(
+  cat: ReturnType<typeof normalizeCategory>,
+  isTimed: boolean,
+  target: Partial<SessionSet> | null
+): string {
+  if (!target) return "—";
+  const kg = (w: number) => `${formatNumberNl(w)} kg`;
+  const signed = (w: number) => `${w > 0 ? "+" : ""}${formatNumberNl(w)} kg`;
+  const hasTimeTarget =
+    target.duration != null && target.duration > 0 && (target.reps == null || target.reps === 0 || isTimed);
+
+  if (hasTimeTarget) {
+    const durStr = formatSecs(target.duration) || `${target.duration}s`;
+    if (target.weight != null && target.weight !== 0) {
+      return `${cat === "bodyweight" ? signed(target.weight) : kg(target.weight)} x ${durStr}`;
+    }
+    if (target.distance != null && target.distance > 0) return `${formatNumberNl(target.distance)} km x ${durStr}`;
+    return durStr;
+  }
+  if (cat === "resistance") {
+    return `${target.reps ?? 10} x ${kg(target.weight ?? 0)}`;
+  }
+  if (cat === "bodyweight") {
+    const reps = target.reps ?? 10;
+    if (target.weight != null && target.weight !== 0) return `${signed(target.weight)} x ${reps}`;
+    return `${reps} ${t("reps")}`;
+  }
+  if (cat === "cardio") {
+    return `${formatNumberNl(target.distance ?? 0)} km x ${formatSecs(target.duration ?? 0) || "0:00"}`;
+  }
+  const reps = target.reps ?? 10;
+  if (target.weight != null && target.weight !== 0) return `${reps} x ${kg(target.weight)}`;
+  return `${reps} ${t("reps")}`;
+}
+
+const actionButton =
+  "min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const menuItem =
+  "flex w-full min-h-11 items-center px-4 text-sm text-zinc-300 data-[highlighted]:bg-zinc-800 outline-none text-left cursor-pointer";
+const chipButton =
+  "min-h-11 min-w-11 px-3 inline-flex items-center justify-center rounded-md bg-zinc-800 text-xs font-medium text-zinc-300 hover:bg-zinc-700 active:scale-95 disabled:opacity-50 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
 export function WorkoutExerciseCard({
   ex,
   exIdx,
@@ -230,24 +347,50 @@ export function WorkoutExerciseCard({
 }: WorkoutExerciseCardProps) {
   const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: SessionSet) => s.completed === 1);
   const cat = normalizeCategory(ex.category);
+  const menuOpen = activeMenuExerciseId === ex.sessionExerciseId;
+  const coarse = useCoarsePointer();
+  const [openSetIdx, setOpenSetIdx] = useState<number | null>(null);
+  const [editingSets, setEditingSets] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const canDeleteAnySet = (ex.sets?.length ?? 0) > 1 && ex.sets.some((s: SessionSet) => s.completed !== 1);
+  const showSetsEditToggle = coarse && canDeleteAnySet;
+  const setsTableId = `session-sets-${ex.sessionExerciseId ?? exIdx}`;
+
+  function saveColumn(col: SetColumn, setIdx: number, val: string) {
+    if (col.kind === "time") {
+      updateSet(exIdx, setIdx, "duration", parseSecs(val));
+      return;
+    }
+    if (col.kind === "integer") {
+      const n = parseInteger(val);
+      updateSet(exIdx, setIdx, col.key as keyof SessionSet, n === null ? null : Math.max(0, n));
+      return;
+    }
+    const n = parseDecimal(val);
+    if (col.key === "weight" && cat === "bodyweight") {
+      const mag = n === null ? null : Math.abs(n);
+      updateSet(exIdx, setIdx, "weight", mag === null ? null : ex.isAssisted ? -mag : mag);
+      return;
+    }
+    updateSet(exIdx, setIdx, col.key as keyof SessionSet, n === null ? null : Math.max(0, n));
+  }
 
   return (
     <div
       id={`session-exercise-${ex.sessionExerciseId ?? exIdx}`}
       data-ex-id={ex.sessionExerciseId ?? exIdx}
-      className={`scroll-mt-24 rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-all duration-300 max-[375px]:border-0 max-[375px]:rounded-none max-[375px]:bg-transparent ${
-        allSetsDone
-          ? "border-brand shadow-[0_0_15px_rgba(0,227,164,0.15)] ring-1 ring-brand/35"
-          : "border-border"
-      }`}
+      className={cn(
+        "scroll-mt-24 rounded-xl bg-card/60 border p-4 sm:p-5 relative transition-colors duration-300 max-[375px]:border-0 max-[375px]:rounded-none max-[375px]:bg-transparent",
+        allSetsDone ? "border-brand/60 ring-1 ring-brand/30" : "border-border"
+      )}
     >
       {/* Exercise Card Header */}
-      <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex-1 min-w-0">
           {replacingExerciseId === ex.sessionExerciseId ? (
             <div className="flex flex-col gap-2 w-full">
               <div className="flex gap-2 items-center w-full">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <ExerciseAutocomplete
                     value={replaceName}
                     onChange={setReplaceName}
@@ -255,17 +398,16 @@ export function WorkoutExerciseCard({
                       replaceExercise(ex.sessionExerciseId!, v, category, equipment, defaultRestTime, defaultWeight, defaultDistance, defaultDuration, perSide, isAssisted, lastSets);
                     }}
                     placeholder={t("Search exercise") + "..."}
-                    className="w-full h-8 text-sm"
+                    className="w-full h-11 text-sm"
                   />
                 </div>
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={() => {
                     setReplacingExerciseId(null);
                     setReplaceName("");
                   }}
-                  className="h-8 text-xs text-muted-foreground hover:bg-white/5"
+                  className="min-h-11 text-xs text-muted-foreground hover:bg-white/5"
                 >
                   {t("Cancel")}
                 </Button>
@@ -277,50 +419,40 @@ export function WorkoutExerciseCard({
                     replaceExercise(ex.sessionExerciseId!, replaceName.trim(), undefined);
                   }
                 }}
-                className="text-xs text-brand hover:underline font-medium text-left self-start cursor-pointer"
+                className="min-h-11 text-xs text-brand hover:underline font-medium text-left self-start cursor-pointer"
               >
                 + {t("Nieuwe oefening instellen")}
               </button>
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              <h3 className="font-semibold text-foreground text-base sm:text-lg truncate flex items-center gap-2">
-                <span>{exIdx + 1}. {ex.exerciseName}</span>
+              <h3 className="font-semibold text-foreground text-base sm:text-lg flex items-center gap-2 min-h-11 break-words">
+                <span className="min-w-0">{exIdx + 1}. {ex.exerciseName}</span>
                 {allSetsDone && (
-                  <span className="inline-flex items-center justify-center size-5 rounded-full bg-brand/20 text-brand animate-scale-in shrink-0">
+                  <span
+                    role="img"
+                    aria-label={t("Alle sets voltooid")}
+                    className="inline-flex items-center justify-center size-5 rounded-full bg-brand/20 text-brand animate-scale-in shrink-0"
+                  >
                     <Check className="size-3 stroke-[3px]" />
                   </span>
                 )}
               </h3>
-              <div className="mt-1 flex items-center gap-2 flex-wrap">
-                <ExerciseCategorySelector
-                  category={ex.category ?? "Free Weights"}
-                  equipment={ex.equipment ?? ""}
-                  readOnlyCategory={true}
-                  onChange={(cat, eq) => {
-                    if (cat !== ex.category) {
-                      updateCategory(exIdx, cat);
-                    }
-                    updateEquipment(exIdx, eq);
-                  }}
-                  isAssisted={Boolean(ex.isAssisted)}
-                  onToggleAssisted={(val) => updateIsAssisted(exIdx, val)}
-                />
-              </div>
             </div>
           )}
         </div>
 
         {/* Reordering Controls and Kebab Menu */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center shrink-0">
           {totalExercises > 1 && (
-            <div className="flex items-center gap-0.5 mr-0.5">
+            <>
               <button
                 type="button"
                 disabled={exIdx === 0}
                 onClick={() => moveExerciseUpDirect(exIdx)}
-                className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
+                className={actionButton}
                 title={t("Move Up")}
+                aria-label={t("Move Up")}
               >
                 <ChevronUp className="size-5" />
               </button>
@@ -328,167 +460,135 @@ export function WorkoutExerciseCard({
                 type="button"
                 disabled={exIdx === totalExercises - 1}
                 onClick={() => moveExerciseDownDirect(exIdx)}
-                className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer"
+                className={actionButton}
                 title={t("Move Down")}
+                aria-label={t("Move Down")}
               >
                 <ChevronDown className="size-5" />
               </button>
-            </div>
+            </>
           )}
 
-          <div className="relative">
-            <button
-              onClick={() =>
-                setActiveMenuExerciseId(
-                  activeMenuExerciseId === ex.sessionExerciseId ? null : (ex.sessionExerciseId ?? null)
-                )
-              }
+          <Menu.Root
+            open={menuOpen}
+            onOpenChange={(open) => setActiveMenuExerciseId(open ? (ex.sessionExerciseId ?? null) : null)}
+          >
+            <Menu.Trigger
               aria-label={t("Meer opties")}
-              aria-haspopup="menu"
-              aria-expanded={activeMenuExerciseId === ex.sessionExerciseId}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
+              className={cn(actionButton, "hover:text-foreground data-[popup-open]:bg-white/10")}
             >
               <MoreVertical className="size-5" />
-            </button>
-
-            {/* Dropdown Options */}
-            {activeMenuExerciseId === ex.sessionExerciseId && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setActiveMenuExerciseId(null)}
-                />
-                <div className="absolute right-0 mt-1 w-48 rounded-lg bg-zinc-900 border border-zinc-800 shadow-xl z-20 py-1 text-sm">
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner align="end" sideOffset={4} className="z-50">
+                <Menu.Popup className="w-52 max-w-[calc(100vw-2rem)] rounded-lg bg-zinc-900 border border-zinc-800 py-1 text-sm outline-none">
                   {onStartEditing && (
-                    <button
-                      onClick={() => {
-                        onStartEditing(exIdx);
-                        setActiveMenuExerciseId(null);
-                      }}
-                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left cursor-pointer"
-                    >
+                    <Menu.Item className={menuItem} onClick={() => onStartEditing(exIdx)}>
                       <Edit2 className="size-4 mr-2 text-zinc-500" />
                       {t("Edit Exercise")}
-                    </button>
+                    </Menu.Item>
                   )}
-                  {setReplacingExerciseId && (
-                    <button
-                      onClick={() => {
-                        setReplacingExerciseId(ex.sessionExerciseId!);
-                        if (setReplaceName) setReplaceName("");
-                        setActiveMenuExerciseId(null);
-                      }}
-                      className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left cursor-pointer"
-                    >
-                      <RefreshCw className="size-4 mr-2 text-zinc-500" />
-                      {t("Replace Exercise")}
-                    </button>
-                  )}
-                  <button
+                  <Menu.Item
+                    className={menuItem}
                     onClick={() => {
-                      setHistoryExerciseName(ex.exerciseName, ex.equipment);
-                      setActiveMenuExerciseId(null);
+                      setReplacingExerciseId(ex.sessionExerciseId!);
+                      setReplaceName("");
                     }}
-                    className="flex w-full items-center px-4 py-2 text-zinc-300 hover:bg-zinc-800 text-left cursor-pointer"
                   >
+                    <RefreshCw className="size-4 mr-2 text-zinc-500" />
+                    {t("Replace Exercise")}
+                  </Menu.Item>
+                  <Menu.Item className={menuItem} onClick={() => setHistoryExerciseName(ex.exerciseName, ex.equipment)}>
                     <History className="size-4 mr-2 text-zinc-500" />
                     {t("View History")}
-                  </button>
+                  </Menu.Item>
                   <hr className="border-zinc-800 my-1" />
-                  <button
-                    onClick={() => {
-                      if (confirm(t("Remove this exercise?"))) {
-                        removeExercise(ex.sessionExerciseId!);
-                      }
-                      setActiveMenuExerciseId(null);
-                    }}
-                    className="flex w-full items-center px-4 py-2 text-red-400 hover:bg-zinc-800 text-left cursor-pointer"
+                  <Menu.Item
+                    className={cn(menuItem, "text-destructive")}
+                    onClick={() => setConfirmRemove(true)}
                   >
                     <Trash2 className="size-4 mr-2" />
                     {t("Remove")}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
         </div>
       </div>
+
+      {replacingExerciseId !== ex.sessionExerciseId && (
+        <div className="mb-4">
+          <ExerciseCategorySelector
+            category={ex.category ?? "Free Weights"}
+            equipment={ex.equipment ?? ""}
+            readOnlyCategory={true}
+            onChange={(cat, eq) => {
+              if (cat !== ex.category) {
+                updateCategory(exIdx, cat);
+              }
+              updateEquipment(exIdx, eq);
+            }}
+            isAssisted={Boolean(ex.isAssisted)}
+            onToggleAssisted={(val) => updateIsAssisted(exIdx, val)}
+          />
+        </div>
+      )}
 
       {/* Sets Table */}
       {ex.sets?.length > 0 && (() => {
         const isTimed = isTimedExercise(ex, previousSetsMap);
         const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
+        const columns = getColumns(cat, isTimed, Boolean(ex.isAssisted), perSide);
+        const canDeleteSets = ex.sets.length > 1;
+        const totalCols = 1 + 1 + columns.length + 1 + (canDeleteSets ? 1 : 0);
+        const swipeMode = coarse && canDeleteSets && !editingSets;
 
         return (
-          <div className="overflow-x-auto -mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60">
-            <table className="w-full text-xs sm:text-sm border-collapse">
+          <div
+            data-swipe-clip
+            className={cn("-mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60", swipeMode && "relative overflow-hidden")}
+          >
+            <table
+              id={setsTableId}
+              className="table-fixed text-xs sm:text-sm border-collapse"
+              style={{ width: swipeMode ? "calc(100% + 2.75rem)" : "100%" }}
+            >
+              <colgroup>
+                <col className="w-7 sm:w-10" />
+                <col className="hidden sm:table-column sm:w-[26%]" />
+                {columns.map((col) => (
+                  <col key={col.key} className={col.kind === "time" && onStartRepTimer ? "w-[6.25rem] sm:w-40" : undefined} />
+                ))}
+                <col className="w-11" />
+                {canDeleteSets && <col className="w-11" />}
+              </colgroup>
               <thead>
                 <tr className="border-b border-border/40 text-muted-foreground">
-                  <th className="text-left py-2 px-2 font-normal w-8">{t("Set")}</th>
-                  <th className="text-left py-2 px-3 font-normal">{t("Target")}</th>
-                  {(cat === "resistance") && (
-                    <>
-                      <th className="text-center py-2 px-3 font-normal w-28">kg</th>
-                      <th className="text-center py-2 px-3 font-normal w-24">
-                        <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
-                        {perSide && (
-                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
-                            ({t("per side")})
-                          </span>
-                        )}
-                      </th>
-                    </>
+                  <th scope="col" className="text-left py-2 pl-3 sm:pl-2 pr-0 font-normal">{t("Set")}</th>
+                  <th scope="col" className="hidden sm:table-cell text-left py-2 px-3 font-normal">{t("Target")}</th>
+                  {columns.map((col) => (
+                    <th key={col.key} scope="col" className="text-center py-2 px-0.5 sm:px-2 font-normal text-[11px] sm:text-xs leading-tight align-bottom">
+                      <span>{col.label}</span>
+                      {col.perSide && (
+                        <span className="block text-[10px] text-muted-foreground font-normal leading-tight mt-0.5">
+                          ({t("per side")})
+                        </span>
+                      )}
+                    </th>
+                  ))}
+                  <th scope="col" className="text-center py-2 px-0 font-normal text-[11px] sm:text-xs">{t("Done")}</th>
+                  {canDeleteSets && (
+                    <th scope="col" className="p-0">
+                      <span className="sr-only">{t("Verwijderen")}</span>
+                    </th>
                   )}
-                  {cat === "bodyweight" && (
-                    <>
-                      <th className="text-center py-2 px-3 font-normal w-28">{ex.isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)")}</th>
-                      <th className="text-center py-2 px-3 font-normal w-24">
-                        <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
-                        {perSide && (
-                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
-                            ({t("per side")})
-                          </span>
-                        )}
-                      </th>
-                    </>
-                  )}
-                  {cat === "cardio" && (
-                    <>
-                      <th className="text-center py-2 px-3 font-normal w-24">{t("Distance (km)")}</th>
-                      <th className="text-center py-2 px-3 font-normal w-24">
-                        <span>{t("Time (MM:SS)")}</span>
-                        {perSide && (
-                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
-                            ({t("per side")})
-                          </span>
-                        )}
-                      </th>
-                      <th className="text-center py-2 px-3 font-normal w-24">{t("Avg HR (bpm)")}</th>
-                    </>
-                  )}
-                  {cat === "isometric" && (
-                    <>
-                      <th className="text-center py-2 px-3 font-normal w-24">{t("Added weight (kg)")}</th>
-                      <th className="text-center py-2 px-3 font-normal w-24">
-                        <span>{isTimed ? t("Time (MM:SS)") : t("Reps")}</span>
-                        {perSide && (
-                          <span className="block text-[10px] text-amber-400/80 font-normal leading-tight mt-0.5">
-                            ({t("per side")})
-                          </span>
-                        )}
-                      </th>
-                    </>
-                  )}
-                  <th className="text-center py-2 px-3 font-normal w-16">{t("Done")}</th>
                 </tr>
               </thead>
               <tbody>
                 {ex.sets.map((set: SessionSet, setIdx: number) => {
                   const prevSets = previousSetsMap[ex.exerciseName];
                   const prevSet = prevSets?.[setIdx] ?? prevSets?.[prevSets.length - 1];
-                  
-                  let ghostText = "—";
-                  let targetSource: Partial<SessionSet> | null = null;
 
                   const hasPrevData = prevSet && (
                     prevSet.reps != null ||
@@ -498,6 +598,7 @@ export function WorkoutExerciseCard({
                     prevSet.heartRate != null
                   );
 
+                  let targetSource: Partial<SessionSet> | null = null;
                   if (hasPrevData) {
                     targetSource = prevSet;
                   } else if (ex.templateExercise) {
@@ -513,470 +614,257 @@ export function WorkoutExerciseCard({
                     targetSource = set;
                   }
 
-                  if (targetSource) {
-                    const hasTimeTarget =
-                      targetSource.duration != null &&
-                      targetSource.duration > 0 &&
-                      (targetSource.reps == null || targetSource.reps === 0 || isTimed);
-
-                    if (hasTimeTarget) {
-                      const durStr = formatSecs(targetSource.duration) || `${targetSource.duration}s`;
-                      if (targetSource.weight != null && targetSource.weight !== 0) {
-                        const weightSign = (cat === "bodyweight" && targetSource.weight > 0) ? "+" : "";
-                        ghostText = `${weightSign}${targetSource.weight} KG x ${durStr}`;
-                      } else if (targetSource.distance != null && targetSource.distance > 0) {
-                        ghostText = `${targetSource.distance} km x ${durStr}`;
-                      } else {
-                        ghostText = durStr;
-                      }
-                    } else if (cat === "resistance") {
-                      const reps = targetSource.reps ?? 10;
-                      const weight = targetSource.weight ?? 0;
-                      ghostText = `${reps} x ${weight} KG`;
-                    } else if (cat === "bodyweight") {
-                      const reps = targetSource.reps ?? 10;
-                      const weight = targetSource.weight;
-                      if (weight != null && weight !== 0) {
-                        const weightSign = weight > 0 ? "+" : "";
-                        ghostText = `${weightSign}${weight} KG x ${reps}`;
-                      } else {
-                        ghostText = `${reps} reps`;
-                      }
-                    } else if (cat === "cardio") {
-                      const dist = targetSource.distance ?? 0;
-                      const dur = targetSource.duration ?? 0;
-                      ghostText = `${dist} km x ${formatSecs(dur) || "0:00"}`;
-                    } else if (cat === "isometric") {
-                      if (isTimed) {
-                        const dur = targetSource.duration ?? 0;
-                        const weight = targetSource.weight;
-                        const durStr = formatSecs(dur) || `${dur}s`;
-                        
-                        if (weight != null && weight !== 0) {
-                          ghostText = `${weight} KG x ${durStr}`;
-                        } else {
-                          ghostText = durStr;
-                        }
-                      } else {
-                        const reps = targetSource.reps ?? 10;
-                        const weight = targetSource.weight;
-                        if (weight != null && weight !== 0) {
-                          ghostText = `${reps} x ${weight} KG`;
-                        } else {
-                          ghostText = `${reps} reps`;
-                        }
-                      }
-                    }
-                  }
-
-                  const colSpanVal = cat === "cardio" ? 6 : 5;
+                  const ghostText = describeTarget(cat, isTimed, targetSource);
                   const isZero = highlightZeroReps && isSetZero(ex, set, previousSetsMap);
+                  const isCurrentRest = activeRestExerciseIdx === exIdx && activeRestSetIdx === setIdx;
+                  const justCompleted = lastCompletedSet?.exIdx === exIdx && lastCompletedSet?.setIdx === setIdx;
 
                   return (
                     <React.Fragment key={setIdx}>
-                      <tr
-                        className={`border-b border-border/20 last:border-0 transition-colors duration-150 ${
-                          set.completed
-                            ? "bg-brand/5 opacity-70"
-                            : "hover:bg-white/[0.01]"
-                        }`}
+                      <SwipeTr
+                        enabled={swipeMode && set.completed !== 1}
+                        open={openSetIdx === setIdx}
+                        onOpenChange={(o) => setOpenSetIdx(o ? setIdx : null)}
+                        className={cn(
+                          "border-b border-border/20 last:border-0",
+                          set.completed ? "bg-brand/5" : "hover:bg-white/[0.01]"
+                        )}
                       >
-                        {/* Set # */}
-                        <td className="py-2.5 px-3 font-medium text-zinc-400 align-middle">
-                          {set.setNumber}
-                        </td>
+                        <td className="py-1 pl-3 sm:pl-2 pr-0 font-medium text-zinc-400 align-middle">{set.setNumber}</td>
 
-                        {/* Ghost/Target text */}
-                        <td className="py-2.5 px-3 text-muted-foreground align-middle italic text-xs">
+                        <td className="hidden sm:table-cell py-1 px-3 text-muted-foreground align-middle text-xs">
                           {ghostText}
                         </td>
 
-                        {/* Dynamic Inputs based on Category */}
-                        {(cat === "resistance") && (
-                          <>
-                            <td className="py-2 px-2 align-middle">
-                              <AutoSaveInput
-                                type="number"
-                                min="0"
-                                step="any"
-                                inputMode="decimal"
-                                placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
-                                value={set.weight != null ? set.weight : (targetSource?.weight ?? null)}
-                                onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
-                                className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                              />
-                            </td>
-                            <td className="py-2 px-2 align-middle">
-                              {isTimed ? (
-                                <div className="relative flex items-center justify-center">
-                                  <AutoSaveInput
-                                    type="text"
-                                    placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                    value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
-                                    onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                                    className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                      onStartRepTimer ? "pr-7" : ""
-                                    } ${
-                                      isZero
-                                        ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                        : "border-border/80 focus-visible:border-brand/40"
-                                    }`}
-                                  />
-                                  {onStartRepTimer && (
-                                    <button
-                                      type="button"
-                                      onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
-                                      className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
-                                      title={t("Start Timer")}
-                                    >
-                                      <Timer className="size-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <AutoSaveInput
-                                  type="number"
-                                  min="0"
-                                  inputMode="numeric"
-                                  placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
-                                  value={set.reps != null ? set.reps : (targetSource?.reps ?? null)}
-                                  onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                    isZero
-                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                      : "border-border/80 focus-visible:border-brand/40"
-                                  }`}
-                                />
-                              )}
-                            </td>
-                          </>
-                        )}
-
-                        {cat === "bodyweight" && (
-                          <>
-                            <td className="py-2 px-2 align-middle">
-                              <AutoSaveInput
-                                type="number"
-                                min="0"
-                                step="any"
-                                placeholder={targetSource?.weight != null ? String(Math.abs(targetSource.weight)) : "0"}
-                                value={set.weight != null ? Math.abs(set.weight) : (targetSource?.weight != null ? Math.abs(targetSource.weight) : null)}
-                                onSave={(val) => {
-                                  const n = val ? Math.abs(Number(val)) : null;
-                                  updateSet(exIdx, setIdx, "weight", n != null ? (ex.isAssisted ? -n : n) : null);
-                                }}
-                                className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                              />
-                            </td>
-                            <td className="py-2 px-2 align-middle">
-                              {isTimed ? (
-                                <div className="relative flex items-center justify-center">
-                                  <AutoSaveInput
-                                    type="text"
-                                    placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                    value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
-                                    onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                                    className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                      onStartRepTimer ? "pr-7" : ""
-                                    } ${
-                                      isZero
-                                        ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                        : "border-border/80 focus-visible:border-brand/40"
-                                    }`}
-                                  />
-                                  {onStartRepTimer && (
-                                    <button
-                                      type="button"
-                                      onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
-                                      className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
-                                      title={t("Start Timer")}
-                                    >
-                                      <Timer className="size-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <AutoSaveInput
-                                  type="number"
-                                  min="0"
-                                  inputMode="numeric"
-                                  placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
-                                  value={set.reps != null ? set.reps : (targetSource?.reps ?? null)}
-                                  onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                    isZero
-                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                      : "border-border/80 focus-visible:border-brand/40"
-                                  }`}
-                                />
-                              )}
-                            </td>
-                          </>
-                        )}
-
-                      {cat === "cardio" && (
-                        <>
-                          <td className="py-2 px-2 align-middle">
+                        {columns.map((col) => {
+                          const targetRaw = targetSource?.[col.key] as number | null | undefined;
+                          const raw = set[col.key] as number | null | undefined;
+                          const display = formatColumnValue(col, cat, raw);
+                          const placeholder =
+                            targetRaw != null
+                              ? formatColumnValue(col, cat, targetRaw)
+                              : col.kind === "time"
+                                ? "MM:SS"
+                                : col.kind === "decimal"
+                                  ? "0,0"
+                                  : "0";
+                          const pristine = isUntouchedDefault(set, col.key as SetValueField, targetRaw ?? null);
+                          const flagged = isZero && (col.key === "reps" || col.key === "duration" || col.key === "distance");
+                          const input = (
                             <AutoSaveInput
-                              type="number"
-                              min="0"
-                              step="any"
-                              placeholder={targetSource?.distance != null ? String(targetSource.distance) : "0.0"}
-                              value={set.distance != null ? set.distance : (targetSource?.distance ?? null)}
-                              onSave={(val) => updateSet(exIdx, setIdx, "distance", val ? Math.max(0, Number(val)) : null)}
-                              className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                isZero
+                              kind={col.kind}
+                              aria-label={`${col.label}, ${t("Set")} ${set.setNumber}`}
+                              placeholder={placeholder}
+                              value={display}
+                              onSave={(val) => saveColumn(col, setIdx, val)}
+                              className={cn(
+                                "bg-white/5 h-11 text-center text-sm rounded-md px-1 transition-colors placeholder:text-muted-foreground/60 placeholder:italic placeholder:font-normal",
+                                pristine ? "text-muted-foreground italic font-normal" : "text-foreground font-semibold",
+                                flagged
                                   ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
                                   : "border-border/80 focus-visible:border-brand/40"
-                              }`}
-                            />
-                          </td>
-                          <td className="py-2 px-2 align-middle">
-                            <div className="relative flex items-center justify-center">
-                              <AutoSaveInput
-                                type="text"
-                                placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
-                                onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                                className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                  onStartRepTimer ? "pr-7" : ""
-                                } ${
-                                  isZero
-                                    ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                    : "border-border/80 focus-visible:border-brand/40"
-                                }`}
-                              />
-                              {onStartRepTimer && (
-                                <button
-                                  type="button"
-                                  onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
-                                  className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
-                                  title={t("Start Timer")}
-                                >
-                                  <Timer className="size-3.5" />
-                                </button>
                               )}
-                            </div>
-                          </td>
-                          <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="number"
-                              min="0"
-                              placeholder={targetSource?.heartRate != null ? String(targetSource.heartRate) : "140"}
-                              value={set.heartRate != null ? set.heartRate : (targetSource?.heartRate ?? null)}
-                              onSave={(val) => updateSet(exIdx, setIdx, "heartRate", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
                             />
-                          </td>
-                        </>
-                      )}
+                          );
 
-                      {cat === "isometric" && (
-                        <>
-                          <td className="py-2 px-2 align-middle">
-                            <AutoSaveInput
-                              type="number"
-                              min="0"
-                              step="any"
-                              placeholder={targetSource?.weight != null ? String(targetSource.weight) : "0"}
-                              value={set.weight != null ? set.weight : (targetSource?.weight ?? null)}
-                              onSave={(val) => updateSet(exIdx, setIdx, "weight", val ? Math.max(0, Number(val)) : null)}
-                              className="bg-white/5 border-border/80 h-8 text-center text-sm font-semibold rounded-md focus-visible:border-brand/40"
-                            />
-                          </td>
-                          <td className="py-2 px-2 align-middle">
-                            {isTimed ? (
-                              <div className="relative flex items-center justify-center">
-                                <AutoSaveInput
-                                  type="text"
-                                  placeholder={targetSource?.duration != null ? formatSecs(targetSource.duration) : "MM:SS"}
-                                  value={(set.duration != null ? set.duration : targetSource?.duration) != null ? formatSecs(set.duration != null ? set.duration : targetSource?.duration) : ""}
-                                  onSave={(val) => updateSet(exIdx, setIdx, "duration", parseSecs(val))}
-                                  className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                    onStartRepTimer ? "pr-7" : ""
-                                  } ${
-                                    isZero
-                                      ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                      : "border-border/80 focus-visible:border-brand/40"
-                                  }`}
-                                />
-                                {onStartRepTimer && (
+                          return (
+                            <td key={col.key} className="py-1 px-0.5 sm:px-2 align-middle">
+                              {col.kind === "time" && onStartRepTimer ? (
+                                <div className="flex items-center">
+                                  <div className="flex-1 min-w-0">{input}</div>
                                   <button
                                     type="button"
                                     onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
-                                    className="absolute right-1 p-1 rounded text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors"
+                                    className="min-h-11 min-w-11 shrink-0 inline-flex items-center justify-center rounded-md text-zinc-400 hover:text-brand hover:bg-white/10 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                                     title={t("Start Timer")}
+                                    aria-label={`${t("Start Timer")}, ${t("Set")} ${set.setNumber}`}
                                   >
-                                    <Timer className="size-3.5" />
+                                    <Timer className="size-4" />
                                   </button>
-                                )}
-                              </div>
-                            ) : (
-                              <AutoSaveInput
-                                type="number"
-                                min="0"
-                                inputMode="numeric"
-                                placeholder={targetSource?.reps != null ? String(targetSource.reps) : "0"}
-                                value={set.reps != null ? set.reps : (targetSource?.reps ?? null)}
-                                onSave={(val) => updateSet(exIdx, setIdx, "reps", val ? Math.max(0, Number(val)) : null)}
-                                className={`bg-white/5 h-8 text-center text-sm font-semibold rounded-md transition-all ${
-                                  isZero
-                                    ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                                    : "border-border/80 focus-visible:border-brand/40"
-                                }`}
-                              />
-                            )}
-                          </td>
-                        </>
-                      )}
+                                </div>
+                              ) : (
+                                input
+                              )}
+                            </td>
+                          );
+                        })}
 
-                      {/* Done / Trash */}
-                      <td className="py-2 px-2 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1">
+                        <td className="p-0 text-center align-middle">
                           <button
                             type="button"
                             onClick={() => toggleSetCompleted(exIdx, setIdx)}
-                            aria-label={t("Mark set as completed")}
-                            className={`size-7 sm:size-8 rounded-md flex items-center justify-center transition-all duration-75 active:scale-[0.9] border group/checkbtn relative ${
-                              set.completed
-                                ? "bg-brand border-brand text-zinc-900"
-                                : "bg-white/5 border-border text-zinc-500 hover:border-brand/40 hover:bg-brand/10 hover:text-brand"
-                            }`}
+                            aria-label={set.completed ? t("Markeer set als niet voltooid") : t("Mark set as completed")}
+                            aria-pressed={Boolean(set.completed)}
+                            className="mx-auto size-11 flex items-center justify-center group/checkbtn relative outline-none"
                           >
-                            {set.completed ? (
-                              <>
+                            <span
+                              className={cn(
+                                "size-8 rounded-md flex items-center justify-center border transition-all duration-75 group-active/checkbtn:scale-90 group-focus-visible/checkbtn:ring-3 group-focus-visible/checkbtn:ring-ring/50",
+                                set.completed
+                                  ? "bg-brand border-brand text-zinc-900"
+                                  : "bg-white/5 border-border text-zinc-500 group-hover/checkbtn:border-brand/40 group-hover/checkbtn:bg-brand/10 group-hover/checkbtn:text-brand"
+                              )}
+                            >
+                              {set.completed ? (
                                 <Check className="size-4 stroke-[3px] animate-scale-in" />
-                                {lastCompletedSet?.exIdx === exIdx && lastCompletedSet?.setIdx === setIdx && (
-                                  <>
-                                    <span className="absolute size-1.5 rounded-full bg-brand animate-particle-1 pointer-events-none" />
-                                    <span className="absolute size-1.5 rounded-full bg-brand animate-particle-2 pointer-events-none" />
-                                    <span className="absolute size-1.5 rounded-full bg-brand animate-particle-3 pointer-events-none" />
-                                    <span className="absolute size-1.5 rounded-full bg-brand animate-particle-4 pointer-events-none" />
-                                  </>
-                                )}
+                              ) : (
+                                <Check className="size-4 opacity-25 group-hover/checkbtn:opacity-100 transition-opacity" />
+                              )}
+                            </span>
+                            {Boolean(set.completed) && justCompleted && (
+                              <>
+                                <span className="absolute size-1.5 rounded-full bg-brand animate-particle-1 pointer-events-none" />
+                                <span className="absolute size-1.5 rounded-full bg-brand animate-particle-2 pointer-events-none" />
+                                <span className="absolute size-1.5 rounded-full bg-brand animate-particle-3 pointer-events-none" />
+                                <span className="absolute size-1.5 rounded-full bg-brand animate-particle-4 pointer-events-none" />
                               </>
-                            ) : (
-                              <Check className="size-4 opacity-25 group-hover/checkbtn:opacity-100 transition-opacity text-zinc-500 group-hover/checkbtn:text-brand" />
                             )}
                           </button>
-                          {ex.sets.length > 1 && set.completed !== 1 && (
-                            <button
-                              onClick={() => removeSet(exIdx, setIdx)}
-                              className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-950/20 transition-colors"
-                            >
-                              <Trash className="size-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    {setIdx < ex.sets.length - 1 && (() => {
-                      const isSetAboveCompleted = set.completed === 1;
-                      const isCurrentRestTimer = activeRestExerciseIdx === exIdx && activeRestSetIdx === setIdx;
-                      const hasActiveTimer = isCurrentRestTimer && restSecondsLeft > 0;
-                      const isDone = !hasActiveTimer;
-
-                      return (
-                        <tr className={`transition-all duration-300 ${
-                          isDone 
-                            ? "h-0 border-none bg-transparent overflow-hidden" 
-                            : `border-b border-border/10 ${isSetAboveCompleted ? "bg-zinc-950/50" : "bg-zinc-950/25"}`
-                        }`}>
-                          <td colSpan={colSpanVal} className="p-0 transition-all duration-300 relative overflow-hidden">
-                            {/* Progress Background */}
-                            {hasActiveTimer && (
-                              <div 
-                                className="absolute inset-0 bg-brand/10 transition-all duration-1000 ease-linear pointer-events-none border-none border-0"
-                                style={{ width: `${(restSecondsLeft / restTotalSeconds) * 100}%` }}
-                              />
+                        </td>
+                        {canDeleteSets && (
+                          <td className={cn("p-0 text-center align-middle", swipeMode && "bg-destructive/10")}>
+                            {set.completed !== 1 && (
+                              <button
+                                type="button"
+                                data-swipe-action
+                                onClick={() => {
+                                  setOpenSetIdx(null);
+                                  removeSet(exIdx, setIdx);
+                                }}
+                                aria-label={`${t("Set verwijderen")} ${set.setNumber}`}
+                                title={t("Set verwijderen")}
+                                className="mx-auto size-11 inline-flex items-center justify-center rounded-md text-zinc-500 hover:text-destructive hover:bg-red-950/20 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                              >
+                                <Trash className="size-4" />
+                              </button>
                             )}
-
-                            <div 
-                              className={`transition-all duration-300 ease-in-out overflow-hidden relative w-full border-none border-0 ${
-                                isDone 
-                                  ? "max-h-0 opacity-0 py-0 px-3 pointer-events-none" 
-                                  : isSetAboveCompleted 
-                                    ? "max-h-20 opacity-100 py-3 sm:py-3.5 px-3 min-h-[56px]" 
-                                    : "max-h-12 opacity-100 py-1 px-3"
-                              }`}
-                            >
-                              <div className="relative z-10 flex items-center justify-between text-xs text-zinc-400 w-full">
-                                {isSetAboveCompleted ? (
-                                  <>
-                                    <div className="flex items-center gap-2">
-                                      <Timer className={`size-4 ${hasActiveTimer && restActive ? "text-brand animate-pulse" : "text-zinc-500"}`} />
-                                      {hasActiveTimer && (
-                                        <div className="flex flex-wrap items-center gap-3">
-                                          <span className="font-mono text-base font-bold text-brand tabular-nums">
-                                            {formatTime(restSecondsLeft)}
-                                          </span>
-                                          {/* Adjust buttons */}
-                                          <div className="flex items-center gap-1.5">
-                                            <button
-                                              onClick={() => adjustRestTimer(15)}
-                                              className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-300 hover:bg-zinc-700 active:scale-95"
-                                            >
-                                              +15s
-                                            </button>
-                                            <button
-                                              onClick={() => adjustRestTimer(-15)}
-                                              className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-300 hover:bg-zinc-700 active:scale-95 disabled:opacity-50"
-                                              disabled={restSecondsLeft <= 15}
-                                            >
-                                              -15s
-                                            </button>
-                                            <button
-                                              onClick={stopRestTimer}
-                                              className="px-2 py-0.5 rounded bg-red-950/55 border border-red-900/30 text-[10px] text-red-300 hover:bg-red-900/40 active:scale-95"
-                                            >
-                                              {t("Skip")}
-                                            </button>
-                                            {toggleSound && (
-                                              <button
-                                                onClick={toggleSound}
-                                                title={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
-                                                aria-label={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
-                                                className="p-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 active:scale-95"
-                                              >
-                                                {soundEnabled ? (
-                                                  <Volume2 className="size-3.5 text-brand" />
-                                                ) : (
-                                                  <VolumeX className="size-3.5 text-zinc-500" />
-                                                )}
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="h-2 w-full" />
-                                )}
-                              </div>
-                            </div>
                           </td>
-                        </tr>
-                      );
-                    })()}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
-    })()}
+                        )}
+                      </SwipeTr>
+                      {setIdx < ex.sets.length - 1 && (() => {
+                        const isSetAboveCompleted = set.completed === 1;
+                        const hasActiveTimer = isCurrentRest && restSecondsLeft > 0;
+                        if (!hasActiveTimer || !isSetAboveCompleted) return null;
+
+                        return (
+                          <tr className="border-b border-border/10 bg-zinc-950/50">
+                            <td colSpan={totalCols} className="p-0 relative overflow-hidden">
+                              <div
+                                className="absolute inset-0 bg-brand/10 transition-all duration-1000 ease-linear pointer-events-none"
+                                style={{ width: `${restTotalSeconds > 0 ? (restSecondsLeft / restTotalSeconds) * 100 : 0}%` }}
+                              />
+                              <div className={cn("relative z-10 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1 text-xs text-zinc-400 w-full", swipeMode && "pr-14")}>
+                                <Timer className={cn("size-4 shrink-0", restActive ? "text-brand animate-pulse" : "text-zinc-500")} aria-hidden="true" />
+                                <span
+                                  role="timer"
+                                  aria-label={t("Rusttijd")}
+                                  className="text-base font-bold text-brand tabular-nums min-w-12"
+                                >
+                                  {formatTime(restSecondsLeft)}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <button type="button" onClick={() => adjustRestTimer(15)} className={chipButton}>
+                                    +15s
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => adjustRestTimer(-15)}
+                                    className={chipButton}
+                                    disabled={restSecondsLeft <= 15}
+                                  >
+                                    -15s
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={stopRestTimer}
+                                    className={cn(chipButton, "bg-red-950/55 border border-red-900/30 text-red-300 hover:bg-red-900/40")}
+                                  >
+                                    {t("Skip")}
+                                  </button>
+                                  {toggleSound && (
+                                    <button
+                                      type="button"
+                                      onClick={toggleSound}
+                                      title={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
+                                      aria-label={soundEnabled ? t("Geluid aan") : t("Geluid uit")}
+                                      className={chipButton}
+                                    >
+                                      {soundEnabled ? (
+                                        <Volume2 className="size-4 text-brand" />
+                                      ) : (
+                                        <VolumeX className="size-4 text-zinc-500" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })()}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {/* Add Set Button */}
-      <Button
-        variant="ghost"
-        onClick={() => addSet(exIdx)}
-        className="w-full border border-dashed border-border/60 text-muted-foreground hover:text-foreground text-xs h-8 rounded-lg transition-colors hover:bg-white/[0.01]"
-      >
-        <Plus className="size-3.5 mr-1" />
-        {t("Add Set")}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="ghost"
+          onClick={() => addSet(exIdx)}
+          className="flex-1 min-w-0 min-h-11 border border-dashed border-border/60 text-muted-foreground hover:text-foreground text-sm rounded-lg transition-colors hover:bg-white/[0.01]"
+        >
+          <Plus className="size-4 mr-1" />
+          {t("Add Set")}
+        </Button>
+        {showSetsEditToggle && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setOpenSetIdx(null);
+              setEditingSets((v) => !v);
+            }}
+            aria-pressed={editingSets}
+            aria-controls={setsTableId}
+            className={cn(
+              "shrink-0 min-h-11 px-3 border text-sm rounded-lg transition-colors",
+              editingSets
+                ? "border-foreground/30 text-foreground bg-white/5"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-white/[0.01]"
+            )}
+          >
+            {editingSets ? (
+              <>
+                <Check className="size-4 mr-1" aria-hidden="true" />
+                {t("Klaar")}
+              </>
+            ) : (
+              <>
+                <Trash className="size-4 mr-1" aria-hidden="true" />
+                {t("Sets bewerken")}
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={confirmRemove}
+        title={t("Remove this exercise?")}
+        description={t("The exercise and all its sets are removed from this workout.")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Remove")}
+        tone="destructive"
+        onCancel={() => setConfirmRemove(false)}
+        onConfirm={() => {
+          setConfirmRemove(false);
+          removeExercise(ex.sessionExerciseId!);
+        }}
+      />
     </div>
   );
 }

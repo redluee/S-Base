@@ -4,6 +4,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { sessionElapsedSeconds } from "@/lib/workout-time";
+import { clearOfflineSession } from "@/lib/offline-workout";
+import { clearSetTimerSnapshot } from "@/lib/set-timer";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { DumbbellIcon } from "@/components/icons";
@@ -39,27 +43,37 @@ export function RunningWorkoutCard({
   const [elapsed, setElapsed] = useState<number>(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const isPaused = Boolean(session.pausedAt);
+  const sessionHref = `/workouts/session/${session.sessionId}`;
+  const continueLabel = isPaused ? t("Hervatten") : t("Doorgaan");
 
-  // Live timer tick
   useEffect(() => {
-    const started = parseSessionDate(session.startedAt).getTime();
-    
     const updateElapsed = () => {
-      const diffMs = Math.max(0, Date.now() - started);
-      setElapsed(Math.floor(diffMs / 1000));
+      setElapsed(
+        sessionElapsedSeconds(
+          { ...session, startedAt: parseSessionDate(session.startedAt).toISOString() },
+          Date.now()
+        )
+      );
     };
 
     updateElapsed();
+    if (isPaused) return;
     const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
-  }, [session.startedAt]);
+  }, [session, isPaused]);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await api.workouts.sessions.delete(session.sessionId);
+      clearOfflineSession(session.sessionId);
+      clearSetTimerSnapshot(session.sessionId);
+      setShowConfirmDelete(false);
       if (onDiscard) {
         onDiscard();
       } else {
@@ -67,9 +81,9 @@ export function RunningWorkoutCard({
       }
     } catch (err) {
       console.error("Failed to delete session", err);
+      setDeleteError(t("Workout verwijderen mislukt. Probeer het opnieuw."));
     } finally {
       setIsDeleting(false);
-      setShowConfirmDelete(false);
     }
   };
 
@@ -80,27 +94,17 @@ export function RunningWorkoutCard({
 
   if (compact) {
     return (
-      <div className="relative group overflow-hidden squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-[#00E676]/40 p-3.5 sm:p-4 shadow-[0_0_2rem_-0.25rem_rgba(0,230,118,0.3)] hover:border-[#00E676]/70 transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00E676]/10 via-transparent to-[#00E676]/5 pointer-events-none" />
-        <div className="flex items-center justify-between gap-3 relative z-10">
+      <div className="rounded-xl bg-card ring-1 ring-brand/40 p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="relative flex items-center justify-center shrink-0">
-              <span className="absolute inline-flex size-9 animate-ping squircle-icon bg-[#00E676]/20" />
-              <div className="size-9 squircle-icon bg-[#00E676]/15 border border-[#00E676]/40 flex items-center justify-center text-[#00E676] shadow-[0_0_12px_rgba(0,230,118,0.3)]">
-                <DumbbellIcon className="size-4" />
-              </div>
+            <div className="size-9 rounded-lg bg-brand/15 flex items-center justify-center text-brand shrink-0">
+              <DumbbellIcon className="size-4" />
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00E676] opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-[#00E676]" />
-                </span>
-                <span className="text-[11px] font-bold text-[#00E676] uppercase tracking-wider">
-                  {t("Lopende workout")}
-                </span>
-              </div>
+              <span className="text-[11px] font-semibold text-brand uppercase tracking-wider">
+                {isPaused ? t("Workout gepauzeerd") : t("Lopende workout")}
+              </span>
               <h3 className="font-semibold text-sm text-foreground truncate">
                 {session.name || t("Workout Session")}
               </h3>
@@ -108,16 +112,15 @@ export function RunningWorkoutCard({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/30 px-2.5 py-1 squircle-pill">
-              <Timer className="size-3.5" />
+            <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-brand tabular-nums">
+              <Timer className="size-3.5" aria-hidden="true" />
               <span>{formatElapsedTime(elapsed)}</span>
             </div>
             <Button
-              render={<Link href={`/workouts/session/${session.sessionId}`} />}
-              size="sm"
-              className="bg-[#00E676] text-zinc-950 hover:bg-[#00E676]/90 font-bold text-xs h-8 px-3 squircle-action shadow-md shadow-[#00E676]/20 active:scale-95 transition-all"
+              render={<Link href={sessionHref} />}
+              className="bg-brand text-zinc-950 hover:bg-brand-hover font-semibold text-sm min-h-11 px-4"
             >
-              <span>{t("Hervatten")}</span>
+              <span>{continueLabel}</span>
               <Play className="size-3 ml-1 fill-zinc-950" />
             </Button>
           </div>
@@ -127,105 +130,97 @@ export function RunningWorkoutCard({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950/70 via-zinc-900/90 to-teal-950/60 border border-emerald-500/40 p-5 sm:p-6 shadow-[0_0_2.5rem_-0.5rem_rgba(16,185,129,0.35)] transition-all duration-300">
-      {/* Animated Subtle Ambient Glow */}
-      <div className="absolute -top-24 -right-24 size-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="rounded-xl bg-card ring-1 ring-brand/40 p-5 sm:p-6">
       <div className="flex flex-col gap-4">
-        {/* Header Badge & Title */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="relative flex size-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">
-                {t("Workout in uitvoering")}
-              </span>
-            </div>
-            <h2 className="font-semibold text-xl sm:text-2xl text-foreground tracking-tight">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="block text-xs font-semibold text-brand uppercase tracking-wider mb-1.5">
+              {isPaused ? t("Workout gepauzeerd") : t("Workout in uitvoering")}
+            </span>
+            <h2 className="font-semibold text-xl sm:text-2xl text-foreground tracking-tight break-words">
               {session.name || t("Workout Session")}
             </h2>
           </div>
 
-          {/* Live Elapsed Counter Badge */}
-          <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-mono font-black text-sm sm:text-base px-3 py-1.5 rounded-xl shadow-inner shrink-0">
-            <Timer className="size-4 animate-pulse" />
+          <div
+            role="timer"
+            aria-label={t("Verstreken tijd")}
+            className="flex items-center gap-1.5 bg-brand/10 text-brand font-bold text-sm sm:text-base px-3 py-1.5 rounded-lg shrink-0 tabular-nums"
+          >
+            <Timer className="size-4" aria-hidden="true" />
             <span>{formatElapsedTime(elapsed)}</span>
           </div>
         </div>
 
-        {/* Stats Summary Line */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {session.exerciseCount !== undefined && (
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 font-medium">
-              🏋️‍♂️ {session.exerciseCount} {session.exerciseCount === 1 ? t("oefening") : t("oefeningen")}
+            <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-foreground font-medium">
+              {session.exerciseCount} {session.exerciseCount === 1 ? t("oefening") : t("oefeningen")}
             </span>
           )}
           {session.completedSetsCount !== undefined && session.totalSetsCount !== undefined && (
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 font-medium">
-              ✅ {session.completedSetsCount} / {session.totalSetsCount} {t("sets voltooid")}
+            <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-foreground font-medium">
+              {session.completedSetsCount} / {session.totalSetsCount} {t("sets voltooid")}
             </span>
           )}
           <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-muted-foreground font-medium">
-            ⏱️ {t("Gestart om")} {startTimeFormatted}
+            {t("Gestart om")} {startTimeFormatted}
           </span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10 mt-1">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10">
+          <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full sm:w-auto">
             <Button
-              render={<Link href={`/workouts/session/${session.sessionId}`} />}
-              className="flex-1 sm:flex-initial w-full sm:w-auto bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all duration-200 active:scale-95"
+              render={<Link href={sessionHref} />}
+              className="min-h-11 bg-brand text-zinc-950 hover:bg-brand-hover font-semibold text-sm"
             >
               <Play className="size-4 mr-1.5 fill-zinc-950" />
-              {t("Hervatten")}
+              {continueLabel}
             </Button>
             <Button
-              render={<Link href={`/workouts/session/${session.sessionId}`} />}
+              render={<Link href={`${sessionHref}?afronden=1`} />}
               variant="outline"
-              className="flex-1 sm:flex-initial w-full sm:w-auto border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60 font-semibold text-sm"
+              className="min-h-11 font-semibold text-sm"
             >
-              <CheckCircle2 className="size-4 mr-1.5 text-emerald-400" />
+              <CheckCircle2 className="size-4 mr-1.5 text-brand" />
               {t("Workout afronden")}
             </Button>
           </div>
 
-          {/* Delete / Discard Session */}
           {showConfirmDelete ? (
-            <div className="flex items-center gap-2 text-xs w-full sm:w-auto justify-end animate-in fade-in duration-150">
-              <span className="text-zinc-400 font-medium">{t("Zeker weten?")}</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto sm:justify-end">
+              <span className="text-muted-foreground font-medium">{t("Zeker weten?")}</span>
               <Button
-                size="sm"
                 variant="destructive"
                 disabled={isDeleting}
                 onClick={handleDelete}
-                className="bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-2.5"
+                className="min-h-11 px-3 text-xs"
               >
                 {isDeleting ? t("Wissen...") : t("Ja, wis workout")}
               </Button>
               <Button
-                size="sm"
                 variant="ghost"
-                onClick={() => setShowConfirmDelete(false)}
-                className="text-zinc-400 hover:text-white text-xs h-8 px-2"
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  setDeleteError(null);
+                }}
+                className="min-h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
               >
                 {t("Annuleren")}
               </Button>
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => setShowConfirmDelete(true)}
-              className="text-xs text-zinc-400 hover:text-red-400 flex items-center gap-1.5 transition-colors font-medium self-center py-1"
-              title={t("Workout annuleren")}
+              className="min-h-11 px-2 text-sm text-muted-foreground hover:text-destructive flex items-center gap-1.5 transition-colors font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-md"
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className="size-4" aria-hidden="true" />
               <span>{t("Workout annuleren")}</span>
             </button>
           )}
         </div>
+        <InlineAlert>{deleteError}</InlineAlert>
       </div>
     </div>
   );

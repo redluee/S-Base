@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,7 @@ export function ExerciseAutocomplete({
   placeholder?: string;
   className?: string;
 }) {
+  const listId = useId();
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -189,6 +190,12 @@ export function ExerciseAutocomplete({
     <div ref={containerRef} className="relative">
       <Input
         ref={inputRef}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open && suggestions.length > 0}
+        aria-controls={listId}
+        aria-activedescendant={open && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+        autoComplete="off"
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -202,25 +209,31 @@ export function ExerciseAutocomplete({
         onKeyDown={handleKeyDown}
         placeholder={placeholder ?? t("Exercise")}
         className={cn(
-          "bg-white/5 h-9 sm:h-8 border-border text-sm",
+          "bg-white/5 h-11 border-border text-sm",
           className
         )}
       />
       {open && suggestions.length > 0 && (
         <div
-          className="absolute left-0 top-full mt-1 w-full z-50 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-md"
+          id={listId}
+          role="listbox"
+          className="absolute left-0 top-full mt-1 w-full z-50 max-h-56 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground"
         >
           {suggestions.map((suggestion, i) => (
             <button
               key={`${suggestion.value}-${i}`}
+              id={`${listId}-${i}`}
               type="button"
+              role="option"
+              aria-selected={i === activeIndex}
+              tabIndex={-1}
               onMouseDown={(e) => {
                 e.preventDefault();
                 select(suggestion);
               }}
               onClick={() => select(suggestion)}
               onMouseEnter={() => setActiveIndex(i)}
-              className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-75 ${
+              className={`flex w-full items-center gap-3 px-3 min-h-11 text-left text-sm transition-colors duration-75 ${
                 i === activeIndex
                   ? "bg-accent text-accent-foreground"
                   : "text-foreground hover:bg-accent/50"

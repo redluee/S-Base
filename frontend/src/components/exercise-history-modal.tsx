@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { formatNumberNl } from "@/lib/number-input";
 
 interface ExerciseHistoryModalProps {
   exerciseName: string;
@@ -38,16 +41,19 @@ interface ProgressData {
 export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: ExerciseHistoryModalProps) {
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState<ProgressData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     async function loadHistory() {
       setLoading(true);
+      setLoadError(null);
       try {
         const data = await api.workouts.exercises.progress(exerciseName, equipment);
         if (active) setHistoryData(data);
       } catch (err) {
         console.error("Failed to load history for exercise", err);
+        if (active) setLoadError(t("Geschiedenis laden mislukt. Probeer het opnieuw."));
       } finally {
         if (active) setLoading(false);
       }
@@ -59,15 +65,16 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
   }, [exerciseName, equipment]);
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl max-h-[85vh] overflow-y-auto flex flex-col gap-4">
-        <div className="flex items-start justify-between">
-          <h2 className="text-lg font-bold text-foreground truncate mr-2">
+    <ModalOverlay open onClose={onClose} label={t("History for {name}", { name: exerciseName })}>
+      <div className="bg-popover ring-1 ring-foreground/10 rounded-2xl w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-lg font-bold text-foreground break-words min-w-0">
             {t("History for {name}", { name: exerciseName })}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
+            type="button"
+            className="min-h-11 min-w-11 -mt-2 -mr-2 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
             aria-label={t("Sluiten")}
           >
             <X className="size-5" />
@@ -104,9 +111,9 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
               const topValueText =
                 statMode === "weight"
-                  ? `${maxWeight} kg`
+                  ? `${formatNumberNl(maxWeight)} kg`
                   : statMode === "reps"
-                  ? `${maxReps} reps`
+                  ? `${maxReps} ${t("reps")}`
                   : maxDuration > 0
                   ? formatSec(maxDuration)
                   : "-";
@@ -120,9 +127,9 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
               const totalValueText =
                 statMode === "weight"
-                  ? `${totalVolume} kg`
+                  ? `${formatNumberNl(totalVolume)} kg`
                   : statMode === "reps"
-                  ? `${totalReps} reps`
+                  ? `${totalReps} ${t("reps")}`
                   : totalDuration > 0
                   ? formatSec(totalDuration)
                   : "-";
@@ -136,12 +143,12 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
               return (
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl text-center">
+                  <div className="bg-white/[0.04] p-3 rounded-xl text-center">
                     <div className="text-xl font-bold text-brand">{topValueText}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">{topLabel}</div>
                   </div>
-                  <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl text-center">
-                    <div className="text-xl font-bold text-amber-400">{totalValueText}</div>
+                  <div className="bg-white/[0.04] p-3 rounded-xl text-center">
+                    <div className="text-xl font-bold text-foreground tabular-nums">{totalValueText}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">{totalLabel}</div>
                   </div>
                 </div>
@@ -150,7 +157,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
             {/* SVG chart */}
             {historyData.sessions.length > 0 && (
-              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5">
+              <div className="bg-white/[0.04] rounded-xl p-3.5">
                 {(() => {
                   const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
                   const hasWeightData = allSets.some((s: ProgressSet) => s.weight != null);
@@ -160,10 +167,10 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
                   const chartLabel =
                     statMode === "weight"
-                      ? "Volume (kg)"
+                      ? t("Volume (kg)")
                       : statMode === "reps"
-                      ? "Reps"
-                      : "Tijd (min/sec)";
+                      ? t("Reps")
+                      : t("Tijd (min/sec)");
 
                   return <div className="text-[10px] text-muted-foreground mb-2 uppercase">{chartLabel}</div>;
                 })()}
@@ -196,7 +203,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                       <>
                         <polyline
                           fill="none"
-                          stroke="#00e3a4"
+                          stroke="var(--color-brand)"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -206,7 +213,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                           const x = historyData.sessions.length > 1 ? (i / (historyData.sessions.length - 1)) * 280 + 10 : 150;
                           const y = 90 - ((v - dataMin) / range) * 80;
                           return (
-                            <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" />
+                            <circle key={i} cx={x} cy={y} r="3" fill="var(--color-brand)" />
                           );
                         })}
                       </>
@@ -240,9 +247,9 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
                 const sessionBadgeText =
                   statMode === "weight" && sessionHasWeightTracking
-                    ? `${vol} kg volume`
+                    ? `${formatNumberNl(vol)} kg ${t("volume")}`
                     : statMode === "reps" && reps > 0
-                    ? `${reps} reps`
+                    ? `${reps} ${t("reps")}`
                     : statMode === "time" && dur > 0
                     ? formatSec(dur)
                     : null;
@@ -262,7 +269,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                           })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                          ({sessionItem.sets.length} sets)
+                          ({sessionItem.sets.length} {t("sets")})
                         </span>
                       </div>
                       {sessionBadgeText && (
@@ -275,18 +282,18 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                       {sessionItem.sets.map((s: ProgressSet, sIdx: number) => {
                         let detail = "";
                         if (s.reps && s.weight) {
-                          detail = `${s.reps}x${s.weight}kg`;
+                          detail = `${s.reps}x${formatNumberNl(s.weight)}kg`;
                           if (s.rpe) detail += `@${s.rpe}`;
                         } else if (s.reps) {
-                          detail = `${s.reps} herh`;
+                          detail = `${s.reps} ${t("reps")}`;
                         } else if (s.duration) {
                           const min = Math.floor(s.duration / 60);
                           const sec = s.duration % 60;
                           const durStr = `${min}:${String(sec).padStart(2, "0")}`;
                           detail = durStr;
-                          if (s.weight) detail += ` w/${s.weight}kg`;
+                          if (s.weight) detail += ` +${formatNumberNl(s.weight)}kg`;
                         } else if (s.distance) {
-                          detail = `${s.distance}km`;
+                          detail = `${formatNumberNl(s.distance)}km`;
                           if (s.duration) {
                             const min = Math.floor(s.duration / 60);
                             const sec = s.duration % 60;
@@ -296,7 +303,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                         return (
                           <span
                             key={sIdx}
-                            className="bg-white/[0.04] border border-white/5 rounded px-1.5 py-0.5 text-[10px] font-mono text-zinc-300"
+                            className="bg-white/[0.04] border border-white/5 rounded px-1.5 py-0.5 text-[11px] tabular-nums text-zinc-300"
                           >
                             {detail || "—"}
                           </span>
@@ -308,6 +315,8 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               })}
             </div>
           </div>
+        ) : loadError ? (
+          <InlineAlert>{loadError}</InlineAlert>
         ) : (
           <div className="py-12 text-center text-sm text-muted-foreground">
             {t("No data yet for this exercise.")}
@@ -315,6 +324,6 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
         )}
 
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
