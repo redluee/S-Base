@@ -16,4 +16,12 @@ describe("Frontend translation utility t()", () => {
   it("falls back to raw key if translation is missing", () => {
     expect(t("NonExistentKey123")).toBe("NonExistentKey123");
   });
+
+  it("translates workout UI strings that used to stay English", () => {
+    expect(t("Add Set")).toBe("Set toevoegen");
+    expect(t("reps")).toBe("herh.");
+    expect(t("exercises")).toBe("oefeningen");
+    expect(t("Leave session?")).toBe("Sessie verlaten?");
+    expect(t("Remove this exercise?")).toBe("Deze oefening verwijderen?");
+  });
 });

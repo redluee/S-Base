@@ -89,10 +89,6 @@ body {
   font-family: var(--font-sans);
 }
 
-.font-workout-title {
-  font-family: 'jetbrains-mono', monospace;
-}
-
 ::selection {
   background: var(--color-brand);
   color: #000;

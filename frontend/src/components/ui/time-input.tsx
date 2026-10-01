@@ -66,7 +66,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
         value={displayValue}
         onChange={handleChange}
         placeholder="MM:SS"
-        className={cn("font-mono tracking-wider", className)}
+        className={cn("tabular-nums tracking-wider", className)}
         {...props}
       />
     );

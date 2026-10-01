@@ -139,6 +139,17 @@ export interface Measurement {
   photos: MeasurementPhoto[];
 }
 
+export class ApiError extends Error {
+  status: number;
+  data?: Record<string, unknown>;
+  constructor(message: string, status: number, data?: Record<string, unknown>) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     credentials: "include",
@@ -150,18 +161,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     let message = res.statusText;
+    let data: Record<string, unknown> | undefined;
     try {
       const text = await res.clone().text();
       try {
         const json = JSON.parse(text);
         message = json.error || message;
+        if (json && typeof json === "object" && !Array.isArray(json)) data = json;
       } catch {
         message = text || message;
       }
     } catch {
       // fallback if cloning/text reading fails
     }
-    throw new Error(message);
+    throw new ApiError(message, res.status, data);
   }
   return res.json();
 }
@@ -318,10 +331,10 @@ export const api = {
 
       get: (id: number) => request<FullWorkoutSession>(`/workouts/sessions/${id}`),
 
-      create: (templateId?: number) =>
+      create: (templateId?: number, force = false) =>
         request<FullWorkoutSession>("/workouts/sessions", {
           method: "POST",
-          body: JSON.stringify({ templateId }),
+          body: JSON.stringify({ templateId, ...(force ? { force: true } : {}) }),
         }),
 
       update: (id: number, data: unknown) =>
@@ -427,6 +440,11 @@ export const api = {
     save: (data: Partial<Measurement>) =>
       request<Measurement>("/measurements", {
         method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: Partial<Measurement>) =>
+      request<Measurement>(`/measurements/${id}`, {
+        method: "PUT",
         body: JSON.stringify(data),
       }),
     delete: (id: number) =>
