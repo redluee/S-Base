@@ -8,6 +8,20 @@ import {
   sessionSets,
 } from "../../db/schema";
 import { normalizeSearchString, sqlNormalize } from "../../utils/search";
+import {
+  ConflictError,
+  ValidationError,
+  optionalInteger,
+  optionalNumber,
+  optionalText,
+  requireDateTime,
+  requireObject,
+  requireText,
+} from "../../utils/validation";
+import type { PersonalRecord } from "../../types/shared";
+
+const MAX_SETS_PER_EXERCISE = 50;
+const MAX_EXERCISES = 100;
 
 function validateSetParams(params: {
   reps?: number;
@@ -18,6 +32,15 @@ function validateSetParams(params: {
   heartRate?: number;
   defaultRestTime?: number;
 }, prefix: string = "", allowNegativeWeight: boolean = false) {
+  const fields: [string, unknown][] = [
+    ["reps", params.reps], ["weight", params.weight], ["distance", params.distance], ["duration", params.duration],
+    ["rpe", params.rpe], ["heart rate", params.heartRate], ["rest time", params.defaultRestTime],
+  ];
+  for (const [field, value] of fields) {
+    if (value !== undefined && value !== null && (typeof value !== "number" || !Number.isFinite(value))) {
+      throw new ValidationError(`${prefix ? prefix + " " : ""}${field} must be a number`);
+    }
+  }
   const getMsg = (field: string, suffix: string) => {
     if (prefix) {
       return `${prefix} ${field} ${suffix}`;
@@ -25,17 +48,113 @@ function validateSetParams(params: {
     return `${field.charAt(0).toUpperCase() + field.slice(1)} ${suffix}`;
   };
 
-  if (params.reps !== undefined && params.reps < 0) throw new Error(getMsg("reps", "cannot be negative"));
-  if (params.weight !== undefined && params.weight < 0 && !allowNegativeWeight) throw new Error(getMsg("weight", "cannot be negative"));
-  if (params.distance !== undefined && params.distance < 0) throw new Error(getMsg("distance", "cannot be negative"));
-  if (params.duration !== undefined && params.duration < 0) throw new Error(getMsg("duration", "cannot be negative"));
-  if (params.rpe !== undefined && (params.rpe < 0 || params.rpe > 10)) throw new Error(getMsg("RPE", "must be 0-10"));
-  if (params.heartRate !== undefined && params.heartRate < 0) throw new Error(getMsg("heart rate", "cannot be negative"));
-  if (params.defaultRestTime !== undefined && params.defaultRestTime < 0) throw new Error(getMsg("rest time", "cannot be negative"));
+  if (params.reps !== undefined && params.reps < 0) throw new ValidationError(getMsg("reps", "cannot be negative"));
+  if (params.weight !== undefined && params.weight < 0 && !allowNegativeWeight) throw new ValidationError(getMsg("weight", "cannot be negative"));
+  if (params.distance !== undefined && params.distance < 0) throw new ValidationError(getMsg("distance", "cannot be negative"));
+  if (params.duration !== undefined && params.duration < 0) throw new ValidationError(getMsg("duration", "cannot be negative"));
+  if (params.rpe !== undefined && (params.rpe < 0 || params.rpe > 10)) throw new ValidationError(getMsg("RPE", "must be 0-10"));
+  if (params.heartRate !== undefined && params.heartRate < 0) throw new ValidationError(getMsg("heart rate", "cannot be negative"));
+  if (params.defaultRestTime !== undefined && params.defaultRestTime < 0) throw new ValidationError(getMsg("rest time", "cannot be negative"));
+}
+
+type TemplateExerciseInput = {
+  exerciseName: string;
+  category?: string;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  distance?: number;
+  duration?: number;
+  rpe?: number;
+  heartRate?: number;
+  defaultRestTime?: number;
+  equipment?: string;
+  perSide?: number;
+  isAssisted?: number;
+};
+
+function validateTemplateInput(data: any, requireName: boolean) {
+  const input = requireObject(data);
+  if (requireName || input.name !== undefined) requireText(input.name, "Name");
+  optionalText(input.description, "Description");
+  optionalText(input.targetMuscleGroups, "Target muscle groups");
+  optionalInteger(input.estimatedTime, "Estimated time");
+  if (input.estimatedTime !== undefined && input.estimatedTime !== null && input.estimatedTime < 0) {
+    throw new ValidationError("Estimated time cannot be negative");
+  }
+  if (input.exercises !== undefined && input.exercises !== null && !Array.isArray(input.exercises)) {
+    throw new ValidationError("Exercises must be a list");
+  }
+  if (Array.isArray(input.exercises) && input.exercises.length > MAX_EXERCISES) {
+    throw new ValidationError(`A template can have at most ${MAX_EXERCISES} exercises`);
+  }
+  for (const raw of input.exercises ?? []) {
+    const ex = requireObject(raw, "Exercise");
+    requireText(ex.exerciseName, "Exercise name");
+    optionalText(ex.category, "Category", 100);
+    optionalText(ex.equipment, "Equipment", 100);
+    if (ex.sets !== undefined && (typeof ex.sets !== "number" || !Number.isInteger(ex.sets) || ex.sets < 1)) {
+      throw new ValidationError(`Exercise "${ex.exerciseName}" must have at least 1 set`);
+    }
+    if (ex.sets !== undefined && ex.sets > MAX_SETS_PER_EXERCISE) {
+      throw new ValidationError(`Exercise "${ex.exerciseName}" can have at most ${MAX_SETS_PER_EXERCISE} sets`);
+    }
+    if (ex.reps !== undefined && ex.reps !== null && (typeof ex.reps !== "number" || !Number.isFinite(ex.reps))) {
+      throw new ValidationError(`Exercise "${ex.exerciseName}" reps must be a number`);
+    }
+    optionalInteger(ex.perSide, "Per side");
+    optionalInteger(ex.isAssisted, "Assisted");
+    validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
+  }
+}
+
+function templateExerciseValues(templateId: number, ex: TemplateExerciseInput, index: number) {
+  return {
+    templateId,
+    exerciseName: ex.exerciseName,
+    sortOrder: index,
+    category: ex.category ?? "Free Weights",
+    defaultSets: ex.sets,
+    defaultReps: ex.reps ?? undefined,
+    defaultWeight: ex.weight,
+    defaultDistance: ex.distance,
+    defaultDuration: ex.duration,
+    defaultRpe: ex.rpe,
+    defaultHeartRate: ex.heartRate,
+    defaultRestTime: ex.defaultRestTime,
+    equipment: ex.equipment,
+    perSide: ex.perSide ?? 0,
+    isAssisted: ex.isAssisted ?? 0,
+  };
 }
 
 function parseDateString(dateStr: string): Date {
   return new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
+}
+
+function exerciseKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function signedWeight(weight: number | null | undefined, assisted: number | null | undefined): number | null {
+  if (weight == null) return null;
+  return assisted ? -Math.abs(weight) : weight;
+}
+
+function effectiveVolume(weight: number | null | undefined, reps: number | null | undefined): number {
+  return Math.max(0, weight ?? 0) * (reps ?? 0);
+}
+
+function activeSeconds(session: { startedAt: string; completedAt: string | null; pausedAt: string | null; pausedSeconds: number }, nowMs: number): number {
+  const startMs = parseDateString(session.startedAt).getTime();
+  if (session.completedAt) {
+    return Math.max(0, (parseDateString(session.completedAt).getTime() - startMs) / 1000);
+  }
+  let paused = session.pausedSeconds ?? 0;
+  if (session.pausedAt) {
+    paused += Math.max(0, (nowMs - parseDateString(session.pausedAt).getTime()) / 1000);
+  }
+  return Math.max(0, (nowMs - startMs) / 1000 - paused);
 }
 
 function formatDutchDate(date: Date, options: Intl.DateTimeFormatOptions): string {
@@ -68,15 +187,17 @@ export class WorkoutService {
       .all();
     const ownedIds = new Set(owned.map((o) => o.templateId));
 
-    if (orderedIds.length !== ownedIds.size || orderedIds.some((id) => !ownedIds.has(id))) {
-      throw new Error("Template order must include exactly the current templates");
+    if (!Array.isArray(orderedIds) || orderedIds.length !== ownedIds.size || new Set(orderedIds).size !== orderedIds.length || orderedIds.some((id) => !ownedIds.has(id))) {
+      throw new ValidationError("Template order must include exactly the current templates");
     }
 
-    orderedIds.forEach((templateId, index) => {
-      db.update(workoutTemplates)
-        .set({ sortOrder: index })
-        .where(and(eq(workoutTemplates.templateId, templateId), eq(workoutTemplates.userId, userId)))
-        .run();
+    db.transaction((tx) => {
+      orderedIds.forEach((templateId, index) => {
+        tx.update(workoutTemplates)
+          .set({ sortOrder: index })
+          .where(and(eq(workoutTemplates.templateId, templateId), eq(workoutTemplates.userId, userId)))
+          .run();
+      });
     });
 
     return this.listTemplates(userId);
@@ -104,137 +225,61 @@ export class WorkoutService {
     description?: string;
     targetMuscleGroups?: string;
     estimatedTime?: number;
-    exercises?: {
-      exerciseName: string;
-      category?: string;
-      sets: number;
-      reps: number;
-      weight?: number;
-      distance?: number;
-      duration?: number;
-      rpe?: number;
-      heartRate?: number;
-      defaultRestTime?: number;
-      equipment?: string;
-      perSide?: number;
-      isAssisted?: number;
-    }[];
+    exercises?: TemplateExerciseInput[];
   }) {
-    if (data.estimatedTime !== undefined && data.estimatedTime < 0) {
-      throw new Error("Estimated time cannot be negative");
-    }
-    if (data.exercises?.length) {
-      for (let i = 0; i < data.exercises.length; i++) {
-        const ex = data.exercises[i];
-        if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-        validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
-      }
-    }
-    const nextSortOrder = db.select({
-      nextSortOrder: sql<number>`COALESCE(MAX(${workoutTemplates.sortOrder}), -1) + 1`
-    }).from(workoutTemplates).where(eq(workoutTemplates.userId, userId)).get()!.nextSortOrder;
+    validateTemplateInput(data, true);
 
-    const template = db.insert(workoutTemplates).values({
-      userId,
-      name: data.name,
-      description: data.description,
-      targetMuscleGroups: data.targetMuscleGroups,
-      estimatedTime: data.estimatedTime,
-      sortOrder: nextSortOrder,
-    }).returning().get();
+    const templateId = db.transaction((tx) => {
+      const nextSortOrder = tx.select({
+        nextSortOrder: sql<number>`COALESCE(MAX(${workoutTemplates.sortOrder}), -1) + 1`
+      }).from(workoutTemplates).where(eq(workoutTemplates.userId, userId)).get()!.nextSortOrder;
 
-    if (data.exercises?.length) {
-      for (let i = 0; i < data.exercises.length; i++) {
-        const ex = data.exercises[i];
-        db.insert(templateExercises).values({
-          templateId: template.templateId,
-          exerciseName: ex.exerciseName,
-          sortOrder: i,
-          category: ex.category ?? "Free Weights",
-          defaultSets: ex.sets,
-          defaultReps: ex.reps,
-          defaultWeight: ex.weight,
-          defaultDistance: ex.distance,
-          defaultDuration: ex.duration,
-          defaultRpe: ex.rpe,
-          defaultHeartRate: ex.heartRate,
-          defaultRestTime: ex.defaultRestTime,
-          equipment: ex.equipment,
-          perSide: ex.perSide ?? 0,
-          isAssisted: ex.isAssisted ?? 0,
-        }).run();
-      }
-    }
+      const template = tx.insert(workoutTemplates).values({
+        userId,
+        name: data.name,
+        description: data.description,
+        targetMuscleGroups: data.targetMuscleGroups,
+        estimatedTime: data.estimatedTime,
+        sortOrder: nextSortOrder,
+      }).returning().get();
 
-    return this.getTemplate(template.templateId, userId);
+      (data.exercises ?? []).forEach((ex, i) => {
+        tx.insert(templateExercises).values(templateExerciseValues(template.templateId, ex, i)).run();
+      });
+
+      return template.templateId;
+    });
+
+    return this.getTemplate(templateId, userId);
   }
 
   updateTemplate(id: number, userId: number, data: {
     name?: string;
-    description?: string;
-    targetMuscleGroups?: string;
-    estimatedTime?: number;
-    exercises?: {
-      exerciseName: string;
-      category?: string;
-      sets: number;
-      reps: number;
-      weight?: number;
-      distance?: number;
-      duration?: number;
-      rpe?: number;
-      heartRate?: number;
-      defaultRestTime?: number;
-      equipment?: string;
-      perSide?: number;
-      isAssisted?: number;
-    }[];
+    description?: string | null;
+    targetMuscleGroups?: string | null;
+    estimatedTime?: number | null;
+    exercises?: TemplateExerciseInput[];
   }) {
     const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
     if (!existing) return null;
 
-    if (data.estimatedTime !== undefined && data.estimatedTime < 0) {
-      throw new Error("Estimated time cannot be negative");
-    }
-    if (data.exercises?.length) {
-      for (let i = 0; i < data.exercises.length; i++) {
-        const ex = data.exercises[i];
-        if (ex.sets < 1) throw new Error(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-        validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
+    validateTemplateInput(data, false);
+
+    db.transaction((tx) => {
+      tx.update(workoutTemplates).set({
+        name: data.name ?? existing.name,
+        description: data.description !== undefined ? (data.description || null) : existing.description,
+        targetMuscleGroups: data.targetMuscleGroups !== undefined ? (data.targetMuscleGroups || null) : existing.targetMuscleGroups,
+        estimatedTime: data.estimatedTime !== undefined ? data.estimatedTime : existing.estimatedTime,
+      }).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).run();
+
+      if (data.exercises) {
+        tx.delete(templateExercises).where(eq(templateExercises.templateId, id)).run();
+        data.exercises.forEach((ex, i) => {
+          tx.insert(templateExercises).values(templateExerciseValues(id, ex, i)).run();
+        });
       }
-    }
-
-    db.update(workoutTemplates).set({
-      name: data.name ?? existing.name,
-      description: data.description ?? existing.description,
-      targetMuscleGroups: data.targetMuscleGroups !== undefined ? data.targetMuscleGroups : existing.targetMuscleGroups,
-      estimatedTime: data.estimatedTime !== undefined ? data.estimatedTime : existing.estimatedTime,
-    }).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).run();
-
-    if (data.exercises) {
-      db.delete(templateExercises).where(eq(templateExercises.templateId, id)).run();
-
-      for (let i = 0; i < data.exercises.length; i++) {
-        const ex = data.exercises[i];
-        db.insert(templateExercises).values({
-          templateId: id,
-          exerciseName: ex.exerciseName,
-          sortOrder: i,
-          category: ex.category ?? "Free Weights",
-          defaultSets: ex.sets,
-          defaultReps: ex.reps,
-          defaultWeight: ex.weight,
-          defaultDistance: ex.distance,
-          defaultDuration: ex.duration,
-          defaultRpe: ex.rpe,
-          defaultHeartRate: ex.heartRate,
-          defaultRestTime: ex.defaultRestTime,
-          equipment: ex.equipment,
-          perSide: ex.perSide ?? 0,
-          isAssisted: ex.isAssisted ?? 0,
-        }).run();
-      }
-    }
+    });
 
     return this.getTemplate(id, userId);
   }
@@ -247,7 +292,6 @@ export class WorkoutService {
   }
 
   listSessions(userId: number, status?: string, q?: string) {
-    this.cleanupEmptySessions(userId, 12 * 3600);
     const conditions = [eq(workoutSessions.userId, userId)];
 
     if (status === "active") {
@@ -332,17 +376,24 @@ export class WorkoutService {
     const exercises = db.select()
       .from(sessionExercises)
       .where(eq(sessionExercises.sessionId, id))
-      .orderBy(sessionExercises.sortOrder)
+      .orderBy(sessionExercises.sortOrder, sessionExercises.sessionExerciseId)
       .all();
 
-    let templateExs: any[] = [];
+    const templateByName = new Map<string, any[]>();
     if (session.templateId) {
-      templateExs = db.select()
+      const templateExs = db.select()
         .from(templateExercises)
         .where(eq(templateExercises.templateId, session.templateId))
+        .orderBy(templateExercises.sortOrder, templateExercises.templateExerciseId)
         .all();
+      for (const te of templateExs) {
+        const key = exerciseKey(te.exerciseName);
+        if (!templateByName.has(key)) templateByName.set(key, []);
+        templateByName.get(key)!.push(te);
+      }
     }
 
+    const occurrences = new Map<string, number>();
     const sessionWithSets = exercises.map((ex) => {
       const sets = db.select()
         .from(sessionSets)
@@ -350,7 +401,11 @@ export class WorkoutService {
         .orderBy(sessionSets.setNumber)
         .all();
 
-      let templateEx = templateExs.find((te) => te.sortOrder === ex.sortOrder) || templateExs.find((te) => te.exerciseName === ex.exerciseName);
+      const key = exerciseKey(ex.exerciseName);
+      const occurrence = occurrences.get(key) ?? 0;
+      occurrences.set(key, occurrence + 1);
+      const candidates = templateByName.get(key);
+      let templateEx: any = candidates ? (candidates[occurrence] ?? candidates[0]) : undefined;
 
       if (!templateEx) {
         const query = db.select({
@@ -370,13 +425,13 @@ export class WorkoutService {
         if (userId !== undefined) {
           templateEx = query
             .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
-            .where(and(eq(templateExercises.exerciseName, ex.exerciseName), eq(workoutTemplates.userId, userId)))
+            .where(and(sql`LOWER(${templateExercises.exerciseName}) = LOWER(${ex.exerciseName})`, eq(workoutTemplates.userId, userId)))
             .limit(1)
             .get();
         } else {
           templateEx = db.select()
             .from(templateExercises)
-            .where(eq(templateExercises.exerciseName, ex.exerciseName))
+            .where(sql`LOWER(${templateExercises.exerciseName}) = LOWER(${ex.exerciseName})`)
             .limit(1)
             .get();
         }
@@ -403,8 +458,29 @@ export class WorkoutService {
     return { ...session, exercises: sessionWithSets };
   }
 
-  createSession(userId: number, templateId?: number) {
-    this.cleanupEmptySessions(userId, 0);
+  createSession(userId: number, templateId?: number, force = false) {
+    if (templateId !== undefined && (!Number.isInteger(templateId) || templateId < 1)) {
+      throw new ValidationError("Template id must be a valid id");
+    }
+    this.cleanupEmptySessions(userId);
+    if (!force) {
+      const running = db.select({
+        sessionId: workoutSessions.sessionId,
+        templateId: workoutSessions.templateId,
+        name: workoutSessions.name,
+        startedAt: workoutSessions.startedAt,
+        exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`,
+        completedSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id AND session_sets.completed = 1)`,
+      })
+        .from(workoutSessions)
+        .where(and(eq(workoutSessions.userId, userId), sql`completed_at IS NULL`))
+        .orderBy(desc(workoutSessions.startedAt))
+        .limit(1)
+        .get();
+      if (running) {
+        throw new ConflictError("A workout session is already running", { activeSession: running });
+      }
+    }
     let sessionName = "Vrije training";
     let validTemplateId = templateId;
     if (templateId) {
@@ -416,42 +492,46 @@ export class WorkoutService {
       }
     }
 
-    const session = db.insert(workoutSessions).values({
-      userId,
-      templateId: validTemplateId ?? null,
-      name: sessionName,
-      startedAt: new Date().toISOString(),
-    }).returning().get();
+    const session = db.transaction((tx) => {
+      const session = tx.insert(workoutSessions).values({
+        userId,
+        templateId: validTemplateId ?? null,
+        name: sessionName,
+        startedAt: new Date().toISOString(),
+      }).returning().get();
 
-    if (validTemplateId) {
-      const template = this.getTemplate(validTemplateId, userId);
-      if (template?.exercises) {
-        for (const tex of template.exercises) {
-          const se = db.insert(sessionExercises).values({
-            sessionId: session.sessionId,
-            exerciseName: tex.exerciseName,
-            sortOrder: tex.sortOrder,
-            category: tex.category ?? "Free Weights",
-            equipment: tex.equipment,
-            perSide: tex.perSide ?? 0,
-            isAssisted: tex.isAssisted ?? 0,
-          }).returning().get();
+      if (validTemplateId) {
+        const template = this.getTemplate(validTemplateId, userId);
+        if (template?.exercises) {
+          for (const tex of template.exercises) {
+            const se = tx.insert(sessionExercises).values({
+              sessionId: session.sessionId,
+              exerciseName: tex.exerciseName,
+              sortOrder: tex.sortOrder,
+              category: tex.category ?? "Free Weights",
+              equipment: tex.equipment,
+              perSide: tex.perSide ?? 0,
+              isAssisted: tex.isAssisted ?? 0,
+              restTime: tex.defaultRestTime ?? null,
+            }).returning().get();
 
-          for (let s = 1; s <= tex.defaultSets; s++) {
-            db.insert(sessionSets).values({
-              sessionExerciseId: se.sessionExerciseId,
-              setNumber: s,
-              reps: tex.defaultReps ?? null,
-              weight: tex.defaultWeight ?? null,
-              distance: tex.defaultDistance ?? null,
-              duration: tex.defaultDuration ?? null,
-              rpe: tex.defaultRpe ?? null,
-              heartRate: tex.defaultHeartRate ?? null,
-            }).run();
+            for (let s = 1; s <= tex.defaultSets; s++) {
+              tx.insert(sessionSets).values({
+                sessionExerciseId: se.sessionExerciseId,
+                setNumber: s,
+                reps: tex.defaultReps ?? null,
+                weight: tex.defaultWeight ?? null,
+                distance: tex.defaultDistance ?? null,
+                duration: tex.defaultDuration ?? null,
+                rpe: tex.defaultRpe ?? null,
+                heartRate: tex.defaultHeartRate ?? null,
+              }).run();
+            }
           }
         }
       }
-    }
+      return session;
+    });
 
     return this.getSession(session.sessionId, userId);
   }
@@ -460,6 +540,8 @@ export class WorkoutService {
     name?: string;
     notes?: string;
     completedAt?: string;
+    pausedAt?: string | null;
+    pausedSeconds?: number;
     exercises?: {
       sessionExerciseId?: number;
       exerciseName: string;
@@ -468,6 +550,7 @@ export class WorkoutService {
       equipment?: string;
       perSide?: number;
       isAssisted?: number;
+      restTime?: number | null;
       sets?: {
         setId?: number;
         setNumber: number;
@@ -484,22 +567,71 @@ export class WorkoutService {
     const existing = db.select().from(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).get();
     if (!existing) return null;
 
-    if (data.exercises?.length) {
-      for (let i = 0; i < data.exercises.length; i++) {
-        const ex = data.exercises[i];
-        if (ex.sets?.length) {
-          for (let j = 0; j < ex.sets.length; j++) {
-            validateSetParams(ex.sets[j], undefined, Boolean(ex.isAssisted));
-          }
+    const input = requireObject(data);
+    if (input.name !== undefined && input.name !== null) requireText(input.name, "Name");
+    optionalText(input.notes, "Notes", 20000);
+    if (input.completedAt !== undefined && input.completedAt !== null) requireDateTime(input.completedAt, "Completed at");
+    if (input.pausedAt !== undefined && input.pausedAt !== null) requireDateTime(input.pausedAt, "Paused at");
+    optionalInteger(input.pausedSeconds, "Paused seconds");
+    if (typeof input.pausedSeconds === "number" && input.pausedSeconds < 0) {
+      throw new ValidationError("Paused seconds cannot be negative");
+    }
+    if (input.exercises !== undefined && !Array.isArray(input.exercises)) {
+      throw new ValidationError("Exercises must be a list");
+    }
+    if (Array.isArray(input.exercises) && input.exercises.length > MAX_EXERCISES) {
+      throw new ValidationError(`A session can have at most ${MAX_EXERCISES} exercises`);
+    }
+
+    const ownedExerciseIds = new Set(
+      db.select({ id: sessionExercises.sessionExerciseId })
+        .from(sessionExercises)
+        .where(eq(sessionExercises.sessionId, id))
+        .all()
+        .map((r) => r.id)
+    );
+
+    for (const raw of data.exercises ?? []) {
+      const ex = requireObject(raw, "Exercise");
+      requireText(ex.exerciseName, "Exercise name");
+      optionalText(ex.category, "Category", 100);
+      optionalText(ex.equipment, "Equipment", 100);
+      optionalInteger(ex.sortOrder, "Sort order");
+      optionalInteger(ex.perSide, "Per side");
+      optionalInteger(ex.isAssisted, "Assisted");
+      optionalInteger(ex.restTime, "Rest time");
+      if (typeof ex.restTime === "number" && ex.restTime < 0) throw new ValidationError("Rest time cannot be negative");
+      if (ex.sessionExerciseId !== undefined && ex.sessionExerciseId !== null) {
+        if (!Number.isInteger(ex.sessionExerciseId) || !ownedExerciseIds.has(ex.sessionExerciseId)) {
+          throw new ValidationError("Exercise does not belong to this session", {
+            code: "unknown_session_exercise",
+            sessionExerciseId: ex.sessionExerciseId,
+          });
         }
+      }
+      if (ex.sets !== undefined && ex.sets !== null && !Array.isArray(ex.sets)) {
+        throw new ValidationError("Sets must be a list");
+      }
+      if (Array.isArray(ex.sets) && ex.sets.length > MAX_SETS_PER_EXERCISE) {
+        throw new ValidationError(`Exercise "${ex.exerciseName}" can have at most ${MAX_SETS_PER_EXERCISE} sets`);
+      }
+      for (const rawSet of ex.sets ?? []) {
+        const set = requireObject(rawSet, "Set");
+        if (typeof set.setNumber !== "number" || !Number.isInteger(set.setNumber) || set.setNumber < 1) {
+          throw new ValidationError("Set number must be a positive whole number");
+        }
+        optionalInteger(set.completed, "Completed");
+        validateSetParams(set, undefined, Boolean(ex.isAssisted));
       }
     }
 
     db.transaction((tx) => {
       const updateFields: any = {};
-      if (data.name !== undefined) updateFields.name = data.name;
+      if (data.name !== undefined && data.name !== null) updateFields.name = data.name;
       if (data.notes !== undefined) updateFields.notes = data.notes;
-      if (data.completedAt !== undefined) updateFields.completedAt = data.completedAt;
+      if (data.completedAt !== undefined && data.completedAt !== null) updateFields.completedAt = data.completedAt;
+      if (data.pausedAt !== undefined) updateFields.pausedAt = data.pausedAt;
+      if (typeof data.pausedSeconds === "number") updateFields.pausedSeconds = data.pausedSeconds;
 
       if (Object.keys(updateFields).length > 0) {
         tx.update(workoutSessions).set(updateFields).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
@@ -531,7 +663,8 @@ export class WorkoutService {
               equipment: ex.equipment,
               perSide: ex.perSide ?? 0,
               isAssisted: ex.isAssisted ?? 0,
-            }).where(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId)).run();
+              ...(ex.restTime !== undefined ? { restTime: ex.restTime } : {}),
+            }).where(and(eq(sessionExercises.sessionExerciseId, ex.sessionExerciseId), eq(sessionExercises.sessionId, id))).run();
 
             if (ex.sets) {
               tx.delete(sessionSets).where(eq(sessionSets.sessionExerciseId, ex.sessionExerciseId)).run();
@@ -559,6 +692,7 @@ export class WorkoutService {
               equipment: ex.equipment,
               perSide: ex.perSide ?? 0,
               isAssisted: ex.isAssisted ?? 0,
+              restTime: ex.restTime ?? null,
             }).returning().get();
 
             if (ex.sets) {
@@ -587,9 +721,18 @@ export class WorkoutService {
   completeSession(id: number, userId: number, completedAt?: string) {
     const existing = db.select().from(workoutSessions).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).get();
     if (!existing) return null;
+    if (completedAt !== undefined && completedAt !== null) requireDateTime(completedAt, "Completed at");
+
+    const nowMs = Date.now();
+    const hadPause = Boolean(existing.pausedAt) || (existing.pausedSeconds ?? 0) > 0;
+    const finalCompletedAt = completedAt
+      ?? (hadPause
+        ? new Date(parseDateString(existing.startedAt).getTime() + activeSeconds(existing, nowMs) * 1000).toISOString()
+        : new Date(nowMs).toISOString());
 
     db.update(workoutSessions).set({
-      completedAt: completedAt ?? new Date().toISOString(),
+      completedAt: finalCompletedAt,
+      pausedAt: null,
     }).where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId))).run();
 
     return this.getSession(id, userId);
@@ -958,126 +1101,66 @@ export class WorkoutService {
   }
 
   mergeExercises(userId: number, sourceName: string, targetName: string) {
-    const sName = sourceName ? sourceName.trim() : "";
-    const tName = targetName ? targetName.trim() : "";
+    const sName = typeof sourceName === "string" ? sourceName.trim() : "";
+    const tName = typeof targetName === "string" ? targetName.trim() : "";
 
     if (!sName || !tName) {
-      throw new Error("Source and target exercise names are required");
+      throw new ValidationError("Source and target exercise names are required");
     }
     if (sName === tName) {
-      throw new Error("Source and target exercise names must be different");
+      throw new ValidationError("Source and target exercise names must be different");
     }
 
-    // 1. Update template_exercises
-    db.update(templateExercises)
-      .set({ exerciseName: tName })
-      .where(and(
-        sql`LOWER(${templateExercises.exerciseName}) = LOWER(${sName})`,
-        sql`${templateExercises.templateId} IN (SELECT template_id FROM workout_templates WHERE user_id = ${userId})`
-      ))
-      .run();
+    const sameExercise = exerciseKey(sName) === exerciseKey(tName);
 
-    // Consolidate duplicate template exercises within same template if any exist
-    const userTemplateIds = db.select({ templateId: workoutTemplates.templateId })
-      .from(workoutTemplates)
-      .where(eq(workoutTemplates.userId, userId))
-      .all()
-      .map(t => t.templateId);
+    db.transaction((tx) => {
+      const userTemplateIds = tx.select({ templateId: workoutTemplates.templateId })
+        .from(workoutTemplates)
+        .where(eq(workoutTemplates.userId, userId))
+        .all()
+        .map((t) => t.templateId);
 
-    for (const tid of userTemplateIds) {
-      const texs = db.select()
-        .from(templateExercises)
-        .where(and(
-          eq(templateExercises.templateId, tid),
-          sql`LOWER(${templateExercises.exerciseName}) = LOWER(${tName})`
-        ))
-        .orderBy(templateExercises.templateExerciseId)
-        .all();
-
-      if (texs.length > 1) {
-        const primary = texs[0];
-        if (primary.exerciseName !== tName) {
-          db.update(templateExercises)
-            .set({ exerciseName: tName })
-            .where(eq(templateExercises.templateExerciseId, primary.templateExerciseId))
-            .run();
+      for (const tid of userTemplateIds) {
+        const rows = tx.select().from(templateExercises).where(eq(templateExercises.templateId, tid)).all();
+        const sources = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(sName));
+        const targets = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(tName));
+        for (const row of sources) {
+          tx.update(templateExercises).set({ exerciseName: tName }).where(eq(templateExercises.templateExerciseId, row.templateExerciseId)).run();
         }
-        for (let i = 1; i < texs.length; i++) {
-          db.delete(templateExercises)
-            .where(eq(templateExercises.templateExerciseId, texs[i].templateExerciseId))
-            .run();
+        if (!sameExercise && sources.length === 1 && targets.length === 1) {
+          tx.delete(templateExercises).where(eq(templateExercises.templateExerciseId, sources[0].templateExerciseId)).run();
         }
       }
-    }
 
-    // 2. Update session_exercises
-    db.update(sessionExercises)
-      .set({ exerciseName: tName })
-      .where(and(
-        sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${sName})`,
-        sql`${sessionExercises.sessionId} IN (SELECT session_id FROM workout_sessions WHERE user_id = ${userId})`
-      ))
-      .run();
+      const userSessionIds = tx.select({ sessionId: workoutSessions.sessionId })
+        .from(workoutSessions)
+        .where(eq(workoutSessions.userId, userId))
+        .all()
+        .map((r) => r.sessionId);
 
-    // 3. Consolidate duplicate session exercises within same session if any exist
-    const userSessionIds = db.select({ sessionId: workoutSessions.sessionId })
-      .from(workoutSessions)
-      .where(eq(workoutSessions.userId, userId))
-      .all()
-      .map(s => s.sessionId);
-
-    for (const sid of userSessionIds) {
-      const sexs = db.select()
-        .from(sessionExercises)
-        .where(and(
-          eq(sessionExercises.sessionId, sid),
-          sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${tName})`
-        ))
-        .orderBy(sessionExercises.sessionExerciseId)
-        .all();
-
-      if (sexs.length > 1) {
-        const primary = sexs[0];
-        if (primary.exerciseName !== tName) {
-          db.update(sessionExercises)
-            .set({ exerciseName: tName })
-            .where(eq(sessionExercises.sessionExerciseId, primary.sessionExerciseId))
-            .run();
+      for (const sid of userSessionIds) {
+        const rows = tx.select().from(sessionExercises).where(eq(sessionExercises.sessionId, sid)).orderBy(sessionExercises.sessionExerciseId).all();
+        const sources = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(sName));
+        const targets = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(tName));
+        for (const row of sources) {
+          tx.update(sessionExercises).set({ exerciseName: tName }).where(eq(sessionExercises.sessionExerciseId, row.sessionExerciseId)).run();
         }
+        if (sameExercise || sources.length !== 1 || targets.length !== 1) continue;
 
-        for (let i = 1; i < sexs.length; i++) {
-          const duplicate = sexs[i];
-          const primarySets = db.select()
-            .from(sessionSets)
-            .where(eq(sessionSets.sessionExerciseId, primary.sessionExerciseId))
-            .orderBy(sessionSets.setNumber)
-            .all();
-
-          const maxSetNum = primarySets.length > 0 ? Math.max(...primarySets.map(s => s.setNumber)) : 0;
-
-          const dupSets = db.select()
-            .from(sessionSets)
-            .where(eq(sessionSets.sessionExerciseId, duplicate.sessionExerciseId))
-            .orderBy(sessionSets.setNumber)
-            .all();
-
-          for (let j = 0; j < dupSets.length; j++) {
-            const setItem = dupSets[j];
-            db.update(sessionSets)
-              .set({
-                sessionExerciseId: primary.sessionExerciseId,
-                setNumber: maxSetNum + j + 1,
-              })
-              .where(eq(sessionSets.setId, setItem.setId))
-              .run();
-          }
-
-          db.delete(sessionExercises)
-            .where(eq(sessionExercises.sessionExerciseId, duplicate.sessionExerciseId))
+        const source = sources[0];
+        const target = targets[0];
+        const targetSets = tx.select().from(sessionSets).where(eq(sessionSets.sessionExerciseId, target.sessionExerciseId)).all();
+        const offset = targetSets.length > 0 ? Math.max(...targetSets.map((x) => x.setNumber)) : 0;
+        const sourceSets = tx.select().from(sessionSets).where(eq(sessionSets.sessionExerciseId, source.sessionExerciseId)).orderBy(sessionSets.setNumber).all();
+        sourceSets.forEach((setItem, j) => {
+          tx.update(sessionSets)
+            .set({ sessionExerciseId: target.sessionExerciseId, setNumber: offset + j + 1 })
+            .where(eq(sessionSets.setId, setItem.setId))
             .run();
-        }
+        });
+        tx.delete(sessionExercises).where(eq(sessionExercises.sessionExerciseId, source.sessionExerciseId)).run();
       }
-    }
+    });
 
     return {
       success: true,
@@ -1087,7 +1170,6 @@ export class WorkoutService {
   }
 
   listUniqueExercises(userId: number) {
-    this.cleanupEmptySessions(userId, 12 * 3600);
     const fromTemplates = db.select({
       name: templateExercises.exerciseName,
       equipment: templateExercises.equipment,
@@ -1144,7 +1226,6 @@ export class WorkoutService {
   }
 
   getStats(userId: number) {
-    this.cleanupEmptySessions(userId, 12 * 3600);
     const lastSession = db.select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.userId, userId), sql`${workoutSessions.completedAt} IS NOT NULL`))
@@ -1174,7 +1255,7 @@ export class WorkoutService {
     const totalWorkouts = workoutCountRes?.count ?? 0;
 
     const volumeRes = db.select({
-      volume: sql<number>`sum(coalesce(${sessionSets.weight}, 0) * coalesce(${sessionSets.reps}, 0))`
+      volume: sql<number>`sum(max(coalesce(${sessionSets.weight}, 0), 0) * coalesce(${sessionSets.reps}, 0))`
     })
       .from(sessionSets)
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
@@ -1233,7 +1314,7 @@ export class WorkoutService {
     }
   }
 
-  getSessionPRs(sessionId: number, userId: number, currentDurationSeconds?: number): any[] {
+  getSessionPRs(sessionId: number, userId: number, currentDurationSeconds?: number): PersonalRecord[] {
     const currentSession = db.select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.sessionId, sessionId), eq(workoutSessions.userId, userId)))
@@ -1242,6 +1323,7 @@ export class WorkoutService {
 
     const currentSets = db.select({
       exerciseName: sessionExercises.exerciseName,
+      isAssisted: sessionExercises.isAssisted,
       reps: sessionSets.reps,
       weight: sessionSets.weight,
       distance: sessionSets.distance,
@@ -1260,6 +1342,8 @@ export class WorkoutService {
       sessionId: workoutSessions.sessionId,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      pausedAt: workoutSessions.pausedAt,
+      pausedSeconds: workoutSessions.pausedSeconds,
     })
       .from(workoutSessions)
       .where(and(
@@ -1271,6 +1355,7 @@ export class WorkoutService {
 
     const previousSets = db.select({
       exerciseName: sessionExercises.exerciseName,
+      isAssisted: sessionExercises.isAssisted,
       sessionId: sessionExercises.sessionId,
       reps: sessionSets.reps,
       weight: sessionSets.weight,
@@ -1288,174 +1373,106 @@ export class WorkoutService {
       ))
       .all();
 
-    const prs: any[] = [];
+    const prs: PersonalRecord[] = [];
 
-    const currentSetsByExercise: { [name: string]: typeof currentSets } = {};
+    const currentByExercise = new Map<string, { displayName: string; sets: typeof currentSets }>();
     for (const s of currentSets) {
-      if (!currentSetsByExercise[s.exerciseName]) {
-        currentSetsByExercise[s.exerciseName] = [];
-      }
-      currentSetsByExercise[s.exerciseName].push(s);
+      const key = exerciseKey(s.exerciseName);
+      if (!currentByExercise.has(key)) currentByExercise.set(key, { displayName: s.exerciseName.trim(), sets: [] });
+      currentByExercise.get(key)!.sets.push(s);
     }
 
-    const previousSetsByExercise: { [name: string]: typeof previousSets } = {};
+    const previousByExercise = new Map<string, typeof previousSets>();
     for (const s of previousSets) {
-      if (!previousSetsByExercise[s.exerciseName]) {
-        previousSetsByExercise[s.exerciseName] = [];
-      }
-      previousSetsByExercise[s.exerciseName].push(s);
+      const key = exerciseKey(s.exerciseName);
+      if (!previousByExercise.has(key)) previousByExercise.set(key, []);
+      previousByExercise.get(key)!.push(s);
     }
 
-    for (const exerciseName of Object.keys(currentSetsByExercise)) {
-      const cSets = currentSetsByExercise[exerciseName];
-      const pSets = previousSetsByExercise[exerciseName] ?? [];
+    const maxOf = (values: number[]) => (values.length > 0 ? Math.max(...values) : 0);
+    const sumBySession = (sets: typeof previousSets, fn: (s: (typeof previousSets)[number]) => number) => {
+      const totals = new Map<number, number>();
+      for (const s of sets) totals.set(s.sessionId, (totals.get(s.sessionId) ?? 0) + fn(s));
+      return Array.from(totals.values());
+    };
 
-      const cWeightVals = cSets.filter(s => s.weight != null).map(s => s.weight as number);
-      const pWeightVals = pSets.filter(s => s.weight != null).map(s => s.weight as number);
-      if (cWeightVals.length > 0) {
-        const cMaxWeight = Math.max(...cWeightVals);
-        const pMaxWeight = pWeightVals.length > 0 ? Math.max(...pWeightVals) : 0;
-        if (cMaxWeight > pMaxWeight) {
-          prs.push({
-            type: "weight",
-            exerciseName,
-            prevValue: pMaxWeight,
-            newValue: cMaxWeight,
-            unit: "kg",
-          });
+    for (const [key, { displayName: exerciseName, sets: cSets }] of currentByExercise) {
+      const pSets = previousByExercise.get(key) ?? [];
+      if (pSets.length === 0) continue;
+
+      const cWeighted = cSets.filter((s) => s.weight != null);
+      const pWeighted = pSets.filter((s) => s.weight != null);
+      if (cWeighted.length > 0 && pWeighted.length > 0) {
+        const cMaxWeight = Math.max(...cWeighted.map((s) => signedWeight(s.weight, s.isAssisted)!));
+        const pMaxWeight = Math.max(...pWeighted.map((s) => signedWeight(s.weight, s.isAssisted)!));
+        const assisted = cWeighted.every((s) => s.isAssisted) && pWeighted.every((s) => s.isAssisted);
+        if (assisted) {
+          if (cMaxWeight > pMaxWeight) {
+            prs.push({ type: "weight", exerciseName, prevValue: Math.abs(pMaxWeight), newValue: Math.abs(cMaxWeight), unit: "kg", assisted: true });
+          }
+        } else if (cMaxWeight !== 0 && cMaxWeight > pMaxWeight) {
+          prs.push({ type: "weight", exerciseName, prevValue: pMaxWeight, newValue: cMaxWeight, unit: "kg" });
         }
       }
 
-      const cMaxReps = Math.max(...cSets.map(s => s.reps ?? 0), 0);
-      const pMaxReps = pSets.length > 0 ? Math.max(...pSets.map(s => s.reps ?? 0), 0) : 0;
-      if (cMaxReps > pMaxReps && cMaxReps > 0) {
-        prs.push({
-          type: "reps",
-          exerciseName,
-          prevValue: pMaxReps,
-          newValue: cMaxReps,
-          unit: "reps",
-        });
+      const cMaxReps = maxOf(cSets.map(s => s.reps ?? 0));
+      const pMaxReps = maxOf(pSets.map(s => s.reps ?? 0));
+      if (pMaxReps > 0 && cMaxReps > pMaxReps) {
+        prs.push({ type: "reps", exerciseName, prevValue: pMaxReps, newValue: cMaxReps, unit: "reps" });
       }
 
       const cSetsCount = cSets.length;
-      const pSetsCountBySession: { [id: number]: number } = {};
-      for (const s of pSets) {
-        pSetsCountBySession[s.sessionId] = (pSetsCountBySession[s.sessionId] ?? 0) + 1;
-      }
-      const pMaxSetsCount = Object.keys(pSetsCountBySession).length > 0 ? Math.max(...Object.values(pSetsCountBySession)) : 0;
-      if (cSetsCount > pMaxSetsCount && cSetsCount > 0) {
-        prs.push({
-          type: "sets",
-          exerciseName,
-          prevValue: pMaxSetsCount,
-          newValue: cSetsCount,
-          unit: "sets",
-        });
+      const pMaxSetsCount = maxOf(sumBySession(pSets, () => 1));
+      if (cSetsCount > pMaxSetsCount) {
+        prs.push({ type: "sets", exerciseName, prevValue: pMaxSetsCount, newValue: cSetsCount, unit: "sets" });
       }
 
-      const cVolume = cSets.reduce((sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
-      const cHasWeightTracking = cSets.some(s => s.weight != null);
-      const pVolumeBySession: { [id: number]: number } = {};
-      for (const s of pSets) {
-        pVolumeBySession[s.sessionId] = (pVolumeBySession[s.sessionId] ?? 0) + (s.weight ?? 0) * (s.reps ?? 0);
-      }
-      const pMaxVolume = Object.keys(pVolumeBySession).length > 0 ? Math.max(...Object.values(pVolumeBySession)) : 0;
-      if (cHasWeightTracking && cVolume > pMaxVolume) {
-        prs.push({
-          type: "volume",
-          exerciseName,
-          prevValue: pMaxVolume,
-          newValue: cVolume,
-          unit: "kg",
-        });
+      const cVolume = cSets.reduce((sum, s) => sum + effectiveVolume(s.weight, s.reps), 0);
+      const pMaxVolume = maxOf(sumBySession(pSets, (s) => effectiveVolume(s.weight, s.reps)));
+      if (pMaxVolume > 0 && cVolume > pMaxVolume) {
+        prs.push({ type: "volume", exerciseName, prevValue: pMaxVolume, newValue: cVolume, unit: "kg" });
       }
 
-      const cMaxDistance = Math.max(...cSets.map(s => s.distance ?? 0), 0);
-      const pMaxDistance = pSets.length > 0 ? Math.max(...pSets.map(s => s.distance ?? 0), 0) : 0;
-      if (cMaxDistance > pMaxDistance && cMaxDistance > 0) {
-        prs.push({
-          type: "distance",
-          exerciseName,
-          prevValue: pMaxDistance,
-          newValue: cMaxDistance,
-          unit: "km",
-        });
+      const cMaxDistance = maxOf(cSets.map(s => s.distance ?? 0));
+      const pMaxDistance = maxOf(pSets.map(s => s.distance ?? 0));
+      if (pMaxDistance > 0 && cMaxDistance > pMaxDistance) {
+        prs.push({ type: "distance", exerciseName, prevValue: pMaxDistance, newValue: cMaxDistance, unit: "km" });
       }
 
-      const cMaxDuration = Math.max(...cSets.map(s => s.duration ?? 0), 0);
-      const pMaxDuration = pSets.length > 0 ? Math.max(...pSets.map(s => s.duration ?? 0), 0) : 0;
-      if (cMaxDuration > pMaxDuration && cMaxDuration > 0) {
-        prs.push({
-          type: "duration",
-          exerciseName,
-          prevValue: pMaxDuration,
-          newValue: cMaxDuration,
-          unit: "sec",
-        });
+      const cMaxDuration = maxOf(cSets.map(s => s.duration ?? 0));
+      const pMaxDuration = maxOf(pSets.map(s => s.duration ?? 0));
+      if (pMaxDuration > 0 && cMaxDuration > pMaxDuration) {
+        prs.push({ type: "duration", exerciseName, prevValue: pMaxDuration, newValue: cMaxDuration, unit: "sec" });
       }
     }
 
-    const cSessionVolume = currentSets.reduce((sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
-    const cSessionHasWeightTracking = currentSets.some(s => s.weight != null);
-    const pVolumeBySessionId: { [id: number]: number } = {};
+    if (previousSessions.length === 0) return prs;
+
+    const cSessionVolume = currentSets.reduce((sum, s) => sum + effectiveVolume(s.weight, s.reps), 0);
+    const pMaxSessionVolume = maxOf(sumBySession(previousSets, (s) => effectiveVolume(s.weight, s.reps)));
+    if (pMaxSessionVolume > 0 && cSessionVolume > pMaxSessionVolume) {
+      prs.push({ type: "session_volume", prevValue: pMaxSessionVolume, newValue: cSessionVolume, unit: "kg" });
+    }
+
+    const cSessionDuration = currentDurationSeconds !== undefined
+      ? currentDurationSeconds
+      : activeSeconds(currentSession, Date.now());
+    const pMaxSessionDuration = maxOf(previousSessions.map(s => activeSeconds(s, 0)));
+    if (pMaxSessionDuration > 0 && cSessionDuration > pMaxSessionDuration) {
+      prs.push({ type: "session_duration", prevValue: Math.round(pMaxSessionDuration), newValue: Math.round(cSessionDuration), unit: "sec" });
+    }
+
+    const cSessionExerciseCount = currentByExercise.size;
+    const pExercisesBySession = new Map<number, Set<string>>();
     for (const s of previousSets) {
-      pVolumeBySessionId[s.sessionId] = (pVolumeBySessionId[s.sessionId] ?? 0) + (s.weight ?? 0) * (s.reps ?? 0);
+      if (!pExercisesBySession.has(s.sessionId)) pExercisesBySession.set(s.sessionId, new Set());
+      pExercisesBySession.get(s.sessionId)!.add(exerciseKey(s.exerciseName));
     }
-    const pMaxSessionVolume = Object.keys(pVolumeBySessionId).length > 0 ? Math.max(...Object.values(pVolumeBySessionId)) : 0;
-    if (cSessionHasWeightTracking && cSessionVolume > pMaxSessionVolume) {
-      prs.push({
-        type: "session_volume",
-        prevValue: pMaxSessionVolume,
-        newValue: cSessionVolume,
-        unit: "kg",
-      });
-    }
-
-    let cSessionDuration = 0;
-    if (currentDurationSeconds !== undefined) {
-      cSessionDuration = currentDurationSeconds;
-    } else if (currentSession.completedAt) {
-      cSessionDuration = (parseDateString(currentSession.completedAt).getTime() - parseDateString(currentSession.startedAt).getTime()) / 1000;
-    } else {
-      cSessionDuration = (Date.now() - parseDateString(currentSession.startedAt).getTime()) / 1000;
-    }
-
-    const pSessionsDurations = previousSessions.map(s => {
-      if (!s.completedAt) return 0;
-      return (parseDateString(s.completedAt).getTime() - parseDateString(s.startedAt).getTime()) / 1000;
-    });
-    const pMaxSessionDuration = pSessionsDurations.length > 0 ? Math.max(...pSessionsDurations) : 0;
-    if (cSessionDuration > pMaxSessionDuration && cSessionDuration > 0) {
-      prs.push({
-        type: "session_duration",
-        prevValue: pMaxSessionDuration,
-        newValue: Math.round(cSessionDuration),
-        unit: "sec",
-      });
-    }
-
-    const cSessionExerciseCount = Object.keys(currentSetsByExercise).length;
-    const pExercisesBySession: { [id: number]: Set<string> } = {};
-    for (const s of previousSets) {
-      if (!pExercisesBySession[s.sessionId]) {
-        pExercisesBySession[s.sessionId] = new Set();
-      }
-      pExercisesBySession[s.sessionId].add(s.exerciseName);
-    }
-    const pMaxSessionExercisesCount = Object.keys(pExercisesBySession).length > 0
-      ? Math.max(...Object.values(pExercisesBySession).map(set => set.size))
-      : 0;
-    if (cSessionExerciseCount > pMaxSessionExercisesCount && cSessionExerciseCount > 0) {
-      prs.push({
-        type: "session_exercises",
-        prevValue: pMaxSessionExercisesCount,
-        newValue: cSessionExerciseCount,
-        unit: "exercises",
-      });
+    const pMaxSessionExercisesCount = maxOf(Array.from(pExercisesBySession.values()).map(set => set.size));
+    if (pMaxSessionExercisesCount > 0 && cSessionExerciseCount > pMaxSessionExercisesCount) {
+      prs.push({ type: "session_exercises", prevValue: pMaxSessionExercisesCount, newValue: cSessionExerciseCount, unit: "exercises" });
     }
 
     return prs;
   }
 }
-
