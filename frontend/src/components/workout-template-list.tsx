@@ -38,14 +38,14 @@ export function WorkoutTemplateList({ templates: initialTemplates, actions }: { 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between mt-3 mb-1 gap-2">
+      <div className="flex flex-wrap items-center justify-between mt-3 mb-1 gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {templates.length > 1 && (
             <button
               type="button"
               onClick={() => setReordering((v) => !v)}
-              className="text-xs font-medium text-brand hover:text-brand-hover px-2 py-1.5 rounded-lg transition-colors min-h-[36px]"
+              className="text-xs font-medium text-brand hover:text-brand-hover px-3 rounded-lg transition-colors min-h-11"
             >
               {reordering ? t("Done") : t("Reorder")}
             </button>
@@ -71,7 +71,7 @@ export function WorkoutTemplateList({ templates: initialTemplates, actions }: { 
             <div className="px-4 sm:px-5 py-3 sm:py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-workout-title font-medium text-foreground text-sm sm:text-base truncate">
+                  <h2 className="font-medium text-foreground text-sm sm:text-base truncate">
                     {template.name}
                   </h2>
                   {template.description && (
@@ -82,17 +82,17 @@ export function WorkoutTemplateList({ templates: initialTemplates, actions }: { 
                   <div className="flex flex-wrap gap-2 mt-2 text-[10px] sm:text-xs">
                     {template.exerciseCount !== undefined && (
                       <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                        🏋️‍♂️ {template.exerciseCount} {template.exerciseCount === 1 ? t("exercise") : t("exercises")}
+                        {template.exerciseCount} {template.exerciseCount === 1 ? t("exercise") : t("exercises")}
                       </span>
                     )}
                     {template.targetMuscleGroups && (
                       <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                        💪 {template.targetMuscleGroups}
+                        {template.targetMuscleGroups}
                       </span>
                     )}
                     {template.estimatedTime && (
                       <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                        ⏱️ {template.estimatedTime} {t("min")}
+                        {template.estimatedTime} {t("min")}
                       </span>
                     )}
                   </div>

@@ -1,10 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
+import { buildTemplateMeta } from "@/lib/template-payload";
+import { useState, useEffect, useRef } from "react";
+import { parseDecimal, toInputString } from "@/lib/number-input";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
+import {
+  formSignature,
+  shouldPersistDraft,
+  buildDraft,
+  parseDraft,
+  evaluateDraft,
+  type TemplateDraft,
+  type TemplateDraftForm,
+} from "@/lib/template-draft";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +62,7 @@ interface ExerciseRow {
   distanceUnit: string;
   duration: string;
   heartRate: string;
+  rpe: string;
   defaultRestTime: string;
   equipment: string;
   perSide: boolean;
@@ -116,11 +129,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
         category: cat,
         sets: e.defaultSets?.toString() || "3",
         reps: e.defaultReps?.toString() ?? "8",
-        weight: e.defaultWeight != null ? Math.abs(e.defaultWeight).toString() : "",
-        distance: e.defaultDistance?.toString() ?? "",
+        weight: e.defaultWeight != null ? toInputString(Math.abs(e.defaultWeight)) : "",
+        distance: toInputString(e.defaultDistance),
         distanceUnit: "km",
         duration: formatDuration(e.defaultDuration),
         heartRate: e.defaultHeartRate?.toString() ?? "",
+        rpe: e.defaultRpe?.toString() ?? "",
         defaultRestTime: formatDuration(e.defaultRestTime ?? 90),
         equipment: mapEquipment(e.equipment),
         perSide: Boolean(e.perSide),
@@ -138,6 +152,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       distanceUnit: "km",
       duration: "", 
       heartRate: "", 
+      rpe: "",
       defaultRestTime: "01:30",
       equipment: "",
       perSide: false,
@@ -150,46 +165,84 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isMounted, setIsMounted] = useState(false);
+  const feedbackRef = useRef<HTMLDivElement>(null);
 
-  // Restore saved draft from localStorage after initial render (hydrated)
-  useEffect(() => {
+  const [initialForm] = useState<TemplateDraftForm<ExerciseRow>>(() => ({
+    name,
+    description,
+    targetMuscleGroups,
+    estimatedTime,
+    exercises,
+  }));
+  const [baseSignature] = useState(() => formSignature(initialForm));
+  const [draftNotice, setDraftNotice] = useState<{ kind: "restored" | "stale"; draft: TemplateDraft<ExerciseRow> } | null>(null);
+
+  function applyForm(form: TemplateDraftForm<ExerciseRow>) {
+    setName(form.name);
+    setDescription(form.description);
+    setTargetMuscleGroups(form.targetMuscleGroups);
+    setEstimatedTime(form.estimatedTime);
+    setExercises(form.exercises.length > 0 ? form.exercises : initialForm.exercises);
+  }
+
+  function removeStoredDraft() {
     try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        queueMicrotask(() => {
-          if (typeof parsed.name === "string") setName(parsed.name);
-          if (typeof parsed.description === "string") setDescription(parsed.description);
-          if (typeof parsed.targetMuscleGroups === "string") setTargetMuscleGroups(parsed.targetMuscleGroups);
-          if (typeof parsed.estimatedTime === "string") setEstimatedTime(parsed.estimatedTime);
-          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
-            setExercises(parsed.exercises);
-          }
-        });
+      localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.error("Failed to remove template draft from localStorage", e);
+    }
+  }
+
+  // Restore a saved draft only when it still matches the server version it was based on
+  useEffect(() => {
+    let notice: { kind: "restored" | "stale"; draft: TemplateDraft<ExerciseRow> } | null = null;
+    try {
+      const draft = parseDraft<ExerciseRow>(localStorage.getItem(storageKey));
+      if (draft) {
+        const status = evaluateDraft(draft, baseSignature);
+        if (status === "unchanged") {
+          removeStoredDraft();
+        } else {
+          notice = { kind: status === "fresh" ? "restored" : "stale", draft };
+        }
       }
     } catch (e) {
       console.error("Failed to load template draft from localStorage", e);
-    } finally {
-      setIsMounted(true);
     }
+    queueMicrotask(() => {
+      if (notice?.kind === "restored") applyForm(notice.draft.form);
+      setDraftNotice(notice);
+      setIsMounted(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
-  // Persist form state to localStorage after mount
+  // Persist only real edits; remove the draft when the form equals the server version again
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || draftNotice?.kind === "stale") return;
     try {
-      const draftData = {
-        name,
-        description,
-        targetMuscleGroups,
-        estimatedTime,
-        exercises,
-      };
-      localStorage.setItem(storageKey, JSON.stringify(draftData));
+      const form = { name, description, targetMuscleGroups, estimatedTime, exercises };
+      if (shouldPersistDraft(form, baseSignature)) {
+        localStorage.setItem(storageKey, JSON.stringify(buildDraft(form, baseSignature)));
+      } else {
+        localStorage.removeItem(storageKey);
+      }
     } catch (e) {
       console.error("Failed to save template draft to localStorage", e);
     }
-  }, [name, description, targetMuscleGroups, estimatedTime, exercises, isMounted, storageKey]);
+  }, [name, description, targetMuscleGroups, estimatedTime, exercises, isMounted, storageKey, draftNotice, baseSignature]);
+
+  function discardDraft() {
+    removeStoredDraft();
+    if (draftNotice?.kind === "restored") applyForm(initialForm);
+    setDraftNotice(null);
+  }
+
+  function loadStaleDraft() {
+    if (draftNotice?.kind !== "stale") return;
+    applyForm(draftNotice.draft.form);
+    setDraftNotice({ kind: "restored", draft: draftNotice.draft });
+  }
 
   function addExercise() {
     const id = `ex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -206,6 +259,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
         distanceUnit: "km",
         duration: "", 
         heartRate: "", 
+        rpe: "",
         defaultRestTime: "01:30",
         equipment: "",
         perSide: false,
@@ -283,6 +337,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
     }));
   }
 
+  useEffect(() => {
+    if (error || Object.keys(errors).length > 0) {
+      feedbackRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [error, errors]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -315,14 +375,14 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
     }
 
     const data = {
-      name,
-      description: description || undefined,
-      targetMuscleGroups: targetMuscleGroups || undefined,
-      estimatedTime: estimatedTime ? Number(estimatedTime) : undefined,
+      ...buildTemplateMeta({ name, description, targetMuscleGroups, estimatedTime }),
       exercises: exercises
         .filter((ex) => ex.name.trim())
         .map((ex) => {
-          let dist = ex.distance ? Number(ex.distance) : undefined;
+          const parsedWeight = parseDecimal(ex.weight);
+          const parsedRpe = parseDecimal(ex.rpe);
+          const parsedHeartRate = parseDecimal(ex.heartRate);
+          let dist = parseDecimal(ex.distance) ?? undefined;
           if (dist !== undefined && ex.distanceUnit === "m") {
             dist = dist / 1000;
           }
@@ -332,12 +392,13 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
             category: ex.category,
             sets: Number(ex.sets),
             reps: ex.trackingFields.reps ? Number(ex.reps) : 0,
-            weight: (ex.trackingFields.weight && ex.weight)
-              ? (ex.isAssisted ? -Math.abs(Number(ex.weight)) : Math.abs(Number(ex.weight)))
-              : undefined,
-            distance: (ex.trackingFields.distance && dist) ? dist : undefined,
-            duration: ex.trackingFields.time ? parseDuration(ex.duration) : undefined,
-            heartRate: (ex.category === "Cardio" && ex.heartRate) ? Number(ex.heartRate) : undefined,
+            weight: (ex.trackingFields.weight && parsedWeight !== null)
+              ? (ex.isAssisted ? -Math.abs(parsedWeight) : Math.abs(parsedWeight))
+              : null,
+            distance: (ex.trackingFields.distance && dist) ? dist : null,
+            duration: ex.trackingFields.time ? (parseDuration(ex.duration) ?? null) : null,
+            heartRate: parsedHeartRate !== null ? parsedHeartRate : undefined,
+            rpe: parsedRpe !== null ? parsedRpe : undefined,
             defaultRestTime: parseDuration(ex.defaultRestTime) ?? 90,
             equipment: ex.equipment || "none",
             perSide: ex.perSide ? 1 : 0,
@@ -370,12 +431,25 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6 sm:gap-8">
-      {error && (
-        <div className="rounded-lg bg-red-950/40 border border-red-900/50 px-4 py-3 text-sm text-red-400">
-          {error}
+      {draftNotice && (
+        <div role="status" className="rounded-lg bg-card border border-border px-4 py-3 text-sm flex flex-col gap-3 min-w-0">
+          <p className="text-foreground break-words">
+            {draftNotice.kind === "restored"
+              ? t("Unsaved draft restored from this device.")
+              : t("An older unsaved draft exists, but this template has changed since.")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {draftNotice.kind === "stale" && (
+              <Button type="button" variant="outline" onClick={loadStaleDraft} className="min-h-11 min-w-11">
+                {t("Load draft anyway")}
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={discardDraft} className="min-h-11 min-w-11">
+              {t("Discard draft")}
+            </Button>
+          </div>
         </div>
       )}
-
       {/* Header Info */}
       <div className="flex flex-col gap-4">
         <div className="grid gap-2">
@@ -385,11 +459,12 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("e.g., Push Day (Hypertrophy)")}
-            className={`bg-white/5 border-border ${errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+            aria-invalid={Boolean(errors.name)}
+            className={`bg-white/5 border-border h-11 ${errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             required
             autoFocus
           />
-          {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+          {errors.name && <p role="alert" className="text-xs text-destructive mt-1">{errors.name}</p>}
         </div>
 
         <div className="grid gap-2">
@@ -412,7 +487,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
               value={targetMuscleGroups}
               onChange={(e) => setTargetMuscleGroups(e.target.value)}
               placeholder={t("Chest, Triceps, Shoulders")}
-              className="bg-white/5 border-border"
+              className="bg-white/5 border-border h-11"
             />
           </div>
           <div className="grid gap-2">
@@ -425,7 +500,7 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
               value={estimatedTime}
               onChange={(e) => setEstimatedTime(e.target.value.replace(/\D/g, ""))}
               placeholder="60"
-              className="bg-white/5 border-border"
+              className="bg-white/5 border-border h-11"
             />
           </div>
         </div>
@@ -468,12 +543,17 @@ export function WorkoutTemplateForm({ initial }: { initial?: any }) {
       </div>
 
       {/* Submit */}
-      <div className="sticky bottom-4 mt-6 z-10">
+      <div className="sticky bottom-4 mt-6 z-10 flex flex-col gap-2">
+        <div ref={feedbackRef} className="flex flex-col gap-2 scroll-mb-24">
+          <InlineAlert className="bg-card">{error}</InlineAlert>
+          {Object.keys(errors).length > 0 && (
+            <InlineAlert className="bg-card">{t("Controleer de gemarkeerde velden.")}</InlineAlert>
+          )}
+        </div>
         <Button 
           type="submit" 
-          size="lg"
           disabled={loading}
-          className="w-full shadow-xl shadow-brand/20 font-bold"
+          className="w-full min-h-12 font-bold bg-brand text-zinc-950 hover:bg-brand-hover"
         >
           {loading && <Loader2 className="mr-2 size-5 animate-spin" />}
           {isEdit ? t("Save Changes") : t("Create Template")}

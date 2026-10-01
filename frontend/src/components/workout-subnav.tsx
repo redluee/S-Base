@@ -50,8 +50,7 @@ export function WorkoutSubnav({ current }: WorkoutSubnavProps) {
             key={item.key}
             render={<Link href={item.href} />}
             variant="outline"
-            size="sm"
-            className="text-xs sm:text-sm h-9 sm:h-10 flex items-center gap-1.5 cursor-pointer"
+            className="text-xs sm:text-sm min-h-11 flex items-center gap-1.5 cursor-pointer"
           >
             <Icon className="size-3.5 sm:size-4 text-brand" />
             <span>{item.label}</span>

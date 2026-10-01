@@ -161,13 +161,13 @@ export function ExerciseList({
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("Filter exercises...")}
             aria-label={t("Filter oefeningen")}
-            className="w-full pl-10 pr-9 py-2.5 bg-background text-foreground text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
+            className="w-full pl-10 pr-11 h-11 bg-background text-foreground text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
           />
           {q && (
             <button
               type="button"
               onClick={() => setQ("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 min-h-11 min-w-11 inline-flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full transition-colors"
               aria-label={t("Sluiten")}
             >
               <X className="size-4" />
@@ -184,7 +184,7 @@ export function ExerciseList({
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className={cn(
-                  "w-full appearance-none px-3 py-1.5 pr-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer bg-background text-foreground",
+                  "w-full appearance-none px-3 min-h-11 pr-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer bg-background text-foreground",
                   selectedCategory
                     ? "border-brand bg-brand/10 text-brand"
                     : "border-border hover:bg-foreground/5"
@@ -206,7 +206,7 @@ export function ExerciseList({
                 value={selectedEquipment}
                 onChange={(e) => setSelectedEquipment(e.target.value)}
                 className={cn(
-                  "w-full appearance-none px-3 py-1.5 pr-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer bg-background text-foreground",
+                  "w-full appearance-none px-3 min-h-11 pr-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer bg-background text-foreground",
                   selectedEquipment
                     ? "border-brand bg-brand/10 text-brand"
                     : "border-border hover:bg-foreground/5"
@@ -229,7 +229,7 @@ export function ExerciseList({
                 variant="ghost"
                 size="sm"
                 onClick={resetFilters}
-                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1.5"
+                className="min-h-11 px-3 text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1.5"
               >
                 <RotateCcw className="size-3.5" />
                 <span>{t("Clear filters")}</span>
@@ -257,10 +257,9 @@ export function ExerciseList({
           </p>
           {hasActiveFilters && (
             <Button
-              size="sm"
               variant="outline"
               onClick={resetFilters}
-              className="cursor-pointer flex items-center gap-1.5"
+              className="min-h-11 cursor-pointer flex items-center gap-1.5"
             >
               <RotateCcw className="size-3.5" />
               <span>{t("Clear filters")}</span>

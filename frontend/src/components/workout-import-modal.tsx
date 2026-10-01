@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
+import { formatNumberNl } from "@/lib/number-input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Download, Upload, X, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -67,6 +68,16 @@ export function normalizeImportedWorkout(data: any) {
     const defaultRestTime = ex.defaultRestTime != null ? Number(ex.defaultRestTime) : undefined;
     const equipment = ex.equipment ? String(ex.equipment).trim() : undefined;
     const perSide = ex.perSide ? 1 : 0;
+    const isAssisted = ex.isAssisted != null
+      ? (Number(ex.isAssisted) ? 1 : 0)
+      : (weightVal != null && weightVal < 0 ? 1 : 0);
+    if (weightVal != null && !Number.isNaN(weightVal) && weightVal !== 0) {
+      weightVal = isAssisted ? -Math.abs(weightVal) : Math.abs(weightVal);
+    }
+    const rpeRaw = ex.defaultRpe ?? ex.rpe;
+    const rpe = rpeRaw != null && rpeRaw !== "" ? Number(rpeRaw) : undefined;
+    const heartRateRaw = ex.defaultHeartRate ?? ex.heartRate;
+    const heartRate = heartRateRaw != null && heartRateRaw !== "" ? Number(heartRateRaw) : undefined;
     const category = ex.category ? String(ex.category).trim() : "Free Weights";
 
     return {
@@ -80,6 +91,9 @@ export function normalizeImportedWorkout(data: any) {
       defaultRestTime,
       equipment,
       perSide,
+      isAssisted,
+      rpe,
+      heartRate,
     };
   });
 
@@ -162,13 +176,12 @@ export function WorkoutImportModal() {
   return (
     <>
       <Button
-        size="sm"
         variant="outline"
         onClick={() => setIsOpen(true)}
-        className="font-medium flex items-center gap-1.5 active:scale-[0.97] transition-all"
+        className="min-h-11 font-medium flex items-center gap-1.5"
         title={t("Import Sjabloon")}
       >
-        <Download className="size-3.5" />
+        <Download className="size-4" />
         <span>{t("Import")}</span>
       </Button>
 
@@ -178,17 +191,17 @@ export function WorkoutImportModal() {
           onClose={handleClose}
           label={t("Import Workout Sjabloon")}
         >
-          <div className="relative w-full max-w-lg bg-card rounded-2xl ring-1 ring-foreground/10 shadow-2xl p-5 sm:p-6 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="relative w-full max-w-lg bg-card rounded-2xl ring-1 ring-foreground/10 p-5 sm:p-6 overflow-hidden max-h-[90vh] flex flex-col">
             <button
               type="button"
               onClick={handleClose}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 rounded-lg transition-colors cursor-pointer"
+              className="absolute top-2 right-2 min-h-11 min-w-11 inline-flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
               aria-label={t("Sluiten")}
             >
               <X className="size-5" />
             </button>
 
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 pr-10">
               <div className="p-2.5 rounded-xl bg-brand/10 text-brand shrink-0">
                 <Download className="size-6" />
               </div>
@@ -212,22 +225,23 @@ export function WorkoutImportModal() {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5 px-0.5">
-                  <label className="block text-xs font-medium text-muted-foreground">
-                    JSON Data
+                  <label htmlFor="import-json" className="block text-xs font-medium text-muted-foreground">
+                    {t("JSON-gegevens")}
                   </label>
-                  <label className="text-xs text-brand hover:underline cursor-pointer flex items-center gap-1 font-medium">
+                  <label className="min-h-11 text-xs text-brand hover:underline cursor-pointer flex items-center gap-1 font-medium has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 rounded-md px-1">
                     <Upload className="size-3" />
                     <span>{t("Select JSON file")}</span>
                     <input
                       type="file"
                       accept=".json,application/json"
                       onChange={handleFileUpload}
-                      className="hidden"
+                      className="sr-only"
                     />
                   </label>
                 </div>
                 <div className="p-0.5">
                   <textarea
+                    id="import-json"
                     rows={6}
                     value={jsonText}
                     onChange={(e) => {
@@ -244,7 +258,7 @@ export function WorkoutImportModal() {
                 <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3.5 space-y-2 text-xs m-0.5">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-brand text-sm flex items-center gap-1.5">
-                      <CheckCircle2 className="size-4 text-emerald-400" />
+                      <CheckCircle2 className="size-4 text-brand" />
                       {parsedPreview.name}
                     </span>
                     <span className="text-muted-foreground font-medium">
@@ -263,7 +277,7 @@ export function WorkoutImportModal() {
                       <div key={idx} className="flex items-center justify-between text-zinc-300">
                         <span className="truncate font-medium">{ex.exerciseName}</span>
                         <span className="text-muted-foreground text-[11px] shrink-0 ml-2">
-                          {ex.sets}x {ex.reps} reps {ex.weight ? `• ${ex.weight} kg` : ""}
+                          {ex.sets}x {ex.reps} {t("reps")} {ex.weight ? `• ${formatNumberNl(ex.weight)} kg` : ""}
                         </span>
                       </div>
                     ))}
@@ -276,18 +290,17 @@ export function WorkoutImportModal() {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={handleClose}
                 disabled={isImporting}
+                className="min-h-11"
               >
                 {t("Annuleren")}
               </Button>
               <Button
                 type="button"
-                size="sm"
                 onClick={handleImport}
                 disabled={isImporting || !jsonText.trim()}
-                className="bg-brand text-zinc-900 hover:bg-brand-hover font-medium"
+                className="min-h-11 bg-brand text-zinc-900 hover:bg-brand-hover font-medium"
               >
                 {isImporting ? t("Importing...") : t("Import")}
               </Button>

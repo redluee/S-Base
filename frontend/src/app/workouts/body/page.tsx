@@ -3,8 +3,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { t } from "@/lib/lang";
+import { formatNumberNl } from "@/lib/number-input";
 import { NavHeader } from "@/components/nav-header";
 import { WorkoutSubnav } from "@/components/workout-subnav";
 import { 
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import { compressImage } from "@/lib/image";
 
@@ -87,6 +89,10 @@ export default function BodyPage() {
   const [showBodyCircumferences, setShowBodyCircumferences] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingDeleteLogId, setPendingDeleteLogId] = useState<number | null>(null);
+  const [deletingLog, setDeletingLog] = useState(false);
 
   // Photo viewer state
   const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
@@ -104,6 +110,7 @@ export default function BodyPage() {
       })
       .catch((err) => {
         console.error("Failed to load measurements:", err);
+        setActionError(t("Metingen laden mislukt. Probeer het opnieuw."));
         setLoading(false);
       });
   };
@@ -121,6 +128,7 @@ export default function BodyPage() {
           })
           .catch((err) => {
             console.error("Failed to load measurements:", err);
+            setActionError(t("Metingen laden mislukt. Probeer het opnieuw."));
             setLoading(false);
           });
       })
@@ -188,6 +196,8 @@ export default function BodyPage() {
 
   const handleDateChange = (date: string) => {
     setFormDate(date);
+    setSaveError(null);
+    if (editingId !== 0) return;
     const existing = logs.find((l) => l.date === date && l.measurementId !== editingId);
     if (existing) {
       populateFormFieldsFromLog(existing);
@@ -206,6 +216,7 @@ export default function BodyPage() {
 
   // Open form for a new entry
   const handleNewEntry = () => {
+    setSaveError(null);
     const today = getTodayString();
     setFormDate(today);
     
@@ -226,6 +237,7 @@ export default function BodyPage() {
 
   // Open form to edit an existing entry
   const handleEditEntry = (log: Measurement) => {
+    setSaveError(null);
     setEditingId(log.measurementId);
     setFormDate(log.date);
     populateFormFieldsFromLog(log);
@@ -239,8 +251,13 @@ export default function BodyPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formDate) return;
+    if (editingId && logs.some((l) => l.date === formDate && l.measurementId !== editingId)) {
+      setSaveError(t("A measurement already exists for this date."));
+      return;
+    }
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       const data = {
         date: formDate,
@@ -259,11 +276,20 @@ export default function BodyPage() {
         calves: parseNumberInput(formCalves),
       };
 
-      await api.measurements.save(data);
+      if (editingId) {
+        await api.measurements.update(editingId, data);
+      } else {
+        await api.measurements.save(data);
+      }
       setEditingId(null);
       fetchLogs();
     } catch (err) {
       console.error("Failed to save log:", err);
+      setSaveError(
+        err instanceof ApiError && err.status === 409
+          ? t("A measurement already exists for this date.")
+          : t("Failed to save measurement. Please try again.")
+      );
     } finally {
       setIsSaving(false);
     }
@@ -271,8 +297,8 @@ export default function BodyPage() {
 
   // Delete measurement
   const handleDeleteLog = async (id: number) => {
-    if (!confirm(t("Are you sure you want to delete this log?"))) return;
-
+    setDeletingLog(true);
+    setActionError(null);
     try {
       await api.measurements.delete(id);
       if (editingId === id) {
@@ -281,6 +307,10 @@ export default function BodyPage() {
       fetchLogs();
     } catch (err) {
       console.error("Failed to delete log:", err);
+      setActionError(t("Meting verwijderen mislukt. Probeer het opnieuw."));
+    } finally {
+      setDeletingLog(false);
+      setPendingDeleteLogId(null);
     }
   };
 
@@ -290,6 +320,7 @@ export default function BodyPage() {
     if (!file) return;
 
     let tempUrl: string | null = null;
+    setActionError(null);
     try {
       setUploadingLogId(targetLog.measurementId);
       setUploadStage("optimizing");
@@ -310,15 +341,18 @@ export default function BodyPage() {
         (pct) => setUploadProgress(pct)
       );
 
-      await fetch(`/api/measurements/${targetLog.measurementId}/photos`, {
+      const linkRes = await fetch(`/api/measurements/${targetLog.measurementId}/photos`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filePath }),
       });
+      if (!linkRes.ok) throw new Error(`Photo link failed (${linkRes.status})`);
 
       fetchLogs();
     } catch (err) {
       console.error("Failed to upload photo:", err);
+      setActionError(t("Foto uploaden mislukt. Probeer het opnieuw."));
     } finally {
       if (tempUrl) {
         URL.revokeObjectURL(tempUrl);
@@ -332,11 +366,13 @@ export default function BodyPage() {
 
   // Delete photo
   const handleDeletePhoto = async (photoId: number) => {
+    setActionError(null);
     try {
       await api.measurements.deletePhoto(photoId);
       fetchLogs();
     } catch (err) {
       console.error("Failed to delete photo:", err);
+      setActionError(t("Foto verwijderen mislukt. Probeer het opnieuw."));
     }
   };
 
@@ -480,9 +516,9 @@ export default function BodyPage() {
           <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1} />
 
           {/* Y Axis labels */}
-          <text x={padding - 12} y={padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{maxVal.toFixed(1)}</text>
-          <text x={padding - 12} y={height / 2 + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{((maxVal + minVal) / 2).toFixed(1)}</text>
-          <text x={padding - 12} y={height - padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{minVal.toFixed(1)}</text>
+          <text x={padding - 12} y={padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl(maxVal, 1)}</text>
+          <text x={padding - 12} y={height / 2 + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl((maxVal + minVal) / 2, 1)}</text>
+          <text x={padding - 12} y={height - padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl(minVal, 1)}</text>
 
           {/* Area Fill for line 1 */}
           {areaD1 && (
@@ -490,7 +526,7 @@ export default function BodyPage() {
           )}
 
           {/* Line 1 */}
-          <path d={pathD1} fill="none" stroke="#00e3a4" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={pathD1} fill="none" stroke="var(--color-brand)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Line 2 */}
           {chartTab === "muscle" && pathD2 && (
@@ -500,11 +536,11 @@ export default function BodyPage() {
           {/* Dots and Tooltips for Line 1 */}
           {points1.map((p, idx) => (
             <g key={`d1-${idx}`} className="group/dot cursor-pointer">
-              <circle cx={p.x} cy={p.y} r={4.5} fill="#00e3a4" stroke="#000000" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
+              <circle cx={p.x} cy={p.y} r={4.5} fill="var(--color-brand)" stroke="#000000" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
               <g className="opacity-0 group-hover/dot:opacity-100 transition-opacity duration-200 pointer-events-none">
                 <rect x={p.x - 55} y={p.y - 42} width={110} height={30} rx={6} fill="var(--color-card)" stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
                 <text x={p.x} y={p.y - 22} fill="var(--color-foreground)" fontSize={12} fontWeight="700" textAnchor="middle">
-                  {p.val.toFixed(1)} ({p.date.split("-").slice(1).join("-")})
+                  {formatNumberNl(p.val, 1)} ({p.date.split("-").slice(1).join("-")})
                 </text>
               </g>
             </g>
@@ -517,7 +553,7 @@ export default function BodyPage() {
               <g className="opacity-0 group-hover/dot:opacity-100 transition-opacity duration-200 pointer-events-none">
                 <rect x={p.x - 55} y={p.y - 42} width={110} height={30} rx={6} fill="var(--color-card)" stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
                 <text x={p.x} y={p.y - 22} fill="var(--color-foreground)" fontSize={12} fontWeight="700" textAnchor="middle">
-                  {p.val.toFixed(1)} ({p.date.split("-").slice(1).join("-")})
+                  {formatNumberNl(p.val, 1)} ({p.date.split("-").slice(1).join("-")})
                 </text>
               </g>
             </g>
@@ -526,8 +562,8 @@ export default function BodyPage() {
           {/* Gradients */}
           <defs>
             <linearGradient id="brand-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00e3a4" />
-              <stop offset="100%" stopColor="#00e3a4" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--color-brand)" />
+              <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0" />
             </linearGradient>
           </defs>
         </svg>
@@ -567,7 +603,7 @@ export default function BodyPage() {
           <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Weight")}</span>
             <span className="text-2xl sm:text-3xl font-black text-brand font-display mt-1 truncate">
-              {latestLog?.weight ? `${latestLog.weight} kg` : "-"}
+              {latestLog?.weight ? `${formatNumberNl(latestLog.weight)} kg` : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
               {latestLog ? latestLog.date : t("Geen metingen")}
@@ -580,17 +616,17 @@ export default function BodyPage() {
               {latestLog?.bodyFat ? `${latestLog.bodyFat}%` : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog?.fatMass ? `${latestLog.fatMass} kg ${t("vetmassa")}` : t("Geen data")}
+              {latestLog?.fatMass ? `${formatNumberNl(latestLog.fatMass)} kg ${t("vetmassa")}` : t("Geen data")}
             </span>
           </div>
 
           <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Skeletal Muscle")}</span>
             <span className="text-2xl sm:text-3xl font-black text-amber-400 font-display mt-1 truncate">
-              {latestLog?.skeletalMuscle ? `${latestLog.skeletalMuscle} kg` : "-"}
+              {latestLog?.skeletalMuscle ? `${formatNumberNl(latestLog.skeletalMuscle)} kg` : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog?.skeletalMuscle && latestLog?.weight ? `${((latestLog.skeletalMuscle / latestLog.weight) * 100).toFixed(1)}%` : t("Skeletspiermassa")}
+              {latestLog?.skeletalMuscle && latestLog?.weight ? `${formatNumberNl((latestLog.skeletalMuscle / latestLog.weight) * 100, 1)}%` : t("Skeletspiermassa")}
             </span>
           </div>
 
@@ -615,13 +651,18 @@ export default function BodyPage() {
               <Button 
                 onClick={handleNewEntry} 
                 disabled={editingId === 0}
-                size="sm"
-                className="bg-brand text-zinc-900 hover:bg-brand-hover active:scale-[0.97] transition-all font-medium text-xs h-8 px-3 flex items-center gap-1.5 cursor-pointer"
+                className="bg-brand text-zinc-900 hover:bg-brand-hover font-medium text-sm min-h-11 px-4 flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="size-3.5" />
                 {t("Meting")}
               </Button>
             </div>
+
+            {actionError && (
+              <p role="alert" className="rounded-lg bg-destructive/10 ring-1 ring-destructive/20 px-3 py-2 text-sm text-destructive break-words">
+                {actionError}
+              </p>
+            )}
 
             {displayLogs.length === 0 ? (
               <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-12 text-center text-muted-foreground">
@@ -648,7 +689,7 @@ export default function BodyPage() {
                                 required
                                 value={formDate} 
                                 onChange={(e) => handleDateChange(e.target.value)}
-                                className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
+                                className="bg-background border border-border rounded-lg px-3 min-h-11 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
                               />
                             </div>
                           </div>
@@ -664,7 +705,7 @@ export default function BodyPage() {
                                 value={formHeight}
                                 onKeyDown={preventInvalidInput}
                                 onChange={(e) => setFormHeight(e.target.value)}
-                                className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
                               />
                             </div>
                             <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
@@ -680,7 +721,7 @@ export default function BodyPage() {
                                   setFormWeight(e.target.value);
                                   updateCalculatedFatMass(e.target.value, formBodyFat);
                                 }}
-                                className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
                               />
                             </div>
                             <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
@@ -696,7 +737,7 @@ export default function BodyPage() {
                                   setFormBodyFat(e.target.value);
                                   updateCalculatedFatMass(formWeight, e.target.value);
                                 }}
-                                className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
                               />
                             </div>
                             <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
@@ -709,7 +750,7 @@ export default function BodyPage() {
                                 value={formSkeletalMuscle}
                                 onKeyDown={preventInvalidInput}
                                 onChange={(e) => setFormSkeletalMuscle(e.target.value)}
-                                className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
                               />
                             </div>
                             <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
@@ -720,7 +761,7 @@ export default function BodyPage() {
                                 disabled
                                 placeholder="Auto"
                                 value={formFatMass}
-                                className="w-full bg-background/30 border border-border/40 rounded-md px-2 py-1 text-xs text-muted-foreground cursor-not-allowed opacity-75"
+                                className="w-full bg-background/30 border border-border/40 rounded-md px-2 min-h-11 text-sm text-muted-foreground cursor-not-allowed opacity-75"
                               />
                             </div>
                           </div>
@@ -730,7 +771,8 @@ export default function BodyPage() {
                             <button 
                               type="button" 
                               onClick={() => setShowBodyCircumferences(!showBodyCircumferences)}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover transition-colors py-1 cursor-pointer"
+                              aria-expanded={showBodyCircumferences}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover transition-colors min-h-11 cursor-pointer"
                             >
                               <Ruler className="size-3.5" />
                               <span>{showBodyCircumferences ? t("Lichaamsmetingen verbergen") : t("+ Lichaamsmetingen toevoegen")}</span>
@@ -852,13 +894,17 @@ export default function BodyPage() {
                             )}
                           </div>
 
+                          {saveError && (
+                            <p role="alert" className="text-xs text-red-400">{saveError}</p>
+                          )}
+
                           <div className="flex justify-end gap-2 pt-2">
                             <Button 
                               type="button" 
                               onClick={handleCancelEdit} 
                               variant="outline"
                               size="sm"
-                              className="text-xs h-8 cursor-pointer"
+                              className="text-sm min-h-11 cursor-pointer"
                             >
                               {t("Annuleren")}
                             </Button>
@@ -866,7 +912,7 @@ export default function BodyPage() {
                               type="submit" 
                               disabled={isSaving}
                               size="sm"
-                              className="bg-brand text-zinc-900 hover:bg-brand-hover font-medium text-xs h-8 px-4 cursor-pointer"
+                              className="bg-brand text-zinc-900 hover:bg-brand-hover font-medium text-sm min-h-11 px-4 cursor-pointer"
                             >
                               {isSaving ? t("Opslaan...") : t("Opslaan")}
                             </Button>
@@ -877,12 +923,12 @@ export default function BodyPage() {
                   }
 
                   // Standard read-only card block
-                  const fatPct = log.bodyFat !== null ? `${log.bodyFat}%` : (log.fatMass !== null && log.weight ? `${((log.fatMass / log.weight) * 100).toFixed(1)}%` : null);
-                  const fatKg = log.fatMass !== null ? `${log.fatMass} kg` : (log.bodyFat !== null && log.weight ? `${((log.weight * log.bodyFat) / 100).toFixed(1)} kg` : null);
+                  const fatPct = log.bodyFat !== null ? `${formatNumberNl(log.bodyFat)}%` : (log.fatMass !== null && log.weight ? `${formatNumberNl((log.fatMass / log.weight) * 100, 1)}%` : null);
+                  const fatKg = log.fatMass !== null ? `${formatNumberNl(log.fatMass)} kg` : (log.bodyFat !== null && log.weight ? `${formatNumberNl((log.weight * log.bodyFat) / 100, 1)} kg` : null);
                   const fatDisplay = fatPct && fatKg ? `${fatPct} (${fatKg})` : (fatPct || fatKg || null);
 
-                  const muscleKg = log.skeletalMuscle !== null ? `${log.skeletalMuscle} kg` : null;
-                  const musclePct = log.skeletalMuscle !== null && log.weight ? `${((log.skeletalMuscle / log.weight) * 100).toFixed(1)}%` : null;
+                  const muscleKg = log.skeletalMuscle !== null ? `${formatNumberNl(log.skeletalMuscle)} kg` : null;
+                  const musclePct = log.skeletalMuscle !== null && log.weight ? `${formatNumberNl((log.skeletalMuscle / log.weight) * 100, 1)}%` : null;
                   const muscleDisplay = musclePct && muscleKg ? `${musclePct} (${muscleKg})` : (musclePct || muscleKg || null);
 
                   return (
@@ -898,17 +944,19 @@ export default function BodyPage() {
                             variant="outline" 
                             size="icon"
                             onClick={() => handleEditEntry(log)}
-                            className="size-8 text-muted-foreground hover:text-brand cursor-pointer"
+                            className="size-11 text-muted-foreground hover:text-brand cursor-pointer"
                             title={t("Bewerken")}
+                            aria-label={t("Bewerken")}
                           >
                             <Pencil className="size-3.5" />
                           </Button>
                           <Button 
                             variant="outline" 
                             size="icon"
-                            onClick={() => handleDeleteLog(log.measurementId)}
-                            className="size-8 text-muted-foreground hover:text-destructive hover:border-destructive/40 cursor-pointer"
+                            onClick={() => setPendingDeleteLogId(log.measurementId)}
+                            className="size-11 text-muted-foreground hover:text-destructive hover:border-destructive/40 cursor-pointer"
                             title={t("Verwijderen")}
+                            aria-label={t("Verwijderen")}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
@@ -926,7 +974,7 @@ export default function BodyPage() {
                         {log.weight && (
                           <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
                             <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Weight")}</span>
-                            <span className="font-display font-bold text-sm text-brand block truncate">{log.weight} kg</span>
+                            <span className="font-display font-bold text-sm text-brand block truncate">{formatNumberNl(log.weight ?? 0)} kg</span>
                           </div>
                         )}
                         {fatDisplay && (
@@ -1023,10 +1071,12 @@ export default function BodyPage() {
                                 />
                               </button>
                               <button 
+                                type="button"
                                 onClick={() => handleDeletePhoto(p.photoId)}
-                                className="absolute top-0.5 right-0.5 size-4 rounded bg-destructive/90 flex items-center justify-center text-white opacity-0 group-hover/photo:opacity-100 transition-opacity cursor-pointer"
+                                aria-label={t("Foto verwijderen")}
+                                className="absolute top-0.5 right-0.5 size-5 rounded bg-destructive/90 flex items-center justify-center text-white [@media(hover:hover)]:opacity-0 group-hover/photo:opacity-100 focus-visible:opacity-100 transition-opacity cursor-pointer"
                               >
-                                <X className="size-2.5" />
+                                <X className="size-3" />
                               </button>
                             </div>
                           ))}
@@ -1035,7 +1085,7 @@ export default function BodyPage() {
                           {uploadingLogId === log.measurementId && (
                             <div className="relative shrink-0 size-11 rounded-lg border border-brand/60 overflow-hidden bg-background flex flex-col items-center justify-center animate-in fade-in duration-200">
                               {optimisticPhotoUrl ? (
-                                <img src={optimisticPhotoUrl} alt="Preview" className="w-full h-full object-cover opacity-35" />
+                                <img src={optimisticPhotoUrl} alt={t("Voorbeeld")} className="w-full h-full object-cover opacity-35" />
                               ) : null}
                               <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-0.5">
                                 <Loader2 className="size-3.5 text-brand animate-spin" />
@@ -1051,13 +1101,14 @@ export default function BodyPage() {
                               ? "opacity-50 cursor-not-allowed bg-muted/5 text-muted-foreground"
                               : "hover:border-brand/50 text-muted-foreground hover:text-brand bg-muted/10 hover:bg-brand/5 cursor-pointer"
                           }`}>
-                            <Camera className="size-4" />
+                            <Camera className="size-4" aria-hidden="true" />
+                            <span className="sr-only">{t("Foto toevoegen")}</span>
                             <input 
                               type="file" 
                               accept="image/*"
                               disabled={uploadingLogId !== null}
                               onChange={(e) => handlePhotoUpload(e, log)}
-                              className="hidden"
+                              className="sr-only"
                             />
                           </label>
                         </div>
@@ -1092,7 +1143,7 @@ export default function BodyPage() {
                   <button 
                     key={tab.id}
                     onClick={() => setChartTab(tab.id as "weight" | "fat" | "muscle" | "bmi")}
-                    className={`m-[2px] inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                    className={`m-[2px] inline-flex items-center gap-1 rounded-lg px-3 min-h-11 text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                       isActive 
                         ? "bg-brand/15 text-brand ring-1 ring-brand/30" 
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -1131,6 +1182,19 @@ export default function BodyPage() {
         </ModalOverlay>
       )}
 
+      <ConfirmDialog
+        open={pendingDeleteLogId !== null}
+        title={t("Are you sure you want to delete this log?")}
+        description={t("The measurement and its photos are permanently removed.")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Delete")}
+        tone="destructive"
+        busy={deletingLog}
+        onCancel={() => setPendingDeleteLogId(null)}
+        onConfirm={() => {
+          if (pendingDeleteLogId !== null) handleDeleteLog(pendingDeleteLogId);
+        }}
+      />
     </div>
   );
 }

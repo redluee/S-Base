@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { t } from "@/lib/lang";
+import { formatNumberNl } from "@/lib/number-input";
 import Link from "next/link";
 import { ArrowLeft, GitMerge } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
@@ -100,7 +101,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
     <div>
       <Link
         href="/workouts/exercises"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group"
+        className="inline-flex items-center gap-1.5 min-h-11 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2 group"
       >
         <ArrowLeft className="size-4 transition-transform duration-150 ease-out group-hover:-translate-x-0.5" />
         {t("Exercises")}
@@ -115,7 +116,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
             variant="outline"
             size="sm"
             onClick={() => setIsMergeModalOpen(true)}
-            className="gap-1.5 cursor-pointer shrink-0"
+            className="min-h-11 gap-1.5 cursor-pointer shrink-0"
           >
             <GitMerge className="size-4 text-brand" />
             <span>{t("Merge")}</span>
@@ -128,7 +129,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
             <button
               type="button"
               onClick={() => handleSelectEquipment("all")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 min-h-11 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 selectedEquipment === "all"
                   ? "bg-brand text-brand-foreground shadow-xs font-semibold"
                   : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent ring-1 ring-foreground/10"
@@ -141,7 +142,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 key={eq}
                 type="button"
                 onClick={() => handleSelectEquipment(eq)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                className={`px-3 min-h-11 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                   selectedEquipment === eq
                     ? "bg-brand text-brand-foreground shadow-xs font-semibold"
                     : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent ring-1 ring-foreground/10"
@@ -154,7 +155,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
               <button
                 type="button"
                 onClick={() => handleSelectEquipment("none")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                className={`px-3 min-h-11 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                   selectedEquipment === "none"
                     ? "bg-brand text-brand-foreground shadow-xs font-semibold"
                     : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent ring-1 ring-foreground/10"
@@ -171,7 +172,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
           <div className="text-lg sm:text-2xl font-bold text-brand">
             {statMode === "weight"
-              ? `${maxWeight} kg`
+              ? `${formatNumberNl(maxWeight)} kg`
               : statMode === "reps"
               ? `${maxReps} reps`
               : maxDuration > 0
@@ -187,7 +188,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
           </div>
         </div>
         <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-3 sm:p-4 text-center">
-          <div className="text-lg sm:text-2xl font-bold text-amber-400">
+          <div className="text-lg sm:text-2xl font-bold text-foreground">
             {statMode === "weight"
               ? `${totalVolume}`
               : statMode === "reps"
@@ -265,7 +266,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 };
 
                 const formatYLabel = (val: number) => {
-                  if (statMode === "weight") return `${val} kg`;
+                  if (statMode === "weight") return `${formatNumberNl(val)} kg`;
                   if (statMode === "reps") return `${val}`;
                   return formatSeconds(val);
                 };
@@ -273,25 +274,25 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                 return (
                   <>
                     {/* Y Axis Labels */}
-                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(dataMax)}</text>
-                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(Math.round((dataMax + dataMin) / 2))}</text>
-                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono tabular-nums">{formatYLabel(dataMin)}</text>
+                    <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="tabular-nums">{formatYLabel(dataMax)}</text>
+                    <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="tabular-nums">{formatYLabel(Math.round((dataMax + dataMin) / 2))}</text>
+                    <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="tabular-nums">{formatYLabel(dataMin)}</text>
 
                     {/* X Axis Labels */}
                     {filteredSessions.length === 1 && (
-                      <text x="175" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" className="font-mono">{formatDate(firstSession.startedAt)}</text>
+                      <text x="175" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" >{formatDate(firstSession.startedAt)}</text>
                     )}
                     {filteredSessions.length > 1 && (
                       <>
-                        <text x="40" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="start" className="font-mono">{formatDate(firstSession.startedAt)}</text>
-                        <text x="310" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="font-mono">{formatDate(lastSession.startedAt)}</text>
+                        <text x="40" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="start" >{formatDate(firstSession.startedAt)}</text>
+                        <text x="310" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" >{formatDate(lastSession.startedAt)}</text>
                       </>
                     )}
 
                     {/* Plot Line */}
                     <polyline
                       fill="none"
-                      stroke="#00e3a4"
+                      stroke="var(--color-brand)"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -302,7 +303,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                       const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
                       const y = 105 - ((v - dataMin) / range) * 95;
                       return (
-                        <circle key={i} cx={x} cy={y} r="3" fill="#00e3a4" className="hover:r-4 transition-all">
+                        <circle key={i} cx={x} cy={y} r="3" fill="var(--color-brand)" className="hover:r-4 transition-all">
                           <title>{formatYLabel(v)}</title>
                         </circle>
                       );
@@ -322,7 +323,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
             const sessionBadgeText =
               statMode === "weight"
-                ? `${vol} kg`
+                ? `${formatNumberNl(vol)} kg`
                 : statMode === "reps"
                 ? `${reps} reps`
                 : formatSeconds(dur);
@@ -359,26 +360,26 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                     const hasDuration = set.duration != null && set.duration > 0;
                     const hasDistance = set.distance != null && set.distance > 0;
 
-                    let label = `${set.reps ?? 0} × ${set.weight ?? 0} kg`;
+                    let label = `${set.reps ?? 0} × ${formatNumberNl(set.weight ?? 0)} kg`;
                     if (hasDuration && !hasReps) {
                       const dur = set.duration!;
                       const min = Math.floor(dur / 60);
                       const sec = dur % 60;
-                      label = `${min}:${String(sec).padStart(2, "0")}${hasWeight ? ` (${set.weight} kg)` : ""}`;
+                      label = `${min}:${String(sec).padStart(2, "0")}${hasWeight ? ` (${formatNumberNl(set.weight ?? 0)} kg)` : ""}`;
                     } else if (hasDistance && !hasReps) {
-                      label = `${set.distance} km`;
+                      label = `${formatNumberNl(set.distance ?? 0)} km`;
                     } else if (hasReps && !hasWeight) {
-                      label = `${set.reps} reps`;
+                      label = `${set.reps} ${t("reps")}`;
                     } else if (hasReps && hasWeight) {
-                      label = `${set.reps} × ${set.weight} kg`;
+                      label = `${set.reps} × ${formatNumberNl(set.weight ?? 0)} kg`;
                     }
 
                     return (
                       <div
                         key={set.setNumber}
-                        className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border font-mono ${
+                        className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border tabular-nums ${
                           set.completed
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            ? "bg-brand/10 text-brand border-brand/20"
                             : "bg-zinc-800/50 text-muted-foreground border-zinc-700/30"
                         }`}
                       >

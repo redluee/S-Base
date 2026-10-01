@@ -14,6 +14,11 @@ import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
 import { normalizeCategory, isTimedExercise } from "@/components/workout-exercise-card";
 import { getOfflineSession, syncOfflineSession } from "@/lib/offline-workout";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatNumberNl } from "@/lib/number-input";
+import { formatSessionDuration } from "@/lib/workout-time";
+import { formatHistoryWeight } from "@/lib/set-display";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {
   const cleaned: Record<string, any> = {
@@ -55,6 +60,9 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
   const searchParams = useSearchParams();
   const celebrate = searchParams?.get("celebrate") === "true";
   const [copied, setCopied] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [session, setSession] = useState<FullWorkoutSession>(() => {
     if (initialSession?.sessionId) {
       const offlineData = getOfflineSession(initialSession.sessionId);
@@ -77,9 +85,14 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
   function handleExport() {
     const cleaned = cleanSessionForExport(session);
     const jsonString = JSON.stringify(cleaned, null, 2);
-    navigator.clipboard.writeText(jsonString);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setActionError(null);
+    navigator.clipboard
+      .writeText(jsonString)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => setActionError(t("Kopiëren mislukt. Probeer het opnieuw.")));
   }
 
   useEffect(() => {
@@ -111,65 +124,80 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
   }, [celebrate]);
 
   async function handleDelete() {
-    if (!confirm(t("Delete this workout?"))) return;
-    await api.workouts.sessions.delete(session.sessionId);
-    router.push("/workouts/history");
-    router.refresh();
+    if (deleting) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await api.workouts.sessions.delete(session.sessionId);
+      setShowDeleteConfirm(false);
+      router.push("/workouts/history");
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to delete workout", err);
+      setShowDeleteConfirm(false);
+      setActionError(t("Workout verwijderen mislukt. Probeer het opnieuw."));
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const started = parseDateString(session.startedAt);
   const completed = session.completedAt ? parseDateString(session.completedAt) : null;
-  const duration = completed ? Math.round((completed.getTime() - started.getTime()) / 60000) : null;
+  const durationSeconds = completed ? Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000)) : null;
+  const sessionTitle = session.name?.trim() || t("Workout Session");
 
   return (
     <div>
       <Link
         href="/workouts/history"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 group"
+        className="inline-flex items-center gap-1.5 min-h-11 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2 group"
       >
         <ArrowLeft className="size-4 transition-transform duration-150 ease-out group-hover:-translate-x-0.5" />
         {t("History")}
       </Link>
 
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1 break-words">
+            {sessionTitle}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-2">
             {started.toLocaleDateString("nl-NL", {
               weekday: "long",
               day: "numeric",
               month: "long",
               year: "numeric",
             })}
-          </h1>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+          </p>
+          <div className="flex items-center gap-x-3 gap-y-1 text-sm text-muted-foreground flex-wrap">
             {session.completedAt ? (
               <Badge className="bg-brand/20 text-brand">{t("Completed")}</Badge>
             ) : (
-              <Badge className="bg-amber-900/30 text-amber-400">{t("in progress")}</Badge>
+              <Badge className="bg-white/10 text-muted-foreground">{t("in progress")}</Badge>
             )}
             {session.exercises?.length !== undefined && (
               <span>
                 {session.exercises.length} {session.exercises.length === 1 ? t("exercise") : t("exercises")}
               </span>
             )}
-            {duration && (
+            {durationSeconds !== null && (
               <>
-                <span>•</span>
-                <span>{duration} min</span>
+                <span aria-hidden="true">•</span>
+                <span>{formatSessionDuration(durationSeconds)}</span>
               </>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             variant="outline"
-            size="sm"
             onClick={handleExport}
             title={t("Export JSON")}
-            className="flex items-center gap-1.5"
+            aria-label={t("Export JSON")}
+            className="min-h-11 min-w-11 flex items-center gap-1.5"
           >
             {copied ? (
-              <Check className="size-4 text-emerald-400" />
+              <Check className="size-4 text-brand" />
             ) : (
               <Upload className="size-4" />
             )}
@@ -180,22 +208,24 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
           <Button
             render={<Link href={`/workouts/session/${session.sessionId}`} />}
             variant="outline"
-            size="sm"
-            className="border-brand/40 text-brand hover:bg-brand/10 hover:text-brand"
+            className="min-h-11 border-brand/40 text-brand hover:bg-brand/10 hover:text-brand"
           >
             <Pencil className="size-4 mr-1.5" />
             {t("Edit")}
           </Button>
           <Button
             variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            className="border-destructive text-destructive hover:bg-destructive/10 shrink-0"
+            onClick={() => setShowDeleteConfirm(true)}
+            aria-label={t("Delete")}
+            title={t("Delete")}
+            className="min-h-11 min-w-11 border-destructive text-destructive hover:bg-destructive/10 shrink-0"
           >
             <Trash2 className="size-4" />
           </Button>
         </div>
       </div>
+
+      <InlineAlert className="mb-4">{actionError}</InlineAlert>
 
       {session.notes && (
         <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-4 mb-6">
@@ -217,9 +247,9 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
               <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand/20 text-brand text-xs font-bold shrink-0">
                 {i + 1}
               </div>
-              <h3 className="font-medium text-foreground text-sm sm:text-base">
+              <h2 className="font-medium text-foreground text-sm sm:text-base break-words min-w-0">
                 {ex.exerciseName}
-              </h3>
+              </h2>
               {ex.equipment && ex.equipment !== "none" && (
                 <div className="flex items-center gap-1 flex-wrap">
                   {ex.equipment
@@ -238,127 +268,110 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
               )}
 
             </div>
-            {ex.sets?.length > 0 && (
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                {(() => {
-                  const cat = normalizeCategory(ex.category);
-                  const formatSecs = (secVal: number | null | undefined) => {
-                    if (secVal === null || secVal === undefined || isNaN(secVal)) return "—";
-                    const min = Math.floor(secVal / 60);
-                    const sec = secVal % 60;
-                    return `${min}:${String(sec).padStart(2, "0")}`;
-                  };
+            {ex.sets?.length > 0 && (() => {
+              const cat = normalizeCategory(ex.category);
+              const timed = isTimedExercise(ex);
+              const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
+              const assisted = Boolean(ex.isAssisted);
+              const dash = "—";
+              const formatSecs = (secVal: number | null | undefined) => {
+                if (secVal === null || secVal === undefined || isNaN(secVal)) return dash;
+                const min = Math.floor(secVal / 60);
+                const sec = secVal % 60;
+                return `${min}:${String(sec).padStart(2, "0")}`;
+              };
+              const num = (v: number | null | undefined) => (v === null || v === undefined ? dash : formatNumberNl(v));
+              const repsOrTime = (set: SessionSet) =>
+                timed || (set.duration != null && set.duration > 0 && (!set.reps || set.reps === 0))
+                  ? formatSecs(set.duration)
+                  : (set.reps ?? dash);
+              const weightCell = (set: SessionSet) => formatHistoryWeight(set.weight, cat, assisted);
+              const timeLabel = timed ? t("Time") : t("Reps");
+              const perSideHint = perSide ? (
+                <div className="text-[10px] text-muted-foreground leading-tight">({t("per side")})</div>
+              ) : null;
+              const th = "text-right py-2 px-1.5 sm:px-2 text-muted-foreground font-normal text-[11px] sm:text-xs leading-tight align-bottom";
 
-                  return (
-                    <table className="w-full text-xs sm:text-sm">
-                      <thead>
-                        {(() => {
-                          const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
+              const weightLabel =
+                cat === "bodyweight"
+                  ? assisted ? t("Assisted (kg)") : t("Added Weight (kg)")
+                  : cat === "isometric" ? t("Added weight (kg)") : "kg";
 
-                          return (
-                            <tr className="border-b border-border/50">
-                              <th className="text-left p-2 text-muted-foreground font-normal w-12">{t("Set")}</th>
-                              {(cat === "resistance") && (
-                                <>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">
-                                    <div>{t("Reps")}</div>
-                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
-                                  </th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">kg</th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("RPE (0-10)")}</th>
-                                </>
+              return (
+                <div className="-mx-4 sm:mx-0">
+                  <table className="w-full text-xs sm:text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50">
+                        <th scope="col" className="text-left py-2 pl-4 sm:pl-2 pr-1 text-muted-foreground font-normal text-[11px] sm:text-xs align-bottom">{t("Set")}</th>
+                        {cat === "cardio" ? (
+                          <>
+                            <th scope="col" className={th}>{t("Distance (km)")}</th>
+                            <th scope="col" className={th}>
+                              <div>{t("Time")}</div>
+                              {perSideHint}
+                            </th>
+                            <th scope="col" className={th}>{t("Avg HR (bpm)")}</th>
+                          </>
+                        ) : (
+                          <>
+                            <th scope="col" className={th}>{weightLabel}</th>
+                            <th scope="col" className={th}>
+                              <div>{timeLabel}</div>
+                              {perSideHint}
+                            </th>
+                            {cat === "resistance" && <th scope="col" className={th}>{t("RPE (0-10)")}</th>}
+                          </>
+                        )}
+                        <th scope="col" className={`${th} pr-4 sm:pr-2`}>{t("Complete")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ex.sets.map((set: SessionSet, si: number) => (
+                        <tr key={si} className="border-b border-border/30 last:border-0 tabular-nums">
+                          <td className="py-2 pl-4 sm:pl-2 pr-1 text-foreground font-medium">{set.setNumber}</td>
+                          {cat === "cardio" ? (
+                            <>
+                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{num(set.distance)}</td>
+                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{formatSecs(set.duration)}</td>
+                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{set.heartRate ?? dash}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{weightCell(set)}</td>
+                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{repsOrTime(set)}</td>
+                              {cat === "resistance" && (
+                                <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{set.rpe ?? dash}</td>
                               )}
-                              {cat === "bodyweight" && (
-                                <>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">
-                                    <div>{t("Reps")}</div>
-                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
-                                  </th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">{ex.isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)")}</th>
-                                </>
-                              )}
-                              {cat === "cardio" && (
-                                <>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Distance (km)")}</th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">
-                                    <div>{t("Time")}</div>
-                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
-                                  </th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Avg HR (bpm)")}</th>
-                                </>
-                              )}
-                              {cat === "isometric" && (
-                                <>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">
-                                    <div>{isTimedExercise(ex) ? t("Time") : t("Reps")}</div>
-                                    {perSide && <div className="text-[10px] text-amber-400/80 leading-tight">({t("per side")})</div>}
-                                  </th>
-                                  <th className="text-right p-2 text-muted-foreground font-normal">{t("Added weight (kg)")}</th>
-                                </>
-                              )}
-                              <th className="text-right p-2 text-muted-foreground font-normal w-20">{t("Complete")}</th>
-                            </tr>
-                          );
-                        })()}
-                      </thead>
-                      <tbody>
-                        {ex.sets.map((set: SessionSet, si: number) => (
-                          <tr key={si} className="border-b border-border/30 last:border-0">
-                            <td className="p-2 text-foreground font-medium">{set.setNumber}</td>
-                            {cat === "resistance" && (
-                              <>
-                                <td className="p-2 text-right text-foreground">
-                                  {set.duration != null && set.duration > 0 && (!set.reps || set.reps === 0)
-                                    ? formatSecs(set.duration)
-                                    : (set.reps ?? "—")}
-                                </td>
-                                <td className="p-2 text-right text-foreground">{set.weight ?? "—"}</td>
-                                <td className="p-2 text-right text-foreground">{set.rpe ?? "—"}</td>
-                              </>
+                            </>
+                          )}
+                          <td className="py-2 pl-1.5 pr-4 sm:px-2 text-right">
+                            {set.completed ? (
+                              <span className="text-brand" role="img" aria-label={t("Voltooid")}>✓</span>
+                            ) : (
+                              <span className="text-muted-foreground" role="img" aria-label={t("Niet voltooid")}>–</span>
                             )}
-                            {cat === "bodyweight" && (
-                              <>
-                                <td className="p-2 text-right text-foreground">{set.reps ?? "—"}</td>
-                                <td className="p-2 text-right text-foreground">
-                                  {set.weight != null ? (set.weight > 0 ? `+${set.weight}` : set.weight === 0 ? "BW" : set.weight) : "—"}
-                                </td>
-                              </>
-                            )}
-                            {cat === "cardio" && (
-                              <>
-                                <td className="p-2 text-right text-foreground">{set.distance ?? "—"}</td>
-                                <td className="p-2 text-right text-foreground">{formatSecs(set.duration)}</td>
-                                <td className="p-2 text-right text-foreground">{set.heartRate ?? "—"}</td>
-                              </>
-                            )}
-                            {cat === "isometric" && (
-                              <>
-                                <td className="p-2 text-right text-foreground">
-                                  {set.duration != null && set.duration > 0 && (!set.reps || set.reps === 0)
-                                    ? formatSecs(set.duration)
-                                    : (set.reps ?? "—")}
-                                </td>
-                                <td className="p-2 text-right text-foreground">{set.weight ?? "—"}</td>
-                              </>
-                            )}
-                            <td className="p-2 text-right">
-                              {set.completed ? (
-                                <span className="text-brand">✓</span>
-                              ) : (
-                                <span className="text-muted-foreground">–</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  );
-                })()}
-              </div>
-            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </div>
         ))}
       </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title={t("Delete this workout?")}
+        description={t("This workout and all its sets will be permanently removed from your history.")}
+        cancelLabel={t("Cancel")}
+        confirmLabel={t("Delete")}
+        tone="destructive"
+        busy={deleting}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

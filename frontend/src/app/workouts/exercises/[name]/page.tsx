@@ -2,6 +2,7 @@ import { serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { ExerciseProgress } from "@/components/exercise-progress";
+import { safeDecodeURIComponent } from "@/lib/uri";
 
 export default async function ExerciseDetailPage({
   params,
@@ -18,7 +19,7 @@ export default async function ExerciseDetailPage({
 
   const { name } = await params;
   const { equipment } = await searchParams;
-  const decoded = decodeURIComponent(name);
+  const decoded = safeDecodeURIComponent(name);
   const data = await serverApi.workouts.exercises.progress(decoded, equipment);
 
   return (
