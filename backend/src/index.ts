@@ -18,6 +18,8 @@ import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
 import { join } from "path";
 import { mkdir } from "fs/promises";
+import { ATTACHMENT_EXTENSIONS, IMAGE_EXTENSIONS, UPLOAD_NAME_PATTERN, resolveUploadExtension, uploadResponseHeaders } from "./utils/uploads";
+import { requireId, validationResponse } from "./utils/validation";
 
 import { ensureDefaultModules } from "./db/user-manager";
 
@@ -92,6 +94,26 @@ function badRequest(fn: () => any) {
       headers: { "Content-Type": "application/json" },
     });
   }
+}
+
+async function validated<T>(fn: () => T | Promise<T>): Promise<T | Response> {
+  try {
+    return await fn();
+  } catch (e) {
+    const res = validationResponse(e);
+    if (res) return res;
+    throw e;
+  }
+}
+
+async function saveUpload(body: unknown, prefix: string, allowed: string[]) {
+  const { file } = (body ?? {}) as any;
+  const ext = resolveUploadExtension(file, allowed);
+  const uploadsDir = join(import.meta.dir, "../uploads");
+  await mkdir(uploadsDir, { recursive: true });
+  const filename = `${prefix}${crypto.randomUUID()}.${ext}`;
+  await Bun.write(join(uploadsDir, filename), file);
+  return { filename, originalName: typeof file.name === "string" ? file.name : filename };
 }
 
 function notFoundOr<T>(value: T | null | undefined) {
@@ -385,19 +407,10 @@ export const app = new Elysia()
         return { success: true };
       })
       .post("/upload", async ({ body }) => {
-        const { file } = (body ?? {}) as any;
-        if (!file) {
-          return new Response("No file uploaded", { status: 400 });
-        }
-        const uploadsDir = join(import.meta.dir, "../uploads");
-        await mkdir(uploadsDir, { recursive: true });
-
-        const ext = file.name ? file.name.split(".").pop() : "jpg";
-        const filename = `wine_${crypto.randomUUID()}.${ext}`;
-        const filePath = join(uploadsDir, filename);
-
-        await Bun.write(filePath, file);
-        return { filePath: `/api/uploads/${filename}` };
+        return validated(async () => {
+          const { filename } = await saveUpload(body, "wine_", IMAGE_EXTENSIONS);
+          return { filePath: `/api/uploads/${filename}` };
+        });
       })
   )
 
@@ -410,7 +423,7 @@ export const app = new Elysia()
       })
       .patch("/templates/reorder", async ({ body, userId }) => {
         const { templateIds } = body as { templateIds: number[] };
-        return workout.reorderTemplates(userId, templateIds);
+        return validated(() => workout.reorderTemplates(userId, templateIds));
       })
       .get("/templates/:id", ({ params: { id }, userId }) => {
         const t = workout.getTemplate(Number(id), userId);
@@ -418,12 +431,10 @@ export const app = new Elysia()
         return t;
       })
       .post("/templates", async ({ body, userId }) => {
-        return workout.createTemplate(userId, body as any);
+        return validated(() => workout.createTemplate(userId, body as any));
       })
       .put("/templates/:id", async ({ params: { id }, body, userId }) => {
-        const t = workout.updateTemplate(Number(id), userId, body as any);
-        if (!t) return new Response("Not Found", { status: 404 });
-        return t;
+        return validated(() => notFoundOr(workout.updateTemplate(Number(id), userId, body as any)));
       })
       .delete("/templates/:id", async ({ params: { id }, userId }) => {
         const res = workout.deleteTemplate(Number(id), userId);
@@ -441,23 +452,21 @@ export const app = new Elysia()
         return s;
       })
       .get("/sessions/:id/prs", ({ params: { id }, query, userId }) => {
-        const duration = query?.duration ? Number(query.duration) : undefined;
+        const raw = query?.duration;
+        const parsed = raw !== undefined && raw !== "" ? Number(raw) : undefined;
+        const duration = parsed !== undefined && Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
         return workout.getSessionPRs(Number(id), userId, duration);
       })
       .post("/sessions", async ({ body, userId }) => {
-        const { templateId } = (body ?? {}) as any;
-        return workout.createSession(userId, templateId ? Number(templateId) : undefined);
+        const { templateId, force } = (body ?? {}) as any;
+        return validated(() => workout.createSession(userId, templateId ? Number(templateId) : undefined, force === true));
       })
       .patch("/sessions/:id", async ({ params: { id }, body, userId }) => {
-        const s = workout.updateSession(Number(id), userId, body as any);
-        if (!s) return new Response("Not Found", { status: 404 });
-        return s;
+        return validated(() => notFoundOr(workout.updateSession(Number(id), userId, body as any)));
       })
       .patch("/sessions/:id/complete", async ({ params: { id }, body, userId }) => {
         const { completedAt } = (body ?? {}) as any;
-        const s = workout.completeSession(Number(id), userId, completedAt);
-        if (!s) return new Response("Not Found", { status: 404 });
-        return s;
+        return validated(() => notFoundOr(workout.completeSession(Number(id), userId, completedAt)));
       })
       .delete("/sessions/:id", async ({ params: { id }, userId }) => {
         const res = workout.deleteSession(Number(id), userId);
@@ -481,7 +490,7 @@ export const app = new Elysia()
         return workout.suggestWorkoutSearch(userId, q);
       })
       .get("/exercises/:name/progress", ({ params: { name }, query, userId }) => {
-        return workout.exerciseProgress(userId, decodeURIComponent(name), query?.equipment as string | undefined);
+        return workout.exerciseProgress(userId, name, query?.equipment as string | undefined);
       })
       .post("/exercises/merge", async ({ body, userId }) => {
         const { sourceName, targetName } = (body || {}) as { sourceName: string; targetName: string };
@@ -491,14 +500,7 @@ export const app = new Elysia()
             headers: { "Content-Type": "application/json" },
           });
         }
-        try {
-          return workout.mergeExercises(userId, sourceName, targetName);
-        } catch (err: any) {
-          return new Response(JSON.stringify({ error: err.message || "Failed to merge exercises" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
+        return validated(() => workout.mergeExercises(userId, sourceName, targetName));
       })
   )
   
@@ -513,36 +515,36 @@ export const app = new Elysia()
         return measurements.getLatest(userId);
       })
       .post("/", async ({ body, userId }) => {
-        return measurements.save(userId, body as any);
+        return validated(() => measurements.save(userId, body as any));
+      })
+      .put("/:id", async ({ params: { id }, body, userId }) => {
+        return validated(() => notFoundOr(measurements.update(userId, id, body as any)));
       })
       .delete("/:id", async ({ params: { id }, userId }) => {
-        const success = await measurements.deleteMeasurement(Number(id), userId);
-        if (!success) return new Response("Not Found", { status: 404 });
-        return { success: true };
+        return validated(async () => {
+          const success = await measurements.deleteMeasurement(requireId(id, "Measurement id"), userId);
+          if (!success) return new Response("Not Found", { status: 404 });
+          return { success: true };
+        });
       })
-      .post("/:id/photos", async ({ params: { id }, body }) => {
-        const { filePath } = body as { filePath: string };
-        return measurements.addPhoto(Number(id), filePath);
+      .post("/:id/photos", async ({ params: { id }, body, userId }) => {
+        return validated(() => {
+          const { filePath } = (body ?? {}) as { filePath?: unknown };
+          return notFoundOr(measurements.addPhoto(requireId(id, "Measurement id"), userId, filePath));
+        });
       })
       .post("/upload", async ({ body }) => {
-        const { file } = (body ?? {}) as any;
-        if (!file) {
-          return new Response("No file uploaded", { status: 400 });
-        }
-        const uploadsDir = join(import.meta.dir, "../uploads");
-        await mkdir(uploadsDir, { recursive: true });
-        
-        const ext = file.name ? file.name.split(".").pop() : "jpg";
-        const filename = `${crypto.randomUUID()}.${ext}`;
-        const filePath = join(uploadsDir, filename);
-        
-        await Bun.write(filePath, file);
-        return { filePath: `/api/uploads/${filename}` };
+        return validated(async () => {
+          const { filename } = await saveUpload(body, "measurement_", IMAGE_EXTENSIONS);
+          return { filePath: `/api/uploads/${filename}` };
+        });
       })
       .delete("/photos/:photoId", async ({ params: { photoId }, userId }) => {
-        const success = await measurements.deletePhoto(Number(photoId), userId);
-        if (!success) return new Response("Not Found or Forbidden", { status: 404 });
-        return { success: true };
+        return validated(async () => {
+          const success = await measurements.deletePhoto(requireId(photoId, "Photo id"), userId);
+          if (!success) return new Response("Not Found or Forbidden", { status: 404 });
+          return { success: true };
+        });
       })
   )
 
@@ -560,10 +562,15 @@ export const app = new Elysia()
         headers: { "Content-Type": "application/json" },
       });
     }
-    const filePath = join(import.meta.dir, "../uploads", filename);
-    const file = Bun.file(filePath);
+    const sessionInfo = auth.validateSession(sid);
+    if (!UPLOAD_NAME_PATTERN.test(filename) || filename.startsWith("resume_")) {
+      return new Response("Not Found", { status: 404 });
+    }
+    const photoOwnership = measurements.ownsPhotoFile(sessionInfo!.userId, filename);
+    if (photoOwnership === false) return new Response("Not Found", { status: 404 });
+    const file = Bun.file(join(import.meta.dir, "../uploads", filename));
     if (await file.exists()) {
-      return new Response(file);
+      return new Response(file, { headers: uploadResponseHeaders(filename) });
     }
     return new Response("Not Found", { status: 404 });
   })
@@ -604,19 +611,10 @@ export const app = new Elysia()
       .get("/clients", ({ userId }) => cashflow.listClients(userId))
       .post("/clients", async ({ userId, body }) => cashflow.createClient(userId, body as any))
       .post("/upload", async ({ body }) => {
-        const { file } = (body ?? {}) as any;
-        if (!file) {
-          return new Response("No file uploaded", { status: 400 });
-        }
-        const uploadsDir = join(import.meta.dir, "../uploads");
-        await mkdir(uploadsDir, { recursive: true });
-        
-        const ext = file.name ? file.name.split(".").pop() : "pdf";
-        const filename = `${crypto.randomUUID()}.${ext}`;
-        const filePath = join(uploadsDir, filename);
-        
-        await Bun.write(filePath, file);
-        return { filePath: `/api/uploads/${filename}`, originalName: file.name || filename };
+        return validated(async () => {
+          const { filename, originalName } = await saveUpload(body, "", ATTACHMENT_EXTENSIONS);
+          return { filePath: `/api/uploads/${filename}`, originalName };
+        });
       })
       .get("/clients/:id", ({ params: { id } }) => {
         const c = cashflow.getClientById(Number(id));
@@ -845,19 +843,10 @@ export const app = new Elysia()
       .get("/settings", ({ userId }) => minor.getSettings(userId))
       .put("/settings", ({ userId, body }) => minor.saveSettings(userId, (body ?? {}) as any))
       .post("/upload", async ({ body }) => {
-        const { file } = (body ?? {}) as any;
-        if (!file) {
-          return new Response("No file uploaded", { status: 400 });
-        }
-        const uploadsDir = join(import.meta.dir, "../uploads");
-        await mkdir(uploadsDir, { recursive: true });
-
-        const ext = file.name ? file.name.split(".").pop() : "pdf";
-        const filename = `minor_${crypto.randomUUID()}.${ext}`;
-        const filePath = join(uploadsDir, filename);
-
-        await Bun.write(filePath, file);
-        return { filePath: `/api/uploads/${filename}`, originalName: file.name };
+        return validated(async () => {
+          const { filename, originalName } = await saveUpload(body, "minor_", ATTACHMENT_EXTENSIONS);
+          return { filePath: `/api/uploads/${filename}`, originalName };
+        });
       })
   )
 

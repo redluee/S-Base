@@ -3,6 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { setupTestDb } from "../../test-utils";
+import db from "../../db/client";
+import { measurementPhotos } from "../../db/schema";
 import { MeasurementService } from "./index";
 
 const uploadsDir = join(import.meta.dir, "../../../uploads");
@@ -62,15 +64,55 @@ describe("MeasurementService", () => {
     expect(entry).not.toBeNull();
 
     await mkdir(uploadsDir, { recursive: true });
-    const photoPath = join(uploadsDir, "photo1.jpg");
+    const photoName = `measurement_${crypto.randomUUID()}.jpg`;
+    const photoPath = join(uploadsDir, photoName);
     await writeFile(photoPath, "test");
 
-    const withPhoto = measurements.addPhoto(entry!.measurementId, "/uploads/photo1.jpg");
+    const withPhoto = measurements.addPhoto(entry!.measurementId, adminId, `/api/uploads/${photoName}`);
     expect(withPhoto?.photos.length).toBe(1);
 
     const deleted = await measurements.deleteMeasurement(entry!.measurementId, adminId);
     expect(deleted).toBe(true);
     expect(measurements.getById(entry!.measurementId)).toBeNull();
     expect(existsSync(photoPath)).toBe(false);
+  });
+
+  it("requires the measurement_ prefix for new photo attaches", async () => {
+    const entry = measurements.save(adminId, { date: "2026-08-02", weight: 75.0 })!;
+    const uuid = crypto.randomUUID();
+    for (const p of [
+      `/api/uploads/${uuid}.jpg`,
+      `/api/uploads/minor_${uuid}.jpg`,
+      `/api/uploads/wine_${uuid}.png`,
+      `/api/uploads/measurement_${uuid}.pdf`,
+      `/api/uploads/measurement_${uuid}.svg`,
+    ]) {
+      expect(() => measurements.addPhoto(entry.measurementId, adminId, p)).toThrow("Invalid photo path");
+    }
+    expect(measurements.getById(entry.measurementId)!.photos.length).toBe(0);
+
+    for (const ext of ["avif", "bmp", "HEIC"]) {
+      const withPhoto = measurements.addPhoto(entry.measurementId, adminId, `/api/uploads/measurement_${crypto.randomUUID()}.${ext}`);
+      expect(withPhoto).not.toBeNull();
+    }
+    expect(measurements.getById(entry.measurementId)!.photos.length).toBe(3);
+    await measurements.deleteMeasurement(entry.measurementId, adminId);
+  });
+
+  it("keeps legacy unprefixed photo rows readable and deletable", async () => {
+    const entry = measurements.save(adminId, { date: "2026-08-03", weight: 75.0 })!;
+    await mkdir(uploadsDir, { recursive: true });
+    const legacyName = `${crypto.randomUUID()}.jpg`;
+    const legacyPath = join(uploadsDir, legacyName);
+    await writeFile(legacyPath, "legacy");
+    const row = db.insert(measurementPhotos).values({ measurementId: entry.measurementId, filePath: `/api/uploads/${legacyName}` }).returning().get();
+
+    expect(measurements.ownsPhotoFile(adminId, legacyName)).toBe(true);
+    expect(measurements.ownsPhotoFile(adminId + 1000, legacyName)).toBe(false);
+    expect(measurements.getById(entry.measurementId)!.photos.map((p: any) => p.filePath)).toEqual([`/api/uploads/${legacyName}`]);
+
+    expect(await measurements.deletePhoto(row.photoId, adminId)).toBe(true);
+    expect(existsSync(legacyPath)).toBe(false);
+    await measurements.deleteMeasurement(entry.measurementId, adminId);
   });
 });
