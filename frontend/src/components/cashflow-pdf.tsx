@@ -294,7 +294,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
 
     /* Line items table */
     itemsTable: {
-      marginBottom: 20,
+      marginBottom: 4,
     },
     tableHeader: {
       flexDirection: "row",
@@ -348,7 +348,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
     totalsSection: {
       flexDirection: "row",
       justifyContent: "flex-end",
-      marginTop: 10,
+      marginTop: 2,
       marginBottom: 30,
     },
     totalsTable: {
@@ -394,7 +394,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
 
     /* Meta table */
     metaTable: {
-      marginBottom: 30,
+      marginBottom: 8,
     },
     metaRow: {
       flexDirection: "row",
