@@ -307,8 +307,8 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
     tableRow: {
       flexDirection: "row",
       borderBottom: "1pt solid #eeeeee",
-      paddingTop: 10,
-      paddingBottom: 10,
+      paddingTop: 6,
+      paddingBottom: 6,
       paddingLeft: 6,
       paddingRight: 6,
     },
