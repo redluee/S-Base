@@ -197,6 +197,20 @@ export function DashboardClient({
     return hasModule(moduleId);
   };
 
+  const NAV_MODULE_IDS = [
+    "workout",
+    "recipes",
+    "minecraft",
+    "cashflow",
+    "resume",
+    "minor",
+    "lyric_quotes",
+    "you",
+  ];
+  const accessibleNavModuleIds = NAV_MODULE_IDS.filter((id) => canAccess(id));
+  const resumeIsOnlyModule =
+    accessibleNavModuleIds.length === 1 && accessibleNavModuleIds[0] === "resume";
+
   // Load saved background settings from localStorage per user
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -467,7 +481,9 @@ export function DashboardClient({
         {canAccess("resume") && (
           <Link
             href="/resume"
-            className="group relative col-span-1 sm:col-span-2 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#E040FB]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(224,64,251,0.35)] overflow-hidden"
+            className={`group relative col-span-1 ${
+              resumeIsOnlyModule ? "sm:col-span-6" : "sm:col-span-2"
+            } flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#E040FB]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(224,64,251,0.35)] overflow-hidden`}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#E040FB]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
