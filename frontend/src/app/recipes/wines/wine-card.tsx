@@ -150,6 +150,7 @@ export function WineCard({ wine }: { wine: Wine }) {
               src={wine.imageUrl}
               alt={wine.brand}
               fill
+              unoptimized
               className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.03]"
             />
           </div>

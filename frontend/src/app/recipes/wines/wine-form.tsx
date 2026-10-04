@@ -293,7 +293,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
               src={previewUrl || imageUrl!}
               alt="Wine label"
               fill
-              unoptimized={!!previewUrl}
+              unoptimized
               className="object-contain p-2"
             />
 
