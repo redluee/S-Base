@@ -179,6 +179,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+const MIME_TYPE_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/avif": "avif",
+  "image/gif": "gif",
+  "image/svg+xml": "svg",
+};
+
 async function uploadFormDataWithProgress<T>(
   url: string,
   file: File | Blob,
@@ -218,7 +227,14 @@ async function uploadFormDataWithProgress<T>(
     };
 
     const formData = new FormData();
-    const name = fileName || (compressedFile as File).name || (file as File).name || "upload.jpg";
+    // compressImage may re-encode to a different format (e.g. JPEG), so the
+    // extension must match the actual bytes being uploaded, not the original
+    // filename - the backend trusts the extension and serves it with a
+    // matching Content-Type + nosniff, so a mismatch breaks rendering.
+    const baseName = fileName || (compressedFile as File).name || (file as File).name || "upload";
+    const nameWithoutExt = baseName.replace(/\.[^./]+$/, "") || "upload";
+    const ext = MIME_TYPE_EXTENSIONS[compressedFile.type] ?? baseName.split(".").pop() ?? "jpg";
+    const name = `${nameWithoutExt}.${ext}`;
     formData.append("file", compressedFile, name);
     xhr.send(formData);
   });

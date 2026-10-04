@@ -134,7 +134,7 @@ export function ResumePdfPreview({ data }: { data: ResumeFull }) {
             ? t("Voorbeeld bijwerken…")
             : pageCount > 1
               ? t("Dit CV past niet op één pagina ({pages} pagina's in de PDF).", { pages: String(pageCount) })
-              : t("Exact zoals de PDF-download.")}
+              : ""}
       </p>
     </div>
   );

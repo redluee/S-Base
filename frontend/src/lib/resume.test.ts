@@ -8,9 +8,9 @@ describe("resume helpers", () => {
     expect(formatPeriod({ startMonth: 9, startYear: 2025, endMonth: 1, endYear: 2026, isCurrent: false })).toBe("September 2025 – Januari 2026");
   });
 
-  it("snaps column widths to 5% steps within bounds", () => {
-    expect(snapColumnWidth(72)).toBe(70);
-    expect(snapColumnWidth(73)).toBe(75);
+  it("snaps column widths to 2.5% steps within bounds", () => {
+    expect(snapColumnWidth(71)).toBe(70);
+    expect(snapColumnWidth(74)).toBe(75);
     expect(snapColumnWidth(10)).toBe(50);
     expect(snapColumnWidth(99)).toBe(80);
   });

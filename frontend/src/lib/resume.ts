@@ -7,7 +7,7 @@ const MONTHS_NL = [
 
 export const RESUME_COLUMN_MIN = 50;
 export const RESUME_COLUMN_MAX = 80;
-export const RESUME_COLUMN_STEP = 5;
+export const RESUME_COLUMN_STEP = 2.5;
 
 export function snapColumnWidth(value: number): number {
   const snapped = Math.round(value / RESUME_COLUMN_STEP) * RESUME_COLUMN_STEP;
