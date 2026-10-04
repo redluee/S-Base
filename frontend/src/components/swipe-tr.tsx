@@ -57,7 +57,7 @@ export function SwipeTr({ enabled, open, onOpenChange, className, style, childre
 
   if (!enabled) {
     return (
-      <tr className={className} style={style} {...rest}>
+      <tr ref={ref} className={className} style={style} {...rest}>
         {children}
       </tr>
     );

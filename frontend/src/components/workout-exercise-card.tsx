@@ -230,7 +230,8 @@ function getColumns(
   cat: ReturnType<typeof normalizeCategory>,
   isTimed: boolean,
   isAssisted: boolean,
-  perSide: boolean
+  perSide: boolean,
+  showWeight: boolean
 ): SetColumn[] {
   const repsOrTime: SetColumn = isTimed
     ? { key: "duration", label: t("Time (MM:SS)"), kind: "time", perSide }
@@ -244,13 +245,12 @@ function getColumns(
     ];
   }
   if (cat === "bodyweight") {
-    return [
-      { key: "weight", label: isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)"), kind: "decimal" },
-      repsOrTime,
-    ];
+    const weightCol: SetColumn = { key: "weight", label: isAssisted ? t("Assisted (kg)") : t("Added Weight (kg)"), kind: "decimal" };
+    return showWeight ? [weightCol, repsOrTime] : [repsOrTime];
   }
   if (cat === "isometric") {
-    return [{ key: "weight", label: t("Added weight (kg)"), kind: "decimal" }, repsOrTime];
+    const weightCol: SetColumn = { key: "weight", label: t("Added weight (kg)"), kind: "decimal" };
+    return showWeight ? [weightCol, repsOrTime] : [repsOrTime];
   }
   return [{ key: "weight", label: "kg", kind: "decimal" }, repsOrTime];
 }
@@ -350,11 +350,7 @@ export function WorkoutExerciseCard({
   const menuOpen = activeMenuExerciseId === ex.sessionExerciseId;
   const coarse = useCoarsePointer();
   const [openSetIdx, setOpenSetIdx] = useState<number | null>(null);
-  const [editingSets, setEditingSets] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const canDeleteAnySet = (ex.sets?.length ?? 0) > 1 && ex.sets.some((s: SessionSet) => s.completed !== 1);
-  const showSetsEditToggle = coarse && canDeleteAnySet;
-  const setsTableId = `session-sets-${ex.sessionExerciseId ?? exIdx}`;
 
   function saveColumn(col: SetColumn, setIdx: number, val: string) {
     if (col.kind === "time") {
@@ -539,10 +535,16 @@ export function WorkoutExerciseCard({
       {ex.sets?.length > 0 && (() => {
         const isTimed = isTimedExercise(ex, previousSetsMap);
         const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
-        const columns = getColumns(cat, isTimed, Boolean(ex.isAssisted), perSide);
+        const equipmentList = ex.equipment ? ex.equipment.split(",").map((e) => e.trim()).filter(Boolean) : [];
+        const hasWeightEquipment = equipmentList.some((e) => e !== "Bodyweight");
+        const hasWeightData =
+          (ex.sets ?? []).some((s: SessionSet) => s.weight != null && s.weight !== 0) ||
+          (previousSetsMap[ex.exerciseName] ?? []).some((s: SessionSet) => s.weight != null && s.weight !== 0);
+        const showWeight = hasWeightEquipment || Boolean(ex.isAssisted) || hasWeightData;
+        const columns = getColumns(cat, isTimed, Boolean(ex.isAssisted), perSide, showWeight);
         const canDeleteSets = ex.sets.length > 1;
         const totalCols = 1 + 1 + columns.length + 1 + (canDeleteSets ? 1 : 0);
-        const swipeMode = coarse && canDeleteSets && !editingSets;
+        const swipeMode = coarse && canDeleteSets;
 
         return (
           <div
@@ -550,7 +552,6 @@ export function WorkoutExerciseCard({
             className={cn("-mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60", swipeMode && "relative overflow-hidden")}
           >
             <table
-              id={setsTableId}
               className="table-fixed text-xs sm:text-sm border-collapse"
               style={{ width: swipeMode ? "calc(100% + 2.75rem)" : "100%" }}
             >
@@ -821,35 +822,6 @@ export function WorkoutExerciseCard({
           <Plus className="size-4 mr-1" />
           {t("Add Set")}
         </Button>
-        {showSetsEditToggle && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setOpenSetIdx(null);
-              setEditingSets((v) => !v);
-            }}
-            aria-pressed={editingSets}
-            aria-controls={setsTableId}
-            className={cn(
-              "shrink-0 min-h-11 px-3 border text-sm rounded-lg transition-colors",
-              editingSets
-                ? "border-foreground/30 text-foreground bg-white/5"
-                : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-white/[0.01]"
-            )}
-          >
-            {editingSets ? (
-              <>
-                <Check className="size-4 mr-1" aria-hidden="true" />
-                {t("Klaar")}
-              </>
-            ) : (
-              <>
-                <Trash className="size-4 mr-1" aria-hidden="true" />
-                {t("Sets bewerken")}
-              </>
-            )}
-          </Button>
-        )}
       </div>
 
       <ConfirmDialog
