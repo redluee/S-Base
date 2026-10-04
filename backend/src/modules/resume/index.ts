@@ -10,8 +10,11 @@ import type {
   ResumeFull,
   ResumeItemInput,
   ResumeLink,
+  ResumeSection,
 } from "../../types/shared";
 import { isValidFontValue } from "./fonts";
+
+export const RESUME_SECTIONS_MAX = 5;
 
 const EMPTY_PROFILE: ResumeProfile = {
   fullName: "",
@@ -24,9 +27,7 @@ const EMPTY_PROFILE: ResumeProfile = {
   birthDate: "",
   drivingLicense: "",
   links: [],
-  skills: [],
-  languages: [],
-  hobbies: [],
+  sections: [],
 };
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -43,6 +44,30 @@ function parseJson<T>(value: string, fallback: T): T {
 function cleanStrings(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((v) => String(v ?? "").trim()).filter(Boolean);
+}
+
+function cleanSections(value: unknown): ResumeSection[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, RESUME_SECTIONS_MAX)
+    .map((s: any) => ({
+      id: String(s?.id ?? "").trim() || crypto.randomUUID(),
+      title: String(s?.title ?? "").trim().slice(0, 60),
+      items: cleanStrings(s?.items),
+    }));
+}
+
+// Pre-existing rows predate the custom sections feature and only have the legacy
+// skills/languages/hobbies columns; synthesize default sections from them on first read.
+function legacySections(row: { skills: string; languages: string; hobbies: string }): ResumeSection[] {
+  const defs: Array<[string, string]> = [
+    ["Vaardigheden", row.skills],
+    ["Talen", row.languages],
+    ["Hobby's", row.hobbies],
+  ];
+  return defs
+    .map(([title, json]) => ({ id: crypto.randomUUID(), title, items: parseJson<string[]>(json, []) }))
+    .filter((s) => s.items.length > 0);
 }
 
 function cleanLinks(value: unknown): ResumeLink[] {
@@ -89,9 +114,10 @@ export class ResumeService {
       birthDate: row.birthDate,
       drivingLicense: row.drivingLicense,
       links: parseJson<ResumeLink[]>(row.links, []),
-      skills: parseJson<string[]>(row.skills, []),
-      languages: parseJson<string[]>(row.languages, []),
-      hobbies: parseJson<string[]>(row.hobbies, []),
+      sections: (() => {
+        const sections = cleanSections(parseJson<ResumeSection[]>(row.sections, []));
+        return sections.length > 0 ? sections : legacySections(row);
+      })(),
     };
   }
 
@@ -112,9 +138,7 @@ export class ResumeService {
       birthDate: data.birthDate !== undefined ? str(data.birthDate, 60) : current.birthDate,
       drivingLicense: data.drivingLicense !== undefined ? str(data.drivingLicense, 40) : current.drivingLicense,
       links: JSON.stringify(data.links !== undefined ? cleanLinks(data.links) : current.links),
-      skills: JSON.stringify(data.skills !== undefined ? cleanStrings(data.skills) : current.skills),
-      languages: JSON.stringify(data.languages !== undefined ? cleanStrings(data.languages) : current.languages),
-      hobbies: JSON.stringify(data.hobbies !== undefined ? cleanStrings(data.hobbies) : current.hobbies),
+      sections: JSON.stringify(data.sections !== undefined ? cleanSections(data.sections) : current.sections),
       updatedAt: new Date().toISOString(),
     };
     const existing = db.select().from(resumeProfiles).where(eq(resumeProfiles.userId, userId)).get();

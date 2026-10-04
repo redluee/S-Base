@@ -50,9 +50,11 @@ svc.upsertProfile(user.userId, {
     { label: "LinkedIn", url: "https://www.linkedin.com/in/voorbeeld" },
     { label: "GitHub", url: "https://github.com/voorbeeld" },
   ],
-  skills: ["Windows, Linux", "C# .NET, Java, Python", "HTML, PHP, CSS, JavaScript", "Photoshop, Lightroom"],
-  languages: ["Nederlands moedertaal", "Engels B1"],
-  hobbies: ["Fotografie", "Programmeren", "Volleybal"],
+  sections: [
+    { id: crypto.randomUUID(), title: "Vaardigheden", items: ["Windows, Linux", "C# .NET, Java, Python", "HTML, PHP, CSS, JavaScript", "Photoshop, Lightroom"] },
+    { id: crypto.randomUUID(), title: "Talen", items: ["Nederlands moedertaal", "Engels B1"] },
+    { id: crypto.randomUUID(), title: "Hobby's", items: ["Fotografie", "Programmeren", "Volleybal"] },
+  ],
 });
 
 const experiences = [

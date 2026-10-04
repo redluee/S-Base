@@ -18,6 +18,7 @@ export const resumeProfiles = sqliteTable("resume_profiles", {
   skills: text("skills").notNull().default("[]"),
   languages: text("languages").notNull().default("[]"),
   hobbies: text("hobbies").notNull().default("[]"),
+  sections: text("sections").notNull().default("[]"),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

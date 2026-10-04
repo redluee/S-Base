@@ -2,9 +2,11 @@
 
 import { useRef, useState } from "react";
 import { Plus, Trash2, Upload } from "lucide-react";
-import type { ResumeProfile, ResumeLink } from "@backend/types/shared";
+import type { ResumeProfile, ResumeLink, ResumeSection } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
+
+const RESUME_SECTIONS_MAX = 5;
 
 const inputCls =
   "w-full min-h-[44px] sm:min-h-[36px] rounded-lg bg-zinc-950 border border-border px-3 text-sm text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand";
@@ -29,11 +31,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function ResumeProfileClient({ initialProfile }: { initialProfile: ResumeProfile }) {
   const [p, setP] = useState(initialProfile);
-  const [lists, setLists] = useState({
-    skills: initialProfile.skills.join("\n"),
-    languages: initialProfile.languages.join("\n"),
-    hobbies: initialProfile.hobbies.join("\n"),
-  });
+  const [sectionItemsText, setSectionItemsText] = useState<Record<string, string>>(
+    Object.fromEntries(initialProfile.sections.map((s) => [s.id, s.items.join("\n")]))
+  );
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -50,6 +50,25 @@ export function ResumeProfileClient({ initialProfile }: { initialProfile: Resume
     set("links", p.links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
 
+  function updateSectionTitle(id: string, title: string) {
+    set("sections", p.sections.map((s) => (s.id === id ? { ...s, title } : s)));
+  }
+
+  function addSection() {
+    const id = crypto.randomUUID();
+    set("sections", [...p.sections, { id, title: "", items: [] }]);
+    setSectionItemsText((prev) => ({ ...prev, [id]: "" }));
+  }
+
+  function removeSection(id: string) {
+    set("sections", p.sections.filter((s) => s.id !== id));
+    setSectionItemsText((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setStatus("saving");
@@ -64,11 +83,10 @@ export function ResumeProfileClient({ initialProfile }: { initialProfile: Resume
         birthDate: p.birthDate,
         drivingLicense: p.drivingLicense,
         links: p.links,
-        skills: toLines(lists.skills),
-        languages: toLines(lists.languages),
-        hobbies: toLines(lists.hobbies),
+        sections: p.sections.map((s) => ({ ...s, items: toLines(sectionItemsText[s.id] ?? "") })),
       });
       setP(saved);
+      setSectionItemsText(Object.fromEntries(saved.sections.map((s) => [s.id, s.items.join("\n")])));
       setStatus("saved");
       setMessage("");
     } catch (err) {
@@ -225,27 +243,48 @@ export function ResumeProfileClient({ initialProfile }: { initialProfile: Resume
         </div>
       </Section>
 
-      <Section title={`${t("Vaardigheden")}, ${t("Talen")} & ${t("Hobby's")}`}>
-        <p className="text-xs text-zinc-500">{t("Eén regel per item. Deze staan op elk CV.")}</p>
-        {(
-          [
-            ["skills", t("Vaardigheden")],
-            ["languages", t("Talen")],
-            ["hobbies", t("Hobby's")],
-          ] as const
-        ).map(([key, label]) => (
-          <Field key={key} label={label}>
+      <Section title={t("Secties")}>
+        <p className="text-xs text-zinc-500">{t("Eén regel per item. Deze staan op elk CV. Maximaal {max} secties.", { max: String(RESUME_SECTIONS_MAX) })}</p>
+        {p.sections.map((s: ResumeSection) => (
+          <div key={s.id} className="space-y-1.5 border border-border rounded-xl p-3">
+            <div className="flex items-center gap-2">
+              <input
+                className={`${inputCls} flex-1`}
+                placeholder={t("Titel van de sectie")}
+                value={s.title}
+                onChange={(e) => updateSectionTitle(s.id, e.target.value)}
+                maxLength={60}
+              />
+              <button
+                type="button"
+                onClick={() => removeSection(s.id)}
+                aria-label={t("Sectie verwijderen")}
+                className="size-11 sm:size-9 shrink-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 cursor-pointer"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
             <textarea
               rows={4}
               className={`${inputCls} py-2 resize-y`}
-              value={lists[key]}
+              value={sectionItemsText[s.id] ?? ""}
               onChange={(e) => {
-                setLists((prev) => ({ ...prev, [key]: e.target.value }));
+                setSectionItemsText((prev) => ({ ...prev, [s.id]: e.target.value }));
                 setStatus("idle");
               }}
             />
-          </Field>
+          </div>
         ))}
+        {p.sections.length < RESUME_SECTIONS_MAX && (
+          <button
+            type="button"
+            onClick={addSection}
+            className="min-h-[44px] sm:min-h-[32px] px-3 rounded-lg border border-border text-xs text-zinc-300 flex items-center gap-1.5 hover:bg-zinc-800 cursor-pointer"
+          >
+            <Plus className="size-3.5" />
+            {t("Sectie toevoegen")}
+          </button>
+        )}
       </Section>
 
       <div className="flex items-center gap-3 sticky bottom-0 py-3 bg-background/90 backdrop-blur">

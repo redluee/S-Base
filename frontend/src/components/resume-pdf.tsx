@@ -156,15 +156,14 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
               </View>
             )}
 
-            {profile.skills.length > 0 && (
-              <View style={{ marginBottom: 26 }}>{label(t("Vaardigheden"))}{list(profile.skills)}</View>
-            )}
-            {profile.languages.length > 0 && (
-              <View style={{ marginBottom: 26 }}>{label(t("Talen"))}{list(profile.languages)}</View>
-            )}
-            {profile.hobbies.length > 0 && (
-              <View>{label(t("Hobby's"))}{list(profile.hobbies)}</View>
-            )}
+            {profile.sections
+              .filter((s) => s.items.length > 0)
+              .map((s, i, arr) => (
+                <View key={s.id} style={i < arr.length - 1 ? { marginBottom: 26 } : undefined}>
+                  {label(s.title || t("Sectie"))}
+                  {list(s.items)}
+                </View>
+              ))}
           </View>
         </View>
       </Page>

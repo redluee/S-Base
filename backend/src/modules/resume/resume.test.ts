@@ -33,12 +33,26 @@ describe("ResumeService", () => {
 
   it("returns an empty profile and upserts per user", () => {
     expect(svc.getProfile(adminId).fullName).toBe("");
-    svc.upsertProfile(adminId, { fullName: "  Jane Doe ", skills: ["A", " ", "B"], photoShape: "square" });
+    svc.upsertProfile(adminId, {
+      fullName: "  Jane Doe ",
+      sections: [{ id: "s1", title: "Vaardigheden", items: ["A", " ", "B"] }],
+      photoShape: "square",
+    });
     const p = svc.getProfile(adminId);
     expect(p.fullName).toBe("Jane Doe");
-    expect(p.skills).toEqual(["A", "B"]);
+    expect(p.sections).toEqual([{ id: "s1", title: "Vaardigheden", items: ["A", "B"] }]);
     expect(p.photoShape).toBe("square");
     expect(svc.getProfile(testerId).fullName).toBe("");
+  });
+
+  it("caps sections at the max and sanitizes titles/items", () => {
+    const sections = Array.from({ length: 7 }, (_, i) => ({ id: "", title: `  Section ${i}  `, items: [" x ", ""] }));
+    svc.upsertProfile(adminId, { sections });
+    const p = svc.getProfile(adminId);
+    expect(p.sections).toHaveLength(5);
+    expect(p.sections[0].title).toBe("Section 0");
+    expect(p.sections[0].items).toEqual(["x"]);
+    expect(p.sections[0].id).not.toBe("");
   });
 
   it("validates experience dates", () => {

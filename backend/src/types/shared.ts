@@ -365,6 +365,12 @@ export interface ResumeLink {
   url: string;
 }
 
+export interface ResumeSection {
+  id: string;
+  title: string;
+  items: string[];
+}
+
 export interface ResumeProfile {
   fullName: string;
   headline: string;
@@ -376,9 +382,7 @@ export interface ResumeProfile {
   birthDate: string;
   drivingLicense: string;
   links: ResumeLink[];
-  skills: string[];
-  languages: string[];
-  hobbies: string[];
+  sections: ResumeSection[];
 }
 
 export interface ResumePeriod {
