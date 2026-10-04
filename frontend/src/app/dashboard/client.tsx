@@ -197,19 +197,10 @@ export function DashboardClient({
     return hasModule(moduleId);
   };
 
-  const NAV_MODULE_IDS = [
-    "workout",
-    "recipes",
-    "minecraft",
-    "cashflow",
-    "resume",
-    "minor",
-    "lyric_quotes",
-    "you",
-  ];
-  const accessibleNavModuleIds = NAV_MODULE_IDS.filter((id) => canAccess(id));
-  const resumeIsOnlyModule =
-    accessibleNavModuleIds.length === 1 && accessibleNavModuleIds[0] === "resume";
+  // Cashflow (4 cols) and CV Builder (2 cols) share one grid row (4+2=6).
+  // When only one of the pair is accessible, it expands to fill the full row.
+  const cashflowOnlyInPair = canAccess("cashflow") && !canAccess("resume");
+  const resumeOnlyInPair = canAccess("resume") && !canAccess("cashflow");
 
   // Load saved background settings from localStorage per user
   useEffect(() => {
@@ -433,7 +424,9 @@ export function DashboardClient({
         {canAccess("cashflow") && (
           <Link
             href="/cashflow"
-            className="group relative col-span-1 sm:col-span-4 flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden"
+            className={`group relative col-span-1 ${
+              cashflowOnlyInPair ? "sm:col-span-6" : "sm:col-span-4"
+            } flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#00B0FF]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(0,176,255,0.35)] overflow-hidden`}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00B0FF]/10 via-transparent to-[#00B0FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
@@ -482,7 +475,7 @@ export function DashboardClient({
           <Link
             href="/resume"
             className={`group relative col-span-1 ${
-              resumeIsOnlyModule ? "sm:col-span-6" : "sm:col-span-2"
+              resumeOnlyInPair ? "sm:col-span-6" : "sm:col-span-2"
             } flex items-center justify-between p-4 sm:p-5 squircle-card bg-zinc-900/80 backdrop-blur-[16px] border border-white/[0.08] hover:border-[#E040FB]/50 transition-all duration-200 ease-out active:scale-[0.98] hover:shadow-[0_0_2rem_-0.5rem_rgba(224,64,251,0.35)] overflow-hidden`}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#E040FB]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
