@@ -288,8 +288,11 @@ describe("MinorService", () => {
 
     // Prognosis with a new planned sprint with multiple stories covering multiple LUs:
     // Should allocate 1 projected pass per covered LU, not duplicated per story
+    const futureObj = new Date();
+    futureObj.setDate(futureObj.getDate() + 30);
+    const futureStr = `${futureObj.getFullYear()}-${String(futureObj.getMonth() + 1).padStart(2, "0")}-${String(futureObj.getDate()).padStart(2, "0")}`;
     const sprint2 = minor.createSprint(testerId, {
-      startDate: "2026-09-21",
+      startDate: futureStr,
       status: "planned",
     });
     minor.createStory(testerId, sprint2.id, {
