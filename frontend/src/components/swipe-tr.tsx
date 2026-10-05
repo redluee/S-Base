@@ -5,18 +5,24 @@ import { clampSwipeOffset, settleSwipeOpen, shouldEngageSwipe } from "@/lib/swip
 
 export const SWIPE_ACTION_WIDTH = 44;
 
-function subscribeCoarse(cb: () => void) {
-  const mq = window.matchMedia("(pointer: coarse)");
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
+function useMediaQuery(query: string): boolean {
+  const subscribe = React.useCallback(
+    (cb: () => void) => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    [query]
+  );
+  return React.useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => false);
 }
 
 export function useCoarsePointer(): boolean {
-  return React.useSyncExternalStore(
-    subscribeCoarse,
-    () => window.matchMedia("(pointer: coarse)").matches,
-    () => false
-  );
+  return useMediaQuery("(pointer: coarse)");
+}
+
+export function useSmViewport(): boolean {
+  return useMediaQuery("(min-width: 40rem)");
 }
 
 interface SwipeTrProps extends React.ComponentProps<"tr"> {

@@ -11,7 +11,7 @@ import { t } from "@/lib/lang";
 import { formatNumberNl, parseDecimal, parseInteger, sanitizeDecimalInput, sanitizeIntegerInput, toInputString } from "@/lib/number-input";
 import { isUntouchedDefault, type SetValueField } from "@/lib/set-values";
 import { cn } from "@/lib/utils";
-import { SwipeTr, useCoarsePointer } from "@/components/swipe-tr";
+import { SwipeTr, useCoarsePointer, useSmViewport } from "@/components/swipe-tr";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
@@ -349,6 +349,7 @@ export function WorkoutExerciseCard({
   const cat = normalizeCategory(ex.category);
   const menuOpen = activeMenuExerciseId === ex.sessionExerciseId;
   const coarse = useCoarsePointer();
+  const smViewport = useSmViewport();
   const [openSetIdx, setOpenSetIdx] = useState<number | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
@@ -543,7 +544,7 @@ export function WorkoutExerciseCard({
         const showWeight = hasWeightEquipment || Boolean(ex.isAssisted) || hasWeightData;
         const columns = getColumns(cat, isTimed, Boolean(ex.isAssisted), perSide, showWeight);
         const canDeleteSets = ex.sets.length > 1;
-        const totalCols = 1 + 1 + columns.length + 1 + (canDeleteSets ? 1 : 0);
+        const totalCols = 1 + (smViewport ? 1 : 0) + columns.length + 1 + (canDeleteSets ? 1 : 0);
         const swipeMode = coarse && canDeleteSets;
 
         return (
