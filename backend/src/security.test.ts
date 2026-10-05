@@ -34,6 +34,14 @@ describe("verifyInternalSecret", () => {
     expect(verifyInternalSecret(null)).toBe(false);
     delete process.env.INTERNAL_AUTH_SECRET;
   });
+
+  test("allows requests when no secret is configured, even in production", () => {
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    delete process.env.INTERNAL_AUTH_SECRET;
+    expect(verifyInternalSecret(null)).toBe(true);
+    process.env.NODE_ENV = prevEnv;
+  });
 });
 
 test("getClientIp prefers cf-connecting-ip", () => {

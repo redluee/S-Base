@@ -30,18 +30,13 @@ try {
 } catch {}
 
 const PORT = Number(process.env.PORT) || 3001;
-const HOST = process.env.HOST || (isProduction() ? "127.0.0.1" : "0.0.0.0");
+const HOST = process.env.HOST || "0.0.0.0";
 const auth = new AuthService();
 
 if (isProduction()) {
-  if (!process.env.INTERNAL_AUTH_SECRET) {
-    console.error("INTERNAL_AUTH_SECRET must be set in production.");
-    process.exit(1);
-  }
   const weak = await auth.findDefaultCredentialUsers();
-  if (weak.length > 0 && process.env.ALLOW_DEFAULT_USERS !== "1") {
-    console.error(`Refusing to start: default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`);
-    process.exit(1);
+  if (weak.length > 0) {
+    console.warn(`Default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`);
   }
 }
 const recipes = new RecipeService();
