@@ -22,6 +22,15 @@ export class AuthService {
     return { ok: true, userId: user.userId, email: user.email ?? null };
   }
 
+  async findDefaultCredentialUsers(): Promise<string[]> {
+    const found: string[] = [];
+    for (const name of ["admin", "tester"]) {
+      const user = db.select().from(users).where(eq(users.username, name)).get();
+      if (user && (await Bun.password.verify(name, user.pswdHash))) found.push(name);
+    }
+    return found;
+  }
+
   logLastLogin(userId: number, force = true): void {
     if (!force) {
       const user = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, userId)).get();

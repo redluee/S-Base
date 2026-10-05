@@ -31,5 +31,6 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
+export { sqlite };
 export default db;
 

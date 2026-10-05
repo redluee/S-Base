@@ -17,6 +17,11 @@ import {
 } from "./schema";
 import { eq, sql } from "drizzle-orm";
 
+if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "1") {
+  console.error("Refusing to seed default users in production.");
+  process.exit(1);
+}
+
 async function getOrCreateModule(name: string, alias: string, description: string) {
   const existing = db.select().from(modules).where(eq(modules.moduleName, name)).get();
   if (existing) {

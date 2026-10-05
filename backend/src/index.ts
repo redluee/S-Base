@@ -13,7 +13,9 @@ import { MinorService } from "./modules/minor";
 import { ASSET_NAME_PATTERN, bearerTokenCheck, buildPublicSnapshot, defaultUploadsDir, resolvePublishUserId } from "./modules/minor/public-snapshot";
 import { ResumeService } from "./modules/resume";
 import { ensureGoogleFont, googleFamilyOf, resolveFontFile } from "./modules/resume/fonts";
-import db from "./db/client";
+import db, { sqlite } from "./db/client";
+import { isProduction, resolveCorsOrigin, securityHeaders, getClientIp, loginLimiter, verifyInternalSecret } from "./security";
+import { startBackupSchedule } from "./db/backup";
 import { modules, usermodulepermissions, users } from "./db/schema";
 import { eq, and } from "drizzle-orm";
 import { join } from "path";
@@ -27,8 +29,21 @@ try {
   await ensureDefaultModules();
 } catch {}
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 3001;
+const HOST = process.env.HOST || (isProduction() ? "127.0.0.1" : "0.0.0.0");
 const auth = new AuthService();
+
+if (isProduction()) {
+  if (!process.env.INTERNAL_AUTH_SECRET) {
+    console.error("INTERNAL_AUTH_SECRET must be set in production.");
+    process.exit(1);
+  }
+  const weak = await auth.findDefaultCredentialUsers();
+  if (weak.length > 0 && process.env.ALLOW_DEFAULT_USERS !== "1") {
+    console.error(`Refusing to start: default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`);
+    process.exit(1);
+  }
+}
 const recipes = new RecipeService();
 const workout = new WorkoutService();
 const measurements = new MeasurementService();
@@ -130,7 +145,18 @@ const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
 };
 
 export const app = new Elysia()
-  .use(cors({ origin: true, credentials: true }))
+  .use(cors({ origin: resolveCorsOrigin(), credentials: true }))
+  .onAfterHandle({ as: "global" }, ({ set }) => {
+    for (const [k, v] of Object.entries(securityHeaders)) set.headers[k] = v;
+  })
+  .get("/api/health", () => {
+    try {
+      sqlite.query("SELECT 1").get();
+      return { status: "ok", uptime: Math.round(process.uptime()) };
+    } catch {
+      return new Response(JSON.stringify({ status: "error" }), { status: 503, headers: { "Content-Type": "application/json" } });
+    }
+  })
   .onError(({ code, error }) => {
     if (code === "NOT_FOUND") {
       return new Response(JSON.stringify({ error: "Not Found" }), {
@@ -144,7 +170,13 @@ export const app = new Elysia()
         headers: { "Content-Type": "application/json" },
       });
     }
-    console.error(`Error ${code}:`, error);
+    console.error(JSON.stringify({ level: "error", code, message: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }));
+    if (isProduction()) {
+      return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const message = error && typeof error === "object" && "message" in error ? (error as { message: string }).message : String(error);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
@@ -153,7 +185,7 @@ export const app = new Elysia()
   })
 
   // --- Auth routes ---
-  .post("/api/auth/login", async ({ body, cookie: { session_id } }) => {
+  .post("/api/auth/login", async ({ body, cookie: { session_id }, request }) => {
     const { username, password } = (body ?? {}) as { username?: string; password?: string };
     if (!username || !password) {
       return new Response(JSON.stringify({ error: "invalid_input" }), {
@@ -161,7 +193,23 @@ export const app = new Elysia()
         headers: { "Content-Type": "application/json" },
       });
     }
+    const ipKey = `ip:${getClientIp(request)}`;
+    const userKey = `user:${String(username).toLowerCase()}`;
+    const limits = [loginLimiter.check(ipKey), loginLimiter.check(userKey)];
+    const blocked = limits.find((l) => !l.allowed);
+    if (blocked) {
+      return new Response(JSON.stringify({ error: "too_many_attempts" }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": String(blocked.retryAfter) },
+      });
+    }
     const result = await auth.verifyCredentials(username, password);
+    if (result.ok) {
+      loginLimiter.reset(userKey);
+    } else {
+      loginLimiter.hit(ipKey);
+      loginLimiter.hit(userKey);
+    }
     if (!result.ok) {
       if (result.reason === "account_paused") {
         return new Response(
@@ -190,6 +238,12 @@ export const app = new Elysia()
   })
 
   .post("/api/auth/cf-login", ({ body, request }) => {
+    if (!verifyInternalSecret(request.headers.get("x-internal-auth"))) {
+      return new Response(JSON.stringify({ error: "forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const cfEmail = request.headers.get("x-cf-email");
     if (!cfEmail) {
       return new Response(JSON.stringify({ error: "missing_cf_header" }), {
@@ -1204,9 +1258,11 @@ export const app = new Elysia()
       })
   )
 
-  .listen({ port: PORT, hostname: "0.0.0.0" });
+  .listen({ port: PORT, hostname: HOST });
 
-console.log(`Backend running on http://localhost:${PORT}`);
+console.log(`Backend running on http://${HOST}:${PORT}`);
+
+if (isProduction() && process.env.DB_PATH !== ":memory:") startBackupSchedule(sqlite);
 
 const discordBot = process.env.NODE_ENV !== "test" ? createDiscordBot(minecraft) : null;
 
