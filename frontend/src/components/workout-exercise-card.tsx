@@ -544,6 +544,7 @@ export function WorkoutExerciseCard({
           (previousSetsMap[ex.exerciseName] ?? []).some((s: SessionSet) => s.weight != null && s.weight !== 0);
         const showWeight = hasWeightEquipment || Boolean(ex.isAssisted) || hasWeightData;
         const columns = getColumns(cat, isTimed, Boolean(ex.isAssisted), perSide, showWeight);
+        const hasFlexibleColumn = columns.some((col) => !(col.kind === "time" && onStartRepTimer));
         const canDeleteSets = ex.sets.length > 1;
         const totalCols = 1 + (smViewport ? 1 : 0) + columns.length + 1 + (canDeleteSets ? 1 : 0);
         const swipeMode = coarse && canDeleteSets;
@@ -561,7 +562,7 @@ export function WorkoutExerciseCard({
                 <col className="w-7 sm:w-10" />
                 <col className="hidden sm:table-column sm:w-[26%]" />
                 {columns.map((col) => (
-                  <col key={col.key} className={col.kind === "time" && onStartRepTimer ? "w-[6.25rem] sm:w-40" : undefined} />
+                  <col key={col.key} className={col.kind === "time" && onStartRepTimer && hasFlexibleColumn ? "w-[6.25rem] sm:w-40" : undefined} />
                 ))}
                 <col className="w-11" />
                 {canDeleteSets && <col className="w-11" />}
