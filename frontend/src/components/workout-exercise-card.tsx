@@ -252,7 +252,7 @@ function getColumns(
     const weightCol: SetColumn = { key: "weight", label: t("Added weight (kg)"), kind: "decimal" };
     return showWeight ? [weightCol, repsOrTime] : [repsOrTime];
   }
-  return [{ key: "weight", label: "kg", kind: "decimal" }, repsOrTime];
+  return showWeight ? [{ key: "weight", label: "kg", kind: "decimal" }, repsOrTime] : [repsOrTime];
 }
 
 function formatColumnValue(
@@ -536,10 +536,11 @@ export function WorkoutExerciseCard({
       {ex.sets?.length > 0 && (() => {
         const isTimed = isTimedExercise(ex, previousSetsMap);
         const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
-        const equipmentList = ex.equipment ? ex.equipment.split(",").map((e) => e.trim()).filter(Boolean) : [];
-        const hasWeightEquipment = equipmentList.some((e) => e !== "Bodyweight");
+        const equipmentList = ex.equipment ? ex.equipment.split(",").map((e) => e.trim()).filter((e) => e && e !== "none") : [];
+        const bodyweightOnly = equipmentList.length > 0 && equipmentList.every((e) => e === "Bodyweight");
+        const hasWeightEquipment = equipmentList.some((e) => e !== "Bodyweight") || (cat === "resistance" && !bodyweightOnly);
         const hasWeightData =
-          (ex.sets ?? []).some((s: SessionSet) => s.weight != null && s.weight !== 0) ||
+          (ex.sets ?? []).some((s: SessionSet) => s.weight != null && (s.weight !== 0 || cat === "resistance")) ||
           (previousSetsMap[ex.exerciseName] ?? []).some((s: SessionSet) => s.weight != null && s.weight !== 0);
         const showWeight = hasWeightEquipment || Boolean(ex.isAssisted) || hasWeightData;
         const columns = getColumns(cat, isTimed, Boolean(ex.isAssisted), perSide, showWeight);
