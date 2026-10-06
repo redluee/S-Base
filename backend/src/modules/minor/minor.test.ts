@@ -709,9 +709,14 @@ describe("MinorService", () => {
     expect(stats.officialPasses[5]).toBe(1);
 
     // Now create Sprint 2 with a story covering LU 1 (dates in the present/future so it is active)
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const activeStart = new Date();
+    activeStart.setDate(activeStart.getDate() - 7);
+    const activeEnd = new Date();
+    activeEnd.setDate(activeEnd.getDate() + 14);
     const sprint2 = minor.createSprint(userId, {
-      startDate: "2026-09-15",
-      endDate: "2026-10-05",
+      startDate: fmt(activeStart),
+      endDate: fmt(activeEnd),
     });
 
     minor.createStory(userId, sprint2.id, {
