@@ -275,7 +275,7 @@ export const app = new Elysia()
       );
     }
 
-    auth.logLastLogin(user.userId, false);
+    auth.logLastLogin(user.userId);
     const sessionId = auth.createSession(user.userId);
     const isSecure = process.env.NODE_ENV === "production";
     const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${isSecure ? "; Secure" : ""}`;

@@ -37,7 +37,7 @@ export class AuthService {
       if (user?.lastLoginAt) {
         const last = new Date(user.lastLoginAt).getTime();
         const now = Date.now();
-        if (!isNaN(last) && now - last < 12 * 60 * 60 * 1000) {
+        if (!isNaN(last) && now - last < 5 * 60 * 1000) {
           return;
         }
       }
@@ -87,6 +87,8 @@ export class AuthService {
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
       .get();
     if (!session || session.isPaused === 1) return null;
+
+    if (!session.impersonatorUserId) this.logLastLogin(session.userId, false);
 
     let impersonatedBy: string | null = null;
     if (session.impersonatorUserId) {

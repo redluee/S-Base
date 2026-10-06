@@ -140,7 +140,7 @@ describe("AuthService", () => {
     db.update(users).set({ lastLoginAt: fixedTime }).where(eq(users.userId, adminId)).run();
 
     // With force = false and recent timestamp, lastLoginAt is preserved
-    const recentTime = new Date(Date.now() - 3600 * 1000).toISOString(); // 1 hour ago
+    const recentTime = new Date(Date.now() - 60 * 1000).toISOString(); // 1 minute ago
     db.update(users).set({ lastLoginAt: recentTime }).where(eq(users.userId, adminId)).run();
     authService.logLastLogin(adminId, false);
 
@@ -153,11 +153,28 @@ describe("AuthService", () => {
     expect(userAfterForced?.lastLoginAt).not.toBe(recentTime);
     expect(new Date(userAfterForced!.lastLoginAt!).getTime()).toBeGreaterThan(new Date(recentTime).getTime());
 
-    // With force = false and timestamp older than 12 hours, lastLoginAt is updated
-    const oldTime = new Date(Date.now() - 15 * 3600 * 1000).toISOString(); // 15 hours ago
+    // With force = false and timestamp older than 5 minutes, lastLoginAt is updated
+    const oldTime = new Date(Date.now() - 15 * 60 * 1000).toISOString(); // 15 minutes ago
     db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, adminId)).run();
     authService.logLastLogin(adminId, false);
     const userAfterOld = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
     expect(userAfterOld?.lastLoginAt).not.toBe(oldTime);
+  });
+
+  it("refreshes lastLoginAt on session validation but not for impersonated sessions", () => {
+    const oldTime = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
+    db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, adminId)).run();
+
+    const sessionId = authService.createSession(adminId);
+    authService.validateSession(sessionId);
+    const afterOwn = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    expect(new Date(afterOwn!.lastLoginAt!).getTime()).toBeGreaterThan(new Date(oldTime).getTime());
+
+    db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, testerId)).run();
+    const impersonated = authService.impersonateUser(adminId, testerId);
+    if (!impersonated.ok) throw new Error("impersonation failed");
+    authService.validateSession(impersonated.newSessionId);
+    const afterImpersonation = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, testerId)).get();
+    expect(afterImpersonation?.lastLoginAt).toBe(oldTime);
   });
 });
