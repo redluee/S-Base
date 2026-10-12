@@ -123,6 +123,21 @@ const FONT_CALIBRI_11_ITALIC_GREY: Partial<ExcelJS.Font> = {
 
 const PLANNING_AGENT_URL = "https://gemini.google.com/gem/e1643241e823?usp=sharing";
 
+const LOGBOEK_LINE_PT = 12.75;
+const LOGBOEK_TEMPLATE_MIN_ROW_PT: Record<number, number> = { 5: 43, 6: 43, 7: 43, 8: 43, 9: 44, 19: 29 };
+const LOGBOEK_DEFAULT_ROW_PT = 15;
+const LOGBOEK_MAX_SCALE = 55;
+const EXCEL_MAX_ROW_PT = 409;
+const LOGBOEK_CHARS_PER_COLUMN_UNIT = 1.2;
+const LOGBOEK_PAGE_HEIGHT_PT = (11.69 - 0.8) * 72 * 0.95;
+
+function estimateWrappedLines(text: string, columnWidth: number): number {
+  const charsPerLine = Math.max(1, Math.floor(columnWidth * LOGBOEK_CHARS_PER_COLUMN_UNIT));
+  return text
+    .split("\n")
+    .reduce((sum, paragraph) => sum + Math.max(1, Math.ceil(paragraph.length / charsPerLine)), 0);
+}
+
 export const LU_MASTER_DEFINITIONS: Array<{
   lu: number;
   label: string;
@@ -259,7 +274,6 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   // ==========================================
   const wsDashboard = wb.addWorksheet("Dashboard", {
     views: [{ showGridLines: true }],
-    pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
   });
 
   wsDashboard.getColumn(1).width = 14.453125;
@@ -297,10 +311,11 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   for (let sprintIdx = 0; sprintIdx < 8; sprintIdx++) {
     const sprintNum = sprintIdx + 1;
     const cell = dashRow1.getCell(sprintIdx + 4);
+    const targetRowInLogboek = sprintIdx * 28 + 1;
 
     cell.value = {
       text: `Sprint ${sprintNum}`,
-      hyperlink: `#'Sprint ${sprintNum}'!A1`,
+      hyperlink: `#'Logboek'!A${targetRowInLogboek}`,
     };
     cell.fill = FILL_CARMINE_RED;
     cell.font = FONT_CALIBRI_11_BOLD_TEAL_LINK;
@@ -352,11 +367,11 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     for (let sprintIdx = 0; sprintIdx < 8; sprintIdx++) {
       const colNum = sprintIdx + 4;
       const cell = row.getCell(colNum);
-      const logboekRow = 18 + idx;
+      const logboekRow = sprintIdx * 28 + 18 + idx;
       const levelResult = sprintLuLevels[sprintIdx + 1][luDef.lu];
 
       cell.value = {
-        formula: `'Sprint ${sprintIdx + 1}'!C${logboekRow}`,
+        formula: `Logboek!C${logboekRow}`,
         result: levelResult,
       };
       cell.font = FONT_CALIBRI_11;
@@ -423,29 +438,26 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   cellB9.alignment = { vertical: "middle", horizontal: "center" };
 
   // ==========================================
-  // TABBLADEN 2 t/m 9: Sprint 1 t/m 8 (elk tabblad = precies 1 pagina bij PDF-conversie)
+  // TABBLAD 2: Logboek
   // ==========================================
+  const wsLogboek = wb.addWorksheet("Logboek", {
+    views: [{ showGridLines: true }],
+    pageSetup: {
+      paperSize: 9,
+      orientation: "portrait",
+      fitToPage: false,
+      scale: 55,
+      margins: { left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 },
+    },
+  });
+
+  wsLogboek.getColumn(1).width = 9.453125;
+  wsLogboek.getColumn(2).width = 50.6328125;
+  wsLogboek.getColumn(3).width = 50.6328125;
+  wsLogboek.getColumn(4).width = 50.6328125;
+
   for (let sprintNum = 1; sprintNum <= 8; sprintNum++) {
-    const R = 0;
-    const wsLogboek = wb.addWorksheet(`Sprint ${sprintNum}`, {
-      views: [{ showGridLines: true }],
-      pageSetup: {
-        paperSize: 9,
-        orientation: "portrait",
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 1,
-        horizontalCentered: true,
-        margins: { left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 },
-      },
-    });
-    wsLogboek.pageSetup.printArea = "A1:D28";
-
-    wsLogboek.getColumn(1).width = 9.453125;
-    wsLogboek.getColumn(2).width = 50.6328125;
-    wsLogboek.getColumn(3).width = 50.6328125;
-    wsLogboek.getColumn(4).width = 50.6328125;
-
+    const R = (sprintNum - 1) * 28;
     const currentSprint = findSprintByNumber(sprints, sprintNum);
 
     // Dynamic theme: Odd sprints are Red/Pink; Even sprints are Blue/Ice-blue
@@ -786,6 +798,31 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
       cellD.alignment = { vertical: "top", horizontal: "left", wrapText: true };
     }
   }
+
+  // Elke sprint begint op een nieuwe pagina en past op precies 1 pagina bij PDF-conversie
+  const colWidths = [1, 2, 3, 4].map((c) => wsLogboek.getColumn(c).width ?? 10);
+  let tallestBlockPt = 0;
+  for (let sprintNum = 1; sprintNum <= 8; sprintNum++) {
+    let blockPt = 0;
+    for (let r = (sprintNum - 1) * 28 + 1; r <= sprintNum * 28; r++) {
+      const row = wsLogboek.getRow(r);
+      let maxLines = 1;
+      for (let c = 2; c <= 4; c++) {
+        const cell = row.getCell(c);
+        if (typeof cell.value === "string" && cell.alignment?.wrapText) {
+          maxLines = Math.max(maxLines, estimateWrappedLines(cell.value, colWidths[c - 1]));
+        }
+      }
+      const wrapped = maxLines > 1 ? Math.min(EXCEL_MAX_ROW_PT, maxLines * LOGBOEK_LINE_PT + 3) : 0;
+      const needed = Math.max(wrapped, LOGBOEK_TEMPLATE_MIN_ROW_PT[r - (sprintNum - 1) * 28] ?? 0);
+      if (needed > (row.height ?? 0)) row.height = needed;
+      blockPt += row.height ?? LOGBOEK_DEFAULT_ROW_PT;
+    }
+    tallestBlockPt = Math.max(tallestBlockPt, blockPt);
+    if (sprintNum < 8) wsLogboek.getRow(sprintNum * 28).addPageBreak();
+  }
+  const fitScale = Math.floor((LOGBOEK_PAGE_HEIGHT_PT * 100) / Math.max(tallestBlockPt, 1));
+  wsLogboek.pageSetup.scale = Math.max(20, Math.min(LOGBOEK_MAX_SCALE, fitScale));
 
   // ==========================================
   // TABBLAD 3: Lijsten
