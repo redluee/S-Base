@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { safeDecodeURIComponent } from "./uri";
+import { safeDecodeURIComponent, toExternalHref } from "./uri";
 
 describe("safeDecodeURIComponent", () => {
   it("decodes encoded segments", () => {
@@ -17,5 +17,19 @@ describe("safeDecodeURIComponent", () => {
     for (const name of ["50%", "100% Effort", "a%b", "Row 50%25"]) {
       expect(safeDecodeURIComponent(encodeURIComponent(name))).toBe(name);
     }
+  });
+});
+
+describe("toExternalHref", () => {
+  it("prefixes bare domains", () => {
+    expect(toExternalHref("minor.stevenheijn.nl")).toBe("https://minor.stevenheijn.nl");
+  });
+  it("keeps absolute and relative urls", () => {
+    expect(toExternalHref("https://a.nl/x")).toBe("https://a.nl/x");
+    expect(toExternalHref("/api/uploads/a.png")).toBe("/api/uploads/a.png");
+    expect(toExternalHref("mailto:a@b.nl")).toBe("mailto:a@b.nl");
+  });
+  it("handles empty", () => {
+    expect(toExternalHref(" ")).toBe("");
   });
 });

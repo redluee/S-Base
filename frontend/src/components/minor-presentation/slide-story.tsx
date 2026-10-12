@@ -1,5 +1,6 @@
 "use client";
 
+import { toExternalHref } from "@/lib/uri";
 import { useMemo } from "react";
 import {
   ExternalLink,
@@ -37,7 +38,7 @@ function WebsiteLinkCard({
 
   return (
     <a
-      href={website.url}
+      href={toExternalHref(website.url)}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
@@ -107,7 +108,7 @@ function DocumentLinkCard({
 }) {
   return (
     <a
-      href={doc.url}
+      href={toExternalHref(doc.url)}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
@@ -451,7 +452,7 @@ export function SlideStory({
             {/* Fallback Demo Link when no custom websites but demoUrl exists */}
             {images.length > 0 && websites.length === 0 && demoUrl && (
               <a
-                href={demoUrl}
+                href={toExternalHref(demoUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -633,7 +634,7 @@ export function SlideStory({
           {websites.length === 0 && demoUrl && (
             <div className="flex justify-end pt-2">
               <a
-                href={demoUrl}
+                href={toExternalHref(demoUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -703,7 +704,7 @@ export function SlideStory({
 
               {demoUrl && (
                 <a
-                  href={demoUrl}
+                  href={toExternalHref(demoUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
@@ -743,7 +744,7 @@ export function SlideStory({
             {/* Clickable Demo Link fallback if no websites but demoUrl present */}
             {websites.length === 0 && demoUrl && (
               <a
-                href={demoUrl}
+                href={toExternalHref(demoUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -806,7 +807,7 @@ export function SlideStory({
               {(story.evidence || []).map((ev) => (
                 <a
                   key={ev.id}
-                  href={ev.url}
+                  href={toExternalHref(ev.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}

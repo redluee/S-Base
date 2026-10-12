@@ -1,5 +1,6 @@
 "use client";
 
+import { toExternalHref } from "@/lib/uri";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -601,7 +602,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
                   <p className="text-[11px] text-zinc-400 line-clamp-2">{peer.description}</p>
                   {peer.links && (
                     <a
-                      href={peer.links}
+                      href={toExternalHref(peer.links)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[10px] text-sky-400 hover:underline pt-0.5"

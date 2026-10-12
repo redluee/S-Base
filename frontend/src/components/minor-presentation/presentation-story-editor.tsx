@@ -1,5 +1,6 @@
 "use client";
 
+import { toExternalHref } from "@/lib/uri";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Presentation,
@@ -548,7 +549,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                         <div className="flex items-center justify-end gap-1">
                           {site.url.trim().length > 0 && (
                             <a
-                              href={site.url}
+                              href={toExternalHref(site.url)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
@@ -671,7 +672,7 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
                         <div className="flex items-center justify-end gap-1">
                           {doc.url.trim().length > 0 && (
                             <a
-                              href={doc.url}
+                              href={toExternalHref(doc.url)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"

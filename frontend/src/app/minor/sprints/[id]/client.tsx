@@ -1,5 +1,6 @@
 "use client";
 
+import { toExternalHref } from "@/lib/uri";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
@@ -1702,7 +1703,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                             >
                               <span className="font-semibold text-brand">{ev.type}:</span>
                               <a
-                                href={ev.url}
+                                href={toExternalHref(ev.url)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-zinc-200 hover:underline truncate max-w-[160px]"
@@ -2112,7 +2113,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
                     {viewingStory.evidence.map((ev) => (
                       <a
                         key={ev.id}
-                        href={ev.url}
+                        href={toExternalHref(ev.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-zinc-900 border border-white/10 text-sky-400 hover:text-sky-300 hover:border-sky-500/40 text-xs sm:text-sm font-medium transition-all cursor-pointer"

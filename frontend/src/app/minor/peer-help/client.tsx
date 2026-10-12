@@ -1,5 +1,6 @@
 "use client";
 
+import { toExternalHref } from "@/lib/uri";
 import { useState } from "react";
 import { Users, Plus, Trash2, Edit2, ExternalLink, Search, X } from "lucide-react";
 import { t } from "@/lib/lang";
@@ -165,7 +166,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
                     {item.links ? (
                       <a
-                        href={item.links}
+                        href={toExternalHref(item.links)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-sky-400 hover:underline text-xs truncate max-w-[200px]"
@@ -240,7 +241,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
                       <td className="py-3.5 px-4">
                         {item.links ? (
                           <a
-                            href={item.links}
+                            href={toExternalHref(item.links)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-sky-400 hover:underline max-w-xs truncate"

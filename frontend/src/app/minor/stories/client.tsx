@@ -1,5 +1,6 @@
 "use client";
 
+import { toExternalHref } from "@/lib/uri";
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -851,7 +852,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
                     {viewingStory.evidence.map((ev) => (
                       <a
                         key={ev.id}
-                        href={ev.url}
+                        href={toExternalHref(ev.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-zinc-900 border border-white/10 text-sky-400 hover:text-sky-300 hover:border-sky-500/40 text-xs sm:text-sm font-medium transition-all cursor-pointer"
@@ -1414,7 +1415,7 @@ function StoryCard({
                 {story.evidence.map((ev) => (
                   <a
                     key={ev.id}
-                    href={ev.url}
+                    href={toExternalHref(ev.url)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/10 text-xs sm:text-sm text-zinc-300 hover:text-white hover:border-brand/40 transition-colors"
