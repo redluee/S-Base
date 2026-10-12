@@ -257,6 +257,7 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   // ==========================================
   const wsDashboard = wb.addWorksheet("Dashboard", {
     views: [{ showGridLines: true }],
+    pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
   });
 
   wsDashboard.getColumn(1).width = 14.453125;
@@ -294,11 +295,10 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   for (let sprintIdx = 0; sprintIdx < 8; sprintIdx++) {
     const sprintNum = sprintIdx + 1;
     const cell = dashRow1.getCell(sprintIdx + 4);
-    const targetRowInLogboek = sprintIdx * 28 + 1;
 
     cell.value = {
       text: `Sprint ${sprintNum}`,
-      hyperlink: `#'Logboek'!A${targetRowInLogboek}`,
+      hyperlink: `#'Sprint ${sprintNum}'!A1`,
     };
     cell.fill = FILL_CARMINE_RED;
     cell.font = FONT_CALIBRI_11_BOLD_TEAL_LINK;
@@ -350,11 +350,11 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
     for (let sprintIdx = 0; sprintIdx < 8; sprintIdx++) {
       const colNum = sprintIdx + 4;
       const cell = row.getCell(colNum);
-      const logboekRow = sprintIdx * 28 + 18 + idx;
+      const logboekRow = 18 + idx;
       const levelResult = sprintLuLevels[sprintIdx + 1][luDef.lu];
 
       cell.value = {
-        formula: `Logboek!C${logboekRow}`,
+        formula: `'Sprint ${sprintIdx + 1}'!C${logboekRow}`,
         result: levelResult,
       };
       cell.font = FONT_CALIBRI_11;
@@ -421,19 +421,29 @@ export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] =
   cellB9.alignment = { vertical: "middle", horizontal: "center" };
 
   // ==========================================
-  // TABBLAD 2: Logboek
+  // TABBLADEN 2 t/m 9: Sprint 1 t/m 8 (elk tabblad = precies 1 pagina bij PDF-conversie)
   // ==========================================
-  const wsLogboek = wb.addWorksheet("Logboek", {
-    views: [{ showGridLines: true }],
-  });
-
-  wsLogboek.getColumn(1).width = 9.453125;
-  wsLogboek.getColumn(2).width = 50.6328125;
-  wsLogboek.getColumn(3).width = 50.6328125;
-  wsLogboek.getColumn(4).width = 50.6328125;
-
   for (let sprintNum = 1; sprintNum <= 8; sprintNum++) {
-    const R = (sprintNum - 1) * 28;
+    const R = 0;
+    const wsLogboek = wb.addWorksheet(`Sprint ${sprintNum}`, {
+      views: [{ showGridLines: true }],
+      pageSetup: {
+        paperSize: 9,
+        orientation: "portrait",
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 1,
+        horizontalCentered: true,
+        margins: { left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 },
+      },
+    });
+    wsLogboek.pageSetup.printArea = "A1:D28";
+
+    wsLogboek.getColumn(1).width = 9.453125;
+    wsLogboek.getColumn(2).width = 50.6328125;
+    wsLogboek.getColumn(3).width = 50.6328125;
+    wsLogboek.getColumn(4).width = 50.6328125;
+
     const currentSprint = findSprintByNumber(sprints, sprintNum);
 
     // Dynamic theme: Odd sprints are Red/Pink; Even sprints are Blue/Ice-blue

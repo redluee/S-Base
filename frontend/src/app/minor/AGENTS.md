@@ -51,6 +51,7 @@ This guide gives AI models an instant index of the Minor module frontend structu
   - `getLULabel(lu)`, `getLUShortDesc(lu)`, `isImageUrl(url)`, `getDomainFromUrl(url)`.
 - **Excel Export (`@/lib/minor-excel.ts` / `minor-excel.test.ts`)**:
   - Generates multi-tab Excel files via ExcelJS containing story backlog, criteria checklist, and LU matrix.
+  - Layout: `Dashboard`, `Sprint 1`–`Sprint 8` (one 28-row block each, A4 portrait, fit-to-1-page, print area `A1:D28`), `Lijsten`. Teachers convert the xlsx to PDF via Canvas, so each sprint sheet must stay on exactly one page.
 - **JSON Export/Import (`@/lib/minor-sprint-export.ts`)**:
   - Normalizes sprint objects into clean, portable JSON format.
 
