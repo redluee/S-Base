@@ -75,9 +75,20 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
   function openCreateModal() {
     setEditingSprint(null);
-    setStartDate(new Date().toISOString().slice(0, 10));
+    setStartDate(getDefaultStartDate());
     setDurationDays(14);
     setIsModalOpen(true);
+  }
+
+  function getDefaultStartDate() {
+    if (sprints.length === 0) return new Date().toISOString().slice(0, 10);
+    const latestEndDate = sprints.reduce(
+      (latest, s) => (s.endDate > latest ? s.endDate : latest),
+      sprints[0].endDate
+    );
+    const dayAfter = new Date(`${latestEndDate}T00:00:00`);
+    dayAfter.setDate(dayAfter.getDate() + 1);
+    return dayAfter.toISOString().slice(0, 10);
   }
 
   function openEditModal(sprint: MinorSprint) {
