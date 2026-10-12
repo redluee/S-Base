@@ -423,6 +423,27 @@ describe("MinorService", () => {
     expect(storyInAll?.presentationData?.layout).toBe("media");
   });
 
+  it("sets learning outcomes to V in self-evaluations when a story becomes done", () => {
+    const sprint = minor.createSprint(adminId, { sprintNumber: "1", name: "Sprint 1", startDate: "2026-09-07" });
+    const story = minor.createStory(adminId, sprint.id, {
+      storyTypeCode: "US",
+      title: "Story",
+      learningOutcomes: [1, 3],
+    });
+
+    const levels = () => Object.fromEntries(minor.getSprintById(sprint.id, adminId)!.selfEvaluations.map((e) => [e.learningOutcome, e.level]));
+    expect(levels()[1]).toBe("-");
+
+    minor.updateStory(story.id, adminId, { status: "done" });
+    expect(levels()[1]).toBe("V");
+    expect(levels()[3]).toBe("V");
+    expect(levels()[2]).toBe("-");
+
+    minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "NV" }]);
+    minor.updateStory(story.id, adminId, { title: "Renamed" });
+    expect(levels()[1]).toBe("NV");
+  });
+
   it("exports a sprint to clean, portable JSON and imports it as a new sprint", () => {
     const sprint = minor.createSprint(adminId, {
       sprintNumber: "1",
@@ -592,7 +613,7 @@ describe("MinorService", () => {
     expect(forbidden).toBeNull();
   });
 
-  it("does not automatically overwrite self-evaluations with 'V' when stories are completed", () => {
+  it("sets level to 'V' without touching argumentation when stories are completed", () => {
     const sprint = minor.createSprint(adminId, {
       startDate: "2026-09-01",
     });
@@ -613,10 +634,10 @@ describe("MinorService", () => {
     const eval2 = full?.selfEvaluations.find((e) => e.learningOutcome === 2);
     const eval3 = full?.selfEvaluations.find((e) => e.learningOutcome === 3);
 
-    // Should remain '-' and empty argumentation unless explicitly triggered via autoGenerateSelfEvaluations
-    expect(eval1?.level).toBe("-");
+    // Level becomes 'V' for covered LUs; argumentation stays empty until explicitly generated
+    expect(eval1?.level).toBe("V");
     expect(eval1?.argumentation).toBe("");
-    expect(eval2?.level).toBe("-");
+    expect(eval2?.level).toBe("V");
     expect(eval2?.argumentation).toBe("");
     expect(eval3?.level).toBe("-");
     expect(eval3?.argumentation).toBe("");

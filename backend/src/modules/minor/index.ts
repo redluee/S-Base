@@ -624,6 +624,22 @@ export class MinorService {
     // Explicit generation is handled via autoGenerateSelfEvaluations.
   }
 
+  private markLearningOutcomesSufficient(sprintId: number, learningOutcomes: number[]) {
+    let changed = false;
+    for (const lu of new Set(learningOutcomes)) {
+      if (!Number.isInteger(lu) || lu < 1 || lu > 5) continue;
+      const existing = db.select().from(minorSelfEvaluations).where(and(eq(minorSelfEvaluations.sprintId, sprintId), eq(minorSelfEvaluations.learningOutcome, lu))).get();
+      if (existing) {
+        if (existing.level === "V") continue;
+        db.update(minorSelfEvaluations).set({ level: "V", updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(minorSelfEvaluations.id, existing.id)).run();
+      } else {
+        db.insert(minorSelfEvaluations).values({ sprintId, learningOutcome: lu, level: "V", argumentation: "" }).run();
+      }
+      changed = true;
+    }
+    return changed;
+  }
+
   updateSprint(id: number, userId: number, data: Partial<{
     sprintNumber: string;
     name: string;
@@ -1204,6 +1220,9 @@ export class MinorService {
 
     if (storyRow.sprintId) {
       this.syncSprintSelfEvaluations(storyRow.sprintId);
+      if (storyRow.status === "done" && this.markLearningOutcomesSufficient(storyRow.sprintId, JSON.parse(storyRow.learningOutcomes))) {
+        this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId: storyRow.sprintId });
+      }
     }
 
     return {
@@ -1332,6 +1351,11 @@ export class MinorService {
     }
     if (existing.sprintId && existing.sprintId !== updated.sprintId) {
       this.syncSprintSelfEvaluations(existing.sprintId);
+    }
+    if (updated.sprintId && updated.status === "done" && (existing.status !== "done" || existing.sprintId !== updated.sprintId || data.learningOutcomes !== undefined)) {
+      if (this.markLearningOutcomesSufficient(updated.sprintId, JSON.parse(updated.learningOutcomes))) {
+        this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId: updated.sprintId });
+      }
     }
 
     return {
@@ -1568,6 +1592,13 @@ export class MinorService {
   }
 
   saveReflection(sprintId: number, data: { date?: string; whatLearned?: string; whatRetained?: string; whatChange?: string }): MinorReflection {
+    const saved = this.upsertReflection(sprintId, data);
+    const sprint = db.select({ userId: minorSprints.userId }).from(minorSprints).where(eq(minorSprints.id, sprintId)).get();
+    if (sprint) this.notifier.notify(sprint.userId, { event: "self_evaluations_saved", sprintId });
+    return saved;
+  }
+
+  private upsertReflection(sprintId: number, data: { date?: string; whatLearned?: string; whatRetained?: string; whatChange?: string }): MinorReflection {
     const existing = db.select().from(minorReflections).where(eq(minorReflections.sprintId, sprintId)).get();
     if (existing) {
       return db.update(minorReflections).set({
