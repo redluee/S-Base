@@ -160,12 +160,14 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     return [{ text: "", isCompleted: false, indent: 0 }];
   }
 
-  async function reloadSprint() {
+  async function reloadSprint(keepLocalEvals = false) {
     try {
       const updated = await api.minor.sprints.get(sprint.id);
       setSprint(updated);
-      setSelfEvals(updated.selfEvaluations);
-      setTeacherAssessments(updated.teacherAssessments);
+      if (!keepLocalEvals) {
+        setSelfEvals(updated.selfEvaluations);
+        setTeacherAssessments(updated.teacherAssessments);
+      }
       if (updated.reflection) {
         setRefDate(updated.reflection.date);
         setWhatLearned(updated.reflection.whatLearned || "");
@@ -799,7 +801,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
       );
       setEvalSaveSuccess(true);
       setTimeout(() => setEvalSaveSuccess(false), 3000);
-      await reloadSprint();
+      await reloadSprint(true);
     } catch (err) {
       console.error("Failed to save evaluations:", err);
     } finally {
