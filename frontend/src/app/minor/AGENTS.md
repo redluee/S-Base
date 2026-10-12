@@ -51,7 +51,7 @@ This guide gives AI models an instant index of the Minor module frontend structu
   - `getLULabel(lu)`, `getLUShortDesc(lu)`, `isImageUrl(url)`, `getDomainFromUrl(url)`.
 - **Excel Export (`@/lib/minor-excel.ts` / `minor-excel.test.ts`)**:
   - Generates multi-tab Excel files via ExcelJS containing story backlog, criteria checklist, and LU matrix.
-  - Layout mirrors the teacher template (`Dashboard`, `Logboek` with 8 blocks of 28 rows, hidden `Lijsten`). Teachers convert the xlsx to PDF via Canvas: a manual page break follows every sprint block and the Logboek print scale is estimated from the tallest block (row heights are set explicitly) so each sprint stays on exactly one page. Keep sheet/row layout identical to the template.
+  - Layout: `Dashboard`, `Sprint 1`–`Sprint 8` (one 28-row block each, A4 portrait, fit-to-1-page, print area `A1:D28`), `Lijsten`. Teachers convert the xlsx to PDF via Canvas, so each sprint sheet must stay on exactly one page. Canvas DocViewer renders every worksheet as ONE page sized to its content and ignores manual page breaks and fit settings, so never put multiple sprints on one sheet. `Lijsten` is hidden (matches the teacher template).
 - **JSON Export/Import (`@/lib/minor-sprint-export.ts`)**:
   - Normalizes sprint objects into clean, portable JSON format.
 

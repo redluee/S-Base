@@ -8,20 +8,36 @@ import {
 import type { MinorSprintFull } from "./api";
 
 describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
-  it("creates exactly 3 sheets in the correct order: Dashboard, Logboek, Lijsten", () => {
+  it("creates 10 sheets in the correct order: Dashboard, Sprint 1 t/m 8, Lijsten", () => {
     const wb = buildIntegraalSprintLogboekWorkbook([]);
-    expect(wb.worksheets.length).toBe(3);
-    expect(wb.worksheets[0].name).toBe("Dashboard");
-    expect(wb.worksheets[1].name).toBe("Logboek");
-    expect(wb.worksheets[2].name).toBe("Lijsten");
+    expect(wb.worksheets.map((w) => w.name)).toEqual([
+      "Dashboard",
+      "Sprint 1",
+      "Sprint 2",
+      "Sprint 3",
+      "Sprint 4",
+      "Sprint 5",
+      "Sprint 6",
+      "Sprint 7",
+      "Sprint 8",
+      "Lijsten",
+    ]);
   });
 
-  it("starts every sprint on a new printed page and hides Lijsten", () => {
+  it("fits every sprint sheet on exactly one printed page (A4 portrait)", () => {
     const wb = buildIntegraalSprintLogboekWorkbook([]);
-    const ws = wb.getWorksheet("Logboek")!;
-    expect(ws.rowBreaks.map((b) => b.id)).toEqual([28, 56, 84, 112, 140, 168, 196]);
-    expect(ws.pageSetup.fitToPage).toBe(false);
-    expect(ws.pageSetup.scale).toBe(55);
+    for (let n = 1; n <= 8; n++) {
+      const ps = wb.getWorksheet(`Sprint ${n}`)!.pageSetup;
+      expect(ps.fitToPage).toBe(true);
+      expect(ps.fitToWidth).toBe(1);
+      expect(ps.fitToHeight).toBe(1);
+      expect(ps.orientation).toBe("portrait");
+      expect(ps.printArea).toBe("A1:D28");
+    }
+  });
+
+  it("keeps the Lijsten helper sheet hidden", () => {
+    const wb = buildIntegraalSprintLogboekWorkbook([]);
     expect(wb.getWorksheet("Lijsten")!.state).toBe("hidden");
   });
 
@@ -67,37 +83,37 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     expect(ws.getCell("A2").value).toBe("LU 1: Impact");
     expect(ws.getCell("B2").value).toBe(2);
     expect((ws.getCell("C2").value as { formula: string }).formula).toBe('COUNTIF(D2:K2, "V")');
-    expect((ws.getCell("D2").value as { formula: string }).formula).toBe("Logboek!C18");
-    expect((ws.getCell("E2").value as { formula: string }).formula).toBe("Logboek!C46");
-    expect((ws.getCell("K2").value as { formula: string }).formula).toBe("Logboek!C214");
+    expect((ws.getCell("D2").value as { formula: string }).formula).toBe("'Sprint 1'!C18");
+    expect((ws.getCell("E2").value as { formula: string }).formula).toBe("'Sprint 2'!C18");
+    expect((ws.getCell("K2").value as { formula: string }).formula).toBe("'Sprint 8'!C18");
 
     // LU 2 (Row 3)
     expect(ws.getCell("A3").value).toBe("LU 2: Oplossing");
     expect(ws.getCell("B3").value).toBe(4);
     expect((ws.getCell("C3").value as { formula: string }).formula).toBe('COUNTIF(D3:K3, "V")');
-    expect((ws.getCell("D3").value as { formula: string }).formula).toBe("Logboek!C19");
-    expect((ws.getCell("K3").value as { formula: string }).formula).toBe("Logboek!C215");
+    expect((ws.getCell("D3").value as { formula: string }).formula).toBe("'Sprint 1'!C19");
+    expect((ws.getCell("K3").value as { formula: string }).formula).toBe("'Sprint 8'!C19");
 
     // LU 3 (Row 4)
     expect(ws.getCell("A4").value).toBe("LU 3: Ethiek");
     expect(ws.getCell("B4").value).toBe(2);
     expect((ws.getCell("C4").value as { formula: string }).formula).toBe('COUNTIF(D4:K4, "V")');
-    expect((ws.getCell("D4").value as { formula: string }).formula).toBe("Logboek!C20");
-    expect((ws.getCell("K4").value as { formula: string }).formula).toBe("Logboek!C216");
+    expect((ws.getCell("D4").value as { formula: string }).formula).toBe("'Sprint 1'!C20");
+    expect((ws.getCell("K4").value as { formula: string }).formula).toBe("'Sprint 8'!C20");
 
     // LU 4 (Row 5)
     expect(ws.getCell("A5").value).toBe("LU 4: Tools");
     expect(ws.getCell("B5").value).toBe(4);
     expect((ws.getCell("C5").value as { formula: string }).formula).toBe('COUNTIF(D5:K5, "V")');
-    expect((ws.getCell("D5").value as { formula: string }).formula).toBe("Logboek!C21");
-    expect((ws.getCell("K5").value as { formula: string }).formula).toBe("Logboek!C217");
+    expect((ws.getCell("D5").value as { formula: string }).formula).toBe("'Sprint 1'!C21");
+    expect((ws.getCell("K5").value as { formula: string }).formula).toBe("'Sprint 8'!C21");
 
     // LU 5 (Row 6)
     expect(ws.getCell("A6").value).toBe("LU 5: Zelfsturing");
     expect(ws.getCell("B6").value).toBe(6);
     expect((ws.getCell("C6").value as { formula: string }).formula).toBe('COUNTIF(D6:K6, "V")');
-    expect((ws.getCell("D6").value as { formula: string }).formula).toBe("Logboek!C22");
-    expect((ws.getCell("K6").value as { formula: string }).formula).toBe("Logboek!C218");
+    expect((ws.getCell("D6").value as { formula: string }).formula).toBe("'Sprint 1'!C22");
+    expect((ws.getCell("K6").value as { formula: string }).formula).toBe("'Sprint 8'!C22");
 
     // Row 7 (Totaal)
     expect(ws.getCell("A7").value).toBe("Totaal");
@@ -113,7 +129,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     expect(fillA9?.fgColor?.argb).toBe("FFC00000");
   });
 
-  it("builds 8 sprint blocks of 28 rows each (224 rows total) on Logboek", () => {
+  it("builds a 28-row block on each of the 8 sprint sheets", () => {
     const mockSprints: MinorSprintFull[] = [
       {
         id: 1,
@@ -203,7 +219,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     ];
 
     const wb = buildIntegraalSprintLogboekWorkbook(mockSprints);
-    const ws = wb.getWorksheet("Logboek")!;
+    const ws = wb.getWorksheet("Sprint 1")!;
 
     expect(ws.getColumn(1).width).toBe(9.453125);
     expect(ws.getColumn(2).width).toBe(50.6328125);
@@ -261,15 +277,16 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     expect(ws.getCell("C26").value).toBe("Discipline");
     expect(ws.getCell("D26").value).toBe("Vroeger beginnen");
 
-    // Sprint 2 (Row 29) should be Blue theme
-    expect(ws.getCell("A29").value).toBe("SPRINT 2");
-    const fillSprint2 = ws.getCell("A29").fill as ExcelJS.PatternFill;
+    // Sprint 2 sheet should be Blue theme
+    const ws2 = wb.getWorksheet("Sprint 2")!;
+    expect(ws2.getCell("A1").value).toBe("SPRINT 2");
+    const fillSprint2 = ws2.getCell("A1").fill as ExcelJS.PatternFill;
     expect(fillSprint2?.fgColor?.argb).toBe("FF00A1E1");
 
-    // Sprint 8 last row should be 224
-    expect(ws.getCell("A197").value).toBe("SPRINT 8");
-    expect(ws.getCell("A214").value).toBe("LU 1");
-    expect(ws.getCell("A218").value).toBe("LU 5");
+    const ws8 = wb.getWorksheet("Sprint 8")!;
+    expect(ws8.getCell("A1").value).toBe("SPRINT 8");
+    expect(ws8.getCell("A18").value).toBe("LU 1");
+    expect(ws8.getCell("A22").value).toBe("LU 5");
   });
 
   it("generates a valid binary blob", async () => {
@@ -337,7 +354,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     ];
 
     const wb = buildIntegraalSprintLogboekWorkbook(mockSprints);
-    const wsLog = wb.getWorksheet("Logboek")!;
+    const wsLog = wb.getWorksheet("Sprint 1")!;
     const wsDash = wb.getWorksheet("Dashboard")!;
 
     // Logboek:
@@ -355,11 +372,11 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     expect(wsLog.getCell("C20").value).toBe("O");
 
     // Dashboard:
-    // D2 (Sprint 1 LU 1): formula pointing to Logboek!C18 with result "V"
+    // D2 (Sprint 1 LU 1): formula pointing to 'Sprint 1'!C18 with result "V"
     const cellD2 = wsDash.getCell("D2").value as { formula: string; result: string };
     expect(cellD2.result).toBe("V");
 
-    // D3 (Sprint 1 LU 2): formula pointing to Logboek!C19 with result "V"
+    // D3 (Sprint 1 LU 2): formula pointing to 'Sprint 1'!C19 with result "V"
     const cellD3 = wsDash.getCell("D3").value as { formula: string; result: string };
     expect(cellD3.result).toBe("V");
 
@@ -410,7 +427,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     ];
 
     const wb = buildIntegraalSprintLogboekWorkbook(mockSprints);
-    const wsLog = wb.getWorksheet("Logboek")!;
+    const wsLog = wb.getWorksheet("Sprint 1")!;
 
     // LU 4 is selected in a planned/todo story, but not yet completed and not rated -> "-"
     expect(wsLog.getCell("C21").value).toBe("-");

@@ -214,7 +214,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
               {t("Integraal Sprint Logboek (Excel)")}
             </h2>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              {t("Genereert het officiële beoordelingsdocument (Dashboard met voortgangsmatrix, Logboek voor Sprints 1 t/m 8 met alle 4 secties, en Lijsten met drop-downs).")}
+              {t("Genereert het officiële beoordelingsdocument (Dashboard met voortgangsmatrix, een tabblad per sprint (1 sprint = 1 pagina bij PDF-conversie) met alle 4 secties, en Lijsten met drop-downs).")}
             </p>
           </div>
 
