@@ -4,9 +4,9 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ## Overview & Permissions
 - **Module key**: `minor`
-- **Auth middleware**: `createAuthPlugin("minor")` in `backend/src/index.ts`
-- **Service instance**: `MinorService` instantiated at startup in `backend/src/index.ts`
-- **Routes group**: `.group("/api/minor", ...)` located in `backend/src/index.ts` (search for `// --- Minor App`)
+- **Auth middleware**: `createAuthPlugin("minor")` in `backend/src/context.ts`
+- **Service instance**: `MinorService` instantiated at startup in `backend/src/context.ts`
+- **Routes group**: `.group("/api/minor", ...)` located in `backend/src/routes/minor.ts`
 - **Test file**: `backend/src/modules/minor/minor.test.ts` (run with `DB_PATH=:memory: bun test backend/src/modules/minor/minor.test.ts`)
 
 ---
@@ -28,7 +28,7 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ---
 
-## Service Methods (`MinorService` in `backend/src/modules/minor/index.ts`)
+## Service Methods (`MinorService` in `backend/src/modules/minor/index.ts`, implemented across the layered `minor-*.ts` files in the same directory)
 | Domain | Method Name | Description |
 |--------|-------------|-------------|
 | **Vacations** | `listVacations(userId)` | Returns all user vacations ordered by start date |
@@ -71,7 +71,7 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ---
 
-## API Endpoints (`/api/minor/*` in `backend/src/index.ts`)
+## API Endpoints (`/api/minor/*` in `backend/src/routes/minor.ts`)
 - `GET /dashboard`: `getDashboardStats`
 - `GET /sprints`: `listSprints`
 - `GET /sprints/next-number`: `getNextSprintNumber`
@@ -127,7 +127,7 @@ Flow: `saveSelfEvaluations` -> `PublishNotifier` POSTs to n8n (`N8N_WEBHOOK_URL`
 |-------|------|
 | Snapshot builder (`buildPublicSnapshot`), bearer check, asset rules | `public-snapshot.ts` |
 | Webhook notifier (fire-and-forget, 3s timeout, never throws) | `publish-notifier.ts` |
-| Routes (outside `minorAuth`, token only) | `GET /api/minor/public/snapshot`, `GET /api/minor/public/assets/:filename` in `backend/src/index.ts` |
+| Routes (outside `minorAuth`, token only) | `GET /api/minor/public/snapshot`, `GET /api/minor/public/assets/:filename` in `backend/src/routes/minor.ts` |
 | Tests | `public-snapshot.test.ts` |
 
 Rules baked into the snapshot:
