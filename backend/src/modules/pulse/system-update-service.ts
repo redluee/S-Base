@@ -43,7 +43,7 @@ export class UpdateAlreadyRunningError extends Error {
 const LOG_LIMIT = 200;
 const ANSI_PATTERN = /\x1b\[[0-9;?]*[ -\/]*[@-~]|\x1b\][^\x07]*\x07/g;
 const SUDO_HINT =
-  "Passwordless sudo for dnf is required. Add to sudoers: <user> ALL=(root) NOPASSWD: /usr/bin/dnf, /usr/bin/systemctl reboot";
+  "Passwordless sudo for dnf is required. Add to sudoers: <user> ALL=(root) NOPASSWD: /usr/bin/dnf update -y";
 
 export function stripAnsi(text: string): string {
   return text.replace(ANSI_PATTERN, "");

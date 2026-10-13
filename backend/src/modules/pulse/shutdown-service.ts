@@ -242,13 +242,19 @@ export class ServerShutdownService {
       return;
     }
 
-    try {
-      Bun.spawn(["sudo", "-n", "systemctl", "reboot"]);
-    } catch {
+    const commands = [
+      ["systemctl", "reboot"],
+      ["sudo", "-n", "systemctl", "reboot"],
+    ];
+    for (const cmd of commands) {
       try {
-        Bun.spawn(["systemctl", "reboot"]);
+        const proc = Bun.spawn(cmd, { stdout: "ignore", stderr: "pipe" });
+        const code = await proc.exited;
+        if (code === 0) return;
+        const stderr = await new Response(proc.stderr).text();
+        console.error(`[ShutdownService] "${cmd.join(" ")}" exited with code ${code}: ${stderr.trim()}`);
       } catch (err) {
-        console.error("[ShutdownService] Failed to execute reboot command:", err);
+        console.error(`[ShutdownService] Failed to execute "${cmd.join(" ")}":`, err);
       }
     }
   }
