@@ -171,6 +171,7 @@ export const serverApi = {
     modules: () => serverFetch<import("./api").PulseModuleInfo[]>("/pulse/modules"),
     stats: () => serverFetch<import("./api").PulseStats>("/pulse/stats"),
     shutdownSchedule: () => serverFetch<import("./api").ShutdownSchedule>("/pulse/shutdown-schedule"),
+    systemUpdate: () => serverFetch<import("./api").SystemUpdateState>("/pulse/system-update"),
   },
 
   minecraft: {

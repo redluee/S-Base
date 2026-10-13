@@ -178,3 +178,4 @@ export class PulseService {
 
 export * from "./shutdown-service";
 
+export * from "./system-update-service";

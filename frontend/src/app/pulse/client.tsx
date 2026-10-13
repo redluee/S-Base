@@ -1,43 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
-import { api, type PulseUser, type PulseModuleInfo, type PulseStats, type McServer, type ShutdownSchedule } from "@/lib/api";
 import {
-  Activity,
-  Users,
-  UserCheck,
-  UserX,
-  Shield,
-  Search,
-  Mail,
-  Check,
-  X,
-  Edit2,
-  Lock,
-  Unlock,
-  Sparkles,
-  LogIn,
-  Gamepad2,
-  Power,
-  PowerOff,
-  Clock,
-  ShieldAlert,
-  Moon,
-  Bell,
-} from "lucide-react";
+  api,
+  type PulseUser,
+  type PulseModuleInfo,
+  type PulseStats,
+  type McServer,
+  type ShutdownSchedule,
+  type SystemUpdateState,
+} from "@/lib/api";
+import { Check, ChevronDown, Edit2, Gamepad2, Lock, LogIn, Mail, Search, Sparkles, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  AlertDialogRoot,
-  AlertDialogPopup,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogActions,
-  AlertDialogClose,
-} from "@/components/ui/alert-dialog";
+import { SystemPanel } from "./system-panel";
+
+const BTN = "h-11 px-4 text-sm font-medium rounded-lg";
+const BTN_OUTLINE = `${BTN} border-border bg-transparent text-foreground hover:bg-white/5`;
+const FOCUS = "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
+function formatAbsolute(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
+function formatRelative(dateStr: string | null, now: number): string {
+  if (!dateStr) return t("Never");
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const diffSec = Math.round((d.getTime() - now) / 1000);
+  const abs = Math.abs(diffSec);
+  const rtf = new Intl.RelativeTimeFormat("nl-NL", { numeric: "auto" });
+  if (abs < 60) return rtf.format(0, "second");
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), "hour");
+  if (abs < 86400 * 30) return rtf.format(Math.round(diffSec / 86400), "day");
+  if (abs < 86400 * 365) return rtf.format(Math.round(diffSec / (86400 * 30)), "month");
+  return rtf.format(Math.round(diffSec / (86400 * 365)), "year");
+}
+
+function lastLoginTime(u: PulseUser): number {
+  if (!u.lastLoginAt) return 0;
+  const n = new Date(u.lastLoginAt).getTime();
+  return isNaN(n) ? 0 : n;
+}
 
 export function PulseClient({
   username,
@@ -46,6 +63,7 @@ export function PulseClient({
   initialStats,
   initialServers = [],
   initialShutdownSchedule,
+  initialSystemUpdate,
 }: {
   username: string;
   initialUsers: PulseUser[];
@@ -53,86 +71,34 @@ export function PulseClient({
   initialStats: PulseStats;
   initialServers?: McServer[];
   initialShutdownSchedule?: ShutdownSchedule;
+  initialSystemUpdate?: SystemUpdateState;
 }) {
   const router = useRouter();
   const [usersList, setUsersList] = useState<PulseUser[]>(initialUsers);
   const [modulesList] = useState<PulseModuleInfo[]>(initialModules);
   const [serversList] = useState<McServer[]>(initialServers);
   const [stats, setStats] = useState<PulseStats>(initialStats);
-  const [shutdownSchedule, setShutdownSchedule] = useState<ShutdownSchedule | null>(initialShutdownSchedule ?? null);
-  const [shutdownTimeInput, setShutdownTimeInput] = useState<string>(initialShutdownSchedule?.time ?? "01:00");
-  const [isSavingShutdown, setIsSavingShutdown] = useState<boolean>(false);
-  const [isShutdownNowOpen, setIsShutdownNowOpen] = useState(false);
-  const [isShuttingDownNow, setIsShuttingDownNow] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [editingEmailUserId, setEditingEmailUserId] = useState<number | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [loadingUserId, setLoadingUserId] = useState<number | null>(null);
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!statusMsg) return;
+    const id = setTimeout(() => setStatusMsg(null), 3000);
+    return () => clearTimeout(id);
+  }, [statusMsg]);
 
   const showNotification = (text: string, type: "success" | "error" = "success") => {
     setStatusMsg({ text, type });
-    setTimeout(() => setStatusMsg(null), 3000);
-  };
-
-  const handleSaveShutdownTime = async () => {
-    setIsSavingShutdown(true);
-    try {
-      const updated = await api.pulse.updateShutdownSchedule({ time: shutdownTimeInput });
-      setShutdownSchedule(updated);
-      showNotification(t("Shutdown schedule updated"));
-    } catch {
-      showNotification(t("Opslaan mislukt"), "error");
-    } finally {
-      setIsSavingShutdown(false);
-    }
-  };
-
-  const handleToggleShutdownEnabled = async () => {
-    if (!shutdownSchedule) return;
-    setIsSavingShutdown(true);
-    try {
-      const updated = await api.pulse.updateShutdownSchedule({ enabled: !shutdownSchedule.enabled });
-      setShutdownSchedule(updated);
-      showNotification(t("Shutdown schedule updated"));
-    } catch {
-      showNotification(t("Opslaan mislukt"), "error");
-    } finally {
-      setIsSavingShutdown(false);
-    }
-  };
-
-  const handleToggleBlockShutdown = async () => {
-    if (!shutdownSchedule) return;
-    setIsSavingShutdown(true);
-    try {
-      const updated = shutdownSchedule.isBlocked
-        ? await api.pulse.unblockShutdown()
-        : await api.pulse.blockShutdown();
-      setShutdownSchedule(updated);
-      showNotification(
-        shutdownSchedule.isBlocked
-          ? t("Shutdown unblocked")
-          : t("Shutdown blocked for tonight")
-      );
-    } catch {
-      showNotification(t("Opslaan mislukt"), "error");
-    } finally {
-      setIsSavingShutdown(false);
-    }
-  };
-
-  const handleShutdownNow = async () => {
-    setIsShuttingDownNow(true);
-    try {
-      await api.pulse.shutdownNow();
-      showNotification(t("Shutdown initiated"));
-      setIsShutdownNowOpen(false);
-    } catch {
-      showNotification(t("Failed to initiate shutdown"), "error");
-    } finally {
-      setIsShuttingDownNow(false);
-    }
   };
 
   const refreshStats = (updatedUsers: PulseUser[]) => {
@@ -176,11 +142,7 @@ export function PulseClient({
         refreshStats(next);
         return next;
       });
-      showNotification(
-        newStatus === 1
-          ? t("Account gepauzeerd")
-          : t("Account geactiveerd")
-      );
+      showNotification(newStatus === 1 ? t("Account gepauzeerd") : t("Account geactiveerd"));
     } catch {
       showNotification(t("Status wijzigen mislukt"), "error");
     } finally {
@@ -190,9 +152,7 @@ export function PulseClient({
 
   const handleToggleModule = async (user: PulseUser, moduleName: string) => {
     const hasModule = user.modules.includes(moduleName);
-    const updatedModules = hasModule
-      ? user.modules.filter((m) => m !== moduleName)
-      : [...user.modules, moduleName];
+    const updatedModules = hasModule ? user.modules.filter((m) => m !== moduleName) : [...user.modules, moduleName];
 
     setLoadingUserId(user.userId);
     try {
@@ -213,9 +173,7 @@ export function PulseClient({
   const handleToggleServer = async (user: PulseUser, serverSlug: string) => {
     const currentServers = user.mcServers || [];
     const hasServer = currentServers.includes(serverSlug);
-    const updatedServers = hasServer
-      ? currentServers.filter((s) => s !== serverSlug)
-      : [...currentServers, serverSlug];
+    const updatedServers = hasServer ? currentServers.filter((s) => s !== serverSlug) : [...currentServers, serverSlug];
 
     setLoadingUserId(user.userId);
     try {
@@ -245,530 +203,303 @@ export function PulseClient({
     }
   };
 
-  const filteredUsers = usersList.filter(
-    (u) =>
-      u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const formatLastLogin = (dateStr: string | null) => {
-    if (!dateStr) return t("Never");
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return new Intl.DateTimeFormat("nl-NL", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(d);
-    } catch {
-      return dateStr;
-    }
+  const toggleExpanded = (userId: number) => {
+    setExpandedUserId((prev) => (prev === userId ? null : userId));
+    setEditingEmailUserId(null);
   };
 
+  const visibleUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return usersList
+      .filter((u) => u.username.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q)))
+      .sort((a, b) => lastLoginTime(b) - lastLoginTime(a) || a.username.localeCompare(b.username));
+  }, [usersList, searchQuery]);
+
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <NavHeader username={username} />
 
-      <main id="main-content" className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Floating Notification */}
-        {statusMsg && (
-          <div
-            className={`fixed top-5 right-5 z-50 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
-              statusMsg.type === "success"
-                ? "bg-teal-950/90 text-teal-300 border-teal-500/40"
-                : "bg-rose-950/90 text-rose-300 border-rose-500/40"
-            }`}
-          >
-            {statusMsg.text}
-          </div>
-        )}
-
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="size-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shadow-[0_0_1.5rem_-0.25rem_rgba(239,68,68,0.4)]">
-                <Activity className="size-5 animate-pulse" />
-              </div>
-              <h1 className="font-display font-black text-2xl sm:text-3xl tracking-tight text-white">
-                Pulse
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[11px] font-bold text-red-400 uppercase tracking-wider">
-                Monitoring
-              </span>
+      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="fixed right-4 top-4 z-50 max-w-[calc(100vw-2rem)]" role="status" aria-live="polite">
+          {statusMsg && (
+            <div
+              className={`rounded-lg border bg-card px-4 py-2.5 text-sm font-medium ${
+                statusMsg.type === "success" ? "border-brand/40 text-foreground" : "border-destructive/50 text-destructive"
+              }`}
+            >
+              {statusMsg.text}
             </div>
-            <p className="text-xs sm:text-sm text-zinc-400 font-medium">
-              {t("User Management & Monitoring")}
-            </p>
-          </div>
+          )}
         </div>
 
-        {/* Overview Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
-          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-4 sm:p-5 flex flex-col justify-between backdrop-blur-md relative overflow-hidden group hover:border-teal-500/30 transition-all">
-            <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t("Total Users")}</span>
-              <Users className="size-4 text-teal-400" />
-            </div>
-            <span className="text-2xl sm:text-3xl font-black font-display text-white">{stats.totalUsers}</span>
-          </div>
+        <header className="mb-8">
+          <h1 className="font-display text-[clamp(1.75rem,5vw,3rem)] font-normal leading-[1.1] text-foreground text-balance">
+            Pulse
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("User Management & Monitoring")}</p>
+        </header>
 
-          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-4 sm:p-5 flex flex-col justify-between backdrop-blur-md relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-            <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t("Active Users")}</span>
-              <UserCheck className="size-4 text-emerald-400" />
-            </div>
-            <span className="text-2xl sm:text-3xl font-black font-display text-emerald-400">{stats.activeUsers}</span>
-          </div>
+        <SystemPanel
+          stats={stats}
+          initialShutdownSchedule={initialShutdownSchedule}
+          initialSystemUpdate={initialSystemUpdate}
+          notify={showNotification}
+        />
 
-          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-4 sm:p-5 flex flex-col justify-between backdrop-blur-md relative overflow-hidden group hover:border-rose-500/30 transition-all">
-            <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t("Paused Accounts")}</span>
-              <UserX className="size-4 text-rose-400" />
-            </div>
-            <span className="text-2xl sm:text-3xl font-black font-display text-rose-400">{stats.pausedUsers}</span>
-          </div>
-
-          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-4 sm:p-5 flex flex-col justify-between backdrop-blur-md relative overflow-hidden group hover:border-amber-500/30 transition-all">
-            <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t("Total Permissions")}</span>
-              <Shield className="size-4 text-amber-400" />
-            </div>
-            <span className="text-2xl sm:text-3xl font-black font-display text-amber-400">{stats.totalPermissions}</span>
-          </div>
-        </div>
-
-        {/* Automated Nightly Shutdown Control Panel */}
-        {shutdownSchedule && (
-          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-5 sm:p-6 backdrop-blur-md mb-8 relative overflow-hidden group hover:border-white/20 transition-all">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`size-10 rounded-xl flex items-center justify-center border transition-all ${
-                    !shutdownSchedule.enabled
-                      ? "bg-zinc-800 border-zinc-700 text-zinc-400"
-                      : shutdownSchedule.isBlocked
-                      ? "bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-[0_0_1.5rem_-0.25rem_rgba(245,158,11,0.3)]"
-                      : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_1.5rem_-0.25rem_rgba(16,185,129,0.3)]"
-                  }`}
-                >
-                  <Moon className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                      {t("Server Shutdown")}
-                    </h2>
-                    {!shutdownSchedule.enabled ? (
-                      <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                        {t("Disabled")}
-                      </span>
-                    ) : shutdownSchedule.isBlocked ? (
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldAlert className="size-3" />
-                        {t("Blocked")}
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {t("Active")}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    {!shutdownSchedule.enabled
-                      ? t("Automatic server shutdown is disabled")
-                      : shutdownSchedule.isBlocked
-                      ? t("Server shutdown is blocked for tonight")
-                      : `${t("Next shutdown")}: ${shutdownSchedule.time} (${shutdownSchedule.minutesUntilShutdown ?? 0}m)`}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons & Time Controls */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* Time Picker & Save */}
-                <div className="flex items-center gap-1.5 bg-zinc-950/70 border border-white/10 rounded-xl px-2.5 py-1">
-                  <Clock className="size-3.5 text-zinc-400" />
-                  <input
-                    type="time"
-                    value={shutdownTimeInput}
-                    onChange={(e) => setShutdownTimeInput(e.target.value)}
-                    disabled={isSavingShutdown}
-                    className="bg-transparent text-xs font-mono font-bold text-white focus:outline-none w-16"
-                  />
-                  {shutdownTimeInput !== shutdownSchedule.time && (
-                    <Button
-                      size="sm"
-                      onClick={handleSaveShutdownTime}
-                      disabled={isSavingShutdown}
-                      className="h-6 px-2 text-[10px] font-bold rounded-lg bg-emerald-500 text-zinc-950 hover:bg-emerald-400 transition-colors"
-                    >
-                      {t("Save Time")}
-                    </Button>
-                  )}
-                </div>
-
-                {/* Block / Unblock Toggle Button */}
-                {shutdownSchedule.enabled && (
-                  <Button
-                    size="sm"
-                    onClick={handleToggleBlockShutdown}
-                    disabled={isSavingShutdown}
-                    className={`h-9 px-3.5 text-xs font-bold rounded-xl transition-all border ${
-                      shutdownSchedule.isBlocked
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-                        : "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
-                    }`}
-                  >
-                    {shutdownSchedule.isBlocked ? (
-                      <>
-                        <Unlock className="size-3.5 mr-1.5" />
-                        {t("Unblock Shutdown")}
-                      </>
-                    ) : (
-                      <>
-                        <ShieldAlert className="size-3.5 mr-1.5" />
-                        {t("Block Tonight")}
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {/* Master Enable/Disable Toggle */}
-                <Button
-                  size="sm"
-                  onClick={handleToggleShutdownEnabled}
-                  disabled={isSavingShutdown}
-                  className={`h-9 px-3.5 text-xs font-bold rounded-xl transition-all border ${
-                    shutdownSchedule.enabled
-                      ? "bg-zinc-800/80 border-white/10 text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                      : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-                  }`}
-                >
-                  <Power className="size-3.5 mr-1.5" />
-                  {shutdownSchedule.enabled ? t("Uitschakelen") : t("Inschakelen")}
-                </Button>
-
-                {/* Immediate Manual Shutdown */}
-                <Button
-                  size="sm"
-                  onClick={() => setIsShutdownNowOpen(true)}
-                  disabled={isShuttingDownNow}
-                  className="h-9 px-3.5 text-xs font-bold rounded-xl transition-all border bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
-                >
-                  <PowerOff className="size-3.5 mr-1.5" />
-                  {t("Shutdown Now")}
-                </Button>
-              </div>
-            </div>
-
-            {/* Subtext info regarding Minecraft safely stopping */}
-            <div className="mt-3.5 flex items-start gap-2 text-xs text-zinc-400 leading-relaxed">
-              <Bell className="size-3.5 text-zinc-500 mt-0.5 shrink-0" />
-              <span>
-                {t("Minecraft player warnings and safe shutdown active")}
+        <section aria-labelledby="pulse-users-heading">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 id="pulse-users-heading" className="text-lg font-semibold text-foreground">
+              {t("Gebruikers")}
+              <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
+                {t("{count} van {total} gebruikers", { count: String(visibleUsers.length), total: String(usersList.length) })}
               </span>
-            </div>
-          </div>
-        )}
-
-        <AlertDialogRoot
-          open={isShutdownNowOpen}
-          onOpenChange={(open) => {
-            if (!isShuttingDownNow) setIsShutdownNowOpen(open);
-          }}
-        >
-          <AlertDialogPopup>
-            <AlertDialogTitle className="text-zinc-100 font-bold text-lg flex items-center gap-2">
-              <PowerOff className="size-4 text-red-400" />
-              {t("Shut down server now?")}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-zinc-400 mt-2">
-              {t(
-                "This will immediately stop all Minecraft servers and power off the Fedora host. This cannot be undone."
-              )}
-            </AlertDialogDescription>
-            <AlertDialogActions className="mt-6 flex flex-wrap items-center justify-end gap-2">
-              <AlertDialogClose
-                render={
-                  <Button
-                    variant="ghost"
-                    disabled={isShuttingDownNow}
-                    className="text-zinc-400 hover:text-zinc-200"
-                  >
-                    {t("Cancel")}
-                  </Button>
-                }
+            </h2>
+            <div className="relative sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                type="search"
+                placeholder={t("Search users...")}
+                aria-label={t("Zoek gebruikers")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-11 rounded-lg pl-9"
               />
-              <Button
-                onClick={handleShutdownNow}
-                disabled={isShuttingDownNow}
-                className="bg-red-500 text-zinc-950 font-bold hover:bg-red-400"
-              >
-                {isShuttingDownNow ? t("Shutting down...") : t("Shutdown Now")}
-              </Button>
-            </AlertDialogActions>
-          </AlertDialogPopup>
-        </AlertDialogRoot>
-
-        {/* Search & Filter Bar */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
-            <Input
-              type="text"
-              placeholder={t("Search users...")}
-              aria-label={t("Zoek gebruikers")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-10 bg-zinc-900/90 border-white/10 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-teal-500/50 rounded-xl"
-            />
+            </div>
           </div>
-        </div>
 
-        {/* Users List Container */}
-        <div className="space-y-4">
-          {filteredUsers.length === 0 ? (
-            <div className="rounded-2xl bg-zinc-900/50 border border-white/5 p-12 text-center text-zinc-400 text-sm">
+          {visibleUsers.length === 0 ? (
+            <div className="rounded-xl bg-card p-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
               {t("No users found.")}
             </div>
           ) : (
-            filteredUsers.map((u) => {
-              const isPaused = u.isPaused === 1;
-              const isEditingEmail = editingEmailUserId === u.userId;
-              const isLoading = loadingUserId === u.userId;
+            <ul className="divide-y divide-white/10 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+              {visibleUsers.map((u) => {
+                const isPaused = u.isPaused === 1;
+                const isExpanded = expandedUserId === u.userId;
+                const isEditingEmail = editingEmailUserId === u.userId;
+                const isLoading = loadingUserId === u.userId;
+                const isSelf = u.username.toLowerCase() === username.toLowerCase();
+                const panelId = `pulse-user-${u.userId}`;
+                const userServers = u.mcServers || [];
 
-              return (
-                <div
-                  key={u.userId}
-                  className={`rounded-2xl bg-zinc-900/80 border backdrop-blur-md p-5 transition-all duration-200 ${
-                    isPaused
-                      ? "border-rose-900/40 bg-rose-950/10"
-                      : "border-white/10 hover:border-teal-500/30"
-                  }`}
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    {/* User Profile Summary */}
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      <div
-                        className={`size-11 rounded-xl font-display font-black text-lg flex items-center justify-center shrink-0 border ${
-                          isPaused
-                            ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
-                            : "bg-teal-500/15 border-teal-500/30 text-teal-400"
-                        }`}
-                      >
-                        {u.username.charAt(0).toUpperCase()}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-display font-bold text-base text-zinc-100 truncate">
+                return (
+                  <li key={u.userId}>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(u.userId)}
+                      aria-expanded={isExpanded}
+                      aria-controls={panelId}
+                      className={`flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-white/[0.03] focus-visible:ring-inset sm:px-5 ${FOCUS}`}
+                    >
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className={`truncate text-base font-medium ${isPaused ? "text-muted-foreground" : "text-foreground"}`}>
                             {u.username}
-                          </h3>
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 border border-white/5 font-mono text-zinc-400">
-                            ID: {u.userId}
                           </span>
-                          <span
-                            className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
-                              isPaused
-                                ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
-                                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                            }`}
-                          >
-                            {isPaused ? t("Paused") : t("Active")}
-                          </span>
-                        </div>
+                          {isPaused && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                              <Lock className="size-3" aria-hidden="true" />
+                              {t("Paused")}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className="text-[0.8rem] text-muted-foreground sm:ml-auto"
+                          title={u.lastLoginAt ? formatAbsolute(u.lastLoginAt) : undefined}
+                        >
+                          <span className="sr-only">{t("Laatst online")}: </span>
+                          <span suppressHydrationWarning>{formatRelative(u.lastLoginAt, now)}</span>
+                        </span>
+                      </span>
+                      <ChevronDown
+                        className={`size-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        aria-hidden="true"
+                      />
+                    </button>
 
-                        {/* Email Row & Edit */}
-                        <div className="flex items-center gap-2 mt-1.5 text-xs text-zinc-400">
-                          <Mail className="size-3.5 text-zinc-500 shrink-0" />
+                    {isExpanded && (
+                      <div id={panelId} className="flex flex-col gap-6 border-t border-white/10 bg-black/30 px-4 py-5 sm:px-5">
+                        <div className="flex flex-col gap-2">
+                          <h3 className="flex items-center gap-1.5 text-[0.8rem] font-medium tracking-[0.01em] text-muted-foreground">
+                            <Mail className="size-3.5" aria-hidden="true" />
+                            {t("Email Address")}
+                          </h3>
                           {isEditingEmail ? (
-                            <div className="flex items-center gap-1.5">
+                            <form
+                              className="flex flex-wrap items-center gap-2"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleSaveEmail(u.userId);
+                              }}
+                            >
                               <Input
                                 type="email"
                                 value={emailInput}
                                 onChange={(e) => setEmailInput(e.target.value)}
-                                className="h-7 text-xs bg-zinc-950 border-white/20 px-2 py-1 rounded-lg w-48 text-zinc-100"
+                                aria-label={t("Email Address")}
                                 placeholder={t("Email Address")}
+                                autoFocus
+                                className="h-11 w-full max-w-xs rounded-lg"
                               />
-                              <Button
-                                size="sm"
-                                onClick={() => handleSaveEmail(u.userId)}
-                                disabled={isLoading}
-                                className="h-7 px-2 bg-teal-500 hover:bg-teal-600 text-zinc-950 font-bold text-xs rounded-lg"
-                              >
-                                <Check className="size-3.5" />
+                              <Button type="submit" disabled={isLoading} aria-label={t("Opslaan")} className={`${BTN} bg-brand text-[#111] hover:bg-brand-hover`}>
+                                <Check aria-hidden="true" />
                               </Button>
                               <Button
-                                size="sm"
+                                type="button"
                                 variant="ghost"
                                 onClick={() => setEditingEmailUserId(null)}
-                                className="h-7 px-2 text-zinc-400 hover:text-white rounded-lg"
                                 aria-label={t("Sluiten")}
+                                className={`${BTN} text-muted-foreground`}
                               >
-                                <X className="size-3.5" />
+                                <X aria-hidden="true" />
                               </Button>
-                            </div>
+                            </form>
                           ) : (
-                            <div className="flex items-center gap-1.5">
-                              <span>{u.email || <span className="italic text-zinc-400">Geen e-mailadres</span>}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="break-all text-sm text-foreground">
+                                {u.email || <span className="italic text-muted-foreground">{t("Geen e-mailadres")}</span>}
+                              </span>
                               <button
+                                type="button"
                                 onClick={() => handleStartEditEmail(u)}
-                                className="p-1 rounded-md text-zinc-500 hover:text-teal-400 hover:bg-zinc-800 transition-colors"
                                 title={t("Email bewerken")}
+                                aria-label={t("Email bewerken")}
+                                className={`flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-white/5 hover:text-foreground ${FOCUS}`}
                               >
-                                <Edit2 className="size-3" />
+                                <Edit2 className="size-4" aria-hidden="true" />
                               </button>
                             </div>
                           )}
                         </div>
 
-                        {/* Last Login Info */}
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-zinc-500 font-medium">
-                          <span>{t("Last Login")}:</span>
-                          <span className="text-zinc-300 font-mono">{formatLastLogin(u.lastLoginAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Account Controls & Actions */}
-                    <div className="flex items-center gap-2 sm:gap-3 self-end lg:self-center shrink-0 flex-wrap">
-                      {u.username.toLowerCase() !== username.toLowerCase() && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleImpersonate(u)}
-                          disabled={isLoading || isPaused}
-                          className="h-9 px-3 text-xs font-bold rounded-xl transition-all border bg-teal-500/10 border-teal-500/30 text-teal-400 hover:bg-teal-500/20 disabled:opacity-40"
-                          title={t("Impersonate user")}
-                        >
-                          <LogIn className="size-3.5 mr-1.5" />
-                          {t("Login as user")}
-                        </Button>
-                      )}
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleStatus(u)}
-                        disabled={isLoading}
-                        className={`h-9 px-3.5 text-xs font-bold rounded-xl transition-all border ${
-                          isPaused
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-                            : "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
-                        }`}
-                      >
-                        {isPaused ? (
-                          <>
-                            <Unlock className="size-3.5 mr-1.5" />
-                            {t("Unpause Account")}
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="size-3.5 mr-1.5" />
-                            {t("Pause Account")}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Module Access Permissions Section */}
-                  <div className="mt-4 pt-4 border-t border-white/5">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                        <Sparkles className="size-3.5 text-teal-400" />
-                        {t("Module Access")}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {modulesList.map((m) => {
-                        const hasAccess = u.modules.includes(m.moduleName);
-                        return (
-                          <button
-                            key={m.moduleId}
-                            onClick={() => handleToggleModule(u, m.moduleName)}
-                            disabled={isLoading}
-                            className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
-                              hasAccess
-                                ? "bg-teal-500/15 border-teal-500/40 text-teal-300 shadow-[0_0_1rem_-0.25rem_rgba(20,184,166,0.3)]"
-                                : "bg-zinc-800/40 border-white/5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 hover:border-white/10"
-                            }`}
-                          >
-                            <div
-                              className={`size-3.5 rounded-md flex items-center justify-center border transition-colors ${
-                                hasAccess
-                                  ? "bg-teal-500 border-teal-400 text-zinc-950"
-                                  : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
-                              }`}
-                            >
-                              {hasAccess && <Check className="size-2.5 stroke-[3]" />}
-                            </div>
-                            <span>{m.moduleAlias || m.moduleName}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Minecraft Server Specific Monitor Permissions */}
-                    {u.modules.includes("minecraft:monitor") && (
-                      <div className="mt-3.5 pt-3.5 border-t border-white/5 bg-zinc-950/40 rounded-xl p-3 border border-dashed border-white/10">
-                        <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
-                            <Gamepad2 className="size-3 text-sky-400" />
-                            {t("Minecraft Server Monitor-toegang")}
-                          </span>
-                          <span className="text-[10px] text-zinc-400 font-mono">
-                            {(u.mcServers || []).length} {t("servers geselecteerd")}
-                          </span>
-                        </div>
-
-                        {serversList.length === 0 ? (
-                          <p className="text-xs text-zinc-500 italic">{t("Geen Minecraft servers gevonden.")}</p>
-                        ) : (
+                        <div className="flex flex-col gap-2">
+                          <h3 className="flex items-center gap-1.5 text-[0.8rem] font-medium tracking-[0.01em] text-muted-foreground">
+                            <Sparkles className="size-3.5" aria-hidden="true" />
+                            {t("Module Access")}
+                          </h3>
                           <div className="flex flex-wrap gap-2">
-                            {serversList.map((srv) => {
-                              const hasAccess = (u.mcServers || []).includes(srv.slug);
+                            {modulesList.map((m) => {
+                              const hasAccess = u.modules.includes(m.moduleName);
                               return (
                                 <button
-                                  key={srv.serverId}
-                                  onClick={() => handleToggleServer(u, srv.slug)}
+                                  key={m.moduleId}
+                                  type="button"
+                                  onClick={() => handleToggleModule(u, m.moduleName)}
                                   disabled={isLoading}
-                                  className={`group flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 ${
+                                  aria-pressed={hasAccess}
+                                  className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm transition-colors disabled:opacity-50 ${FOCUS} ${
                                     hasAccess
-                                      ? "bg-sky-500/15 border-sky-500/40 text-sky-300 shadow-[0_0_1rem_-0.25rem_rgba(14,165,233,0.3)]"
-                                      : "bg-zinc-800/30 border-white/5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 hover:border-white/10"
+                                      ? "border-brand/50 bg-brand/10 text-foreground"
+                                      : "border-border text-muted-foreground hover:bg-white/5 hover:text-foreground"
                                   }`}
                                 >
-                                  <div
-                                    className={`size-3 rounded-sm flex items-center justify-center border transition-colors ${
-                                      hasAccess
-                                        ? "bg-sky-500 border-sky-400 text-zinc-950"
-                                        : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
+                                  <span
+                                    className={`flex size-4 items-center justify-center rounded border ${
+                                      hasAccess ? "border-brand bg-brand text-[#111]" : "border-white/25"
                                     }`}
+                                    aria-hidden="true"
                                   >
-                                    {hasAccess && <Check className="size-2 stroke-[3]" />}
-                                  </div>
-                                  <span>{srv.displayName}</span>
-                                  <span className="text-[10px] opacity-60 font-mono">({srv.slug})</span>
+                                    {hasAccess && <Check className="size-3 stroke-[3]" />}
+                                  </span>
+                                  {m.moduleAlias || m.moduleName}
                                 </button>
                               );
                             })}
                           </div>
+                        </div>
+
+                        {u.modules.includes("minecraft:monitor") && (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-1">
+                              <h3 className="flex items-center gap-1.5 text-[0.8rem] font-medium tracking-[0.01em] text-muted-foreground">
+                                <Gamepad2 className="size-3.5" aria-hidden="true" />
+                                {t("Minecraft Server Monitor-toegang")}
+                              </h3>
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {userServers.length} {t("servers geselecteerd")}
+                              </span>
+                            </div>
+                            {serversList.length === 0 ? (
+                              <p className="text-sm italic text-muted-foreground">{t("Geen Minecraft servers gevonden.")}</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {serversList.map((srv) => {
+                                  const hasAccess = userServers.includes(srv.slug);
+                                  return (
+                                    <button
+                                      key={srv.serverId}
+                                      type="button"
+                                      onClick={() => handleToggleServer(u, srv.slug)}
+                                      disabled={isLoading}
+                                      aria-pressed={hasAccess}
+                                      className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm transition-colors disabled:opacity-50 ${FOCUS} ${
+                                        hasAccess
+                                          ? "border-brand/50 bg-brand/10 text-foreground"
+                                          : "border-border text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                                      }`}
+                                    >
+                                      <span
+                                        className={`flex size-4 items-center justify-center rounded border ${
+                                          hasAccess ? "border-brand bg-brand text-[#111]" : "border-white/25"
+                                        }`}
+                                        aria-hidden="true"
+                                      >
+                                        {hasAccess && <Check className="size-3 stroke-[3]" />}
+                                      </span>
+                                      {srv.displayName}
+                                      <span className="font-mono text-xs opacity-60">({srv.slug})</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         )}
+
+                        <div className="flex flex-wrap gap-2 border-t border-white/10 pt-5">
+                          {!isSelf && (
+                            <Button
+                              variant="outline"
+                              onClick={() => handleImpersonate(u)}
+                              disabled={isLoading || isPaused}
+                              title={t("Impersonate user")}
+                              className={BTN_OUTLINE}
+                            >
+                              <LogIn aria-hidden="true" />
+                              {t("Login as user")}
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            onClick={() => handleToggleStatus(u)}
+                            disabled={isLoading}
+                            className={
+                              isPaused
+                                ? BTN_OUTLINE
+                                : `${BTN} border-destructive/40 bg-transparent text-destructive hover:bg-destructive/10`
+                            }
+                          >
+                            {isPaused ? (
+                              <>
+                                <Unlock aria-hidden="true" />
+                                {t("Unpause Account")}
+                              </>
+                            ) : (
+                              <>
+                                <Lock aria-hidden="true" />
+                                {t("Pause Account")}
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     )}
-                  </div>
-                </div>
-              );
-            })
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </div>
+        </section>
       </main>
     </div>
   );

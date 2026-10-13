@@ -1,7 +1,7 @@
 import { serverApi, getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { PulseClient } from "./client";
-import type { McServer, ShutdownSchedule } from "@/lib/api";
+import type { McServer, ShutdownSchedule, SystemUpdateState } from "@/lib/api";
 
 export default async function PulsePage() {
   const user = await getCurrentUser();
@@ -9,7 +9,7 @@ export default async function PulsePage() {
     redirect("/dashboard");
   }
 
-  const [initialUsers, initialModules, initialStats, initialServers, initialShutdownSchedule] = await Promise.all([
+  const [initialUsers, initialModules, initialStats, initialServers, initialShutdownSchedule, initialSystemUpdate] = await Promise.all([
     serverApi.pulse.users(),
     serverApi.pulse.modules(),
     serverApi.pulse.stats(),
@@ -22,6 +22,16 @@ export default async function PulsePage() {
       nextShutdownAt: null,
       minutesUntilShutdown: null,
     } as ShutdownSchedule)),
+    serverApi.pulse.systemUpdate().catch(() => ({
+      status: "idle",
+      phase: null,
+      progress: null,
+      startedAt: null,
+      finishedAt: null,
+      exitCode: null,
+      log: [],
+      error: null,
+    } as SystemUpdateState)),
   ]);
 
   return (
@@ -32,6 +42,7 @@ export default async function PulsePage() {
       initialStats={initialStats}
       initialServers={initialServers}
       initialShutdownSchedule={initialShutdownSchedule}
+      initialSystemUpdate={initialSystemUpdate}
     />
   );
 }

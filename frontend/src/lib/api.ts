@@ -626,6 +626,15 @@ export const api = {
       request<{ ok: boolean }>("/pulse/shutdown-now", {
         method: "POST",
       }),
+    getSystemUpdate: () => request<SystemUpdateState>("/pulse/system-update"),
+    startSystemUpdate: () =>
+      request<SystemUpdateState>("/pulse/system-update", {
+        method: "POST",
+      }),
+    reboot: () =>
+      request<{ ok: boolean }>("/pulse/reboot", {
+        method: "POST",
+      }),
   },
 
   minecraft: {
@@ -1102,6 +1111,29 @@ export interface ShutdownSchedule {
   isBlocked: boolean;
   nextShutdownAt: string | null;
   minutesUntilShutdown: number | null;
+}
+
+export type UpdatePhase =
+  | "starting"
+  | "repositories"
+  | "resolving"
+  | "downloading"
+  | "installing"
+  | "cleanup"
+  | "verifying"
+  | "complete"
+  | "nothing"
+  | "error";
+
+export interface SystemUpdateState {
+  status: "idle" | "running" | "success" | "failed";
+  phase: UpdatePhase | null;
+  progress: { current: number; total: number } | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  exitCode: number | null;
+  log: string[];
+  error: string | null;
 }
 
 export interface Wine {

@@ -233,6 +233,26 @@ export class ServerShutdownService {
     await this.executeFullShutdown();
   }
 
+  async triggerReboot() {
+    console.log("[ShutdownService] Reboot triggered via Pulse.");
+    await this.stopAllMinecraftServers();
+
+    if (process.env.NODE_ENV === "test") {
+      console.log("[ShutdownService] In test mode: skipping system reboot execution.");
+      return;
+    }
+
+    try {
+      Bun.spawn(["sudo", "-n", "systemctl", "reboot"]);
+    } catch {
+      try {
+        Bun.spawn(["systemctl", "reboot"]);
+      } catch (err) {
+        console.error("[ShutdownService] Failed to execute reboot command:", err);
+      }
+    }
+  }
+
   async executeFullShutdown() {
     console.log("[ShutdownService] Starting scheduled system shutdown sequence...");
     await this.stopAllMinecraftServers();

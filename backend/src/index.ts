@@ -6,7 +6,7 @@ import { WorkoutService } from "./modules/workout";
 import { MeasurementService } from "./modules/measurements";
 import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
-import { PulseService, ServerShutdownService } from "./modules/pulse";
+import { PulseService, ServerShutdownService, SystemUpdateService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
 import { createDiscordBot } from "./modules/minecraft/discord-bot";
 import { MinorService } from "./modules/minor";
@@ -47,6 +47,7 @@ const cashflow = new CashflowService();
 const pulse = new PulseService();
 const minecraft = new MinecraftService();
 const shutdownService = new ServerShutdownService(minecraft);
+const systemUpdate = new SystemUpdateService();
 const minor = new MinorService();
 const resume = new ResumeService();
 
@@ -987,6 +988,24 @@ export const app = new Elysia()
       .post("/shutdown-now", async () => {
         shutdownService.triggerManualShutdown().catch((err) => {
           console.error("[Pulse] Manual shutdown failed:", err);
+        });
+        return { ok: true };
+      })
+      .get("/system-update", () => systemUpdate.getState())
+      .post("/system-update", ({ set }) => {
+        if (systemUpdate.isRunning()) {
+          set.status = 409;
+          return { error: "already_running" };
+        }
+        return systemUpdate.start();
+      })
+      .post("/reboot", ({ set }) => {
+        if (systemUpdate.isRunning()) {
+          set.status = 409;
+          return { error: "update_running" };
+        }
+        shutdownService.triggerReboot().catch((err) => {
+          console.error("[Pulse] Reboot failed:", err);
         });
         return { ok: true };
       })
