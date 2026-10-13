@@ -61,13 +61,13 @@ This guide gives AI models an instant index of the Minor module frontend structu
 1. **Adding a story field**:
    - Update database schema: `backend/src/db/schema/minor.ts`
    - Update shared type: `backend/src/types/shared.ts` (`MinorStory`, `MinorSprintExportStory`)
-   - Update backend service: `backend/src/modules/minor/index.ts` (`createStory`, `updateStory`, `getSprintById`, `exportSprint`, `importSprint`)
-   - Update UI modal & forms: `frontend/src/app/minor/sprints/[id]/client.tsx` and `frontend/src/app/minor/stories/client.tsx`
+   - Update backend service: `backend/src/modules/minor/` (`minor-*.ts` layers) (`createStory`, `updateStory`, `getSprintById`, `exportSprint`, `importSprint`)
+   - Update UI modal & forms: `frontend/src/app/minor/sprints/[id]/` (client plus extracted modals, tabs and `use-*.ts` hooks) and `frontend/src/app/minor/stories/`
    - If included in presentation: `frontend/src/components/minor-presentation/`
 2. **Changing Sprint calculation / dates**:
-   - Check `calculateSprintDates` and `calculateSprintStatus` in `backend/src/modules/minor/index.ts`
+   - Check `calculateSprintDates` and `calculateSprintStatus` in `backend/src/modules/minor/` (`minor-*.ts` layers)
    - Test with `DB_PATH=:memory: bun test backend/src/modules/minor/minor.test.ts`
 3. **Updating Export (PDF / Excel / JSON)**:
    - PDF: `frontend/src/components/minor-pdf.tsx`
    - Excel: `frontend/src/lib/minor-excel.ts` (test: `bun test frontend/src/lib/minor-excel.test.ts`)
-   - JSON: `frontend/src/lib/minor-sprint-export.ts` and `backend/src/modules/minor/index.ts` (`exportSprint`/`importSprint`)
+   - JSON: `frontend/src/lib/minor-sprint-export.ts` and `backend/src/modules/minor/` (`minor-*.ts` layers) (`exportSprint`/`importSprint`)

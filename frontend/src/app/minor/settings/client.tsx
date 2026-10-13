@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Plus, Trash2, Edit2, Tag, CornerDownRight, CheckSquare, X, Link2 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorVacation, type MinorStoryType, type MinorSettings } from "@/lib/api";
-import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
-import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { ExportSettingsSection } from "./export-settings-section";
+import { VacationSection } from "./vacation-section";
+import { StoryTypeSection } from "./story-type-section";
+import { VacationModal } from "./vacation-modal";
+import { StoryTypeModal } from "./story-type-modal";
 
 interface MinorSettingsClientProps {
   initialVacations: MinorVacation[];
@@ -212,582 +214,66 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
           {t("Configureer vakantieperiodes voor automatische sprintverlenging en beheer kwaliteitscriteria per story type.")}
         </p>
       </div>
+      <ExportSettingsSection
+        lastName={lastName}
+        setLastName={setLastName}
+        portfolioUrl={portfolioUrl}
+        setPortfolioUrl={setPortfolioUrl}
+        savingPortfolioUrl={savingPortfolioUrl}
+        portfolioUrlSaved={portfolioUrlSaved}
+        onSubmit={handleSaveExportSettings}
+      />
 
-      {/* Export Settings Section */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2.5">
-          <Link2 className="size-5 text-brand" />
-          <h2 className="text-lg font-bold text-white tracking-tight">
-            {t("Exportgegevens")}
-          </h2>
-        </div>
+      <VacationSection
+        vacations={vacations}
+        onCreate={openCreateVacModal}
+        onEdit={openEditVacModal}
+        onDelete={handleDeleteVacation}
+      />
 
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/60 p-4 sm:p-6">
-          <form onSubmit={handleSaveExportSettings} className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 space-y-1.5">
-                <label htmlFor="last-name" className="text-xs font-semibold text-zinc-400">
-                  {t("Achternaam")}
-                </label>
-                <input
-                  id="last-name"
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder={t("vul hier je achternaam in")}
-                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
-                />
-                <p className="text-[11px] text-zinc-500">
-                  {t("Wordt gebruikt in de standaard bestandsnaam van je export.")}
-                </p>
-              </div>
-              <div className="flex-1 space-y-1.5">
-                <label htmlFor="portfolio-url" className="text-xs font-semibold text-zinc-400">
-                  {t("Portfolio site URL")}
-                </label>
-                <input
-                  id="portfolio-url"
-                  type="url"
-                  value={portfolioUrl}
-                  onChange={(e) => setPortfolioUrl(e.target.value)}
-                  placeholder={t("vul hier je portfolio site url in")}
-                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
-                />
-                <p className="text-[11px] text-zinc-500">
-                  {t("Deze link wordt automatisch ingevuld op de eerste pagina van de PDF-export.")}
-                </p>
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={savingPortfolioUrl}
-              className="flex items-center justify-center gap-2 min-h-11 py-2.5 px-4 rounded-xl bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50 shrink-0 self-start"
-            >
-              {portfolioUrlSaved ? t("Opgeslagen") : savingPortfolioUrl ? t("Opslaan...") : t("Opslaan")}
-            </button>
-          </form>
-        </div>
-      </section>
+      <StoryTypeSection
+        storyTypes={storyTypes}
+        onCreate={openCreateTypeModal}
+        onEdit={openEditTypeModal}
+        onDelete={handleDeleteStoryType}
+      />
 
-      {/* Vacation Management Section */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Calendar className="size-5 text-brand" />
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              {t("Vakantiebeheer & Automatische Verlenging")}
-            </h2>
-          </div>
-          <button
-            onClick={openCreateVacModal}
-            title={t("Vakantie toevoegen")}
-            aria-label={t("Vakantie toevoegen")}
-            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand text-zinc-950 hover:bg-brand-hover transition-all cursor-pointer"
-          >
-            <Plus className="size-3.5" />
-            <span className="hidden sm:inline">{t("Vakantie toevoegen")}</span>
-          </button>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-          {/* Mobile Cards */}
-          <div className="block sm:hidden divide-y divide-white/5">
-            {vacations.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500 italic">
-                {t("Geen vakanties geregistreerd.")}
-              </div>
-            ) : (
-              vacations.map((v) => (
-                <div key={v.id} className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-white text-sm">{v.name}</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEditVacModal(v)}
-                        className="text-zinc-400 hover:text-white p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
-                        title={t("Bewerken")}
-                        aria-label={t("Bewerken")}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteVacation(v.id)}
-                        className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
-                        title={t("Verwijderen")}
-                        aria-label={t("Verwijderen")}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-zinc-400 font-mono text-[11px]">
-                    {v.startDate} → {v.endDate}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 bg-zinc-950/80 text-zinc-400 font-semibold">
-                  <th className="py-3 px-4">{t("Vakantienaam")}</th>
-                  <th className="py-3 px-4 w-36">{t("Startdatum")}</th>
-                  <th className="py-3 px-4 w-36">{t("Einddatum")}</th>
-                  <th className="py-3 px-4 w-20 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {vacations.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-zinc-500 italic">
-                      {t("Geen vakanties geregistreerd.")}
-                    </td>
-                  </tr>
-                ) : (
-                  vacations.map((v) => (
-                    <tr key={v.id} className="hover:bg-zinc-900/80 transition-colors">
-                      <td className="py-3.5 px-4 font-semibold text-white">{v.name}</td>
-                      <td className="py-3.5 px-4 font-mono text-zinc-300">{v.startDate}</td>
-                      <td className="py-3.5 px-4 font-mono text-zinc-300">{v.endDate}</td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => openEditVacModal(v)}
-                            className="text-zinc-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                            title={t("Bewerken")}
-                            aria-label={t("Bewerken")}
-                          >
-                            <Edit2 className="size-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteVacation(v.id)}
-                            className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
-                            title={t("Verwijderen")}
-                            aria-label={t("Verwijderen")}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Story Types Section */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Tag className="size-5 text-brand" />
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              {t("Story Typen & Kwaliteitscriteria (US, RS, LS & Custom)")}
-            </h2>
-          </div>
-          <button
-            onClick={openCreateTypeModal}
-            title={t("Story Type toevoegen")}
-            aria-label={t("Story Type toevoegen")}
-            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 transition-all cursor-pointer"
-          >
-            <Plus className="size-3.5" />
-            <span className="hidden sm:inline">{t("Story Type toevoegen")}</span>
-            <span className="sm:hidden">{t("Type toevoegen")}</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-          {storyTypes.map((st) => {
-            const criteriaCount = st.defaultQualityCriteria?.length || 0;
-            const typeDetails = getStoryTypeDetails(st.code, storyTypes);
-            return (
-              <div
-                key={st.id}
-                onClick={() => openEditTypeModal(st)}
-                style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-                className={`p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 flex flex-col justify-between gap-3 group cursor-pointer transition-all`}
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="text-xs font-mono font-bold px-2 py-0.5 rounded border"
-                        style={{
-                          borderColor: `${typeDetails.color}40`,
-                          backgroundColor: `${typeDetails.color}15`,
-                          color: typeDetails.color,
-                        }}
-                      >
-                        {st.code}
-                      </span>
-                      <span className={`text-xs font-bold text-white ${typeDetails.hoverTextClass} transition-colors`}>
-                        {st.name}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => openEditTypeModal(st)}
-                        className={`text-zinc-400 ${typeDetails.hoverTextClass} p-1 rounded hover:bg-zinc-800 transition-all cursor-pointer`}
-                        title={t("Story type en kwaliteitscriteria bewerken")}
-                      >
-                        <Edit2 className="size-3.5 transition-all group-hover:stroke-[2.75]" />
-                      </button>
-                      {!st.isDefault && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteStoryType(st.id)}
-                          className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
-                          title={t("Verwijderen")}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {st.description && (
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">{st.description}</p>
-                  )}
-
-                  {/* Quality criteria count & preview */}
-                  <div className="pt-2 border-t border-white/5 space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-zinc-400 font-medium flex items-center gap-1.5">
-                        <CheckSquare className="size-3.5 text-brand" />
-                        <span>{t("Standaard kwaliteitscriteria")}:</span>
-                      </span>
-                      <span className="font-mono font-semibold text-zinc-300 bg-zinc-950 px-1.5 py-0.5 rounded border border-white/5">
-                        {criteriaCount}
-                      </span>
-                    </div>
-                    {criteriaCount > 0 && (
-                      <ul className="text-[11px] text-zinc-400 space-y-1 pl-1">
-                        {st.defaultQualityCriteria!.slice(0, 3).map((crit, cIdx) => (
-                          <li key={cIdx} className="truncate flex items-center gap-1 text-zinc-300">
-                            <span className="text-brand/70 font-mono text-[10px]">
-                              {crit.indent ? "↳" : "•"}
-                            </span>
-                            <span className="truncate">{crit.text}</span>
-                          </li>
-                        ))}
-                        {criteriaCount > 3 && (
-                          <li className="text-[10px] text-zinc-500 italic pl-2">
-                            +{criteriaCount - 3} {t("overige criteria")}
-                          </li>
-                        )}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                {st.isDefault && (
-                  <span className="text-[10px] text-zinc-500 italic block">{t("Standaard type")}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Vacation Modal */}
       {isVacModalOpen && (
-        <ModalOverlay
-          open
+        <VacationModal
+          editingVac={editingVac}
+          vacName={vacName}
+          setVacName={setVacName}
+          vacStart={vacStart}
+          setVacStart={setVacStart}
+          vacEnd={vacEnd}
+          setVacEnd={setVacEnd}
+          savingVac={savingVac}
           onClose={() => setIsVacModalOpen(false)}
-          label={editingVac ? t("Vakantie bewerken") : t("Vakantie toevoegen")}
-          className="p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Calendar className="size-4 text-brand" />
-                <span>{editingVac ? t("Vakantie bewerken") : t("Vakantie toevoegen")}</span>
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsVacModalOpen(false)}
-                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
-                title={t("Sluiten")}
-                aria-label={t("Sluiten")}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveVacation} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Vakantienaam")}</label>
-                <input
-                  type="text"
-                  placeholder="bijv. Herfstvakantie / Kerstvakantie"
-                  value={vacName}
-                  onChange={(e) => setVacName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-zinc-400 mb-1">{t("Startdatum")}</label>
-                  <input
-                    type="date"
-                    value={vacStart}
-                    onChange={(e) => setVacStart(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-zinc-400 mb-1">{t("Einddatum")}</label>
-                  <input
-                    type="date"
-                    value={vacEnd}
-                    onChange={(e) => setVacEnd(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-                {editingVac ? (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteVacation(editingVac.id)}
-                    className="text-red-400 hover:underline cursor-pointer"
-                  >
-                    {t("Verwijderen")}
-                  </button>
-                ) : (
-                  <div />
-                )}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsVacModalOpen(false)}
-                    className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white cursor-pointer"
-                  >
-                    {t("Annuleren")}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingVac}
-                    className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {savingVac ? t("Opslaan...") : t("Opslaan")}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </ModalOverlay>
+          onSubmit={handleSaveVacation}
+          onDelete={handleDeleteVacation}
+        />
       )}
 
-      {/* Story Type Modal (Create & Edit) */}
       {isTypeModalOpen && (
-        <ModalOverlay
-          open
+        <StoryTypeModal
+          editingType={editingType}
+          typeCode={typeCode}
+          setTypeCode={setTypeCode}
+          typeName={typeName}
+          setTypeName={setTypeName}
+          typeDesc={typeDesc}
+          setTypeDesc={setTypeDesc}
+          typeColor={typeColor}
+          setTypeColor={setTypeColor}
+          typeQualityCriteria={typeQualityCriteria}
+          setTypeQualityCriteria={setTypeQualityCriteria}
+          typeFocusTarget={typeFocusTarget}
+          setTypeFocusTarget={setTypeFocusTarget}
+          savingType={savingType}
+          addTypeQualityCriterion={addTypeQualityCriterion}
           onClose={() => setIsTypeModalOpen(false)}
-          label={editingType ? t("Story Type bewerken") : t("Story Type toevoegen")}
-          className="p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Tag className="size-4 text-brand" />
-                <span>{editingType ? t("Story Type bewerken") : t("Story Type toevoegen")}</span>
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsTypeModalOpen(false)}
-                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
-                title={t("Sluiten")}
-                aria-label={t("Sluiten")}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveStoryType} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-zinc-400 mb-1">{t("Type Code")}</label>
-                  <input
-                    type="text"
-                    placeholder="bijv. TS of BUG"
-                    maxLength={6}
-                    value={typeCode}
-                    onChange={(e) => setTypeCode(e.target.value)}
-                    disabled={Boolean(editingType && editingType.isDefault)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono uppercase focus:outline-none focus:border-brand disabled:opacity-60 disabled:cursor-not-allowed"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-zinc-400 mb-1">{t("Type Naam")}</label>
-                  <input
-                    type="text"
-                    placeholder="bijv. Technical Story"
-                    value={typeName}
-                    onChange={(e) => setTypeName(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Omschrijving (optioneel)")}</label>
-                <input
-                  type="text"
-                  placeholder="Korte beschrijving van wanneer dit type gebruikt wordt"
-                  value={typeDesc}
-                  onChange={(e) => setTypeDesc(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Kleur")}</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={typeColor}
-                    onChange={(e) => setTypeColor(e.target.value)}
-                    className="size-8 rounded-lg bg-zinc-950 border border-white/10 cursor-pointer p-0.5"
-                  />
-                  <span className="font-mono text-zinc-400 text-xs">{typeColor}</span>
-                </div>
-              </div>
-
-              {/* Default Quality Criteria Editor */}
-              <div className="space-y-2.5 pt-2 border-t border-white/10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="size-4 text-brand" />
-                    <span className="font-bold text-white text-xs">{t("Standaard Kwaliteitscriteria")}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-950 text-zinc-400 font-mono">
-                      {typeQualityCriteria.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => addTypeQualityCriterion(0)}
-                      className="text-brand hover:underline flex items-center gap-1 text-xs font-semibold cursor-pointer"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>{t("Criterium")}</span>
-                    </button>
-                    <span className="text-zinc-700">|</span>
-                    <button
-                      type="button"
-                      onClick={() => addTypeQualityCriterion(1)}
-                      className="text-brand/80 hover:text-brand hover:underline flex items-center gap-1 text-xs font-semibold cursor-pointer"
-                      title={t("Subtaak toevoegen")}
-                    >
-                      <CornerDownRight className="size-3" />
-                      <span>{t("Subtaak")}</span>
-                    </button>
-                  </div>
-                </div>
-                <p className="text-[11px] text-zinc-400">
-                  {t("Deze kwaliteitscriteria worden automatisch klaargezet wanneer een gebruiker een story van dit type aanmaakt.")}
-                </p>
-
-                <div className="space-y-2 max-h-56 overflow-y-auto overflow-x-hidden pr-1">
-                  {typeQualityCriteria.length === 0 ? (
-                    <p className="text-xs text-zinc-500 italic py-2">{t("Geen standaard kwaliteitscriteria ingesteld.")}</p>
-                  ) : (
-                    typeQualityCriteria.map((c, idx) => {
-                      const isSub = (c.indent ?? 0) > 0;
-                      return (
-                        <div
-                          key={idx}
-                          className={`flex items-center gap-2 ${
-                            isSub ? "pl-4 border-l-2 border-brand/40 ml-1" : ""
-                          }`}
-                        >
-                          <span className="text-zinc-500 font-mono text-[11px] w-4 shrink-0 text-center">
-                            {isSub ? "↳" : `${idx + 1}.`}
-                          </span>
-                          <input
-                            ref={(el) => {
-                              if (typeFocusTarget === idx && el) {
-                                el.focus();
-                                setTypeFocusTarget(null);
-                              }
-                            }}
-                            type="text"
-                            value={c.text}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setTypeQualityCriteria((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
-                              );
-                            }}
-                            placeholder={isSub ? "Sub-kwaliteitseis..." : "Kwaliteitseis omschrijving..."}
-                            className="flex-1 min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTypeQualityCriteria((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, indent: isSub ? 0 : 1 } : item))
-                              );
-                            }}
-                            title={isSub ? t("Terugspringen naar hoofdtaak") : t("Inspringen als subtaak")}
-                            className={`p-1.5 rounded transition-colors cursor-pointer shrink-0 ${
-                              isSub
-                                ? "text-brand bg-brand/10 hover:bg-brand/20"
-                                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-                            }`}
-                          >
-                            <CornerDownRight className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setTypeQualityCriteria((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-colors cursor-pointer shrink-0"
-                            title={t("Verwijderen")}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setIsTypeModalOpen(false)}
-                  className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
-                >
-                  {t("Annuleren")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingType}
-                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {savingType ? t("Opslaan...") : t("Opslaan")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </ModalOverlay>
+          onSubmit={handleSaveStoryType}
+        />
       )}
     </div>
   );
