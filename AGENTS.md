@@ -22,7 +22,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 
 ## Architecture
 
-- **Backend** (`backend/src/index.ts`): Elysia.js on port `:3001`, Drizzle ORM + `bun:sqlite` (WAL mode). Session-based auth via `session_id` cookie (7-day expiry). Module-level permissions checked via `AuthService.moduleAccessCheck()`.
+- **Backend** (`backend/src/index.ts`, routes in `backend/src/routes/`): Elysia.js on port `:3001`, Drizzle ORM + `bun:sqlite` (WAL mode). Session-based auth via `session_id` cookie (7-day expiry). Module-level permissions checked via `AuthService.moduleAccessCheck()`.
 - **Frontend** (`frontend/src/`): Next.js 16.2.7 App Router (React 19, Tailwind CSS v4). Proxies `/api/*` → `localhost:3001/api/*` via `next.config.ts` rewrites.
 - **API clients**:
   - `src/lib/api.ts` for client components (uses `/api/*` proxy rewrite, forwards credentials).
@@ -50,7 +50,7 @@ Backend routes and frontend views are structured around discrete domain modules:
 
 ## Key conventions
 
-- `backend/src/modules/` contains feature modules. Each owns its routes in `index.ts` (no router splitting — Elysia routes live in `src/index.ts` directly). Each module is a class instantiated at startup.
+- `backend/src/modules/` contains feature modules. Each module is a class (exported from its `index.ts`, with methods split over layered sibling files) instantiated at startup in `src/context.ts`. Elysia routes live in `src/routes/<module>.ts` and are mounted from `src/index.ts`. Keep files under ~500 lines (ideally 150–300).
 - **Language**: Backend code stays in English without comments. Frontend UI is in Dutch — all user-facing strings use `t()` from `@/lib/lang`.
 - **Design System**: Strict adherence to `DESIGN.md` ("The Signal Panel" aesthetic):
   - Pitch black background (`#000000`) with tonal card layering (Dark Slate `oklch(0.205 0 0)`), no default shadows.
