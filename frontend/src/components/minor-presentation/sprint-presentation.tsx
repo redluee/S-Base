@@ -1,17 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  Minimize2,
-  X,
-  LayoutGrid,
-  Edit3,
-  StickyNote,
-  ListChecks,
-} from "lucide-react";
+import { Maximize2, StickyNote } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprintFull, MinorStory, MinorStoryType, MinorStoryPresentationData } from "@/lib/api";
 import { PresentationBackground } from "./presentation-background";
@@ -23,97 +13,20 @@ import { PresentationStoryEditor } from "./presentation-story-editor";
 import { PresentationCriteriaModal } from "./presentation-criteria-modal";
 import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
 import { api } from "@/lib/api";
+import {
+  exitFullscreenAcrossBrowsers,
+  isCurrentlyFullscreen,
+  requestFullscreenAcrossBrowsers,
+} from "./presentation-fullscreen";
+import { PresentationTopBar } from "./presentation-top-bar";
+import { PresentationBottomBar } from "./presentation-bottom-bar";
+import { PresentationOverview } from "./presentation-overview";
 
 interface SprintPresentationProps {
   sprint: MinorSprintFull;
   storyTypes: MinorStoryType[];
   onClose: () => void;
   onStoryUpdated?: (updatedStory: MinorStory) => void;
-}
-
-function isCurrentlyFullscreen(): boolean {
-  if (typeof document === "undefined") return false;
-  const doc = document as unknown as {
-    fullscreenElement?: Element;
-    webkitFullscreenElement?: Element;
-    mozFullScreenElement?: Element;
-    msFullscreenElement?: Element;
-  };
-  return Boolean(
-    doc.fullscreenElement ||
-    doc.webkitFullscreenElement ||
-    doc.mozFullScreenElement ||
-    doc.msFullscreenElement
-  );
-}
-
-async function requestFullscreenAcrossBrowsers(targetElement?: HTMLElement | null): Promise<void> {
-  if (typeof document === "undefined") return;
-
-  const candidates = [
-    targetElement,
-    document.documentElement,
-    document.body,
-  ].filter(Boolean) as Array<{
-    requestFullscreen?: () => Promise<void>;
-    webkitRequestFullscreen?: () => Promise<void> | void;
-    mozRequestFullScreen?: () => Promise<void> | void;
-    msRequestFullscreen?: () => Promise<void> | void;
-  }>;
-
-  for (const el of candidates) {
-    try {
-      if (el.requestFullscreen) {
-        await el.requestFullscreen();
-        return;
-      }
-      if (el.webkitRequestFullscreen) {
-        await el.webkitRequestFullscreen();
-        return;
-      }
-      if (el.mozRequestFullScreen) {
-        await el.mozRequestFullScreen();
-        return;
-      }
-      if (el.msRequestFullscreen) {
-        await el.msRequestFullscreen();
-        return;
-      }
-    } catch {
-      // Continue to next candidate
-    }
-  }
-}
-
-async function exitFullscreenAcrossBrowsers(): Promise<void> {
-  if (typeof document === "undefined") return;
-  const doc = document as unknown as {
-    exitFullscreen?: () => Promise<void>;
-    webkitExitFullscreen?: () => Promise<void> | void;
-    mozCancelFullScreen?: () => Promise<void> | void;
-    msExitFullscreen?: () => Promise<void> | void;
-  };
-
-  try {
-    if (doc.exitFullscreen) {
-      await doc.exitFullscreen();
-      return;
-    }
-    if (doc.webkitExitFullscreen) {
-      await doc.webkitExitFullscreen();
-      return;
-    }
-    if (doc.mozCancelFullScreen) {
-      await doc.mozCancelFullScreen();
-      return;
-    }
-    if (doc.msExitFullscreen) {
-      await doc.msExitFullscreen();
-      return;
-    }
-  } catch (err) {
-    console.error("Exit fullscreen error:", err);
-  }
 }
 
 export function SprintPresentation({
@@ -431,52 +344,14 @@ export function SprintPresentation({
         />
       </div>
 
-      {/* Top Header Controls (Floating Minimal) */}
-      <div
-        className={`absolute top-4 left-4 right-4 z-20 flex items-center justify-between transition-opacity duration-300 ${
-          controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-lg bg-zinc-900/80 border border-white/10 text-xs font-mono font-bold text-zinc-300 backdrop-blur-md">
-            {sprint.sprintNumber}
-          </span>
-          <span className="text-xs font-medium text-zinc-400 hidden sm:inline truncate max-w-xs">
-            {sprint.name}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsOverviewOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/80 border border-white/10 hover:bg-zinc-800 text-xs text-zinc-300 hover:text-white transition-colors cursor-pointer backdrop-blur-md"
-            title={t("Miniaturen & Overzicht")}
-          >
-            <LayoutGrid className="size-3.5" />
-            <span className="hidden sm:inline">{t("Overzicht")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="p-1.5 rounded-lg bg-zinc-900/80 border border-white/10 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer backdrop-blur-md"
-            title={isFullscreen ? t("Volledig scherm verlaten (F)") : t("Volledig scherm (F)")}
-          >
-            {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="size-8 flex items-center justify-center rounded-lg bg-zinc-900/80 border border-white/10 hover:bg-zinc-800 hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer backdrop-blur-md shrink-0"
-            title={t("Sluiten")}
-            aria-label={t("Sluiten")}
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-      </div>
+      <PresentationTopBar
+        sprint={sprint}
+        controlsVisible={controlsVisible}
+        isFullscreen={isFullscreen}
+        onOpenOverview={() => setIsOverviewOpen(true)}
+        onToggleFullscreen={toggleFullscreen}
+        onClose={onClose}
+      />
 
       {/* Main Slide Content Canvas */}
       <div className="flex-1 flex items-center justify-center relative z-10 w-full overflow-y-auto px-4 py-12 sm:py-16">
@@ -531,213 +406,32 @@ export function SprintPresentation({
         </div>
       )}
 
-      {/* Bottom Floating Control Bar */}
-      <div
-        className={`relative z-20 pb-4 sm:pb-6 flex justify-center px-4 transition-opacity duration-300 ${
-          controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-2xl bg-zinc-900/90 border border-white/10 shadow-2xl backdrop-blur-md">
-          {/* Previous Button */}
-          <button
-            type="button"
-            onClick={goToPrevSlide}
-            disabled={currentSlideIndex === 0}
-            className="p-2 rounded-xl text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
-            title={t("Vorige dia")}
-          >
-            <ChevronLeft className="size-5" />
-          </button>
+      <PresentationBottomBar
+        controlsVisible={controlsVisible}
+        currentSlideIndex={currentSlideIndex}
+        totalSlides={totalSlides}
+        currentAccentColor={currentAccentColor}
+        currentStory={currentStory}
+        criteriaOpen={Boolean(viewingCriteriaStory)}
+        showNotes={showNotes}
+        onPrev={goToPrevSlide}
+        onNext={goToNextSlide}
+        onOpenOverview={() => setIsOverviewOpen(true)}
+        onViewCriteria={() => currentStory && setViewingCriteriaStory(currentStory)}
+        onEdit={() => currentStory && setEditingStory(currentStory)}
+        onToggleNotes={() => setShowNotes((prev) => !prev)}
+      />
 
-          {/* Slide Indicator (Click to open overview) */}
-          <button
-            type="button"
-            onClick={() => setIsOverviewOpen(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-zinc-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-            title={t("Klik voor overzicht")}
-          >
-            <span style={{ color: currentAccentColor }}>
-              {String(currentSlideIndex + 1).padStart(2, "0")}
-            </span>{" "}
-            / {String(totalSlides).padStart(2, "0")}
-          </button>
-
-          {/* Next Button */}
-          <button
-            type="button"
-            onClick={goToNextSlide}
-            disabled={currentSlideIndex === totalSlides - 1}
-            className="p-2 rounded-xl text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
-            title={t("Volgende dia")}
-          >
-            <ChevronRight className="size-5" />
-          </button>
-
-          <div className="w-px h-5 bg-white/10 mx-1 hidden sm:block" />
-
-          {/* Criteria button (Acceptance & Quality criteria) */}
-          {currentStory && (
-            <button
-              type="button"
-              onClick={() => setViewingCriteriaStory(currentStory)}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                viewingCriteriaStory
-                  ? "text-brand bg-brand/15"
-                  : "text-zinc-400 hover:text-white hover:bg-white/10"
-              }`}
-              title={t("Acceptatie- & Kwaliteitscriteria bekijken (C)")}
-            >
-              <ListChecks className="size-4" />
-            </button>
-          )}
-
-          {/* Edit Presentation Content for this story */}
-          {currentStory && (
-            <button
-              type="button"
-              onClick={() => setEditingStory(currentStory)}
-              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title={t("Show & Tell content bewerken")}
-            >
-              <Edit3 className="size-4" />
-            </button>
-          )}
-
-          {/* Presenter Notes toggle (if notes exist) */}
-          {currentStory?.presentationData?.notes && (
-            <button
-              type="button"
-              onClick={() => setShowNotes((prev) => !prev)}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                showNotes
-                  ? "text-amber-400 bg-amber-400/15"
-                  : "text-zinc-400 hover:text-white hover:bg-white/10"
-              }`}
-              title={t("Presentator notities tonen/verbergen")}
-            >
-              <StickyNote className="size-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Slide Thumbnails / Overview Drawer */}
       {isOverviewOpen && (
-        <div
-          className="fixed inset-0 z-[115] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
-          onClick={() => setIsOverviewOpen(false)}
-        >
-          <div
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-4xl w-full max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <LayoutGrid className="size-4.5 text-brand" />
-                <h3 className="text-base font-bold text-white">
-                  {t("Presentatie Overzicht ({count} dia's)", { count: String(totalSlides) })}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsOverviewOpen(false)}
-                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
-                title={t("Sluiten")}
-                aria-label={t("Sluiten")}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
-              {/* Slide 0: Intro */}
-              <button
-                type="button"
-                onClick={() => goToSlide(0)}
-                className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                  currentSlideIndex === 0
-                    ? "bg-brand/10 border-brand text-white shadow-lg"
-                    : "bg-zinc-950 border-white/10 hover:border-white/30 text-zinc-400"
-                }`}
-              >
-                <span className="text-[10px] font-mono block opacity-60">01. {t("Intro")}</span>
-                <span className="text-xs font-bold block truncate text-white mt-1">
-                  {sprint.name}
-                </span>
-                <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
-                  {sprint.sprintNumber}
-                </span>
-              </button>
-
-              {/* Story Slides */}
-              {presentedStories.map((st, idx) => {
-                const slideNum = idx + 1;
-                const isCurrent = currentSlideIndex === slideNum;
-                const typeDetails = getStoryTypeDetails(st.storyTypeCode, storyTypes);
-                const color = typeDetails.color || "#00e3a4";
-                return (
-                  <button
-                    type="button"
-                    key={st.id}
-                    onClick={() => goToSlide(slideNum)}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      isCurrent
-                        ? "bg-zinc-800 border-white/50 text-white shadow-lg"
-                        : "bg-zinc-950 border-white/10 hover:border-white/30 text-zinc-400"
-                    }`}
-                    style={{
-                      borderColor: isCurrent ? color : undefined,
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-mono opacity-60">
-                        {String(slideNum + 1).padStart(2, "0")}.
-                      </span>
-                      <span
-                        className="text-[10px] font-sans font-semibold px-2 py-0.5 rounded truncate max-w-[130px]"
-                        style={{
-                          color,
-                          backgroundColor: `${color}15`,
-                          border: `1px solid ${color}30`,
-                        }}
-                        title={typeDetails.name}
-                      >
-                        {typeDetails.name}
-                      </span>
-                    </div>
-                    <span className="text-xs font-bold block truncate text-white mt-1">
-                      {st.title}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-mono block truncate mt-0.5">
-                      {st.storyNumber || "Story"}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* Last Slide: Outro */}
-              <button
-                type="button"
-                onClick={() => goToSlide(totalSlides - 1)}
-                className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                  currentSlideIndex === totalSlides - 1
-                    ? "bg-brand/10 border-brand text-white shadow-lg"
-                    : "bg-zinc-950 border-white/10 hover:border-white/30 text-zinc-400"
-                }`}
-              >
-                <span className="text-[10px] font-mono block opacity-60">
-                  {String(totalSlides).padStart(2, "0")}. {t("Afsluiting")}
-                </span>
-                <span className="text-xs font-bold block truncate text-white mt-1">
-                  {t("Vragen & Feedback")}
-                </span>
-                <span className="text-[11px] text-zinc-500 font-mono block mt-0.5">
-                  {t("Q&A")}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <PresentationOverview
+          sprint={sprint}
+          presentedStories={presentedStories}
+          storyTypes={storyTypes}
+          totalSlides={totalSlides}
+          currentSlideIndex={currentSlideIndex}
+          goToSlide={goToSlide}
+          onClose={() => setIsOverviewOpen(false)}
+        />
       )}
 
       {/* Image Zoom Lightbox */}
