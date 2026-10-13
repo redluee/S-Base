@@ -5,56 +5,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
 import { NavHeader } from "@/components/nav-header";
 import { WorkoutSubnav } from "@/components/workout-subnav";
-import { 
-  Scale, 
-  Plus, 
-  Trash2, 
-  Camera, 
-  TrendingUp, 
-  Calendar,
-  X,
-  Loader2,
-  Pencil,
-  Ruler,
-  ChevronDown,
-  ChevronUp
-} from "lucide-react";
+import { Scale, Plus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-
-import { compressImage } from "@/lib/image";
-
-interface Photo {
-  photoId: number;
-  measurementId: number;
-  filePath: string;
-  createdAt: string;
-}
-
-interface Measurement {
-  measurementId: number;
-  userId: number;
-  date: string;
-  height: number | null;
-  weight: number | null;
-  bodyFat: number | null;
-  skeletalMuscle: number | null;
-  fatMass: number | null;
-  waist?: number | null;
-  chest?: number | null;
-  hips?: number | null;
-  biceps?: number | null;
-  thighs?: number | null;
-  shoulders?: number | null;
-  neck?: number | null;
-  calves?: number | null;
-  createdAt: string;
-  photos: Photo[];
-}
+import { BodyChart } from "./body-chart";
+import { BodyEditCard } from "./body-edit-card";
+import { BodyLogCard } from "./body-log-card";
+import { BodySummaryCards } from "./body-summary-cards";
+import { usePhotoUpload } from "./use-photo-upload";
+import {
+  EMPTY_FORM,
+  calculateBMI,
+  formFromLog,
+  formToPayload,
+  getAutofilledHeight,
+  getTodayString,
+  hasCircumferences,
+  parseNumberInput,
+  type ChartTab,
+  type FormValues,
+  type Measurement,
+} from "./body-utils";
 
 export default function BodyPage() {
   const router = useRouter();
@@ -62,30 +36,10 @@ export default function BodyPage() {
   const [logs, setLogs] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Photo upload progress state
-  const [uploadingLogId, setUploadingLogId] = useState<number | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [uploadStage, setUploadStage] = useState<"idle" | "optimizing" | "uploading">("idle");
-  const [optimisticPhotoUrl, setOptimisticPhotoUrl] = useState<string | null>(null);
-  
   // Form State (used for both inline edit and new prepended entry)
   const [editingId, setEditingId] = useState<number | null>(null); // null, 0 for new, or measurementId for editing
   const [formDate, setFormDate] = useState("");
-  const [formHeight, setFormHeight] = useState("");
-  const [formWeight, setFormWeight] = useState("");
-  const [formBodyFat, setFormBodyFat] = useState("");
-  const [formSkeletalMuscle, setFormSkeletalMuscle] = useState("");
-  const [formFatMass, setFormFatMass] = useState("");
-
-  // Body circumferences state (in cm)
-  const [formWaist, setFormWaist] = useState("");
-  const [formChest, setFormChest] = useState("");
-  const [formHips, setFormHips] = useState("");
-  const [formBiceps, setFormBiceps] = useState("");
-  const [formThighs, setFormThighs] = useState("");
-  const [formShoulders, setFormShoulders] = useState("");
-  const [formNeck, setFormNeck] = useState("");
-  const [formCalves, setFormCalves] = useState("");
+  const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [showBodyCircumferences, setShowBodyCircumferences] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -98,7 +52,7 @@ export default function BodyPage() {
   const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
 
   // Chart state
-  const [chartTab, setChartTab] = useState<"weight" | "fat" | "muscle" | "bmi">("weight");
+  const [chartTab, setChartTab] = useState<ChartTab>("weight");
 
   const fetchLogs = () => {
     setLoading(true);
@@ -137,61 +91,25 @@ export default function BodyPage() {
       });
   }, [router]);
 
-  const getAutofilledHeight = (date: string, currentLogs: Measurement[]) => {
-    const sortedPast = [...currentLogs]
-      .filter((l) => l.date <= date && l.height !== null)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return sortedPast.length > 0 && sortedPast[0].height ? sortedPast[0].height.toString() : "";
-  };
+  const { uploadingLogId, uploadProgress, uploadStage, optimisticPhotoUrl, handlePhotoUpload, handleDeletePhoto } =
+    usePhotoUpload(fetchLogs, setActionError);
 
-  const parseNumberInput = (v: string): number | null => {
-    if (!v) return null;
-    const num = parseFloat(v.replace(",", "."));
-    return isNaN(num) ? null : num;
-  };
-
-  const updateCalculatedFatMass = (w: string, bf: string) => {
-    const weightNum = parseNumberInput(w);
-    const fatPctNum = parseNumberInput(bf);
-    if (weightNum !== null && fatPctNum !== null) {
-      setFormFatMass(((weightNum * fatPctNum) / 100).toFixed(1));
-    } else {
-      setFormFatMass("");
-    }
+  const handleFieldChange = (key: keyof FormValues, value: string) => {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "weight" || key === "bodyFat") {
+        const weightNum = parseNumberInput(next.weight);
+        const fatPctNum = parseNumberInput(next.bodyFat);
+        next.fatMass =
+          weightNum !== null && fatPctNum !== null ? ((weightNum * fatPctNum) / 100).toFixed(1) : "";
+      }
+      return next;
+    });
   };
 
   const populateFormFieldsFromLog = (log: Measurement) => {
-    setFormHeight(log.height?.toString() ?? "");
-    setFormWeight(log.weight?.toString() ?? "");
-    setFormBodyFat(log.bodyFat?.toString() ?? "");
-    setFormSkeletalMuscle(log.skeletalMuscle?.toString() ?? "");
-    setFormFatMass(log.fatMass?.toString() ?? "");
-    setFormWaist(log.waist?.toString() ?? "");
-    setFormChest(log.chest?.toString() ?? "");
-    setFormHips(log.hips?.toString() ?? "");
-    setFormBiceps(log.biceps?.toString() ?? "");
-    setFormThighs(log.thighs?.toString() ?? "");
-    setFormShoulders(log.shoulders?.toString() ?? "");
-    setFormNeck(log.neck?.toString() ?? "");
-    setFormCalves(log.calves?.toString() ?? "");
-
-    const hasCircumferences = Boolean(
-      log.waist || log.chest || log.hips || log.biceps || 
-      log.thighs || log.shoulders || log.neck || log.calves
-    );
-    setShowBodyCircumferences(hasCircumferences);
-  };
-
-  const clearCircumferenceFields = () => {
-    setFormWaist("");
-    setFormChest("");
-    setFormHips("");
-    setFormBiceps("");
-    setFormThighs("");
-    setFormShoulders("");
-    setFormNeck("");
-    setFormCalves("");
-    setShowBodyCircumferences(false);
+    setForm(formFromLog(log));
+    setShowBodyCircumferences(hasCircumferences(log));
   };
 
   const handleDateChange = (date: string) => {
@@ -202,16 +120,8 @@ export default function BodyPage() {
     if (existing) {
       populateFormFieldsFromLog(existing);
     } else {
-      setFormHeight(getAutofilledHeight(date, logs));
+      setForm((prev) => ({ ...prev, height: getAutofilledHeight(date, logs) }));
     }
-  };
-
-  const getTodayString = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
   };
 
   // Open form for a new entry
@@ -219,19 +129,15 @@ export default function BodyPage() {
     setSaveError(null);
     const today = getTodayString();
     setFormDate(today);
-    
+
     const existing = logs.find((l) => l.date === today);
     if (existing) {
       setEditingId(existing.measurementId);
       populateFormFieldsFromLog(existing);
     } else {
       setEditingId(0);
-      setFormWeight("");
-      setFormBodyFat("");
-      setFormSkeletalMuscle("");
-      setFormFatMass("");
-      clearCircumferenceFields();
-      setFormHeight(getAutofilledHeight(today, logs));
+      setForm({ ...EMPTY_FORM, height: getAutofilledHeight(today, logs) });
+      setShowBodyCircumferences(false);
     }
   };
 
@@ -259,22 +165,7 @@ export default function BodyPage() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      const data = {
-        date: formDate,
-        height: parseNumberInput(formHeight),
-        weight: parseNumberInput(formWeight),
-        bodyFat: parseNumberInput(formBodyFat),
-        skeletalMuscle: parseNumberInput(formSkeletalMuscle),
-        fatMass: parseNumberInput(formFatMass),
-        waist: parseNumberInput(formWaist),
-        chest: parseNumberInput(formChest),
-        hips: parseNumberInput(formHips),
-        biceps: parseNumberInput(formBiceps),
-        thighs: parseNumberInput(formThighs),
-        shoulders: parseNumberInput(formShoulders),
-        neck: parseNumberInput(formNeck),
-        calves: parseNumberInput(formCalves),
-      };
+      const data = { date: formDate, ...formToPayload(form) };
 
       if (editingId) {
         await api.measurements.update(editingId, data);
@@ -314,100 +205,13 @@ export default function BodyPage() {
     }
   };
 
-  // Upload photo
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetLog: Measurement) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    let tempUrl: string | null = null;
-    setActionError(null);
-    try {
-      setUploadingLogId(targetLog.measurementId);
-      setUploadStage("optimizing");
-      setUploadProgress(0);
-
-      // Create instant visual preview
-      tempUrl = URL.createObjectURL(file);
-      setOptimisticPhotoUrl(tempUrl);
-
-      // Compress client side
-      const compressedBlob = await compressImage(file);
-
-      // Upload compressed image
-      setUploadStage("uploading");
-      const { filePath } = await api.measurements.uploadPhoto(
-        compressedBlob,
-        file.name,
-        (pct) => setUploadProgress(pct)
-      );
-
-      const linkRes = await fetch(`/api/measurements/${targetLog.measurementId}/photos`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filePath }),
-      });
-      if (!linkRes.ok) throw new Error(`Photo link failed (${linkRes.status})`);
-
-      fetchLogs();
-    } catch (err) {
-      console.error("Failed to upload photo:", err);
-      setActionError(t("Foto uploaden mislukt. Probeer het opnieuw."));
-    } finally {
-      if (tempUrl) {
-        URL.revokeObjectURL(tempUrl);
-      }
-      setOptimisticPhotoUrl(null);
-      setUploadingLogId(null);
-      setUploadStage("idle");
-      setUploadProgress(0);
-    }
-  };
-
-  // Delete photo
-  const handleDeletePhoto = async (photoId: number) => {
-    setActionError(null);
-    try {
-      await api.measurements.deletePhoto(photoId);
-      fetchLogs();
-    } catch (err) {
-      console.error("Failed to delete photo:", err);
-      setActionError(t("Foto verwijderen mislukt. Probeer het opnieuw."));
-    }
-  };
-
-  // Calculate BMI: weight / (height/100)^2
-  const calculateBMI = (weight: number | null, height: number | null): number | null => {
-    if (!weight || !height) return null;
-    const heightInMeters = height / 100;
-    return parseFloat((weight / (heightInMeters * heightInMeters)).toFixed(1));
-  };
-
-  const preventInvalidInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (["e", "E", "+", "-"].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
-
   // Prepend mock log if creating a new one
-  const displayLogs = editingId === 0 ? [
+  const displayLogs: Measurement[] = editingId === 0 ? [
     {
       measurementId: 0,
       userId: user?.id ?? 0,
       date: formDate,
-      height: parseNumberInput(formHeight),
-      weight: parseNumberInput(formWeight),
-      bodyFat: parseNumberInput(formBodyFat),
-      skeletalMuscle: parseNumberInput(formSkeletalMuscle),
-      fatMass: parseNumberInput(formFatMass),
-      waist: parseNumberInput(formWaist),
-      chest: parseNumberInput(formChest),
-      hips: parseNumberInput(formHips),
-      biceps: parseNumberInput(formBiceps),
-      thighs: parseNumberInput(formThighs),
-      shoulders: parseNumberInput(formShoulders),
-      neck: parseNumberInput(formNeck),
-      calves: parseNumberInput(formCalves),
+      ...formToPayload(form),
       createdAt: "",
       photos: []
     },
@@ -418,158 +222,6 @@ export default function BodyPage() {
   const latestLog = logs.length > 0 ? logs[0] : null;
   const latestBmi = latestLog ? calculateBMI(latestLog.weight, latestLog.height) : null;
 
-  // SVG Custom Chart Rendering helper
-  const renderChart = () => {
-    const chartData = [...logs]
-      .filter((l) => {
-        if (chartTab === "weight") return l.weight !== null;
-        if (chartTab === "fat") return l.bodyFat !== null;
-        if (chartTab === "muscle") return l.skeletalMuscle !== null || l.fatMass !== null;
-        if (chartTab === "bmi") return l.weight !== null && l.height !== null;
-        return false;
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    if (chartData.length === 0) {
-      return (
-        <div className="h-64 flex flex-col items-center justify-center rounded-xl bg-card ring-1 ring-foreground/10 text-muted-foreground text-sm">
-          <TrendingUp className="size-8 mb-2 opacity-30 text-brand" />
-          <span>{t("Onvoldoende gegevens om grafiek te tekenen")}</span>
-        </div>
-      );
-    }
-
-    const width = 600;
-    const height = 240;
-    const padding = 50;
-
-    let getVal1: (m: Measurement) => number = () => 0;
-    let getVal2: (m: Measurement) => number = () => 0; 
-    let label1 = "";
-    let label2 = "";
-
-    if (chartTab === "weight") {
-      getVal1 = (m) => m.weight || 0;
-      label1 = `${t("Weight")} (kg)`;
-    } else if (chartTab === "fat") {
-      getVal1 = (m) => m.bodyFat || 0;
-      label1 = `${t("Body Fat")} (%)`;
-    } else if (chartTab === "muscle") {
-      getVal1 = (m) => m.skeletalMuscle || 0;
-      getVal2 = (m) => m.fatMass || 0;
-      label1 = `${t("Skeletal Muscle")} (kg)`;
-      label2 = `${t("Fat Mass")} (kg)`;
-    } else if (chartTab === "bmi") {
-      getVal1 = (m) => calculateBMI(m.weight, m.height) || 0;
-      label1 = "BMI";
-    }
-
-    const allVals = chartData.flatMap(m => {
-      const v1 = getVal1(m);
-      const v2 = getVal2(m);
-      return v2 > 0 ? [v1, v2] : [v1];
-    });
-    const maxVal = Math.max(...allVals) * 1.05;
-    const minVal = Math.max(0, Math.min(...allVals) * 0.95);
-    const valRange = maxVal - minVal || 10;
-
-    const points1 = chartData.map((m, idx) => {
-      const x = padding + (idx / (chartData.length - 1 || 1)) * (width - 2 * padding);
-      const y = height - padding - ((getVal1(m) - minVal) / valRange) * (height - 2 * padding);
-      return { x, y, val: getVal1(m), date: m.date };
-    });
-
-    const points2 = chartTab === "muscle" ? chartData.map((m, idx) => {
-      const x = padding + (idx / (chartData.length - 1 || 1)) * (width - 2 * padding);
-      const y = height - padding - (((getVal2(m) || minVal) - minVal) / valRange) * (height - 2 * padding);
-      return { x, y, val: getVal2(m), date: m.date };
-    }).filter(p => p.val > 0) : [];
-
-    const pathD1 = points1.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const areaD1 = points1.length > 0 ? `${pathD1} L ${points1[points1.length - 1].x} ${height - padding} L ${points1[0].x} ${height - padding} Z` : "";
-    const pathD2 = points2.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-
-    return (
-      <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-5 relative overflow-hidden">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex gap-4">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-brand">
-              <span className="size-2 rounded-full bg-brand" />
-              {label1}
-            </span>
-            {chartTab === "muscle" && (
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
-                <span className="size-2 rounded-full bg-amber-500" />
-                {label2}
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground font-medium">
-            {chartData[0].date} {t("t/m")} {chartData[chartData.length - 1].date}
-          </span>
-        </div>
-
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-          {/* Grid lines */}
-          <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255, 255, 255, 0.08)" strokeWidth={1} strokeDasharray="3 3" />
-          <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255, 255, 255, 0.08)" strokeWidth={1} strokeDasharray="3 3" />
-          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1} />
-
-          {/* Y Axis labels */}
-          <text x={padding - 12} y={padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl(maxVal, 1)}</text>
-          <text x={padding - 12} y={height / 2 + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl((maxVal + minVal) / 2, 1)}</text>
-          <text x={padding - 12} y={height - padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl(minVal, 1)}</text>
-
-          {/* Area Fill for line 1 */}
-          {areaD1 && (
-            <path d={areaD1} fill="url(#brand-gradient)" opacity={0.15} />
-          )}
-
-          {/* Line 1 */}
-          <path d={pathD1} fill="none" stroke="var(--color-brand)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-
-          {/* Line 2 */}
-          {chartTab === "muscle" && pathD2 && (
-            <path d={pathD2} fill="none" stroke="#f59e0b" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-          )}
-
-          {/* Dots and Tooltips for Line 1 */}
-          {points1.map((p, idx) => (
-            <g key={`d1-${idx}`} className="group/dot cursor-pointer">
-              <circle cx={p.x} cy={p.y} r={4.5} fill="var(--color-brand)" stroke="#000000" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
-              <g className="opacity-0 group-hover/dot:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <rect x={p.x - 55} y={p.y - 42} width={110} height={30} rx={6} fill="var(--color-card)" stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
-                <text x={p.x} y={p.y - 22} fill="var(--color-foreground)" fontSize={12} fontWeight="700" textAnchor="middle">
-                  {formatNumberNl(p.val, 1)} ({p.date.split("-").slice(1).join("-")})
-                </text>
-              </g>
-            </g>
-          ))}
-
-          {/* Dots and Tooltips for Line 2 */}
-          {points2.map((p, idx) => (
-            <g key={`d2-${idx}`} className="group/dot cursor-pointer">
-              <circle cx={p.x} cy={p.y} r={4.5} fill="#f59e0b" stroke="#000000" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
-              <g className="opacity-0 group-hover/dot:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <rect x={p.x - 55} y={p.y - 42} width={110} height={30} rx={6} fill="var(--color-card)" stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
-                <text x={p.x} y={p.y - 22} fill="var(--color-foreground)" fontSize={12} fontWeight="700" textAnchor="middle">
-                  {formatNumberNl(p.val, 1)} ({p.date.split("-").slice(1).join("-")})
-                </text>
-              </g>
-            </g>
-          ))}
-
-          {/* Gradients */}
-          <defs>
-            <linearGradient id="brand-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-brand)" />
-              <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
-    );
-  };
 
   if (loading || !user) {
     return (
@@ -598,48 +250,8 @@ export default function BodyPage() {
           <WorkoutSubnav current="body" />
         </div>
 
-        {/* Summary Dashboard Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Weight")}</span>
-            <span className="text-2xl sm:text-3xl font-black text-brand font-display mt-1 truncate">
-              {latestLog?.weight ? `${formatNumberNl(latestLog.weight)} kg` : "-"}
-            </span>
-            <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog ? latestLog.date : t("Geen metingen")}
-            </span>
-          </div>
 
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Body Fat")}</span>
-            <span className="text-2xl sm:text-3xl font-black text-foreground font-display mt-1 truncate">
-              {latestLog?.bodyFat ? `${latestLog.bodyFat}%` : "-"}
-            </span>
-            <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog?.fatMass ? `${formatNumberNl(latestLog.fatMass)} kg ${t("vetmassa")}` : t("Geen data")}
-            </span>
-          </div>
-
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{t("Skeletal Muscle")}</span>
-            <span className="text-2xl sm:text-3xl font-black text-amber-400 font-display mt-1 truncate">
-              {latestLog?.skeletalMuscle ? `${formatNumberNl(latestLog.skeletalMuscle)} kg` : "-"}
-            </span>
-            <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog?.skeletalMuscle && latestLog?.weight ? `${formatNumberNl((latestLog.skeletalMuscle / latestLog.weight) * 100, 1)}%` : t("Skeletspiermassa")}
-            </span>
-          </div>
-
-          <div className="rounded-xl bg-card p-4 sm:p-5 ring-1 ring-foreground/10 flex flex-col justify-center min-h-[100px] min-w-0">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">BMI</span>
-            <span className="text-2xl sm:text-3xl font-black text-foreground font-display mt-1 truncate">
-              {latestBmi !== null ? latestBmi : "-"}
-            </span>
-            <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {logs.length} {logs.length === 1 ? t("meting gelogd") : t("metingen gelogd")}
-            </span>
-          </div>
-        </div>
+        <BodySummaryCards latestLog={latestLog} latestBmi={latestBmi} logCount={logs.length} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Inline Logs & Editing */}
@@ -671,452 +283,37 @@ export default function BodyPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {displayLogs.map((log) => {
-                  const isEditing = editingId === log.measurementId;
-                  const bmi = calculateBMI(log.weight, log.height);
-
-                  if (isEditing) {
-                    // Editable card block
-                    return (
-                      <div key={log.measurementId} className="rounded-xl bg-card ring-1 ring-brand/50 p-5 sm:p-6 transition-all relative overflow-hidden">
-                        <div className="absolute inset-0 bg-brand/5 pointer-events-none" />
-                        <form onSubmit={handleSave} className="space-y-4 relative z-10">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-                              <label className="text-[10px] font-bold text-muted-foreground uppercase">{t("Date")}</label>
-                              <input 
-                                type="date" 
-                                required
-                                value={formDate} 
-                                onChange={(e) => handleDateChange(e.target.value)}
-                                className="bg-background border border-border rounded-lg px-3 min-h-11 text-sm font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                            <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
-                              <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Height")}</label>
-                              <input 
-                                type="number" 
-                                step="any" 
-                                min="0"
-                                placeholder="cm"
-                                value={formHeight}
-                                onKeyDown={preventInvalidInput}
-                                onChange={(e) => setFormHeight(e.target.value)}
-                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
-                              />
-                            </div>
-                            <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
-                              <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Weight")}</label>
-                              <input 
-                                type="number" 
-                                step="any" 
-                                min="0"
-                                placeholder="kg"
-                                value={formWeight}
-                                onKeyDown={preventInvalidInput}
-                                onChange={(e) => {
-                                  setFormWeight(e.target.value);
-                                  updateCalculatedFatMass(e.target.value, formBodyFat);
-                                }}
-                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
-                              />
-                            </div>
-                            <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
-                              <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Body Fat")}</label>
-                              <input 
-                                type="number" 
-                                step="any" 
-                                min="0"
-                                placeholder="%"
-                                value={formBodyFat}
-                                onKeyDown={preventInvalidInput}
-                                onChange={(e) => {
-                                  setFormBodyFat(e.target.value);
-                                  updateCalculatedFatMass(formWeight, e.target.value);
-                                }}
-                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
-                              />
-                            </div>
-                            <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
-                              <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Skeletal Muscle")}</label>
-                              <input 
-                                type="number" 
-                                step="any" 
-                                min="0"
-                                placeholder="kg"
-                                value={formSkeletalMuscle}
-                                onKeyDown={preventInvalidInput}
-                                onChange={(e) => setFormSkeletalMuscle(e.target.value)}
-                                className="w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
-                              />
-                            </div>
-                            <div className="bg-muted/30 border border-border/50 rounded-lg p-2.5">
-                              <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{t("Fat Mass")}</label>
-                              <input 
-                                type="number" 
-                                step="any" 
-                                disabled
-                                placeholder="Auto"
-                                value={formFatMass}
-                                className="w-full bg-background/30 border border-border/40 rounded-md px-2 min-h-11 text-sm text-muted-foreground cursor-not-allowed opacity-75"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Toggle button for body circumferences */}
-                          <div className="pt-1">
-                            <button 
-                              type="button" 
-                              onClick={() => setShowBodyCircumferences(!showBodyCircumferences)}
-                              aria-expanded={showBodyCircumferences}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover transition-colors min-h-11 cursor-pointer"
-                            >
-                              <Ruler className="size-3.5" />
-                              <span>{showBodyCircumferences ? t("Lichaamsmetingen verbergen") : t("+ Lichaamsmetingen toevoegen")}</span>
-                              {showBodyCircumferences ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-                            </button>
-
-                            {showBodyCircumferences && (
-                              <div className="mt-3 p-3.5 rounded-lg bg-muted/20 border border-border/60 space-y-2.5 animate-in fade-in duration-200">
-                                <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                                  {t("Lichaamsmetingen")} (cm)
-                                </span>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Middel")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formWaist}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormWaist(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Borst")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formChest}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormChest(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Heupen")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formHips}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormHips(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Biceps")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formBiceps}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormBiceps(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Bovenbenen")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formThighs}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormThighs(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Schouders")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formShoulders}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormShoulders(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Nek")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formNeck}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormNeck(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                  <div className="bg-background border border-border/60 rounded-md p-2">
-                                    <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{t("Kuiten")}</label>
-                                    <input 
-                                      type="number" 
-                                      step="any" 
-                                      min="0"
-                                      placeholder="cm"
-                                      value={formCalves}
-                                      onKeyDown={preventInvalidInput}
-                                      onChange={(e) => setFormCalves(e.target.value)}
-                                      className="w-full bg-transparent border-none text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {saveError && (
-                            <p role="alert" className="text-xs text-red-400">{saveError}</p>
-                          )}
-
-                          <div className="flex justify-end gap-2 pt-2">
-                            <Button 
-                              type="button" 
-                              onClick={handleCancelEdit} 
-                              variant="outline"
-                              size="sm"
-                              className="text-sm min-h-11 cursor-pointer"
-                            >
-                              {t("Annuleren")}
-                            </Button>
-                            <Button 
-                              type="submit" 
-                              disabled={isSaving}
-                              size="sm"
-                              className="bg-brand text-zinc-900 hover:bg-brand-hover font-medium text-sm min-h-11 px-4 cursor-pointer"
-                            >
-                              {isSaving ? t("Opslaan...") : t("Opslaan")}
-                            </Button>
-                          </div>
-                        </form>
-                      </div>
-                    );
-                  }
-
-                  // Standard read-only card block
-                  const fatPct = log.bodyFat !== null ? `${formatNumberNl(log.bodyFat)}%` : (log.fatMass !== null && log.weight ? `${formatNumberNl((log.fatMass / log.weight) * 100, 1)}%` : null);
-                  const fatKg = log.fatMass !== null ? `${formatNumberNl(log.fatMass)} kg` : (log.bodyFat !== null && log.weight ? `${formatNumberNl((log.weight * log.bodyFat) / 100, 1)} kg` : null);
-                  const fatDisplay = fatPct && fatKg ? `${fatPct} (${fatKg})` : (fatPct || fatKg || null);
-
-                  const muscleKg = log.skeletalMuscle !== null ? `${formatNumberNl(log.skeletalMuscle)} kg` : null;
-                  const musclePct = log.skeletalMuscle !== null && log.weight ? `${formatNumberNl((log.skeletalMuscle / log.weight) * 100, 1)}%` : null;
-                  const muscleDisplay = musclePct && muscleKg ? `${musclePct} (${muscleKg})` : (musclePct || muscleKg || null);
-
-                  return (
-                    <div key={log.measurementId} className="rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/30 transition-all duration-200 p-5 sm:p-6">
-                      <div className="flex items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="size-4 text-brand" />
-                          <span className="font-display font-bold text-base text-foreground">{log.date}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-1.5">
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleEditEntry(log)}
-                            className="size-11 text-muted-foreground hover:text-brand cursor-pointer"
-                            title={t("Bewerken")}
-                            aria-label={t("Bewerken")}
-                          >
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => setPendingDeleteLogId(log.measurementId)}
-                            className="size-11 text-muted-foreground hover:text-destructive hover:border-destructive/40 cursor-pointer"
-                            title={t("Verwijderen")}
-                            aria-label={t("Verwijderen")}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Metric Chips */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-                        {log.height && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Height")}</span>
-                            <span className="font-display font-bold text-sm text-foreground block truncate">{log.height} cm</span>
-                          </div>
-                        )}
-                        {log.weight && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Weight")}</span>
-                            <span className="font-display font-bold text-sm text-brand block truncate">{formatNumberNl(log.weight ?? 0)} kg</span>
-                          </div>
-                        )}
-                        {fatDisplay && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Body Fat")}</span>
-                            <span className="font-display font-bold text-sm text-foreground block truncate" title={fatDisplay}>{fatDisplay}</span>
-                          </div>
-                        )}
-                        {muscleDisplay && (
-                          <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
-                            <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">{t("Skeletal Muscle")}</span>
-                            <span className="font-display font-bold text-sm text-amber-400 block truncate" title={muscleDisplay}>{muscleDisplay}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Recorded Circumferences Sub-section */}
-                      {Boolean(log.waist || log.chest || log.hips || log.biceps || log.thighs || log.shoulders || log.neck || log.calves) && (
-                        <div className="mb-4 pt-3 border-t border-border/40">
-                          <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-2 flex items-center gap-1">
-                            <Ruler className="size-3 text-brand" />
-                            {t("Lichaamsmetingen")}
-                          </span>
-                          <div className="flex flex-wrap gap-2">
-                            {log.waist && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Middel")}:</span> {log.waist} cm
-                              </span>
-                            )}
-                            {log.chest && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Borst")}:</span> {log.chest} cm
-                              </span>
-                            )}
-                            {log.hips && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Heupen")}:</span> {log.hips} cm
-                              </span>
-                            )}
-                            {log.biceps && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Biceps")}:</span> {log.biceps} cm
-                              </span>
-                            )}
-                            {log.thighs && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Bovenbenen")}:</span> {log.thighs} cm
-                              </span>
-                            )}
-                            {log.shoulders && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Schouders")}:</span> {log.shoulders} cm
-                              </span>
-                            )}
-                            {log.neck && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Nek")}:</span> {log.neck} cm
-                              </span>
-                            )}
-                            {log.calves && (
-                              <span className="bg-muted/40 ring-1 ring-foreground/5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground">
-                                <span className="text-muted-foreground mr-1">{t("Kuiten")}:</span> {log.calves} cm
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* BMI and Photos container */}
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-border/50 pt-3.5">
-                        {bmi ? (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                            <span>BMI:</span>
-                            <span className="font-display font-bold text-foreground text-sm">{bmi}</span>
-                          </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground/60">{t("BMI niet beschikbaar")}</div>
-                        )}
-
-                        {/* Photos uploads */}
-                        <div className="flex items-center gap-2 overflow-x-auto">
-                          {log.photos.map((p) => (
-                            <div key={p.photoId} className="relative group/photo shrink-0 size-11 rounded-lg border border-border overflow-hidden bg-background">
-                              <button
-                                type="button"
-                                onClick={() => setActivePhotoUrl(p.filePath)}
-                                aria-label={t("Bekijk foto groot")}
-                                className="absolute inset-0 w-full h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-                              >
-                                <img
-                                  src={p.filePath}
-                                  alt="Meting foto"
-                                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                                />
-                              </button>
-                              <button 
-                                type="button"
-                                onClick={() => handleDeletePhoto(p.photoId)}
-                                aria-label={t("Foto verwijderen")}
-                                className="absolute top-0.5 right-0.5 size-5 rounded bg-destructive/90 flex items-center justify-center text-white [@media(hover:hover)]:opacity-0 group-hover/photo:opacity-100 focus-visible:opacity-100 transition-opacity cursor-pointer"
-                              >
-                                <X className="size-3" />
-                              </button>
-                            </div>
-                          ))}
-
-                          {/* Uploading optimistic thumbnail */}
-                          {uploadingLogId === log.measurementId && (
-                            <div className="relative shrink-0 size-11 rounded-lg border border-brand/60 overflow-hidden bg-background flex flex-col items-center justify-center animate-in fade-in duration-200">
-                              {optimisticPhotoUrl ? (
-                                <img src={optimisticPhotoUrl} alt={t("Voorbeeld")} className="w-full h-full object-cover opacity-35" />
-                              ) : null}
-                              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-0.5">
-                                <Loader2 className="size-3.5 text-brand animate-spin" />
-                                <span className="text-[9px] font-extrabold text-foreground tracking-tighter">
-                                  {uploadStage === "optimizing" ? "..." : `${uploadProgress}%`}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          <label className={`shrink-0 size-11 rounded-lg border border-dashed border-border flex flex-col items-center justify-center transition-all ${
-                            uploadingLogId !== null
-                              ? "opacity-50 cursor-not-allowed bg-muted/5 text-muted-foreground"
-                              : "hover:border-brand/50 text-muted-foreground hover:text-brand bg-muted/10 hover:bg-brand/5 cursor-pointer"
-                          }`}>
-                            <Camera className="size-4" aria-hidden="true" />
-                            <span className="sr-only">{t("Foto toevoegen")}</span>
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              disabled={uploadingLogId !== null}
-                              onChange={(e) => handlePhotoUpload(e, log)}
-                              className="sr-only"
-                            />
-                          </label>
-                        </div>
-                      </div>
-
-                    </div>
-                  );
-                })}
+                {displayLogs.map((log) =>
+                  editingId === log.measurementId ? (
+                    <BodyEditCard
+                      key={log.measurementId}
+                      form={form}
+                      formDate={formDate}
+                      onDateChange={handleDateChange}
+                      onFieldChange={handleFieldChange}
+                      showBodyCircumferences={showBodyCircumferences}
+                      setShowBodyCircumferences={setShowBodyCircumferences}
+                      saveError={saveError}
+                      isSaving={isSaving}
+                      onSubmit={handleSave}
+                      onCancel={handleCancelEdit}
+                    />
+                  ) : (
+                    <BodyLogCard
+                      key={log.measurementId}
+                      log={log}
+                      onEdit={handleEditEntry}
+                      onDelete={setPendingDeleteLogId}
+                      onViewPhoto={setActivePhotoUrl}
+                      onDeletePhoto={handleDeletePhoto}
+                      onUpload={handlePhotoUpload}
+                      uploadingLogId={uploadingLogId}
+                      optimisticPhotoUrl={optimisticPhotoUrl}
+                      uploadStage={uploadStage}
+                      uploadProgress={uploadProgress}
+                    />
+                  )
+                )}
               </div>
             )}
 
@@ -1155,7 +352,7 @@ export default function BodyPage() {
               })}
             </div>
 
-            {renderChart()}
+            <BodyChart logs={logs} chartTab={chartTab} />
           </section>
 
         </div>
