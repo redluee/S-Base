@@ -2,17 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Check,
-  ChevronDown,
-  CircleAlert,
-  Clock,
   Download,
-  Moon,
-  Power,
   PowerOff,
   RotateCw,
-  ShieldAlert,
-  Unlock,
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import {
@@ -21,9 +13,11 @@ import {
   type PulseStats,
   type ShutdownSchedule,
   type SystemUpdateState,
-  type UpdatePhase,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { BTN, BTN_OUTLINE, BTN_DESTRUCTIVE, type Notify } from "./system-panel-styles";
+import { ShutdownCard } from "./shutdown-card";
+import { UpdateProgress, UPDATE_STEPS } from "./update-progress";
 import {
   AlertDialogRoot,
   AlertDialogPopup,
@@ -33,25 +27,11 @@ import {
   AlertDialogClose,
 } from "@/components/ui/alert-dialog";
 
-type Notify = (text: string, type?: "success" | "error") => void;
 
 const POLL_INTERVAL_MS = 1500;
 const LOG_LINES_SHOWN = 200;
 
-const UPDATE_STEPS: { phase: UpdatePhase; label: string }[] = [
-  { phase: "repositories", label: "Repositories laden" },
-  { phase: "resolving", label: "Afhankelijkheden oplossen" },
-  { phase: "downloading", label: "Downloaden" },
-  { phase: "installing", label: "Installeren" },
-  { phase: "cleanup", label: "Opruimen" },
-  { phase: "verifying", label: "Verifiëren" },
-  { phase: "complete", label: "Klaar" },
-];
 
-const BTN = "h-11 px-4 text-sm font-medium rounded-lg";
-const BTN_OUTLINE = `${BTN} border-border bg-transparent text-foreground hover:bg-white/5`;
-const BTN_DESTRUCTIVE = `${BTN} border border-destructive/40 bg-transparent text-destructive hover:bg-destructive/10`;
-const FOCUS = "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function StatItem({ label, value }: { label: string; value: number }) {
   return (
@@ -236,81 +216,15 @@ export function SystemPanel({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {shutdownSchedule && (
-          <div className="flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <Moon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <div className="min-w-0">
-                  <h3 className="text-base font-medium leading-tight text-foreground">{t("Server Shutdown")}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
-                    {!shutdownSchedule.enabled
-                      ? t("Automatic server shutdown is disabled")
-                      : shutdownSchedule.isBlocked
-                      ? t("Server shutdown is blocked for tonight")
-                      : `${t("Next shutdown")}: ${shutdownSchedule.time} (${shutdownSchedule.minutesUntilShutdown ?? 0}m)`}
-                  </p>
-                </div>
-              </div>
-              {!shutdownSchedule.enabled ? (
-                <span className="shrink-0 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                  {t("Disabled")}
-                </span>
-              ) : shutdownSchedule.isBlocked ? (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-foreground">
-                  <ShieldAlert className="size-3" aria-hidden="true" />
-                  {t("Blocked")}
-                </span>
-              ) : (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand/15 px-2.5 py-0.5 text-xs font-medium text-brand">
-                  <span className="size-1.5 rounded-full bg-brand" aria-hidden="true" />
-                  {t("Active")}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex h-11 items-center gap-2 rounded-lg border border-input bg-input/30 px-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
-                <Clock className="size-4 text-muted-foreground" aria-hidden="true" />
-                <span className="sr-only">{t("Afsluitingstijd")}</span>
-                <input
-                  type="time"
-                  value={shutdownTimeInput}
-                  onChange={(e) => setShutdownTimeInput(e.target.value)}
-                  disabled={isSavingShutdown}
-                  className="w-24 bg-transparent font-mono text-sm text-foreground outline-none"
-                />
-              </label>
-              {shutdownTimeInput !== shutdownSchedule.time && (
-                <Button onClick={handleSaveShutdownTime} disabled={isSavingShutdown} className={`${BTN} bg-brand text-[#111] hover:bg-brand-hover`}>
-                  {t("Save Time")}
-                </Button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {shutdownSchedule.enabled && (
-                <Button variant="outline" onClick={handleToggleBlockShutdown} disabled={isSavingShutdown} className={BTN_OUTLINE}>
-                  {shutdownSchedule.isBlocked ? (
-                    <>
-                      <Unlock aria-hidden="true" />
-                      {t("Unblock Shutdown")}
-                    </>
-                  ) : (
-                    <>
-                      <ShieldAlert aria-hidden="true" />
-                      {t("Block Tonight")}
-                    </>
-                  )}
-                </Button>
-              )}
-              <Button variant="outline" onClick={handleToggleShutdownEnabled} disabled={isSavingShutdown} className={BTN_OUTLINE}>
-                <Power aria-hidden="true" />
-                {shutdownSchedule.enabled ? t("Uitschakelen") : t("Inschakelen")}
-              </Button>
-            </div>
-
-            <p className="text-[0.8rem] text-muted-foreground">{t("Minecraft player warnings and safe shutdown active")}</p>
-          </div>
+          <ShutdownCard
+            shutdownSchedule={shutdownSchedule}
+            shutdownTimeInput={shutdownTimeInput}
+            setShutdownTimeInput={setShutdownTimeInput}
+            isSavingShutdown={isSavingShutdown}
+            handleSaveShutdownTime={handleSaveShutdownTime}
+            handleToggleBlockShutdown={handleToggleBlockShutdown}
+            handleToggleShutdownEnabled={handleToggleShutdownEnabled}
+          />
         )}
 
         <div className="flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5">
@@ -355,99 +269,20 @@ export function SystemPanel({
           )}
 
           {showUpdatePanel && (
-            <div className="flex flex-col gap-3 border-t border-white/10 pt-4" aria-live="polite">
-              {updateRunning && (
-                <>
-                  <ol aria-label={t("Voortgang systeemupdate")} className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
-                    {UPDATE_STEPS.map((step, i) => {
-                      const done = currentStep > i;
-                      const active = currentStep === i;
-                      return (
-                        <li
-                          key={step.phase}
-                          aria-current={active ? "step" : undefined}
-                          className={`flex min-h-6 items-center gap-2 text-sm ${
-                            active ? "font-medium text-foreground" : done ? "text-muted-foreground" : "text-muted-foreground/60"
-                          }`}
-                        >
-                          <span
-                            className={`flex size-4 shrink-0 items-center justify-center rounded-full border text-[0.6rem] ${
-                              active ? "border-brand" : done ? "border-white/30" : "border-white/15"
-                            }`}
-                            aria-hidden="true"
-                          >
-                            {done ? (
-                              <Check className="size-2.5" />
-                            ) : active ? (
-                              <span className="size-1.5 rounded-full bg-brand motion-safe:animate-pulse" />
-                            ) : null}
-                          </span>
-                          {t(step.label)}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                  {currentStep < 0 && <p className="text-sm text-muted-foreground">{t("Bezig met voorbereiden...")}</p>}
-                  {progress && (
-                    <div className="flex items-center gap-3">
-                      <div
-                        role="progressbar"
-                        aria-label={t("Voortgang systeemupdate")}
-                        aria-valuemin={0}
-                        aria-valuemax={progress.total}
-                        aria-valuenow={progress.current}
-                        className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10"
-                      >
-                        <div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
-                      </div>
-                      <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                        {progress.current}/{progress.total}
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {succeeded && (
-                <p role="status" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Check className="size-4 text-brand" aria-hidden="true" />
-                  {phase === "nothing" ? t("Niets bij te werken") : t("Bijgewerkt")}
-                </p>
-              )}
-
-              {failed && (
-                <div role="alert" className="flex items-start gap-2 text-sm text-destructive">
-                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className="font-medium">{t("Bijwerken mislukt")}</p>
-                    <p className="mt-0.5 break-words text-destructive/90">{update?.error || t("Onbekende fout")}</p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowLog((v) => !v)}
-                  aria-expanded={showLog}
-                  aria-controls="pulse-update-log"
-                  className={`-ml-2 flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground ${FOCUS}`}
-                >
-                  <ChevronDown className={`size-4 transition-transform ${showLog ? "rotate-180" : ""}`} aria-hidden="true" />
-                  {showLog ? t("Log verbergen") : t("Log tonen")}
-                </button>
-                {showLog && (
-                  <pre
-                    id="pulse-update-log"
-                    ref={logRef}
-                    tabIndex={0}
-                    className={`mt-1 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-black p-3 font-mono text-xs leading-relaxed text-muted-foreground ${FOCUS}`}
-                  >
-                    {logLines.length > 0 ? logLines.join("\n") : t("Nog geen uitvoer.")}
-                  </pre>
-                )}
-              </div>
-            </div>
+            <UpdateProgress
+              update={update}
+              updateRunning={updateRunning}
+              currentStep={currentStep}
+              progress={progress}
+              progressPct={progressPct}
+              succeeded={succeeded}
+              failed={failed}
+              phase={phase}
+              showLog={showLog}
+              setShowLog={setShowLog}
+              logRef={logRef}
+              logLines={logLines}
+            />
           )}
         </div>
       </div>

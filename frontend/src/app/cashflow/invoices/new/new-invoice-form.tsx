@@ -6,74 +6,18 @@ import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowClient, CashflowProject, CashflowTradeName } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, ChevronDown, ChevronUp, UserPlus } from "lucide-react";
-import { ClientAutocomplete } from "@/components/client-autocomplete";
-
-type LineType = "hours" | "service" | "travel_costs" | "discount";
-type DiscountType = "percentage" | "amount";
-
-interface InvoiceLine {
-  localId: string;
-  date: string;
-  taskDescription: string;
-  quantity: number | "";
-  unitPrice: number | "";
-  totalCost: number;
-  type: LineType;
-  discountType: DiscountType;
-  discountValue: number | "";
-}
-
-function toTs(dateStr: string): number | null {
-  if (!dateStr) return null;
-  return new Date(dateStr).getTime();
-}
-
-function toDate(ts: number | null | undefined): string {
-  if (!ts) return "";
-  return new Date(ts).toISOString().split("T")[0];
-}
-
-function addDays(dateStr: string, days: number): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
-}
-
-function formatEuro(n: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
-}
-
-function recalculateLines(rawLines: InvoiceLine[]): InvoiceLine[] {
-  const nonDiscountSubtotal = rawLines
-    .filter(l => l.type !== "discount")
-    .reduce((sum, l) => {
-      const q = l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity);
-      const p = l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice);
-      return sum + (q * p);
-    }, 0);
-
-  return rawLines.map(l => {
-    if (l.type === "discount") {
-      let cost = 0;
-      const val = Number(l.discountValue) || 0;
-      if (l.discountType === "percentage") {
-        cost = -1 * (nonDiscountSubtotal * (val / 100));
-      } else {
-        cost = -1 * Math.abs(val);
-      }
-      return { ...l, totalCost: cost };
-    } else {
-      const q = l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity);
-      const p = l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice);
-      return { ...l, totalCost: q * p };
-    }
-  });
-}
+import {
+  toTs,
+  toDate,
+  addDays,
+  recalculateLines,
+  type InvoiceLine,
+  type LineType,
+  type DiscountType,
+} from "./invoice-form-utils";
+import { ClientSection } from "./client-section";
+import { DetailsSection } from "./details-section";
+import { LinesSection } from "./lines-section";
 
 export function NewInvoiceForm() {
   const router = useRouter();
@@ -364,451 +308,63 @@ export function NewInvoiceForm() {
       <h1 className="text-xl font-bold text-white">{editId ? t("Factuur bewerken") : t("Nieuwe factuur")}</h1>
 
       {/* Client, Project & Trade Name */}
-      <div className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-        <h2 className="text-sm font-semibold text-zinc-300">{t("Klant")}, {t("Project")} & {t("Handelsnaam")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Selecteer klant")}</Label>
-            <ClientAutocomplete
-              clients={clients}
-              selectedClientId={clientId}
-              onSelectClient={handleSelectClient}
-              placeholder={t("Zoek of selecteer klant")}
-            />
-            {fieldErrors.clientId && (
-              <p className="text-xs text-rose-400 mt-1 font-medium">{fieldErrors.clientId}</p>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowNewClient(!showNewClient)}
-              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-1 cursor-pointer"
-            >
-              <UserPlus className="size-3" />
-              {t("Nieuwe klant aanmaken")}
-              {showNewClient ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-            </button>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Selecteer project")} <span className="text-zinc-500 font-normal">({t("optioneel")})</span></Label>
-            <select
-              value={projectId}
-              onChange={e => handleProjectChange(e.target.value)}
-              className="w-full text-sm leading-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="">{t("(Geen project)")}</option>
-              {filteredProjects.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}{!clientId ? ` (${p.clientName})` : ""}
-                </option>
-              ))}
-            </select>
-            {!projectId && (
-              <Input
-                placeholder={t("Factuurnaam / Omschrijving (optioneel)")}
-                value={invoiceName}
-                onChange={e => setInvoiceName(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-xs mt-1"
-              />
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Handelsnaam")} <span className="text-zinc-500 font-normal">({t("optioneel")})</span></Label>
-            <select
-              value={tradeNameId}
-              onChange={e => setTradeNameId(e.target.value === "" ? "" : Number(e.target.value))}
-              className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="">{t("(Geen handelsnaam / Standaard)")}</option>
-              {tradeNames.map(tn => (
-                <option key={tn.id} value={tn.id}>
-                  {tn.displayName}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Inline new client form */}
-        {showNewClient && (
-          <div className="mt-2 p-4 bg-zinc-800/60 border border-zinc-700 rounded-lg space-y-3">
-            <p className="text-xs font-semibold text-zinc-300">{t("Klant aanmaken")}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input
-                placeholder={t("Klantnaam")}
-                value={newClientName}
-                onChange={e => setNewClientName(e.target.value)}
-                className="bg-zinc-700 border-zinc-600 text-xs"
-              />
-              <Input
-                placeholder={t("Klantemail")}
-                value={newClientEmail}
-                onChange={e => setNewClientEmail(e.target.value)}
-                className="bg-zinc-700 border-zinc-600 text-xs"
-              />
-              <Input
-                placeholder={t("Klantadres")}
-                value={newClientAddress}
-                onChange={e => setNewClientAddress(e.target.value)}
-                className="bg-zinc-700 border-zinc-600 text-xs sm:col-span-2"
-              />
-              <Input
-                placeholder={t("KVK-nummer (optioneel)")}
-                value={newClientKvk}
-                onChange={e => setNewClientKvk(e.target.value)}
-                className="bg-zinc-700 border-zinc-600 text-xs"
-              />
-              <Input
-                type="number"
-                placeholder="Tarief (€/uur)"
-                value={newClientRate}
-                onChange={e => setNewClientRate(e.target.value)}
-                className="bg-zinc-700 border-zinc-600 text-xs"
-              />
-              <Button
-                type="button"
-                onClick={handleCreateClient}
-                disabled={creatingClient || !newClientName.trim()}
-                className="bg-blue-500 hover:bg-blue-400 text-white text-xs self-end"
-              >
-                {creatingClient ? "Aanmaken..." : t("Klant aanmaken")}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
+      <ClientSection
+        clientId={clientId}
+        clients={clients}
+        creatingClient={creatingClient}
+        fieldErrors={fieldErrors}
+        filteredProjects={filteredProjects}
+        handleCreateClient={handleCreateClient}
+        handleProjectChange={handleProjectChange}
+        handleSelectClient={handleSelectClient}
+        invoiceName={invoiceName}
+        newClientAddress={newClientAddress}
+        newClientEmail={newClientEmail}
+        newClientKvk={newClientKvk}
+        newClientName={newClientName}
+        newClientRate={newClientRate}
+        projectId={projectId}
+        setInvoiceName={setInvoiceName}
+        setNewClientAddress={setNewClientAddress}
+        setNewClientEmail={setNewClientEmail}
+        setNewClientKvk={setNewClientKvk}
+        setNewClientName={setNewClientName}
+        setNewClientRate={setNewClientRate}
+        setShowNewClient={setShowNewClient}
+        setTradeNameId={setTradeNameId}
+        showNewClient={showNewClient}
+        tradeNameId={tradeNameId}
+        tradeNames={tradeNames}
+      />
       {/* Invoice Meta */}
-      <div className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-        <h2 className="text-sm font-semibold text-zinc-300">{t("Factuurdetails")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Factuurnummer")}</Label>
-            <Input
-              value={invoiceNumber}
-              onChange={e => {
-                setInvoiceNumber(e.target.value);
-                setFieldErrors(prev => ({ ...prev, invoiceNumber: undefined }));
-              }}
-              className={`bg-zinc-800 border-zinc-700 font-mono ${fieldErrors.invoiceNumber ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
-            />
-            {fieldErrors.invoiceNumber && (
-              <p className="text-xs text-rose-400 mt-1 font-medium">{fieldErrors.invoiceNumber}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Datum van facturering")}</Label>
-            <Input type="date" value={dateCreated} onChange={e => handleDateCreatedChange(e.target.value)} className="bg-zinc-800 border-zinc-700" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Datum van dienstverlening")}</Label>
-            <Input type="date" value={dateService} onChange={e => setDateService(e.target.value)} className="bg-zinc-800 border-zinc-700" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Vervaldatum")}</Label>
-            <Input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className="bg-zinc-800 border-zinc-700" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-400">{t("Status")}</Label>
-            <select
-              value={status}
-              onChange={e => {
-                const newStatus = e.target.value;
-                setStatus(newStatus);
-                if (newStatus !== "paid") {
-                  setDatePaid("");
-                } else if (!datePaid) {
-                  setDatePaid(new Date().toISOString().split("T")[0]);
-                }
-              }}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="draft">{t("Concept")}</option>
-              <option value="sent">{t("Verzonden / Openstaand")}</option>
-              <option value="paid">{t("Betaald")}</option>
-            </select>
-          </div>
-          {status === "paid" && (
-            <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-400">{t("Datum van betaling")}</Label>
-              <Input
-                type="date"
-                value={datePaid}
-                onChange={e => setDatePaid(e.target.value)}
-                className="bg-zinc-800 border-zinc-700"
-              />
-            </div>
-          )}
-          <div className="space-y-1.5 flex flex-col justify-end">
-            <Label className="text-xs text-zinc-400">{t("KOR (Kleineondernemersregeling)")}</Label>
-            <div className="flex items-center gap-2 h-9">
-              <Switch checked={isKor} onCheckedChange={setIsKor} id="kor-toggle" />
-              <label htmlFor="kor-toggle" className="text-sm text-zinc-300 cursor-pointer">
-                {isKor ? "Van toepassing" : "Niet van toepassing"}
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <DetailsSection
+        dateCreated={dateCreated}
+        datePaid={datePaid}
+        dateService={dateService}
+        fieldErrors={fieldErrors}
+        handleDateCreatedChange={handleDateCreatedChange}
+        invoiceNumber={invoiceNumber}
+        isKor={isKor}
+        paymentDueDate={paymentDueDate}
+        setDatePaid={setDatePaid}
+        setDateService={setDateService}
+        setFieldErrors={setFieldErrors}
+        setInvoiceNumber={setInvoiceNumber}
+        setIsKor={setIsKor}
+        setPaymentDueDate={setPaymentDueDate}
+        setStatus={setStatus}
+        status={status}
+      />
       {/* Invoice Lines */}
-      <div className="space-y-4 p-4 sm:p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-300">{t("Factuurregels")}</h2>
-          <button type="button" onClick={addLine} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-            <Plus className="size-3.5" />{t("Regel toevoegen")}
-          </button>
-        </div>
-        {fieldErrors.lines && (
-          <p className="text-xs text-rose-400 font-medium">{fieldErrors.lines}</p>
-        )}
-
-        {/* Header row (desktop only) */}
-        <div className="hidden sm:grid grid-cols-[105px_125px_1fr_95px_115px_95px_32px] gap-2 pb-1 border-b border-zinc-800">
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Type")}</span>
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Datum")}</span>
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Omschrijving")}</span>
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase text-center">{t("Aantal")}</span>
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase text-right">{t("Prijs / eenheid (€)")}</span>
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase text-right">{t("Totaal (€)")}</span>
-          <span />
-        </div>
-
-        <div className="space-y-3 sm:space-y-2.5">
-          {lines.map((line, idx) => (
-            <div key={line.localId}>
-              {/* Mobile View Card (< sm) */}
-              <div className="sm:hidden p-3.5 bg-zinc-950/60 border border-zinc-800/80 rounded-lg space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-mono font-bold text-zinc-500">#{idx + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeLine(line.localId)}
-                    className="p-1.5 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[11px] text-zinc-400 mb-1 block">{t("Type")}</Label>
-                    <select
-                      value={line.type}
-                      onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
-                      className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="hours">{t("Uren")}</option>
-                      <option value="service">{t("Dienst")}</option>
-                      <option value="travel_costs">{t("Reiskosten")}</option>
-                      <option value="discount">{t("Korting")}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-zinc-400 mb-1 block">{t("Datum")} <span className="text-zinc-500 font-normal">({t("optioneel")})</span></Label>
-                    <Input
-                      type="date"
-                      value={line.date}
-                      onChange={e => updateLine(line.localId, "date", e.target.value)}
-                      className="bg-zinc-800 border-zinc-700 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-[11px] text-zinc-400 mb-1 block">{t("Omschrijving")}</Label>
-                  <Input
-                    placeholder={t("Omschrijving")}
-                    value={line.taskDescription}
-                    onChange={e => updateLine(line.localId, "taskDescription", e.target.value)}
-                    className="bg-zinc-800 border-zinc-700 text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[11px] text-zinc-400 mb-1 block">
-                      {line.type === "discount" ? t("Kortingstype") : t("Aantal")}
-                    </Label>
-                    {line.type === "discount" ? (
-                      <select
-                        value={line.discountType}
-                        onChange={e => updateLine(line.localId, "discountType", e.target.value as DiscountType)}
-                        className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="percentage">{t("Percentage (%)")}</option>
-                        <option value="amount">{t("Bedrag (€)")}</option>
-                      </select>
-                    ) : (
-                      <div className="relative flex items-center">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          placeholder="1"
-                          value={line.quantity === 0 || line.quantity === "" ? "" : line.quantity}
-                          onChange={e => updateLine(line.localId, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
-                          className="bg-zinc-800 border-zinc-700 text-sm pr-8"
-                        />
-                        {line.type === "hours" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("uur")}</span>}
-                        {line.type === "travel_costs" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("km")}</span>}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] text-zinc-400 mb-1 block">
-                      {line.type === "discount" ? t("Korting") : t("Prijs per eenheid (€)")}
-                    </Label>
-                    {line.type === "discount" ? (
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0"
-                        value={line.discountValue === 0 || line.discountValue === "" ? "" : line.discountValue}
-                        onChange={e => updateLine(line.localId, "discountValue", e.target.value === "" ? "" : Number(e.target.value))}
-                        className="bg-zinc-800 border-zinc-700 text-sm text-right font-mono"
-                      />
-                    ) : (
-                      <div className="relative flex items-center">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="0"
-                          value={line.unitPrice === 0 || line.unitPrice === "" ? "" : line.unitPrice}
-                          onChange={e => updateLine(line.localId, "unitPrice", e.target.value === "" ? "" : Number(e.target.value))}
-                          className={`bg-zinc-800 border-zinc-700 text-sm text-right ${line.type === "hours" ? "pr-14" : line.type === "travel_costs" ? "pr-12" : ""}`}
-                        />
-                        {line.type === "hours" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per uur")}</span>}
-                        {line.type === "travel_costs" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per km")}</span>}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-                  <span className="text-xs text-zinc-400 font-medium">{t("Regeltotaal")}:</span>
-                  <span className={`text-sm font-semibold ${line.totalCost < 0 ? "text-emerald-400" : "text-white"}`}>
-                    {formatEuro(line.totalCost)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Desktop View Row (>= sm) */}
-              <div className="hidden sm:grid sm:grid-cols-[105px_125px_1fr_95px_115px_95px_32px] gap-2 items-center">
-                {/* Type dropdown */}
-                <select
-                  value={line.type}
-                  onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
-                  className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="hours">{t("Uren")}</option>
-                  <option value="service">{t("Dienst")}</option>
-                  <option value="travel_costs">{t("Reiskosten")}</option>
-                  <option value="discount">{t("Korting")}</option>
-                </select>
-
-                {/* Date input */}
-                <Input
-                  type="date"
-                  value={line.date}
-                  onChange={e => updateLine(line.localId, "date", e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 text-xs px-1.5 py-2 text-white"
-                  title={t("Datum (optioneel)")}
-                />
-
-                {/* Task Description */}
-                <Input
-                  placeholder={t("Omschrijving")}
-                  value={line.taskDescription}
-                  onChange={e => updateLine(line.localId, "taskDescription", e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 text-sm"
-                />
-
-                {/* Quantity / Discount Mode */}
-                {line.type === "discount" ? (
-                  <select
-                    value={line.discountType}
-                    onChange={e => updateLine(line.localId, "discountType", e.target.value as DiscountType)}
-                    className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-2 text-white focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="percentage">{t("Percentage (%)")}</option>
-                    <option value="amount">{t("Bedrag (€)")}</option>
-                  </select>
-                ) : (
-                  <div className="relative flex items-center">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="1"
-                      value={line.quantity === 0 || line.quantity === "" ? "" : line.quantity}
-                      onChange={e => updateLine(line.localId, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
-                      className="bg-zinc-800 border-zinc-700 text-sm text-center pr-8"
-                    />
-                    {line.type === "hours" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("uur")}</span>}
-                    {line.type === "travel_costs" && <span className="absolute right-2 text-xs text-zinc-500 pointer-events-none">{t("km")}</span>}
-                  </div>
-                )}
-
-                {/* Unit Price / Discount Value */}
-                {line.type === "discount" ? (
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0"
-                    value={line.discountValue === 0 || line.discountValue === "" ? "" : line.discountValue}
-                    onChange={e => updateLine(line.localId, "discountValue", e.target.value === "" ? "" : Number(e.target.value))}
-                    className="bg-zinc-800 border-zinc-700 text-sm text-right font-mono"
-                  />
-                ) : (
-                  <div className="relative flex items-center">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      value={line.unitPrice === 0 || line.unitPrice === "" ? "" : line.unitPrice}
-                      onChange={e => updateLine(line.localId, "unitPrice", e.target.value === "" ? "" : Number(e.target.value))}
-                      className={`bg-zinc-800 border-zinc-700 text-sm text-right ${line.type === "hours" ? "pr-14" : line.type === "travel_costs" ? "pr-12" : ""}`}
-                    />
-                    {line.type === "hours" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per uur")}</span>}
-                    {line.type === "travel_costs" && <span className="absolute right-2 text-[11px] text-zinc-500 pointer-events-none">{t("per km")}</span>}
-                  </div>
-                )}
-
-                {/* Total cost display */}
-                <div className={`flex items-center h-9 px-3 rounded-lg border border-zinc-700 text-sm justify-end ${line.totalCost < 0 ? "bg-emerald-500/10 text-emerald-400 font-semibold" : "bg-zinc-800/50 text-zinc-300"}`}>
-                  {formatEuro(line.totalCost)}
-                </div>
-
-                {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => removeLine(line.localId)}
-                  className="p-1.5 rounded text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer justify-self-center"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Total */}
-        <div className="flex justify-end pt-3 border-t border-zinc-800">
-          <div className="text-right">
-            <p className="text-xs text-zinc-400">{t("Factuurtotaal")}</p>
-            <p className="text-xl font-bold text-white">{formatEuro(total)}</p>
-            {isKor && (
-              <p className="text-[10px] text-zinc-500 mt-0.5">Excl. BTW (KOR)</p>
-            )}
-          </div>
-        </div>
-      </div>
-
+      <LinesSection
+        addLine={addLine}
+        fieldErrors={fieldErrors}
+        isKor={isKor}
+        lines={lines}
+        removeLine={removeLine}
+        total={total}
+        updateLine={updateLine}
+      />
       {/* Error */}
       {error && <p className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-4 py-2">{error}</p>}
 
