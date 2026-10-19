@@ -105,6 +105,7 @@ export function buildSessionExercisesPayload(exercises: SessionExercise[] | unde
         rpe: set.rpe,
         heartRate: set.heartRate,
         completed: set.completed,
+        editedFields: set.editedFields,
       })),
     };
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { parseDecimal, parseInteger, sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/number-input";
 import type { InputKind } from "@/components/workout-exercise-card-utils";
@@ -18,17 +19,18 @@ function sameInputValue(kind: InputKind, a: string, b: string): boolean {
   return a.trim() === b.trim();
 }
 
-export function AutoSaveInput({ kind, value, onSave, ...props }: AutoSaveInputProps) {
-  const [localValue, setLocalValue] = useState<string>(value);
+export function AutoSaveInput({ kind, value, onSave, className, ...props }: AutoSaveInputProps) {
+  const [{ localValue, edited }, setDraft] = useState({ localValue: value, edited: false });
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalValue(value);
+    setDraft({ localValue: value, edited: false });
   }, [value]);
 
   const handleBlur = () => {
-    if (!sameInputValue(kind, localValue, value)) {
+    if (edited || !sameInputValue(kind, localValue, value)) {
       onSave(localValue);
+      setDraft({ localValue, edited: false });
     }
   };
 
@@ -40,14 +42,16 @@ export function AutoSaveInput({ kind, value, onSave, ...props }: AutoSaveInputPr
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    if (kind === "decimal") setLocalValue(sanitizeDecimalInput(raw));
-    else if (kind === "integer") setLocalValue(sanitizeIntegerInput(raw));
-    else setLocalValue(raw.replace(/[^0-9:]/g, "").slice(0, 8));
+    const sanitized = kind === "decimal" ? sanitizeDecimalInput(raw)
+      : kind === "integer" ? sanitizeIntegerInput(raw)
+        : raw.replace(/[^0-9:]/g, "").slice(0, 8);
+    setDraft({ localValue: sanitized, edited: true });
   };
 
   return (
     <Input
       {...props}
+      className={cn(className, edited && "text-foreground not-italic font-semibold")}
       type="text"
       inputMode={kind === "decimal" ? "decimal" : "numeric"}
       enterKeyHint="done"

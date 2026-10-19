@@ -13,12 +13,12 @@ export function usePreviousSets(session: FullWorkoutSession | null) {
         try {
           const res = await api.workouts.exercises.progress(name);
           if (res?.sessions?.length) {
-            const completedSessions = res.sessions.filter((s) => s.sets?.length > 0);
+            const completedSessions = res.sessions.filter((s) => s.sets?.some((set) => set.completed === 1));
             if (completedSessions.length) {
               const lastCompleted = completedSessions[completedSessions.length - 1];
               setPreviousSetsMap((prev) => ({
                 ...prev,
-                [name]: lastCompleted.sets,
+                [name]: lastCompleted.sets.filter((set) => set.completed === 1),
               }));
             }
           }

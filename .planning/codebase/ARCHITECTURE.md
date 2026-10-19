@@ -159,7 +159,7 @@ last_mapped_at: 2026-10-12
 - **No Router Splitting:** All Elysia HTTP routes must be declared in `backend/src/index.ts` (enforced per project conventions in `AGENTS.md`).
 - **Database Preservation:** Local `sbase.db` contains active user data; dropping tables or running destructive resets is strictly forbidden.
 - **Dutch UI Language:** All user-facing frontend strings must use `t()` from `frontend/src/lib/lang.ts`.
-- **Signal Panel Aesthetic:** Strict adherence to pitch black background (`#000000`), Dark Slate card layering, Signal Green (`#00e3a4`) limited to <=10% screen space, Oatmeal serif for display headers (1 per page).
+- **Signal Panel Aesthetic:** Strict adherence to pitch black background (`#000000`), Dark Slate card layering, Signal Green (`#00e3a4`) limited to <=10% screen space, Space Grotesk for display headers (1 per page).
 
 ## Anti-Patterns
 

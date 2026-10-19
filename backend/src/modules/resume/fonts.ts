@@ -9,7 +9,7 @@ export const CURATED_FONTS = [
   "merriweather",
   "playfair-display",
   "source-serif",
-  "oatmeal",
+  "space-grotesk",
   "epilogue",
 ];
 

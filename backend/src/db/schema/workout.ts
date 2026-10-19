@@ -67,5 +67,6 @@ export const sessionSets = sqliteTable("session_sets", {
   rpe: real("rpe"),
   heartRate: integer("heart_rate"),
   completed: integer("completed").notNull().default(0),
+  editedFields: text("edited_fields"),
 });
 

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Check, Trash, Timer } from "lucide-react";
 import { t } from "@/lib/lang";
 import { parseDecimal, parseInteger } from "@/lib/number-input";
+import { highestCompletedWeight } from "@backend/utils/workout-defaults";
 import { isUntouchedDefault, type SetValueField } from "@/lib/set-values";
 import { cn } from "@/lib/utils";
 import { SwipeTr, useCoarsePointer, useSmViewport } from "@/components/swipe-tr";
@@ -159,7 +160,7 @@ export function SetsTable({
 
               let targetSource: Partial<SessionSet> | null = null;
               if (hasPrevData) {
-                targetSource = prevSet;
+                targetSource = { ...prevSet, weight: highestCompletedWeight(prevSets) };
               } else if (ex.templateExercise) {
                 targetSource = {
                   reps: ex.templateExercise.defaultReps,
@@ -217,7 +218,7 @@ export function SetsTable({
                           value={display}
                           onSave={(val) => saveColumn(col, setIdx, val)}
                           className={cn(
-                            "bg-white/5 h-11 text-center text-sm rounded-md px-1 transition-colors placeholder:text-muted-foreground/60 placeholder:italic placeholder:font-normal",
+                            "bg-white/5 h-11 text-center text-sm rounded-md px-1 transition-colors placeholder:text-muted-foreground placeholder:italic placeholder:font-normal",
                             pristine ? "text-muted-foreground italic font-normal" : "text-foreground font-semibold",
                             flagged
                               ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"

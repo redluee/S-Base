@@ -13,7 +13,7 @@ colors:
   destructive: oklch(0.704 0.191 22.216)
 typography:
   display:
-    fontFamily: "'oatmeal', Georgia, serif"
+    fontFamily: "'space-grotesk', sans-serif"
     fontSize: clamp(1.75rem, 5vw, 3rem)
     fontWeight: 400
     lineHeight: 1.1
@@ -86,7 +86,7 @@ The system is dark by design choice (not by default) — the all-black backgroun
 - Brand green (#00e3a4) used sparingly — active states, ratings, the S in the logo
 - Thin borders (rgba white 10%) define containers
 - Glow shadows reserved for active/hover states only
-- Two-font system: Oatmeal serif for display hierarchy, Epilogue sans for body and labels
+- Two-font system: Space Grotesk for display hierarchy, Epilogue sans for body and labels
 - Information density with breathing room
 
 ## 2. Colors
@@ -113,10 +113,10 @@ A restrained palette. Black background, white text, one accent color. No seconda
 
 ## 3. Typography
 
-**Display Font:** Oatmeal (Georgia, serif fallback)
+**Display Font:** Space Grotesk (self-hosted, sans-serif fallback)
 **Body Font:** Epilogue (system-ui, sans-serif fallback)
 
-**Character:** A deliberate contrast — Oatmeal brings warmth and editorial weight to headings, while Epilogue provides clean, unadorned readability for body text. The pairing is not decorative; display gets the serif gravity for hierarchy, body gets the sans clarity for scanning.
+**Character:** A deliberate contrast — Space Grotesk brings geometric character to headings, while Epilogue provides clean, unadorned readability for body text. The pairing is not decorative; display gets a geometric, characterful voice for hierarchy, body gets the sans clarity for scanning.
 
 ### Hierarchy
 
@@ -127,7 +127,7 @@ A restrained palette. Black background, white text, one accent color. No seconda
 
 ### Named Rules
 
-**The One-Per-Page Rule.** The Oatmeal display font appears once per page — the primary heading. Card titles and lower headings use Epilogue weight contrast instead. This preserves the display font's authority.
+**The One-Per-Page Rule.** The Space Grotesk display font appears once per page — the primary heading. Card titles and lower headings use Epilogue weight contrast instead. This preserves the display font's authority.
 
 ## 4. Elevation
 
@@ -177,7 +177,7 @@ Depth is conveyed through tonal layering, not shadows. Cards sit one step lighte
 
 ### Do:
 - **Do** use the brand green to signal what's active, selected, or actionable.
-- **Do** keep one font per role — Oatmeal for display, Epilogue for everything else.
+- **Do** keep one font per role — Space Grotesk for display, Epilogue for everything else.
 - **Do** use the `glow` shadow family only as interactive feedback, never as a resting state.
 - **Do** make every tap target at least 44×44px on mobile.
 - **Do** respect `prefers-reduced-motion` — all animations should have a reduced alternative.
@@ -186,7 +186,7 @@ Depth is conveyed through tonal layering, not shadows. Cards sit one step lighte
 - **Don't** use the brand green as a background wash or page tint.
 - **Don't** use gradient text (`background-clip: text` with gradients) anywhere.
 - **Don't** use side-stripe borders (border-left >1px as decoration).
-- **Don't** use the Oatmeal display font more than once per page.
+- **Don't** use the Space Grotesk display font more than once per page.
 - **Don't** put cards inside cards — nested cards are always the wrong answer.
 - **Don't** use glassmorphism or backdrop blur as decoration.
 - **Don't** let text overflow its container — test heading clamp scales at every breakpoint.

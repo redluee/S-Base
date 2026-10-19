@@ -1,3 +1,4 @@
+import { highestCompletedWeight } from "@backend/utils/workout-defaults";
 import { api } from "@/lib/api";
 import { parseDecimal, toInputString } from "@/lib/number-input";
 import { isTimedExercise, normalizeCategory } from "@/components/workout-exercise-card";
@@ -61,10 +62,11 @@ export function calculateTotalVolume(session: FullWorkoutSession | null): number
 }
 
 export function setsFromHistory(history: SessionSet[]): SessionSet[] {
-  return history.map((s, i) => ({
+  return history.filter((s) => s.completed !== 0).map((s, i) => ({
     setNumber: i + 1,
     reps: s.reps ?? null,
-    weight: s.weight ?? null,
+    weight: highestCompletedWeight(history),
+    editedFields: "",
     distance: s.distance ?? null,
     duration: s.duration ?? null,
     rpe: s.rpe ?? null,
@@ -86,6 +88,7 @@ export function defaultSetList(
       setNumber: i,
       reps: numReps,
       weight: defaultWeight ?? null,
+      editedFields: "",
       distance: defaultDistance ?? null,
       duration: defaultDuration ?? null,
       rpe: null,
@@ -96,10 +99,25 @@ export function defaultSetList(
   return sets;
 }
 
+export function nextSessionSet(sets: SessionSet[]): SessionSet {
+  const lastSet = sets[sets.length - 1];
+  return {
+    setNumber: sets.length + 1,
+    editedFields: "",
+    reps: lastSet?.reps ?? null,
+    weight: lastSet?.weight ?? null,
+    distance: lastSet?.distance ?? null,
+    duration: lastSet?.duration ?? null,
+    rpe: lastSet?.rpe ?? null,
+    heartRate: lastSet?.heartRate ?? null,
+    completed: 0,
+  };
+}
+
 export async function fetchLastCompletedSets(name: string) {
   const res = await api.workouts.exercises.progress(name);
   if (res?.sessions?.length) {
-    const completedSessions = res.sessions.filter((s) => s.sets?.length > 0);
+    const completedSessions = res.sessions.filter((s) => s.sets?.some((set) => set.completed === 1));
     if (completedSessions.length > 0) {
       return { res, lastSession: completedSessions[completedSessions.length - 1] };
     }
@@ -229,7 +247,7 @@ export function fillCompletedSetDefaults(
   const prevSet = prevSets?.[setIndex] ?? prevSets?.[prevSets.length - 1];
   const templateEx = ex.templateExercise;
 
-  const defaultWeight = prevSet?.weight ?? templateEx?.defaultWeight ?? 0;
+  const defaultWeight = prevSets?.length ? highestCompletedWeight(prevSets) : templateEx?.defaultWeight ?? 0;
   const defaultReps = prevSet?.reps ?? templateEx?.defaultReps ?? 10;
   const defaultDistance = prevSet?.distance ?? templateEx?.defaultDistance ?? 0;
   const defaultDuration = prevSet?.duration ?? templateEx?.defaultDuration ?? 0;
@@ -238,17 +256,21 @@ export function fillCompletedSetDefaults(
 
   const cat = normalizeCategory(ex.category);
   const isTimed = isTimedExercise(ex, previousSetsMap);
+  const tracksWeight = ex.sets.some((s) => s.weight != null);
+  const tracksReps = ex.sets.some((s) => s.reps != null);
+  const tracksDuration = ex.sets.some((s) => s.duration != null);
+  const tracksDistance = ex.sets.some((s) => s.distance != null);
 
   if (cat === "cardio") {
-    set.distance = set.distance ?? defaultDistance;
-    set.duration = set.duration ?? defaultDuration;
+    if (tracksDistance) set.distance = set.distance ?? defaultDistance;
+    if (tracksDuration) set.duration = set.duration ?? defaultDuration;
     set.heartRate = set.heartRate ?? defaultHeartRate;
   } else if (isTimed) {
-    set.duration = set.duration ?? (defaultDuration > 0 ? defaultDuration : null);
-    set.weight = set.weight ?? defaultWeight;
+    if (tracksDuration) set.duration = set.duration ?? (defaultDuration > 0 ? defaultDuration : null);
+    if (tracksWeight) set.weight = set.weight ?? defaultWeight;
   } else {
-    set.weight = set.weight ?? defaultWeight;
-    set.reps = set.reps ?? defaultReps;
+    if (tracksWeight) set.weight = set.weight ?? defaultWeight;
+    if (tracksReps) set.reps = set.reps ?? defaultReps;
     set.rpe = set.rpe ?? defaultRpe;
   }
 }

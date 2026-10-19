@@ -78,6 +78,7 @@ export interface WorkoutSession {
 }
 
 export interface SessionSet {
+  editedFields?: string | null;
   setId?: number;
   sessionExerciseId?: number;
   setNumber: number;

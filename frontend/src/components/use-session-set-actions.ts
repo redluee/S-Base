@@ -1,8 +1,7 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { clearActiveNotifications } from "@/lib/sound";
-import { isTimedExercise } from "@/components/workout-exercise-card";
 import { applySetUpdate, type SetValueField } from "@/lib/set-values";
-import { fillCompletedSetDefaults, getExerciseRestTime } from "@/components/workout-session-helpers";
+import { fillCompletedSetDefaults, getExerciseRestTime, nextSessionSet } from "@/components/workout-session-helpers";
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
 
 interface SetActionsArgs {
@@ -139,24 +138,7 @@ export function useSessionSetActions({
     const exercises = [...(session.exercises ?? [])];
     const ex = { ...exercises[exerciseIndex] };
     const sets = [...(ex.sets ?? [])];
-    const lastSet = sets[sets.length - 1];
-    const newSetNum = sets.length + 1;
-
-    const isTimed = isTimedExercise(ex, previousSetsMap);
-
-    const newSet: SessionSet = {
-      setId: undefined as unknown as number,
-      setNumber: newSetNum,
-      reps: isTimed ? (lastSet?.reps ?? null) : (lastSet?.reps ?? 10),
-      weight: lastSet?.weight ?? null,
-      distance: lastSet?.distance ?? null,
-      duration: lastSet?.duration ?? null,
-      rpe: lastSet?.rpe ?? null,
-      heartRate: lastSet?.heartRate ?? null,
-      completed: 0,
-    };
-
-    sets.push(newSet);
+    sets.push(nextSessionSet(sets));
     ex.sets = sets;
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });

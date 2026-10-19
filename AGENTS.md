@@ -55,7 +55,7 @@ Backend routes and frontend views are structured around discrete domain modules:
 - **Design System**: Strict adherence to `DESIGN.md` ("The Signal Panel" aesthetic):
   - Pitch black background (`#000000`) with tonal card layering (Dark Slate `oklch(0.205 0 0)`), no default shadows.
   - Signal Green (`#00e3a4`) used sparingly for active states / primary CTAs (≤10% of screen).
-  - Typography: Oatmeal serif for display headers (1 per page rule), Epilogue sans for body and labels.
+  - Typography: Space Grotesk for display headers (1 per page rule), Epilogue sans for body and labels.
   - No nested cards, no gradient text fills, no colored border stripes.
 - **Responsive**: Every page must be fully functional and designed for both mobile (min 44×44px tap targets) and desktop.
 - **Testing**: Run `bun run test` or `bun run test:all` before pushing. Backend tests use in-memory SQLite (`DB_PATH=:memory: bun test`).

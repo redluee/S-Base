@@ -1,3 +1,4 @@
+import { lastExerciseWeight } from "./workout-history";
 import { eq, and, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
@@ -231,12 +232,15 @@ export class WorkoutSessionService extends WorkoutTemplateService {
               restTime: tex.defaultRestTime ?? null,
             }).returning().get();
 
+            const previousWeight = lastExerciseWeight(userId, tex.exerciseName, tex.defaultWeight);
+
             for (let s = 1; s <= tex.defaultSets; s++) {
               tx.insert(sessionSets).values({
                 sessionExerciseId: se.sessionExerciseId,
                 setNumber: s,
                 reps: tex.defaultReps ?? null,
-                weight: tex.defaultWeight ?? null,
+                weight: tex.defaultWeight == null ? null : previousWeight,
+                editedFields: "",
                 distance: tex.defaultDistance ?? null,
                 duration: tex.defaultDuration ?? null,
                 rpe: tex.defaultRpe ?? null,
@@ -277,6 +281,7 @@ export class WorkoutSessionService extends WorkoutTemplateService {
         rpe?: number;
         heartRate?: number;
         completed?: number;
+        editedFields?: string | null;
       }[];
     }[];
   }) {
@@ -337,6 +342,7 @@ export class WorkoutSessionService extends WorkoutTemplateService {
           throw new ValidationError("Set number must be a positive whole number");
         }
         optionalInteger(set.completed, "Completed");
+        optionalText(set.editedFields, "Edited fields", 100);
         validateSetParams(set, undefined, Boolean(ex.isAssisted));
       }
     }
@@ -396,6 +402,7 @@ export class WorkoutSessionService extends WorkoutTemplateService {
                   rpe: set.rpe,
                   heartRate: set.heartRate,
                   completed: set.completed ?? 0,
+                  editedFields: set.editedFields ?? null,
                 }).run();
               }
             }
@@ -423,6 +430,7 @@ export class WorkoutSessionService extends WorkoutTemplateService {
                   rpe: set.rpe,
                   heartRate: set.heartRate,
                   completed: set.completed ?? 0,
+                  editedFields: set.editedFields ?? null,
                 }).run();
               }
             }

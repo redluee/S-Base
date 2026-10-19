@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
-  font-family: 'oatmeal';
-  src: url('/fonts/oatmeal.ttf') format('truetype');
+  font-family: 'space-grotesk';
+  src: url('/fonts/space-grotesk.ttf') format('truetype');
+  font-weight: 300 700;
   font-display: swap;
 }
 
@@ -31,7 +32,7 @@
   --color-muted: var(--sb-muted);
   --color-border: var(--sb-border);
   --font-sans: 'epilogue', sans-serif;
-  --font-display: 'oatmeal', serif;
+  --font-display: 'space-grotesk', sans-serif;
   --font-mono: 'jetbrains-mono', monospace;
   --shadow-glow: 0 0 2rem #00e3a4;
   --shadow-glow-sm: 0 0 1rem #00e3a480;

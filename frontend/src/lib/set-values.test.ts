@@ -1,3 +1,4 @@
+import { buildSessionExercisesPayload } from "./offline-workout";
 import { describe, expect, it } from "bun:test";
 import { applySetUpdate, isUntouchedDefault, type EditableSet } from "./set-values";
 
@@ -53,5 +54,27 @@ describe("isUntouchedDefault", () => {
     expect(isUntouchedDefault({ weight: 50, completed: 1 }, "weight", 50)).toBe(false);
     expect(isUntouchedDefault({ weight: null, completed: 0 }, "weight", 50)).toBe(false);
     expect(isUntouchedDefault({ weight: 50, completed: 0 }, "weight", null)).toBe(false);
+  });
+});
+
+
+describe("set value provenance", () => {
+  it("keeps automatic copies suggested and explicit edits entered after serialization", () => {
+    const updated = applySetUpdate([
+      { setNumber: 1, weight: 40, reps: 8, completed: 0, editedFields: "" },
+      { setNumber: 2, weight: 40, reps: 8, completed: 0, editedFields: "" },
+    ], 0, "weight", 50);
+    const payload = buildSessionExercisesPayload([{ exerciseName: "Example", sortOrder: 0, sets: updated }])!;
+    const restored = JSON.parse(JSON.stringify(payload[0].sets));
+    expect(isUntouchedDefault(restored[0], "weight", 50)).toBe(false);
+    expect(isUntouchedDefault(restored[0], "reps", 8)).toBe(true);
+    expect(isUntouchedDefault(restored[1], "weight", 40)).toBe(true);
+    expect(isUntouchedDefault({ ...restored[1], completed: 1 }, "weight", 40)).toBe(true);
+  });
+
+  it("remembers an explicit edit equal to the default and protects it from cascading", () => {
+    const updated = applySetUpdate(sets(50, 50), 1, "weight", 50);
+    expect(isUntouchedDefault(updated[1], "weight", 50)).toBe(false);
+    expect(applySetUpdate(updated, 0, "weight", 60)[1].weight).toBe(50);
   });
 });

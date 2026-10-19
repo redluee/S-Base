@@ -58,7 +58,7 @@ export const CURATED_FONTS: CuratedFont[] = [
   curated("merriweather", "Merriweather"),
   curated("playfair-display", "Playfair Display"),
   curated("source-serif", "Source Serif"),
-  curated("oatmeal", "Oatmeal", "/fonts/oatmeal.ttf", "/fonts/oatmeal.ttf"),
+  curated("space-grotesk", "Space Grotesk", "/fonts/space-grotesk.ttf", "/fonts/space-grotesk.ttf"),
   curated("epilogue", "Epilogue", "/fonts/epilogue.ttf", "/fonts/epilogue.ttf"),
 ];
 

@@ -1,3 +1,4 @@
+import { highestCompletedWeight } from "../../utils/workout-defaults";
 import { eq, and, or, like, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
@@ -28,7 +29,7 @@ export class WorkoutSuggestionService extends WorkoutSessionService {
         eq(workoutSessions.userId, userId),
         sql`${workoutSessions.completedAt} IS NOT NULL`
       ))
-      .orderBy(sql`${workoutSessions.completedAt} DESC`, sql`${workoutSessions.startedAt} DESC`, sql`${workoutSessions.sessionId} DESC`)
+      .orderBy(sql`${workoutSessions.startedAt} DESC`, sql`${workoutSessions.sessionId} DESC`)
       .all();
 
     const fromTemplates = db.select({
@@ -91,9 +92,16 @@ export class WorkoutSuggestionService extends WorkoutSessionService {
           heartRate: sessionSets.heartRate,
         })
           .from(sessionSets)
-          .where(eq(sessionSets.sessionExerciseId, r.sessionExerciseId))
+          .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
+          .where(and(
+            eq(sessionExercises.sessionId, r.sessionId),
+            sql`LOWER(TRIM(${sessionExercises.exerciseName})) = LOWER(TRIM(${r.name}))`,
+            eq(sessionSets.completed, 1)
+          ))
           .orderBy(sessionSets.setNumber)
           .all();
+
+        if (!sets.length) continue;
 
         const lastSetWithValues = sets.slice().reverse().find(s => s.reps != null || s.weight != null || s.distance != null || s.duration != null) ?? sets[sets.length - 1];
         const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
@@ -106,7 +114,7 @@ export class WorkoutSuggestionService extends WorkoutSessionService {
           isAssisted: r.isAssisted ?? 0,
           defaultSets: sets.length > 0 ? sets.length : 3,
           defaultReps: lastSetWithValues?.reps ?? (sets[0]?.reps ?? 10),
-          defaultWeight: lastSetWithValues?.weight ?? (sets[0]?.weight ?? null),
+          defaultWeight: highestCompletedWeight(sets),
           defaultDistance: lastSetWithValues?.distance ?? (sets[0]?.distance ?? null),
           defaultDuration: lastSetWithValues?.duration ?? (sets[0]?.duration ?? null),
           defaultRestTime: null,
