@@ -1,9 +1,14 @@
+"use client"
+
 import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, onClick, onDoubleClick, onFocus, ...props }: React.ComponentProps<"input">) {
+  const caret = React.useRef(0)
+  const supportsSelection = !type || ["text", "search", "tel", "url", "password"].includes(type)
+
   return (
     <InputPrimitive
       type={type}
@@ -13,6 +18,24 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         className
       )}
       {...props}
+      onFocus={(event) => {
+        onFocus?.(event)
+        if (!event.defaultPrevented && supportsSelection && event.currentTarget.matches(":focus-visible")) {
+          event.currentTarget.select()
+        }
+      }}
+      onClick={(event) => {
+        onClick?.(event)
+        if (event.defaultPrevented || !supportsSelection || event.detail !== 1) return
+        const input = event.currentTarget
+        caret.current = input.selectionStart ?? input.value.length
+        if (input.selectionStart === input.selectionEnd) input.select()
+      }}
+      onDoubleClick={(event) => {
+        onDoubleClick?.(event)
+        if (event.defaultPrevented || !supportsSelection) return
+        event.currentTarget.setSelectionRange(caret.current, caret.current)
+      }}
     />
   )
 }
