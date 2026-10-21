@@ -231,7 +231,7 @@ export class AuthService {
   findUserByEmail(email: string): { userId: number; username: string; email: string | null; isPaused: number } | null {
     const user = db.select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
       .from(users)
-      .where(eq(users.email, email))
+      .where(sql`lower(${users.email}) = lower(${email.trim()})`)
       .get();
     if (!user) return null;
     return { userId: user.userId, username: user.username, email: user.email ?? null, isPaused: user.isPaused };

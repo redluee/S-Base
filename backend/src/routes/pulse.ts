@@ -1,5 +1,4 @@
 import { Elysia } from "elysia";
-import { modules, users } from "../db/schema";
 import { auth, pulse, shutdownService, systemUpdate, pulseAuth } from "../context";
 
 export const pulseRoutes = new Elysia()
@@ -8,6 +7,27 @@ export const pulseRoutes = new Elysia()
     app
       .use(pulseAuth)
       .get("/users", () => pulse.listUsers())
+      .post("/users", async ({ body, set }) => {
+        const { username, email, password } = (body ?? {}) as {
+          username?: unknown;
+          email?: unknown;
+          password?: unknown;
+        };
+
+        if (typeof username !== "string" || typeof email !== "string" || typeof password !== "string") {
+          set.status = 400;
+          return { error: "invalid_input" };
+        }
+
+        const result = await pulse.createUser(username, email, password);
+        if (!result.ok) {
+          set.status = result.reason === "username_exists" || result.reason === "email_exists" ? 409 : 400;
+          return { error: result.reason };
+        }
+
+        set.status = 201;
+        return result.user;
+      })
       .get("/modules", () => pulse.listModules())
       .get("/stats", () => pulse.getStats())
       .get("/shutdown-schedule", () => shutdownService.getStatus())

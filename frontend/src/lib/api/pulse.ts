@@ -10,6 +10,11 @@ import type {
 
 export const pulseApi = {
   users: () => request<PulseUser[]>("/pulse/users"),
+  createUser: (data: { username: string; email: string; password: string }) =>
+    request<PulseUser>("/pulse/users", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   modules: () => request<PulseModuleInfo[]>("/pulse/modules"),
   stats: () => request<PulseStats>("/pulse/stats"),
   updateEmail: (id: number, email: string | null) =>

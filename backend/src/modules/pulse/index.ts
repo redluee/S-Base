@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { users, modules, usermodulepermissions, mc_servers, mc_server_permissions } from "../../db/schema";
 
@@ -26,6 +26,19 @@ export interface PulseStats {
   pausedUsers: number;
   totalPermissions: number;
 }
+
+export type CreatePulseUserResult =
+  | { ok: true; user: PulseUser }
+  | {
+      ok: false;
+      reason:
+        | "username_required"
+        | "username_too_long"
+        | "email_invalid"
+        | "password_too_short"
+        | "username_exists"
+        | "email_exists";
+    };
 
 export class PulseService {
   listUsers(): PulseUser[] {
@@ -92,8 +105,42 @@ export class PulseService {
       .all();
   }
 
+  async createUser(usernameInput: string, emailInput: string, password: string): Promise<CreatePulseUserResult> {
+    const username = usernameInput.trim();
+    const email = emailInput.trim().toLowerCase();
+
+    if (!username) return { ok: false, reason: "username_required" };
+    if (username.length > 50) return { ok: false, reason: "username_too_long" };
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { ok: false, reason: "email_invalid" };
+    }
+    if (password.length < 8) return { ok: false, reason: "password_too_short" };
+
+    const existingUsername = db.select({ userId: users.userId }).from(users).where(eq(users.username, username)).get();
+    if (existingUsername) return { ok: false, reason: "username_exists" };
+
+    const existingEmail = db
+      .select({ userId: users.userId })
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .get();
+    if (existingEmail) return { ok: false, reason: "email_exists" };
+
+    const pswdHash = await Bun.password.hash(password, { algorithm: "argon2id" });
+    const created = db
+      .insert(users)
+      .values({ username, email, pswdHash })
+      .returning({ userId: users.userId })
+      .get();
+    if (!created) throw new Error("Created Pulse user could not be loaded");
+    const user = this.listUsers().find((item) => item.userId === created.userId);
+
+    if (!user) throw new Error("Created Pulse user could not be loaded");
+    return { ok: true, user };
+  }
+
   updateEmail(userId: number, email: string | null): PulseUser | null {
-    const trimmedEmail = email ? email.trim() : null;
+    const trimmedEmail = email ? email.trim().toLowerCase() : null;
     db.update(users)
       .set({ email: trimmedEmail })
       .where(eq(users.userId, userId))
