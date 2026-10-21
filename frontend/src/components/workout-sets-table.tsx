@@ -208,7 +208,7 @@ export function SetsTable({
                             : col.kind === "decimal"
                               ? "0,0"
                               : "0";
-                      const pristine = isUntouchedDefault(set, col.key as SetValueField, targetRaw ?? null);
+                      const pristine = set.completed !== 1 && isUntouchedDefault(set, col.key as SetValueField, targetRaw ?? null);
                       const flagged = isZero && (col.key === "reps" || col.key === "duration" || col.key === "distance");
                       const input = (
                         <AutoSaveInput
