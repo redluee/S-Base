@@ -8,6 +8,7 @@ import { CashflowService } from "./modules/cashflow";
 import { PulseService, ServerShutdownService, SystemUpdateService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
 import { MinorService } from "./modules/minor";
+import { FinanceService } from "./modules/finance";
 import { ResumeService } from "./modules/resume";
 import db, { sqlite } from "./db/client";
 import { isProduction } from "./security";
@@ -43,6 +44,7 @@ export const shutdownService = new ServerShutdownService(minecraft);
 export const systemUpdate = new SystemUpdateService();
 export const minor = new MinorService();
 export const resume = new ResumeService();
+export const finance = new FinanceService();
 
 export function createAuthPlugin(moduleName: string | string[]) {
   return new Elysia({ name: `auth-${Array.isArray(moduleName) ? moduleName.join("-") : moduleName}` })
@@ -88,6 +90,7 @@ export const pulseAuth = createAuthPlugin("pulse");
 export const minecraftAuth = createAuthPlugin(["minecraft", "minecraft:monitor"]);
 export const minorAuth = createAuthPlugin("minor");
 export const resumeAuth = createAuthPlugin("resume");
+export const financeAuth = createAuthPlugin("finance");
 
 export function badRequest(fn: () => any) {
   try {

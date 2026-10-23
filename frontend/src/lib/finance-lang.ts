@@ -1,0 +1,181 @@
+export const financeNl: Record<string, string> = {
+  "finance.dashboardSubtitle": "Rekeningen, saldoverloop & spaardoelen",
+  "finance.confirm": "Bevestigen",
+  "finance.title": "Geldzaken",
+  "finance.personalOverview": "Persoonlijk overzicht · EUR",
+  "finance.subtitle":
+    "Je rekeningen, saldoverloop en spaardoelen op één plek. Werk je saldi samen bij wanneer het jou uitkomt.",
+  "finance.navigation": "Navigatie Geldzaken",
+  "finance.overview": "Overzicht",
+  "finance.accounts": "Rekeningen",
+  "finance.balances": "Saldi bijwerken",
+  "finance.goals": "Spaardoelen",
+  "finance.period": "Periode",
+  "finance.month": "Maand",
+  "finance.year": "Jaar",
+  "finance.all": "Alles",
+  "finance.asOfDate": "Overzicht tot en met",
+  "finance.updateBalances": "Saldi bijwerken",
+  "finance.updateTogether": "Saldi samen bijwerken",
+  "finance.newAccount": "Rekening toevoegen",
+  "finance.editAccount": "Rekening bewerken",
+  "finance.accountName": "Rekeningnaam",
+  "finance.bank": "Bank (optioneel)",
+  "finance.accountType": "Type rekening",
+  "finance.current": "Betaalrekening",
+  "finance.savings": "Spaarrekening",
+  "finance.openingDate": "Openingsdatum",
+  "finance.openingBalance": "Beginsaldo (EUR)",
+  "finance.openingHelp":
+    "Het beginsaldo wordt je eerste saldomoment. Kies de datum waarop je dit saldo wist; eerdere bedragen worden niet ingevuld.",
+  "finance.accountEditHelp":
+    "Opslaan vervangt ook het beginsaldo. Een andere openingsdatum verplaatst dit saldomoment; latere saldomomenten blijven behouden. Een gewijzigd rekeningtype geldt voor de hele geschiedenis.",
+  "finance.balanceDate": "Datum van de saldi",
+  "finance.bulkHelp":
+    "Vul de saldi van dezelfde datum samen in, vooral na een overboeking tussen je rekeningen. Laat een rekening leeg om de geschiedenis te behouden. Een bestaand saldo vervangen moet je expliciet aanvinken. Alleen EUR; gebruik een komma of punt zonder duizendtalscheiding.",
+  "finance.includeArchived": "Ook gearchiveerde rekeningen tonen",
+  "finance.lastBalance": "Laatst bekend",
+  "finance.lastUpdated": "Saldodatum",
+  "finance.balanceFor": "Nieuw saldo voor {name} (EUR)",
+  "finance.leaveBlank": "Leeg = behouden",
+  "finance.replaceBalance": "Bestaand saldo van {amount} vervangen",
+  "finance.saveBalances": "Saldi opslaan",
+  "finance.balancesSaved":
+    "Saldi opgeslagen. Het overzicht en de geschiedenis zijn opnieuw berekend.",
+  "finance.archived": "Gearchiveerd",
+  "finance.archivedIncluded": "Gearchiveerd · telt mee",
+  "finance.archive": "Archiveren",
+  "finance.restore": "Herstellen",
+  "finance.archiveHelp":
+    "Archiveren verbergt een rekening bij het dagelijks bijwerken. Het laatst bekende saldo blijft meetellen, ook nu en in de geschiedenis. Archiveren betekent dus geen nulstand of afgesloten rekening. Registreer een werkelijk eindsaldo op de juiste datum vóór je archiveert. Je kunt de rekening herstellen en historische saldi blijven bewerken.",
+  "finance.trackedMoney": "Bijgehouden geld",
+  "finance.savingsTotal": "Op spaarrekeningen",
+  "finance.balanceChange": "Saldoverandering in deze periode",
+  "finance.knownPart": "Bekend deel · geen volledig totaal",
+  "finance.unknown": "Onbekend",
+  "finance.zeroBaseline": "Percentage niet beschikbaar: beginsaldo is nul",
+  "finance.coverageCount":
+    "{known} van {total} rekeningen met een bekend saldo",
+  "finance.incomplete":
+    "Niet alle rekeningen hebben op deze datum een bekend saldo. Het getoonde bedrag is alleen het bekende deel; een ontbrekend saldo is geen bevestigde nul. Onvolledige totalen worden niet als lijn getekend.",
+  "finance.mixedBaseline":
+    "De beginsaldi komen van verschillende datums. Daardoor kan de periodevergelijking vertekend zijn, ook als je laatste saldi wel tegelijk zijn bijgewerkt.",
+  "finance.mixedDates":
+    "De saldi komen van verschillende datums. Handmatige updates op verschillende momenten kunnen je totaal tijdelijk vertekenen, bijvoorbeeld bij een overboeking. Werk je rekeningen zoveel mogelijk samen bij.",
+  "finance.comparison.insufficient":
+    "Verandering niet beschikbaar: onvoldoende saldomomenten binnen de periode.",
+  "finance.comparison.coverage":
+    "Verandering niet beschikbaar: een saldo ontbreekt op een periodegrens.",
+  "finance.comparison.cohort":
+    "Verandering niet beschikbaar: de set rekeningen verschilt tussen de periodegrenzen.",
+  "finance.progression": "Saldoverloop",
+  "finance.historySeries": "Getoonde reeks",
+  "finance.chartHelp":
+    "De lijn gebruikt per datum het laatste bekende saldo op of vóór die dag. Horizontale stukken zijn doorgetrokken handmatige saldi, geen live bankgegevens. Bij ontbrekende saldi wordt de lijn onderbroken.",
+  "finance.insufficientHistory":
+    "Voeg saldi op minstens twee verschillende datums toe om je verloop te kunnen beoordelen.",
+  "finance.lowest": "Laagste",
+  "finance.highest": "Hoogste",
+  "finance.historyChart": "Grafiek van handmatig bijgehouden saldi",
+  "finance.chartValues": "Grafiekwaarden bekijken",
+  "finance.date": "Datum",
+  "finance.balance": "Saldo",
+  "finance.coverage": "Bekend / totaal",
+  "finance.noHistory":
+    "Nog geen bekend saldo in deze periode. Voeg een saldomoment toe; toekomstige saldi vullen eerdere datums nooit aan.",
+  "finance.breakdown": "Verdeling over rekeningen",
+  "finance.noAccountsOnDate": "Geen rekeningen geopend op deze datum.",
+  "finance.howItWorks": "Hoe dit overzicht werkt",
+  "finance.manualHelp":
+    "Dit zijn alleen de saldi die je zelf invoert. Er is geen bankverbinding. Het laatst bekende saldo wordt doorgetrokken totdat je een nieuw saldo invoert. Updates op verschillende datums kunnen tijdelijk een vertekend totaal geven. Een overboeking tussen bijgehouden rekeningen verandert je totaal niet zodra beide saldi zijn bijgewerkt.",
+  "finance.comparisonHelp":
+    "Een maand of jaar begint op de eerste kalenderdag en eindigt op de gekozen overzichtsdatum. Alles begint bij de vroegste openingsdatum. We vergelijken alleen dezelfde rekeningen met bekende saldi op beide grenzen en minstens één nieuw saldomoment. Het percentage gebruikt de absolute waarde van het beginsaldo; bij nul is het niet beschikbaar. Saldoverandering is geen berekening van inkomen of spaarinleg.",
+  "finance.scopeHelp":
+    "Bijgehouden geld is geen volledig nettovermogen. Dit overzicht bevat alleen je betaal- en spaarrekeningen in euro. Spaardoelen verdelen bestaand spaargeld en verhogen je totaal nooit.",
+  "finance.history": "Geschiedenis",
+  "finance.observationHelp":
+    "Bewerk een bedrag via Saldi bijwerken. Voor een andere datum voeg je een nieuw saldomoment toe en verwijder je het oude. Verwijderen rekent alle latere totalen opnieuw uit; zonder eerder saldo wordt een rekening onbekend.",
+  "finance.editDatedBalance": "Saldo van {name} op {date} bewerken",
+  "finance.deleteDatedBalance": "Saldo van {name} op {date} verwijderen",
+  "finance.deleteObservation": "Saldomoment verwijderen",
+  "finance.deleteObservationHelp":
+    "Het saldo van {date} wordt verwijderd. Latere overzichten gebruiken dan het vorige bekende saldo, of worden onbekend als dat ontbreekt. Doeltoewijzingen blijven behouden en kunnen daardoor een tekort tonen.",
+  "finance.newGoal": "Spaardoel toevoegen",
+  "finance.editGoal": "Spaardoel bewerken",
+  "finance.goalName": "Naam van het spaardoel",
+  "finance.targetAmount": "Doelbedrag (EUR)",
+  "finance.targetDate": "Streefdatum (optioneel)",
+  "finance.targetDateLabel": "Streefdatum",
+  "finance.goalsHelp":
+    "Verdeel bestaand spaargeld bewust over je doelen. Geld kan maar één keer worden toegewezen. Een toewijzing is een reservering en geen extra saldo of automatische overboeking.",
+  "finance.goalsAsOf":
+    "Toewijzingen gebruiken de laatst bekende saldi tot en met {date}, onafhankelijk van de overzichtsperiode.",
+  "finance.allocated": "Toegewezen spaargeld",
+  "finance.unallocated": "Nog vrij op spaarrekeningen",
+  "finance.shortfall": "Ongedekte toewijzing",
+  "finance.shortfallHelp":
+    "Een spaarrekening heeft een onbekend of te laag saldo. Je toewijzingen blijven behouden. Verlaag ze zelf of werk het saldo bij. Verhogen op een rekening met een tekort is geblokkeerd; vrij geld op een andere rekening dekt dit tekort niet automatisch.",
+  "finance.savingsAvailability": "Beschikbaarheid per spaarrekening",
+  "finance.noGoals":
+    "Nog geen spaardoelen. Voeg een doel toe en wijs er daarna een deel van je spaargeld aan toe.",
+  "finance.goalProgress": "Toegewezen deel van het spaardoel",
+  "finance.remaining": "Nog toe te wijzen",
+  "finance.allocatedLabel": "toegewezen",
+  "finance.goalUncovered":
+    "Een gebruikte spaarrekening heeft een tekort of onbekend saldo. De getoonde toewijzing is daardoor niet volledig gedekt.",
+  "finance.manageAllocation": "Toewijzing aanpassen",
+  "finance.allocationEditHelp":
+    "Voer het nieuwe totale bedrag voor deze rekening en dit doel in, niet een verhoging. Gebruik 0 om de toewijzing vrij te geven. Op gearchiveerde rekeningen kun je alleen verlagen.",
+  "finance.fromAccount": "Spaarrekening",
+  "finance.newAllocation": "Nieuwe toewijzing (EUR)",
+  "finance.setAllocation": "Toewijzing opslaan",
+  "finance.allocatedToGoal": "Aan dit doel toegewezen",
+  "finance.allocationSaved": "Toewijzing opgeslagen.",
+  "finance.addSavingsFirst":
+    "Voeg eerst een spaarrekening met een bekend saldo toe om geld toe te wijzen.",
+  "finance.deleteGoal": "Spaardoel verwijderen",
+  "finance.deleteGoalHelp":
+    "Het doel en de bijbehorende toewijzingen worden verwijderd. Het gereserveerde geld komt vrij; je rekeningsaldi veranderen niet.",
+  "finance.startTitle": "Begin met je rekeningen",
+  "finance.startHelp":
+    "Voeg een betaal- of spaarrekening toe met een beginsaldo. Werk daarna je saldi periodiek samen bij. Zo ontstaat vanzelf een overzicht van je bijgehouden geld en je spaardoelen.",
+  "finance.loading": "Geldzaken laden…",
+  "finance.failed":
+    "Geldzaken kon de actie niet afronden. Probeer het opnieuw.",
+  "finance.reloadHelp": "Ververs de gegevens voordat je verdergaat.",
+  "finance.retry": "Opnieuw laden",
+  "finance.noActiveAccounts":
+    "Geen actieve rekeningen. Herstel een rekening of toon gearchiveerde rekeningen om historische saldi bij te werken.",
+  "finance.forbidden":
+    "Je hebt geen toegang tot Geldzaken. Een beheerder kan de module inschakelen via Pulse.",
+  "finance.sessionExpired":
+    "Je sessie is verlopen. Log opnieuw in om verder te gaan.",
+  "finance.notFound": "Dit gegeven is niet gevonden of is niet van jou.",
+  "finance.invalidMoney":
+    "Voer een geldig bedrag in met maximaal twee decimalen, zonder duizendtalscheiding (maximaal 10 miljard euro).",
+  "finance.invalidDate": "Voer een geldige kalenderdatum vanaf 1900 in.",
+  "finance.futureDate": "Saldi mogen niet in de toekomst liggen.",
+  "finance.invalidName": "Gebruik 1 tot 120 tekens voor een naam of bank.",
+  "finance.invalidType": "Kies een betaal- of spaarrekening.",
+  "finance.beforeOpening":
+    "Deze datum ligt vóór de openingsdatum van de rekening.",
+  "finance.staleBalance":
+    "Een bestaand saldo is gewijzigd. Laad opnieuw en bewerk het bestaande saldomoment expliciet.",
+  "finance.openingConflict":
+    "De openingsdatum mag niet op of na een ander bestaand saldomoment liggen.",
+  "finance.releaseFirst":
+    "Geef eerst de doeltoewijzingen vrij voordat je het rekeningtype wijzigt.",
+  "finance.allocationLimit":
+    "Er is onvoldoende vrij spaargeld op deze rekening, of de rekening is gearchiveerd. Je kunt een bestaande toewijzing wel verlagen.",
+  "finance.goalLimit": "De toewijzing overschrijdt het doelbedrag.",
+  "finance.targetLimit":
+    "Het doelbedrag mag niet lager zijn dan de bestaande toewijzingen. Verlaag deze eerst.",
+  "finance.chooseBalance": "Vul minstens één saldo in.",
+  "finance.onlySavings": "Alleen spaargeld kan aan doelen worden toegewezen.",
+  "finance.explicitEdit":
+    "Vink expliciet aan dat je het bestaande saldo wilt vervangen.",
+  "finance.positiveTarget": "Het doelbedrag moet groter zijn dan nul.",
+  "finance.nonnegativeAllocation": "Een toewijzing mag niet negatief zijn.",
+  "finance.accountLimit": "Je kunt maximaal 200 rekeningen bijhouden.",
+  "finance.goalCountLimit": "Je kunt maximaal 200 spaardoelen bijhouden.",
+};

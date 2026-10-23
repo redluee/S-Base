@@ -1,4 +1,7 @@
+import { financeNl } from "./finance-lang";
+
 const nl: Record<string, string> = {
+  ...financeNl,
   "Skip to content": "Naar hoofdinhoud",
   "Recipe name is required.": "Receptnaam is verplicht.",
   "Failed to save recipe. Please try again.": "Recept opslaan mislukt. Probeer het opnieuw.",

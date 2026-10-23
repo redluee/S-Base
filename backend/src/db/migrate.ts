@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { join } from "path";
 import { readdir } from "fs/promises";
 
+const LEGACY_BASELINE_END = "0040_add_set_edited_fields.sql";
 const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
 export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS_DIR) {
@@ -21,7 +22,7 @@ export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS
   const appliedSet = new Set(appliedRows.map((r) => r.name));
 
   // If _migrations is completely empty, check if this is an existing database (e.g. users table exists)
-  // If so, mark all currently existing migrations as applied to prevent re-running historical data inserts/DDL
+  // Register the known legacy baseline, then apply newer additive migrations normally
   if (appliedSet.size === 0) {
     const userTableExists = sqlite
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
@@ -30,11 +31,12 @@ export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS
     if (userTableExists) {
       console.log("Existing database detected without migration tracking. Recording current migrations as applied...");
       const insertStmt = sqlite.prepare("INSERT INTO _migrations (name) VALUES (?)");
-      for (const file of sqlFiles) {
+      const legacyFiles = sqlFiles.filter(file => file <= LEGACY_BASELINE_END);
+      for (const file of legacyFiles) {
         insertStmt.run(file);
         appliedSet.add(file);
       }
-      console.log(`Recorded ${sqlFiles.length} migration(s) as already applied.`);
+      console.log(`Recorded ${legacyFiles.length} migration(s) as already applied.`);
     }
   }
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAbsoluteUrl } from "@/lib/request-url";
 
-const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow", "/games", "/pulse"];
+const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow", "/finance", "/games", "/pulse"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -48,6 +48,7 @@ export const config = {
     "/recipes/:path*",
     "/workouts/:path*",
     "/cashflow/:path*",
+    "/finance/:path*",
     "/games/:path*",
     "/pulse/:path*",
   ],

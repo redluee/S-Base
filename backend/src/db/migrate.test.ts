@@ -61,10 +61,11 @@ describe("Database Migration Runner", () => {
 
     // Setup dummy legacy db with users table
     memDb.run("CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT);");
+    memDb.run("CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT);");
     memDb.run("INSERT INTO users (username) VALUES ('admin');");
 
     const result = await runMigrations(memDb);
-    expect(result.applied).toBe(0);
+    expect(result.applied).toBe(1);
 
     const rows = memDb.query<{ name: string }, []>("SELECT name FROM _migrations").all();
     expect(rows.length).toBeGreaterThan(0);

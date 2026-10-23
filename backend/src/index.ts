@@ -9,6 +9,7 @@ import { recipeRoutes } from "./routes/recipes";
 import { workoutRoutes } from "./routes/workout";
 import { cashflowRoutes } from "./routes/cashflow";
 import { minorRoutes } from "./routes/minor";
+import { financeRoutes } from "./routes/finance";
 import { resumeRoutes } from "./routes/resume";
 import { pulseRoutes } from "./routes/pulse";
 import { minecraftRoutes } from "./routes/minecraft";
@@ -60,6 +61,7 @@ export const app = new Elysia()
   .use(cashflowRoutes)
   .use(minorRoutes)
   .use(resumeRoutes)
+  .use(financeRoutes)
   .use(pulseRoutes)
   .use(minecraftRoutes)
 

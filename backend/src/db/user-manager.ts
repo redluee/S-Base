@@ -28,6 +28,7 @@ Acties:
 `;
 
 export const DEFAULT_MODULES = [
+  { name: "finance", alias: "Geldzaken", description: "Persoonlijke rekeningen, saldoverloop en spaardoelen" },
   { name: "recipes", alias: "Smaak Tracker", description: "Module voor het beheren van recepten en wijnen" },
   { name: "workout", alias: "Workout Studio", description: "Module voor het beheren van workouts, trainingssessies en lichaamsmetingen" },
   { name: "cashflow", alias: "Cashflow", description: "Module voor facturatie en financieel beheer" },

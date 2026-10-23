@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { SearchBar } from "@/components/search-bar";
-import { User, LogOut, ChevronDown, Dumbbell, ChefHat, Banknote, Gamepad2, ArrowRightLeft, GraduationCap, FileUser } from "lucide-react";
+import { User, LogOut, ChevronDown, Dumbbell, ChefHat, Banknote, Gamepad2, ArrowRightLeft, GraduationCap, FileUser, Wallet } from "lucide-react";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 
 interface NavHeaderProps {
@@ -66,6 +66,7 @@ export function NavHeader({
 
   const isWorkouts = pathname.includes("/workouts");
   const isRecipes = pathname.includes("/recipes");
+  const isFinance = pathname === "/finance" || pathname.startsWith("/finance/");
   const isCashflow = pathname.includes("/cashflow");
   const isGames = pathname.includes("/games");
   const isMinor = pathname.includes("/minor");
@@ -124,6 +125,7 @@ export function NavHeader({
               <span className="hidden xs:inline">{t("Taste tracker")}</span>
             </Link>
           )}
+          {isFinance && <Link href="/finance" className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-xs font-medium text-zinc-200 hover:bg-muted"><Wallet className="size-4" /><span>{t("finance.title")}</span></Link>}
           {isCashflow && (
             <Link
               href="/cashflow"
@@ -163,7 +165,7 @@ export function NavHeader({
         </div>
 
         <div className="flex items-center gap-3">
-          <SearchBar />
+          {!isFinance && <SearchBar />}
 
           <div className="relative" ref={dropdownRef}>
             <button

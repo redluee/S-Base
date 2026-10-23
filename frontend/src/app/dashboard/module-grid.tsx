@@ -11,6 +11,7 @@ import {
   GraduationCap,
   ArrowUpRight,
   FileUser,
+  Wallet,
 } from "lucide-react";
 
 export function ModuleGrid({
@@ -26,6 +27,12 @@ export function ModuleGrid({
 }) {
   return (
     <nav className="grid grid-cols-1 sm:grid-cols-6 gap-4 sm:gap-5 w-full max-w-3xl mb-8 relative z-10">
+      {canAccess("finance") && (
+        <Link href="/finance" className="col-span-1 sm:col-span-6 flex min-h-24 items-center justify-between gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-brand">
+          <div className="flex min-w-0 items-center gap-4"><Wallet className="size-6 shrink-0 text-muted-foreground" /><div className="min-w-0"><h2 className="text-lg font-semibold">{t("finance.title")}</h2><p className="text-xs text-muted-foreground">{t("finance.dashboardSubtitle")}</p></div></div>
+          <ArrowUpRight className="size-5 shrink-0 text-muted-foreground" />
+        </Link>
+      )}
       {/* 1. Workout Studio Card */}
       {canAccess("workout") && (
         <Link

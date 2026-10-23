@@ -9,6 +9,7 @@ import { cashflowApi } from "./cashflow";
 import { pulseApi } from "./pulse";
 import { minecraftApi } from "./minecraft";
 import { resumeApi } from "./resume";
+import { financeApi } from "./finance";
 import { minorApi } from "./minor";
 
 export const api = {
@@ -38,6 +39,7 @@ export const api = {
   minecraft: minecraftApi,
   resume: resumeApi,
   minor: minorApi,
+  finance: financeApi,
 };
 
 export { ApiError } from "./core";
