@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { t } from "@/lib/lang";
 import { LoginForm } from "@/components/login-form";
+import Image from "next/image";
 
 export default async function LoginPage() {
   const user = await getCurrentUser();
@@ -21,6 +22,7 @@ export default async function LoginPage() {
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[16rem] rounded-full border border-brand/[0.15] pointer-events-none" />
 
       <header className="text-center mb-10">
+        <Image src="/logo.svg" alt="" width={128} height={48} className="mx-auto mb-6" priority />
         <h1 className="font-display text-[clamp(2rem,5vw+1rem,5rem)] leading-none">
           {t("Welcome to")}{" "}
           <span className="text-brand">S</span>-Base

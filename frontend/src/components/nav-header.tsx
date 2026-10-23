@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
@@ -100,8 +101,10 @@ export function NavHeader({
       )}
       <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="font-display text-xl text-brand hover:opacity-85 transition-opacity whitespace-nowrap">
-            S-Base
+          <Link href="/dashboard" className="flex min-h-11 min-w-11 items-center gap-2 font-display text-xl text-brand hover:opacity-85 transition-opacity whitespace-nowrap">
+            <Image src="/logo.svg" alt="" width={48} height={18} />
+            <span className="hidden sm:inline">S-Base</span>
+            <span className="sr-only sm:hidden">S-Base</span>
           </Link>
           {isWorkouts && (
             <Link
