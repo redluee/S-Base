@@ -28,6 +28,12 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     .get("/dashboard", ({ userId, query }) =>
       checked(() => finance.dashboard(userId, query.period, query.date)),
     )
+    .post("/import/preview", ({ body }) =>
+      checked(() => finance.previewImport(body)),
+    )
+    .post("/import", ({ userId, body }) =>
+      checked(() => finance.importBalances(userId, body)),
+    )
     .post("/accounts", ({ userId, body }) =>
       checked(() => finance.createAccount(userId, body)),
     )

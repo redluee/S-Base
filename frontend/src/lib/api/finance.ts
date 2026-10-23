@@ -7,6 +7,10 @@ import type {
   FinanceData,
   FinanceGoal,
   FinancePeriod,
+  FinanceImportOrder,
+  FinanceImportPreview,
+  FinanceImportSelection,
+  FinanceImportResult,
 } from "@backend/types/finance";
 
 const json = (method: string, body: unknown) => ({
@@ -14,6 +18,20 @@ const json = (method: string, body: unknown) => ({
   body: JSON.stringify(body),
 });
 export const financeApi = {
+  previewImport: (csv: string, order: FinanceImportOrder) =>
+    request<FinanceImportPreview>(
+      "/finance/import/preview",
+      json("POST", { csv, order }),
+    ),
+  importBalances: (
+    csv: string,
+    order: FinanceImportOrder,
+    selections: FinanceImportSelection[],
+  ) =>
+    request<FinanceImportResult>(
+      "/finance/import",
+      json("POST", { csv, order, selections }),
+    ),
   data: () => request<FinanceData>("/finance/"),
   dashboard: (period: FinancePeriod, date: string) =>
     request<FinanceDashboard>(

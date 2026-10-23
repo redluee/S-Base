@@ -18,8 +18,9 @@ import { Balances } from "./balances";
 import { Accounts } from "./accounts";
 import { Overview } from "./overview";
 import { Goals } from "./goals";
+import { FinanceImport } from "./import";
 
-type Tab = "overview" | "accounts" | "balances" | "goals";
+type Tab = "overview" | "accounts" | "balances" | "goals" | "import";
 type Confirmation = {
   title: string;
   description: string;
@@ -126,7 +127,7 @@ export function FinanceClient() {
         aria-label={t("finance.navigation")}
         className="flex gap-1 overflow-x-auto border-b border-border pb-2"
       >
-        {(["overview", "accounts", "balances", "goals"] as Tab[]).map(
+        {(["overview", "accounts", "balances", "import", "goals"] as Tab[]).map(
           (value) => (
             <Action
               key={value}
@@ -169,7 +170,7 @@ export function FinanceClient() {
       )}
       {data && report && (
         <>
-          {data.accounts.length === 0 && (
+          {data.accounts.length === 0 && tab !== "import" && (
             <section className={`${panel} space-y-4`}>
               <h2 className="text-lg font-semibold">
                 {t("finance.startTitle")}
@@ -269,6 +270,9 @@ export function FinanceClient() {
                 editing={observation}
                 onSaved={refresh}
               />
+            )}
+            {tab === "import" && (
+              <FinanceImport data={data} onSaved={refresh} />
             )}
             {tab === "goals" && (
               <Goals

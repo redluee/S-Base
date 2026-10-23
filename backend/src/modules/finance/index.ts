@@ -1,9 +1,9 @@
-import { FinanceGoalsService } from "./goals";
+import { FinanceImportService } from "./import";
 import { dashboard } from "./calculations";
 import { calendarDate, today } from "./validation";
 import { ValidationError } from "../../utils/validation";
 
-export class FinanceService extends FinanceGoalsService {
+export class FinanceService extends FinanceImportService {
   dashboard(
     userId: number,
     period: unknown = "month",

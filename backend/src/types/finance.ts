@@ -71,3 +71,28 @@ export interface FinanceDashboard {
   savingsComparison: FinanceComparison;
   history: FinanceSnapshot[];
 }
+
+export type FinanceImportOrder = "descending" | "ascending";
+export interface FinanceImportSource {
+  sourceKey: string;
+  label: string;
+  rowCount: number;
+  balances: { date: string; balanceCents: number }[];
+}
+export interface FinanceImportPreview {
+  sources: FinanceImportSource[];
+  rowCount: number;
+}
+export interface FinanceImportSelection {
+  sourceKey: string;
+  accountId?: number;
+  newAccount?: { name: string; type: FinanceAccountType };
+  extendOpening: boolean;
+  entries: { date: string; expectedCents: number | null }[];
+}
+export interface FinanceImportResult {
+  createdAccounts: number;
+  inserted: number;
+  updated: number;
+  unchanged: number;
+}

@@ -31,7 +31,7 @@
 - Browser verified archive preserves historical/current totals, account-specific allocation shortfalls after balance reduction, preserved nominal allocations, and manual deficit reduction. Goal allocations did not increase tracked money. Desktop and 390/320px mobile views were inspected; tested views had no horizontal overflow and no browser console errors.
 - QA servers stopped, browser tab closed, viewport reset, generated QA frontend output and temporary TypeScript include entries removed.
 - Final diff reviewed for ownership, validation, module integration, privacy, archive/calculation semantics, and scope. `git diff --check` passed. No outstanding implementation or required verification work.
-- Working user database untouched; its file hash is checked outside the repository. No deploy or push.
+- Working user database untouched; its file hash is checked outside the repository. No deployment.
 
 ## Before use
 
@@ -41,4 +41,22 @@
 
 ## Limits
 
-Manual EUR balances only; no transaction or bank integration. Up to 200 accounts and 200 goals, and an absolute limit of 10 billion EUR per amount. Observation dates are changed by adding the correct date and removing the old observation. Goals show current reservations, not historical allocation snapshots.
+EUR balances entered manually or via ING CSV; no transaction storage or bank connection. Up to 200 accounts and 200 goals, and an absolute limit of 10 billion EUR per amount. Observation dates are changed by adding the correct date and removing the old observation. Goals show current reservations, not historical allocation snapshots.
+
+## ING import follow-up
+
+- [x] Parse ING CSV with integer-cent post-transaction balances; choose one final balance per account/date and validate row order/continuity.
+- [x] Preview masked source accounts, explicit destination mapping or account creation, date selection and conflict replacement; atomic user-scoped import.
+- [x] Add responsive Dutch import UI, synthetic parser/service/security tests, repository checks, isolated browser verification.
+- Use CSV with `Saldo na mutatie` (semicolon export); the PDF selected in the screenshot is not parsed. Existing source reference: https://github.com/cjswart/ing-mt940-camt053 .
+- No transaction storage, file storage, bank credentials, new dependencies or schema changes. Raw CSV is processed in memory; only selected dated balances are saved.
+- Importing older history may explicitly move the account opening date earlier, preserving all existing observations. No observations are inferred before the earliest imported balance.
+- Same-day closing balance uses the CSV's explicit chronological order, checked against transaction amounts and running balances. Detected running-balance gaps and order conflicts are rejected. A complete unfiltered export is required; the first/last omitted transaction cannot be detected from a CSV alone.
+
+### ING import verification
+
+- `bun run test:all` passed after QA cleanup: 228 backend tests, 184 frontend tests, ESLint. Production `bun run build` passed. `git diff --check` passed.
+- Added 19 backend tests for quoted/multiline CSV, exact money, daily closing selection in both orders, missing/invalid/future data, transfer totals, idempotency, explicit replacement, historical opening-date consent, allocation preservation, atomic rollback, ownership and module permission denial. Added 3 frontend selection tests.
+- Isolated browser QA used synthetic data in `/tmp/sbase-ing-qa.sqlite`. A CSV with two source accounts created a current and savings account with five historical observations. The mobile dashboard correctly showed EUR 620.29 total and EUR 520.00 savings, including historical dates and progression. No horizontal overflow or console errors on the tested 390px mobile view. Desktop preview was also verified.
+- QA frontend output initially entered the lint scan; removed the generated directory and temporary TypeScript includes, then reran the full checks successfully. QA servers stopped, browser tab closed and viewport reset.
+- No schema migration or added runtime dependency. The working database file hash remains unchanged. No real bank export was provided; validation used synthetic ING-format CSV fixtures.
