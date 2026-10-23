@@ -68,6 +68,15 @@ export const financeNl: Record<string, string> = {
     "Verandering niet beschikbaar: een saldo ontbreekt op een periodegrens.",
   "finance.comparison.cohort":
     "Verandering niet beschikbaar: de set rekeningen verschilt tussen de periodegrenzen.",
+  "finance.lowestTotal": "Laagste totaal",
+  "finance.highestTotal": "Hoogste totaal",
+  "finance.totalChartTitle": "Totaal geld",
+  "finance.totalChartSubtitle": "Al je bijgehouden betaal- en spaarrekeningen samen",
+  "finance.totalChartSeries": "Totaal: betalen + sparen",
+  "finance.savingsIncluded": "Waarvan spaargeld",
+  "finance.savingsIncludedHelp": "Spaargeld zit al in de totaallijn. De stippellijn laat alleen zien welk deel op spaarrekeningen staat; tel de lijnen niet bij elkaar op.",
+  "finance.inspectHistory": "Bekijk een saldomoment — sleep of gebruik de pijltjestoetsen",
+  "finance.historyPointValue": "{date}: {amount}",
   "finance.progression": "Saldoverloop",
   "finance.historySeries": "Getoonde reeks",
   "finance.chartHelp":

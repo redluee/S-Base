@@ -36,6 +36,86 @@ const ascending = [
 const csv = (rows: string[]) => [header, ...rows].join("\r\n");
 
 describe("ING CSV daily balances", () => {
+  const savingsHeader =
+    '"Datum","Omschrijving","Rekening","Rekening naam","Tegenrekening","Af Bij","Bedrag","Valuta","Mutatiesoort","Mededelingen","Saldo na mutatie"';
+  const savingsRows = [
+    '"2025-01-02","Sample deposit","H DEMO-0001","Oranje Spaarrekening","","Bij","490,29","EUR","Inleg","","500,29"',
+    '"2025-01-01","Sample deposit","H DEMO-0001","Oranje Spaarrekening","","Bij","10,00","EUR","Inleg","","10,00"',
+  ];
+  const savingsCsv = [savingsHeader, ...savingsRows].join("\r\n");
+  it("accepts savings exports with separate amount/currency columns in either delimiter and date order", () => {
+    for (const delimiter of [",", ";"]) {
+      const convert = (value: string) =>
+        value.replace(/","/g, `"${delimiter}"`);
+      for (const order of ["ascending", "descending"] as const) {
+        const rows =
+          order === "ascending" ? [...savingsRows].reverse() : savingsRows;
+        const result = parseIngCsv(
+          [savingsHeader, ...rows].map(convert).join("\n"),
+          order,
+        );
+        expect(result.sources[0]).toMatchObject({
+          label: "…0001",
+          suggestedType: "savings",
+          balances: [
+            { date: "2025-01-01", balanceCents: 1000 },
+            { date: "2025-01-02", balanceCents: 50029 },
+          ],
+        });
+        expect(JSON.stringify(result)).not.toContain("Sample deposit");
+        expect(JSON.stringify(result)).not.toContain("H DEMO");
+      }
+    }
+  });
+  it("keeps multiple savings accounts distinct and selects the last daily balance", () => {
+    const content = [
+      savingsHeader,
+      savingsRows[0],
+      savingsRows[0]
+        .replace('"490,29"', '"20,00"')
+        .replace('"500,29"', '"520,29"'),
+      savingsRows[0].replace("H DEMO-0001", "H DEMO-0002"),
+    ].join("\n");
+    const sources = parseIngCsv(content, "ascending").sources;
+    expect(sources.map((source) => source.balances[0].balanceCents)).toEqual([
+      52029, 50029,
+    ]);
+    expect(sources.every((source) => source.suggestedType === "savings")).toBe(
+      true,
+    );
+  });
+  it("rejects non-EUR, missing or mixed currencies even when a euro amount header is present", () => {
+    for (const currency of ["USD", "", "GBP"]) {
+      expect(() =>
+        parseIngCsv(savingsCsv.replace('"EUR"', `"${currency}"`), "descending"),
+      ).toThrow("finance.import.currency");
+      expect(() =>
+        parseIngCsv(
+          savingsCsv
+            .replace('"Bedrag"', '"Bedrag (EUR)"')
+            .replace('"EUR"', `"${currency}"`),
+          "descending",
+        ),
+      ).toThrow("finance.import.currency");
+    }
+    expect(() =>
+      parseIngCsv(savingsCsv.replace('"Valuta"', '"Other"'), "descending"),
+    ).toThrow("finance.import.columns");
+    expect(() =>
+      parseIngCsv(
+        savingsCsv.replace('"Mededelingen"', '"Bedrag (EUR)"'),
+        "descending",
+      ),
+    ).toThrow("finance.import.columns");
+  });
+  it("does not infer savings merely from generic amount/currency columns", () => {
+    expect(
+      parseIngCsv(
+        savingsCsv.replaceAll("Oranje Spaarrekening", "Sample account"),
+        "descending",
+      ).sources[0].suggestedType,
+    ).toBeUndefined();
+  });
   it("selects the final balance within a day for ascending and descending files, with exact cents", () => {
     const expected = [
       { date: "2025-01-01", balanceCents: 10029 },

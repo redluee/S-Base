@@ -48,7 +48,7 @@ EUR balances entered manually or via ING CSV; no transaction storage or bank con
 - [x] Parse ING CSV with integer-cent post-transaction balances; choose one final balance per account/date and validate row order/continuity.
 - [x] Preview masked source accounts, explicit destination mapping or account creation, date selection and conflict replacement; atomic user-scoped import.
 - [x] Add responsive Dutch import UI, synthetic parser/service/security tests, repository checks, isolated browser verification.
-- Use CSV with `Saldo na mutatie` (semicolon export); the PDF selected in the screenshot is not parsed. Existing source reference: https://github.com/cjswart/ing-mt940-camt053 .
+- Use CSV with `Saldo na mutatie` (comma or semicolon export); the PDF selected in the screenshot is not parsed. Existing source reference: https://github.com/cjswart/ing-mt940-camt053 .
 - No transaction storage, file storage, bank credentials, new dependencies or schema changes. Raw CSV is processed in memory; only selected dated balances are saved.
 - Importing older history may explicitly move the account opening date earlier, preserving all existing observations. No observations are inferred before the earliest imported balance.
 - Same-day closing balance uses the CSV's explicit chronological order, checked against transaction amounts and running balances. Detected running-balance gaps and order conflicts are rejected. A complete unfiltered export is required; the first/last omitted transaction cannot be detected from a CSV alone.
@@ -60,3 +60,28 @@ EUR balances entered manually or via ING CSV; no transaction storage or bank con
 - Isolated browser QA used synthetic data in `/tmp/sbase-ing-qa.sqlite`. A CSV with two source accounts created a current and savings account with five historical observations. The mobile dashboard correctly showed EUR 620.29 total and EUR 520.00 savings, including historical dates and progression. No horizontal overflow or console errors on the tested 390px mobile view. Desktop preview was also verified.
 - QA frontend output initially entered the lint scan; removed the generated directory and temporary TypeScript includes, then reran the full checks successfully. QA servers stopped, browser tab closed and viewport reset.
 - No schema migration or added runtime dependency. The working database file hash remains unchanged. No real bank export was provided; validation used synthetic ING-format CSV fixtures.
+
+## Total-money chart follow-up
+
+- [x] Make the combined current + savings history prominent, with a secondary savings line and clear inclusion labels.
+- [x] Default the dashboard to all-time history and add pointer/touch/keyboard inspection. Preserve unknown coverage gaps and calendar dates.
+- [x] Verify chart data/geometry, total-vs-savings calculations, desktop/mobile presentation, repository checks, and production build.
+- The existing backend already includes savings accounts in tracked totals. This is a presentation improvement, with no schema or working-database changes.
+
+### Total-money chart verification
+
+- Final `bun run test:all` passed: 228 backend tests, 192 frontend tests, ESLint. Final production `bun run build` and `git diff --check` passed.
+- Added 8 chart tests covering inclusion of all current/savings accounts, archived balances, transfers, unknown coverage without future backfill, individual series, zero/negative amounts, line gaps, calendar geometry over DST, and finite constant/single-point scales. Total extrema are separate from the savings component used for shared scaling.
+- Browser checked the combined chart on desktop and 390px mobile using the existing synthetic QA database only. Verified EUR 8,500 total including EUR 7,000 savings, first-date EUR 600.29 including EUR 500 savings, pointer selection, keyboard slider navigation, and series switching. No horizontal page overflow or console errors in the tested mobile view.
+- QA processes stopped, browser tab closed, viewport reset, and temporary build/type entries removed. The working database hash is unchanged. No schema or dependency changes.
+
+## ING savings-export compatibility fix
+
+- [x] Support savings CSV with separate `Bedrag` and `Valuta` columns alongside existing `Bedrag (EUR)` exports. Retain exact cents, row continuity, daily closing balances, and explicit destination/date selection.
+- [x] Validate EUR on every row whenever `Valuta` is present. Reject missing/other currencies and ambiguous amount columns before any writes.
+- [x] Suggest savings for new accounts only when every source row's `Rekening naam` explicitly identifies a spaarrekening. The user can still change the type; existing account types remain unchanged.
+- [x] Add regression coverage for comma/semicolon variants, both sort orders, multiple savings sources, same-day closing, currency rejection, editable type suggestions, and importing a transfer into combined/savings totals.
+- Format reference: the ING Oranje Spaarrekening CSV listing at https://ehhb.nl/viewtopic.php?t=36 uses `Bedrag` + `Valuta`, ISO dates, and a separate account name. Tests use invented identifiers and amounts only. No user export has been supplied, so other layouts and PDF remain unverified/unsupported.
+- `bun run test:all` passed: 233 backend tests, 193 frontend tests, ESLint. Production `bun run build` passed. `git diff --check` passed.
+- Desktop preview recognized a synthetic savings CSV; mobile (390px) created the savings account and two observations. The combined chart increased by exactly EUR 500.29 to EUR 9,000.29, with EUR 7,500.29 savings. No horizontal overflow or console errors in the tested view.
+- QA used the disposable database only. Servers stopped, tab closed, viewport reset, temporary frontend output/type includes removed, and the working database hash remains unchanged. No migration or added dependency is needed for this fix.

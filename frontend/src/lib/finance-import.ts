@@ -44,7 +44,7 @@ export function defaultImportChoice(
   return {
     target,
     name: "",
-    type: "current",
+    type: source.suggestedType ?? "current",
     extendOpening: false,
     dates: importRows(source, data, target)
       .filter((row) => row.state === "new")

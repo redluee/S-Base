@@ -37,6 +37,25 @@ const data: FinanceData = {
 };
 
 describe("Finance import selections", () => {
+  it("uses the savings type suggestion for new accounts while leaving the choice editable", () => {
+    const savings = { ...source, suggestedType: "savings" as const };
+    const choice = {
+      ...defaultImportChoice(savings, data, "new"),
+      name: "Sample savings",
+    };
+    expect(choice.type).toBe("savings");
+    expect(
+      importSelections([savings], { "1": choice }, data)[0].newAccount?.type,
+    ).toBe("savings");
+    expect(
+      importSelections(
+        [savings],
+        { "1": { ...choice, type: "current" } },
+        data,
+      )[0].newAccount?.type,
+    ).toBe("current");
+    expect(defaultImportChoice(source, data, "new").type).toBe("current");
+  });
   it("distinguishes zero, identical, conflicting and new observations", () => {
     expect(
       importRows(source, data, "1").map((row) => [

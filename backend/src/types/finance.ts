@@ -76,6 +76,7 @@ export type FinanceImportOrder = "descending" | "ascending";
 export interface FinanceImportSource {
   sourceKey: string;
   label: string;
+  suggestedType?: FinanceAccountType;
   rowCount: number;
   balances: { date: string; balanceCents: number }[];
 }

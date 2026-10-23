@@ -39,7 +39,7 @@ export function FinanceClient() {
       day: "2-digit",
     }).format(new Date()),
   );
-  const [period, setPeriod] = useState<FinancePeriod>("month"),
+  const [period, setPeriod] = useState<FinancePeriod>("all"),
     [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),

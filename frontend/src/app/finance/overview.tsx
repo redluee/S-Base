@@ -47,6 +47,19 @@ export function Overview({
   );
   return (
     <div className="space-y-5">
+      <p className="text-xs text-muted-foreground">
+        {dateLabel(report.startDate)} → {dateLabel(report.endDate)} ·{" "}
+        {t("finance.coverageCount", {
+          known: String(report.end.known),
+          total: String(report.end.expected),
+        })}
+      </p>
+      {!report.end.complete && <Notice>{t("finance.incomplete")}</Notice>}
+      {report.end.mixedDates && <Notice>{t("finance.mixedDates")}</Notice>}
+      {!report.end.mixedDates && report.start.mixedDates && (
+        <Notice>{t("finance.mixedBaseline")}</Notice>
+      )}
+      <History report={report} data={data} />
       <div className="grid gap-4 sm:grid-cols-2">
         <section className={panel}>
           <h2 className="text-sm text-muted-foreground">
@@ -77,19 +90,6 @@ export function Overview({
           <Change value={report.savingsComparison} />
         </section>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {dateLabel(report.startDate)} → {dateLabel(report.endDate)} ·{" "}
-        {t("finance.coverageCount", {
-          known: String(report.end.known),
-          total: String(report.end.expected),
-        })}
-      </p>
-      {!report.end.complete && <Notice>{t("finance.incomplete")}</Notice>}
-      {report.end.mixedDates && <Notice>{t("finance.mixedDates")}</Notice>}
-      {!report.end.mixedDates && report.start.mixedDates && (
-        <Notice>{t("finance.mixedBaseline")}</Notice>
-      )}
-      <History report={report} data={data} />
       <section className={panel}>
         <h2 className="text-lg font-semibold">{t("finance.breakdown")}</h2>
         <div className="mt-3 divide-y divide-border">

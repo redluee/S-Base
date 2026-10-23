@@ -105,25 +105,34 @@ export function parseIngCsv(
     value.trim().toLowerCase().replace(/\s+/g, " "),
   );
   if (new Set(headers).size !== headers.length) invalid("malformed");
-  const columns = [
-    "datum",
-    "rekening",
-    "af bij",
-    "bedrag (eur)",
-    "saldo na mutatie",
-  ].map((name) => headers.indexOf(name));
+  const columns = ["datum", "rekening", "af bij", "saldo na mutatie"].map(
+    (name) => headers.indexOf(name),
+  );
   if (columns.some((index) => index < 0)) invalid("columns");
-  const [
-    dateColumn,
-    accountColumn,
-    directionColumn,
-    amountColumn,
-    balanceColumn,
-  ] = columns;
-  type Row = { date: string; balanceCents: number; delta: number };
+  const [dateColumn, accountColumn, directionColumn, balanceColumn] = columns;
+  const euroAmountColumn = headers.indexOf("bedrag (eur)");
+  const plainAmountColumn = headers.indexOf("bedrag");
+  const currencyColumn = headers.indexOf("valuta");
+  if (euroAmountColumn >= 0 && plainAmountColumn >= 0) invalid("columns");
+  const amountColumn =
+    euroAmountColumn >= 0 ? euroAmountColumn : plainAmountColumn;
+  if (amountColumn < 0 || (euroAmountColumn < 0 && currencyColumn < 0))
+    invalid("columns");
+  const accountNameColumn = headers.indexOf("rekening naam");
+  type Row = {
+    date: string;
+    balanceCents: number;
+    delta: number;
+    savings: boolean;
+  };
   const grouped = new Map<string, Row[]>();
   for (const row of rows.slice(1)) {
     if (row.length !== headers.length) invalid("malformed");
+    if (
+      currencyColumn >= 0 &&
+      row[currencyColumn].trim().toUpperCase() !== "EUR"
+    )
+      invalid("currency");
     const account = row[accountColumn].replace(/\s/g, "").toUpperCase();
     if (!/^[A-Z0-9-]{4,40}$/.test(account)) invalid("account");
     const direction = row[directionColumn].trim().toLowerCase();
@@ -132,6 +141,8 @@ export function parseIngCsv(
       date: date(row[dateColumn]),
       balanceCents: amount(row[balanceColumn]),
       delta: amount(row[amountColumn], true) * (direction === "af" ? -1 : 1),
+      savings:
+        accountNameColumn >= 0 && /spaarrekening/i.test(row[accountNameColumn]),
     };
     const entries = grouped.get(account) ?? [];
     entries.push(value);
@@ -160,6 +171,9 @@ export function parseIngCsv(
     return {
       sourceKey: String(index + 1),
       label: `…${account.slice(-4)}`,
+      ...(entries.every((entry) => entry.savings)
+        ? { suggestedType: "savings" as const }
+        : {}),
       rowCount: entries.length,
       balances: [...daily]
         .sort(([a], [b]) => a.localeCompare(b))

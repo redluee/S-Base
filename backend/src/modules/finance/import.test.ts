@@ -89,6 +89,49 @@ beforeEach(() => {
 });
 
 describe("Atomic ING balance import", () => {
+  it("imports savings-format CSV into totals and savings without counting transfers as growth", () => {
+    const current = service.createAccount(owner, {
+      name: "Sample current",
+      type: "current",
+      openingDate: "2025-01-01",
+      openingBalanceCents: 10000,
+    });
+    service.setBalances(owner, {
+      date: "2025-01-02",
+      entries: [
+        { accountId: current.id, balanceCents: 8000, expectedCents: null },
+      ],
+    });
+    const content =
+      '"Datum","Rekening","Rekening naam","Af Bij","Bedrag","Valuta","Saldo na mutatie"\n"2025-01-02","H DEMO-0001","Oranje Spaarrekening","Bij","20,00","EUR","520,00"\n"2025-01-01","H DEMO-0001","Oranje Spaarrekening","Bij","500,00","EUR","500,00"';
+    const input = body(
+      [
+        {
+          ...selection(),
+          entries: dates
+            .slice(0, 2)
+            .map((date) => ({ date, expectedCents: null })),
+        },
+      ],
+      content,
+    );
+    expect(service.previewImport(input).sources[0].suggestedType).toBe(
+      "savings",
+    );
+    expect(service.importBalances(owner, input)).toMatchObject({
+      createdAccounts: 1,
+      inserted: 2,
+    });
+    const dashboard = service.dashboard(owner, "all", "2025-01-02");
+    expect(dashboard.end.totalCents).toBe(60000);
+    expect(dashboard.end.savingsCents).toBe(52000);
+    expect(dashboard.comparison.changeCents).toBe(0);
+    const invalid = body([selection()], content.replace('"EUR"', '"USD"'));
+    expect(() => service.importBalances(owner, invalid)).toThrow(
+      "finance.import.currency",
+    );
+    expect(service.data(owner).accounts).toHaveLength(2);
+  });
   it("previews without writing and creates an account directly from selected balances", () => {
     expect(service.previewImport(body()).sources[0].label).toBe("…0001");
     expect(service.data(owner).accounts).toHaveLength(0);

@@ -2,7 +2,7 @@ export const financeImportNl: Record<string, string> = {
   "finance.import": "Importeren",
   "finance.import.title": "Importeren vanuit ING",
   "finance.import.instructions":
-    "Download bij ING je volledige af- en bijschrijvingen als CSV → Puntkommagescheiden CSV, met de kolom ‘Saldo na mutatie’. Kies een betaal- of spaarrekening en de gewenste periode. Upload het ongewijzigde bestand hieronder. Het PDF-formaat uit het ING-downloadscherm wordt hier niet ondersteund.",
+    "Download bij ING je volledige af- en bijschrijvingen als CSV, met de kolom ‘Saldo na mutatie’. Zowel komma- als puntkommagescheiden exports van betaal- en spaarrekeningen worden ondersteund, ook met aparte kolommen ‘Bedrag’ en ‘Valuta’. Upload het ongewijzigde bestand hieronder. PDF wordt hier niet ondersteund.",
   "finance.import.privacy":
     "Alleen de geselecteerde dagsaldi worden bewaard. Het CSV-bestand, rekeningnummers, namen van tegenpartijen en transactieomschrijvingen worden niet opgeslagen. De import maakt geen verbinding met je bank.",
   "finance.import.file": "ING CSV-bestand (maximaal 2 MB)",
@@ -52,7 +52,9 @@ export const financeImportNl: Record<string, string> = {
   "finance.import.empty":
     "Er zijn geen mutaties met een saldo gevonden. Kies een periode met mutaties, of voer een saldo handmatig in.",
   "finance.import.columns":
-    "De benodigde ING-kolommen ontbreken. Gebruik het Nederlandse puntkommagescheiden CSV met Datum, Rekening, Af Bij, Bedrag (EUR) en Saldo na mutatie. Het oude CSV-formaat zonder saldo is niet geschikt.",
+    "De benodigde ING-kolommen ontbreken. Gebruik een Nederlands ING CSV met Datum, Rekening, Af Bij, Saldo na mutatie en Bedrag (EUR), of Bedrag met Valuta. Een export zonder saldokolom is niet geschikt.",
+  "finance.import.currency":
+    "Deze export bevat een andere of ontbrekende valuta. Alleen EUR wordt ondersteund. Er is niets geïmporteerd.",
   "finance.import.order":
     "De gekozen volgorde past niet bij het bestand. Kies Nieuwste eerst of Oudste eerst en bekijk het importvoorbeeld opnieuw. Herschik losse regels niet handmatig.",
   "finance.import.amount":
