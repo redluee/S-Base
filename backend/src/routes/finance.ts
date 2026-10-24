@@ -28,49 +28,17 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     .get("/dashboard", ({ userId, query }) =>
       checked(() => finance.dashboard(userId, query.period, query.date)),
     )
-    .post("/import/preview", ({ body }) =>
-      checked(() => finance.previewImport(body)),
+    .post("/import/preview", ({ userId, body }) =>
+      checked(() => finance.previewImport(body, userId)),
     )
     .post("/import", ({ userId, body }) =>
       checked(() => finance.importBalances(userId, body)),
     )
-    .post("/accounts", ({ userId, body }) =>
-      checked(() => finance.createAccount(userId, body)),
-    )
-    .put("/accounts/:id", ({ userId, params, body }) =>
-      checked(() => finance.updateAccount(userId, requireId(params.id), body)),
-    )
-    .put("/accounts/:id/archive", ({ userId, params, body }) =>
-      checked(() => finance.archiveAccount(userId, requireId(params.id), body)),
+    .get("/transactions", ({ userId, query }) => checked(() => finance.transactionList(userId, query)))
+    .put("/accounts/:id/icon", ({ userId, params, body }) =>
+      checked(() => finance.setAccountIcon(userId, requireId(params.id), body)),
     )
     .get("/accounts/:id/history", ({ userId, params }) =>
       checked(() => finance.history(userId, requireId(params.id))),
-    )
-    .delete("/accounts/:id/observations/:date", ({ userId, params }) =>
-      checked(() =>
-        finance.deleteObservation(userId, requireId(params.id), params.date),
-      ),
-    )
-    .post("/balances", ({ userId, body }) =>
-      checked(() => finance.setBalances(userId, body)),
-    )
-    .post("/goals", ({ userId, body }) =>
-      checked(() => finance.createGoal(userId, body)),
-    )
-    .put("/goals/:id", ({ userId, params, body }) =>
-      checked(() => finance.updateGoal(userId, requireId(params.id), body)),
-    )
-    .delete("/goals/:id", ({ userId, params }) =>
-      checked(() => finance.deleteGoal(userId, requireId(params.id))),
-    )
-    .put("/goals/:id/allocations/:accountId", ({ userId, params, body }) =>
-      checked(() =>
-        finance.allocate(
-          userId,
-          requireId(params.id),
-          requireId(params.accountId),
-          body,
-        ),
-      ),
     ),
 );

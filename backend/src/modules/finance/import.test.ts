@@ -140,6 +140,8 @@ describe("Atomic ING balance import", () => {
       inserted: 3,
       updated: 0,
       unchanged: 0,
+      transactionsInserted: 3,
+      transactionsRemoved: 0,
     });
     const data = service.data(owner);
     expect(data.accounts[0]).toMatchObject({

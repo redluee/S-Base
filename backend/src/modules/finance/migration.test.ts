@@ -41,7 +41,7 @@ describe("Finance production migration on disposable databases", () => {
       const permissionsBefore = sqlite
         .query("SELECT * FROM usermodulepermissions")
         .all();
-      expect((await runMigrations(sqlite)).applied).toBe(2);
+      expect((await runMigrations(sqlite)).applied).toBe(4);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
       expect(sqlite.query("SELECT * FROM cashflow_clients").all()).toEqual(
         cashflowBefore,
@@ -102,7 +102,7 @@ describe("Finance production migration on disposable databases", () => {
       sqlite.exec(
         "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1, 'synthetic-legacy');",
       );
-      expect((await runMigrations(sqlite)).applied).toBe(2);
+      expect((await runMigrations(sqlite)).applied).toBe(4);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual([
         { user_id: 1, username: "synthetic-legacy" },
       ]);
@@ -118,4 +118,38 @@ describe("Finance production migration on disposable databases", () => {
       sqlite.close();
     }
   });
+  it("adds transaction storage to existing finance balances without altering them", async () => {
+    const sqlite = new Database(":memory:");
+    sqlite.run("PRAGMA foreign_keys = ON");
+    try {
+      sqlite.exec("CREATE TABLE users (user_id INTEGER PRIMARY KEY); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1);");
+      sqlite.exec(await financeSql());
+      sqlite.exec("INSERT INTO finance_accounts (id,user_id,name,type,opening_date) VALUES (1,1,'Sample savings','savings','2025-01-01'); INSERT INTO finance_observations (account_id,date,balance_cents) VALUES (1,'2025-01-01',12345);");
+      const before = sqlite.query("SELECT * FROM finance_observations").all();
+      const migration = await Bun.file(join(migrations, "0043_finance_transactions.sql")).text();
+      sqlite.exec(migration);
+      sqlite.exec(migration);
+      expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(before);
+      expect(sqlite.query("SELECT * FROM finance_transactions").all()).toEqual([]);
+      expect(sqlite.query("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally { sqlite.close(); }
+  });
+
+});
+
+
+it("adds account icons to populated finance tables without changing existing data", async () => {
+  const sqlite = new Database(":memory:");
+  try {
+    sqlite.exec("CREATE TABLE users (user_id INTEGER PRIMARY KEY); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1);");
+    sqlite.exec(await financeSql());
+    sqlite.exec("INSERT INTO finance_accounts (id,user_id,name,type,opening_date) VALUES (1,1,'Sample','current','2025-01-01'); INSERT INTO finance_observations (account_id,date,balance_cents) VALUES (1,'2025-01-01',12345);");
+    const balances = sqlite.query("SELECT * FROM finance_observations").all();
+    const account = sqlite.query("SELECT * FROM finance_accounts").get() as Record<string, unknown>;
+    sqlite.exec(await Bun.file(join(migrations, "0044_finance_account_icons.sql")).text());
+    expect(sqlite.prepare("SELECT * FROM finance_accounts").get()).toEqual({ ...account, icon: null });
+    sqlite.exec("UPDATE finance_accounts SET icon='wallet' WHERE id=1");
+    expect(() => sqlite.exec("UPDATE finance_accounts SET icon='unsupported' WHERE id=1")).toThrow();
+    expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(balances);
+  } finally { sqlite.close(); }
 });

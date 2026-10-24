@@ -12,6 +12,7 @@ export class FinanceService extends FinanceImportService {
     if (period !== "month" && period !== "year" && period !== "all")
       throw new ValidationError("Invalid period");
     const { accounts, observations } = this.data(userId);
-    return dashboard(accounts, observations, period, calendarDate(date));
+    const report = dashboard(accounts, observations, period, calendarDate(date));
+    return { ...report, activity: this.activity(userId, report.startDate, report.endDate) };
   }
 }

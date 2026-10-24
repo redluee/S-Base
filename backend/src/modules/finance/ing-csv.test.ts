@@ -84,6 +84,62 @@ describe("ING CSV daily balances", () => {
       true,
     );
   });
+  it("separates named savings accounts sharing a number and suggests their display names", () => {
+    const content = [savingsHeader, ...savingsRows,
+      ...savingsRows.map((value) => value.replace("Oranje Spaarrekening", "Sample Spaarrekening").replace('"500,29"', '"600,29"').replace('"490,29"', '"590,29"')),
+    ].join("\n");
+    const result = parseIngCsv(content, "descending");
+    expect(result.rowCount).toBe(4);
+    expect(result.sources).toHaveLength(2);
+    expect(new Set(result.sources.map((source) => source.label)).size).toBe(2);
+    expect(result.sources.map((source) => source.balances.at(-1)?.balanceCents)).toEqual([50029, 60029]);
+    expect(result.sources.map((source) => source.suggestedName)).toEqual(["Oranje Spaarrekening", "Sample Spaarrekening"]);
+    expect(JSON.stringify(result)).not.toContain("Sample deposit");
+  });
+  it("handles separate current and savings header sections and counts only transactions", () => {
+    const result = parseIngCsv([csv([ascending[0]]), savingsCsv.replace(/","/g, '";"')].join("\n"), "descending");
+    expect(result.rowCount).toBe(3);
+    expect(result.sources).toHaveLength(2);
+    expect(result.sources[1].suggestedType).toBe("savings");
+    expect(() => parseIngCsv([csv([ascending[0]]), savingsCsv.replace(/","/g, '";"').replaceAll('"EUR"', '"USD"')].join("\n"), "descending")).toThrow("finance.import.currency");
+  });
+  it("reconstructs missing balances before and after an anchor in either order", () => {
+    const missing = ascending.map((value, index) => index === 1 ? value : value.replace(/;"-?[0-9.,]+";""$/, ';"";""'));
+    for (const order of ["ascending", "descending"] as const) {
+      const result = parseIngCsv(csv(order === "ascending" ? missing : [...missing].reverse()), order);
+      expect(result.sources[0].reconstructedRowCount).toBe(3);
+      expect(result.sources[0].balances).toEqual(parseIngCsv(csv(ascending), "ascending").sources[0].balances);
+    }
+    const unanchored = parseIngCsv(csv([row("20250101", "Bij", "1,00", "")]), "ascending");
+    expect(unanchored.sources[0]).toMatchObject({ needsBalance: true, balances: [] });
+    expect(parseIngCsv(csv([row("20250101", "Bij", "1,00", "")]), "ascending", { "1": 100 }).sources[0].balances).toEqual([{ date: "2025-01-01", balanceCents: 100 }]);
+  });
+  it("still rejects inconsistent known balances around missing historical balances", () => {
+    expect(() => parseIngCsv(csv([ascending[0], row("20250102", "Bij", "20,00", ""), row("20250103", "Bij", "5,00", "999,00")]), "ascending")).toThrow("finance.import.continuity");
+  });
+  it("accepts English savings exports with comma or dot decimals and repeated header sections", () => {
+    const englishHeader = "Date;Description;Account;Account name;Counterparty;Debit/credit;Amount;Currency;Transaction type;Notifications;Resulting balance";
+    for (const decimal of [",", "."]) {
+      const content = [englishHeader,
+        `2025-01-02;Sample deposit;S000-00001;Sample savings;DEMO0001;Credit;20${decimal}00;EUR;Deposit;Sample;120${decimal}00`,
+        `2025-01-01;Sample deposit;S000-00001;Sample savings;DEMO0001;Credit;100${decimal}00;EUR;Deposit;Sample;100${decimal}00`,
+        englishHeader,
+        `2025-01-01;Sample withdrawal;F000-00002;Sample other savings;DEMO0001;Debit;5${decimal}00;EUR;Withdrawal;Sample;95${decimal}00`,
+      ].join("\n");
+      const preview = parseIngCsv(content, "descending");
+      expect(preview.rowCount).toBe(3);
+      expect(preview.sources).toHaveLength(2);
+      expect(preview.sources[0].suggestedType).toBe("savings");
+      expect(preview.sources[0].balances).toEqual([{ date: "2025-01-01", balanceCents: 10000 }, { date: "2025-01-02", balanceCents: 12000 }]);
+      expect(preview.sources[1].balances[0].balanceCents).toBe(9500);
+      expect(() => parseIngCsv(content.replace("EUR", "USD"), "descending")).toThrow("finance.import.currency");
+    }
+  });
+  it("accepts English current-account exports and validates canonical duplicate headers", () => {
+    const content = "Date;Name / Description;Account;Counterparty;Code;Debit/credit;Amount (EUR);Transaction type;Notifications;Resulting balance;Tag\n20250101;Sample;DEMO0001;;OV;Credit;1,00;Transfer;Sample;1,00;";
+    expect(parseIngCsv(content, "descending").sources[0].balances[0].balanceCents).toBe(100);
+    expect(() => parseIngCsv(content.replace("Tag", "Datum"), "descending")).toThrow("finance.import.malformed");
+  });
   it("rejects non-EUR, missing or mixed currencies even when a euro amount header is present", () => {
     for (const currency of ["USD", "", "GBP"]) {
       expect(() =>
@@ -108,13 +164,13 @@ describe("ING CSV daily balances", () => {
       ),
     ).toThrow("finance.import.columns");
   });
-  it("does not infer savings merely from generic amount/currency columns", () => {
+  it("recognizes savings by the account-name column, including custom names", () => {
     expect(
       parseIngCsv(
         savingsCsv.replaceAll("Oranje Spaarrekening", "Sample account"),
         "descending",
       ).sources[0].suggestedType,
-    ).toBeUndefined();
+    ).toBe("savings");
   });
   it("selects the final balance within a day for ascending and descending files, with exact cents", () => {
     const expected = [

@@ -1,3 +1,4 @@
+import { financeAccountIcons } from "../../types/finance-icons";
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
@@ -334,9 +335,9 @@ describe("Finance API permissions and ownership", () => {
       for (const [path, method, body] of [
         ["/", "GET"],
         ["/dashboard", "GET"],
-        ["/accounts", "POST", accountInput()],
-        ["/balances", "POST", {}],
-        ["/goals", "POST", { name: "Sample", targetCents: 1 }],
+        ["/import/preview", "POST", {}],
+        ["/import", "POST", {}],
+        ["/transactions", "GET"],
       ] as const)
         expect((await request(other, path, method, body)).status).toBe(403);
     } finally {
@@ -404,25 +405,63 @@ describe("Finance API permissions and ownership", () => {
     ).toBe(404);
     service.deleteGoal(other, ownGoal.id);
   });
-  it("returns validation errors and stale-edit conflicts over HTTP", async () => {
-    const a = create();
-    expect(
-      (await request(owner, "/accounts", "POST", accountInput("current", 1.1)))
-        .status,
-    ).toBe(400);
-    expect((await request(owner, "/dashboard?date=2025-02-30")).status).toBe(
-      400,
-    );
-    expect(
-      (
-        await request(owner, "/balances", "POST", {
-          date: "2025-01-01",
-          entries: [{ accountId: a.id, balanceCents: 1, expectedCents: null }],
-        })
-      ).status,
-    ).toBe(409);
-    expect((await request(owner, "/")).headers.get("Cache-Control")).toBe(
-      "no-store",
-    );
+  it("allows mutations only through imports and preserves data on rejected manual writes", async () => {
+    const a = create("savings");
+    const g = goal();
+    service.allocate(owner, g.id, a.id, { amountCents: 100 });
+    const before = service.data(owner);
+    const cases: [string, string, unknown?][] = [
+      ["/accounts", "POST", accountInput()],
+      [`/accounts/${a.id}`, "PUT", accountInput()],
+      [`/accounts/${a.id}/archive`, "PUT", { archived: true }],
+      [`/accounts/${a.id}/observations/2025-01-01`, "DELETE"],
+      ["/balances", "POST", { date: "2025-01-01", entries: [{ accountId: a.id, balanceCents: 1, expectedCents: 10000 }] }],
+      ["/goals", "POST", { name: "Sample", targetCents: 100 }],
+      [`/goals/${g.id}`, "PUT", { name: "Changed", targetCents: 10000 }],
+      [`/goals/${g.id}`, "DELETE"],
+      [`/goals/${g.id}/allocations/${a.id}`, "PUT", { amountCents: 1 }],
+      ["/settings/reset", "POST", { confirmation: "DELETE_FINANCE" }],
+    ];
+    for (const [path, method, body] of cases) {
+      expect((await request(owner, path, method, body)).status).toBe(404);
+      expect(service.data(owner)).toEqual(before);
+    }
+    expect((await request(owner, `/accounts/${a.id}/history`)).status).toBe(200);
+    expect((await request(owner, "/dashboard?date=2025-02-30")).status).toBe(400);
+    expect((await request(owner, "/")).headers.get("Cache-Control")).toBe("no-store");
+  });
+});
+
+
+describe("Finance account icons", () => {
+  it("persists all 50 icons, clears them, and leaves balances and account details unchanged", async () => {
+    const account = create();
+    const before = service.data(owner);
+    expect(financeAccountIcons).toHaveLength(50);
+    expect(new Set(financeAccountIcons).size).toBe(50);
+    for (const icon of financeAccountIcons) {
+      const response = await request(owner, `/accounts/${account.id}/icon`, "PUT", { icon, name: "Ignored", openingBalanceCents: 0 });
+      expect(response.status).toBe(200);
+      expect((await response.json()).icon).toBe(icon);
+      expect(service.data(owner).accounts[0]?.icon).toBe(icon);
+      expect(service.dashboard(owner, "all", "2025-02-01").end.accounts[0]?.icon).toBe(icon);
+    }
+    expect((await request(owner, `/accounts/${account.id}/icon`, "PUT", { icon: null })).status).toBe(200);
+    expect(service.data(owner)).toEqual(before);
+  });
+  it("rejects unsupported icons and protects account ownership and module access", async () => {
+    const account = create();
+    for (const icon of ["unknown", "", 1, {}, true, undefined]) {
+      expect((await request(owner, `/accounts/${account.id}/icon`, "PUT", { icon })).status).toBe(400);
+    }
+    expect((await request(other, `/accounts/${account.id}/icon`, "PUT", { icon: "wallet" })).status).toBe(404);
+    expect((await request(null, `/accounts/${account.id}/icon`, "PUT", { icon: "wallet" })).status).toBe(401);
+    db.delete(usermodulepermissions).where(and(eq(usermodulepermissions.userId, owner), eq(usermodulepermissions.moduleId, moduleId))).run();
+    try {
+      expect((await request(owner, `/accounts/${account.id}/icon`, "PUT", { icon: "wallet" })).status).toBe(403);
+    } finally {
+      db.insert(usermodulepermissions).values({ userId: owner, moduleId }).run();
+    }
+    expect(service.account(owner, account.id).icon).toBeNull();
   });
 });

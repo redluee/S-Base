@@ -1,3 +1,4 @@
+import { financeAccountIcons } from "../../types/finance-icons";
 import {
   integer,
   sqliteTable,
@@ -18,6 +19,7 @@ export const financeAccounts = sqliteTable(
       .references(() => users.userId, { onDelete: "cascade" }),
     name: text("name").notNull(),
     bank: text("bank"),
+    icon: text("icon", { enum: financeAccountIcons }),
     type: text("type", { enum: ["current", "savings"] }).notNull(),
     openingDate: text("opening_date").notNull(),
     archived: integer("archived", { mode: "boolean" }).notNull().default(false),
@@ -92,5 +94,37 @@ export const financeAllocations = sqliteTable(
       "finance_allocation_cents",
       sql`typeof(${table.amountCents}) = 'integer' AND ${table.amountCents} >= 0 AND ${table.amountCents} <= 1000000000000`,
     ),
+  ],
+);
+
+export const financeImportSources = sqliteTable(
+  "finance_import_sources",
+  {
+    accountId: integer("account_id").primaryKey().references(() => financeAccounts.id, { onDelete: "cascade" }),
+    userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    identity: text("identity").notNull(),
+    numberKey: text("number_key").notNull(),
+  },
+  (table) => [uniqueIndex("finance_source_identity").on(table.userId, table.identity)],
+);
+
+export const financeTransactions = sqliteTable(
+  "finance_transactions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    accountId: integer("account_id").notNull().references(() => financeAccounts.id, { onDelete: "cascade" }),
+    fingerprint: text("fingerprint").notNull(),
+    date: text("date").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    counterpartyKey: text("counterparty_key"),
+    transferOverride: integer("transfer_override", { mode: "boolean" }),
+  },
+  (table) => [
+    uniqueIndex("finance_transaction_fingerprint").on(table.accountId, table.fingerprint),
+    index("finance_transactions_account_date").on(table.accountId, table.date),
+    check("finance_transaction_cents", sql`typeof(${table.amountCents}) = 'integer' AND abs(${table.amountCents}) <= 1000000000000`),
+    check("finance_transfer_override", sql`${table.transferOverride} IS NULL OR ${table.transferOverride} IN (0,1)`),
   ],
 );

@@ -1,3 +1,5 @@
+import type { FinanceAccountIcon } from "./finance-icons";
+
 export type FinanceAccountType = "current" | "savings";
 export type FinancePeriod = "month" | "year" | "all";
 export interface FinanceObservation {
@@ -7,6 +9,7 @@ export interface FinanceObservation {
   balanceCents: number;
 }
 export interface FinanceAccount {
+  icon?: FinanceAccountIcon | null;
   id: number;
   name: string;
   bank: string | null;
@@ -70,6 +73,7 @@ export interface FinanceDashboard {
   comparison: FinanceComparison;
   savingsComparison: FinanceComparison;
   history: FinanceSnapshot[];
+  activity?: FinanceActivity;
 }
 
 export type FinanceImportOrder = "descending" | "ascending";
@@ -77,6 +81,12 @@ export interface FinanceImportSource {
   sourceKey: string;
   label: string;
   suggestedType?: FinanceAccountType;
+  reconstructedRowCount?: number;
+  matchedAccountId?: number;
+  suggestedName?: string;
+  needsBalance?: boolean;
+  firstDate?: string;
+  lastDate?: string;
   rowCount: number;
   balances: { date: string; balanceCents: number }[];
 }
@@ -96,4 +106,31 @@ export interface FinanceImportResult {
   inserted: number;
   updated: number;
   unchanged: number;
+  transactionsInserted: number;
+  transactionsRemoved: number;
+}
+
+export interface FinanceTransaction {
+  id: number;
+  accountId: number;
+  date: string;
+  amountCents: number;
+  name: string;
+  description: string;
+  internalTransfer: boolean;
+  automaticTransfer: boolean;
+}
+export interface FinanceActivity {
+  incomeCents: number;
+  spendingCents: number;
+  netCents: number;
+  transactionCount: number;
+  excludedCount: number;
+  coverage: { accountId: number; firstDate: string; lastDate: string }[];
+}
+export interface FinanceTransactionPage {
+  entries: FinanceTransaction[];
+  total: number;
+  page: number;
+  pageSize: number;
 }

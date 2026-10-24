@@ -1,3 +1,4 @@
+import { financeAccountIcons, type FinanceAccountIcon } from "../../types/finance-icons";
 import { and, eq, asc } from "drizzle-orm";
 import db from "../../db/client";
 import {
@@ -150,6 +151,18 @@ export class FinanceAccountsService {
         .returning()
         .get();
     });
+  }
+  setAccountIcon(userId: number, id: number, input: unknown) {
+    this.account(userId, id);
+    const { icon } = requireObject(input);
+    if (icon !== null && !financeAccountIcons.includes(icon as FinanceAccountIcon))
+      throw new ValidationError("Invalid account icon");
+    return db
+      .update(accounts)
+      .set({ icon: icon as FinanceAccountIcon | null })
+      .where(and(eq(accounts.userId, userId), eq(accounts.id, id)))
+      .returning()
+      .get();
   }
   archiveAccount(userId: number, id: number, input: unknown) {
     this.account(userId, id);
