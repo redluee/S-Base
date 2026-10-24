@@ -23,6 +23,7 @@ export const financeNl: Record<string, string> = {
   "finance.settings.scope": "{accounts} rekeningen · {balances} saldomomenten · {goals} spaardoelen, inclusief alle transacties en toewijzingen.",
   "finance.settings.typeConfirmation": "Typ VERWIJDEREN om verder te gaan",
   "finance.settings.confirmWord": "VERWIJDEREN",
+  "finance.settings.resetSuccess": "Je Finance-gegevens zijn verwijderd. Je kunt opnieuw beginnen met een import.",
   "finance.settings.resetConfirm": "Alleen jouw Finance-gegevens worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt. Daarna kun je je ING-bestanden opnieuw importeren. Wil je doorgaan?",
   "finance.settings.confirmRequired": "Bevestig dat je alle Finance-gegevens wilt verwijderen.",
   "finance.dashboardSubtitle": "Inkomsten, uitgaven & spaargeld",

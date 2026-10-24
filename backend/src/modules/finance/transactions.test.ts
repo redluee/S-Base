@@ -217,7 +217,7 @@ describe("Finance reset and HTTP isolation", () => {
     expect(db.select().from(users).where(eq(users.userId, owner)).get()).toEqual(userBefore);
     expect(initial().transactionsInserted).toBe(4);
   });
-  it("allows imports and reads while rejecting manual transaction edits and resets", async () => {
+  it("allows imports and reads while rejecting manual transaction edits", async () => {
     expect(service.data(owner).accounts).toHaveLength(0);
     expect((await http(owner, "/import/preview", "POST", { csv, order: "ascending" })).status).toBe(200);
     expect(service.data(owner).accounts).toHaveLength(0);
@@ -235,10 +235,30 @@ describe("Finance reset and HTTP isolation", () => {
     const ownId = before.entries[0].id;
     expect((await http(owner, `/transactions/${ownId}/transfer`, "PUT", { internalTransfer: true })).status).toBe(404);
     expect(service.transactionList(owner, {})).toEqual(before);
-    expect((await http(owner, "/settings/reset", "POST", { confirmation: "DELETE_FINANCE" })).status).toBe(404);
-    expect(service.transactionList(owner, {})).toEqual(before);
     const list = await http(owner, "/transactions");
     expect(list.headers.get("Cache-Control")).toBe("no-store");
     expect((await list.json()).total).toBe(4);
+  });
+  it("authenticates resets, requires confirmation and isolates deletion to the session owner", async () => {
+    initial(); initial(other);
+    const before = service.data(owner);
+    const foreignBefore = service.data(other);
+    const confirmation = { confirmation: "DELETE_FINANCE", userId: other };
+    expect((await http(null, "/settings/reset", "POST", confirmation)).status).toBe(401);
+    expect((await http(forbidden, "/settings/reset", "POST", confirmation)).status).toBe(403);
+    for (const body of [{}, { confirmation: "" }, { confirmation: "VERWIJDEREN" }]) {
+      expect((await http(owner, "/settings/reset", "POST", body)).status).toBe(400);
+      expect(service.data(owner)).toEqual(before);
+    }
+    const response = await http(owner, "/settings/reset", "POST", confirmation);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toEqual({ success: true });
+    expect(service.data(owner)).toMatchObject({ accounts: [], observations: [], goals: [], allocations: [] });
+    expect(service.transactionList(owner, {}).total).toBe(0);
+    expect(service.data(other)).toEqual(foreignBefore);
+    expect(service.transactionList(other, {}).total).toBe(4);
+    expect((await http(owner, "/settings/reset", "POST", confirmation)).status).toBe(200);
+    expect(initial().transactionsInserted).toBe(4);
   });
 });

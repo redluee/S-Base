@@ -405,7 +405,7 @@ describe("Finance API permissions and ownership", () => {
     ).toBe(404);
     service.deleteGoal(other, ownGoal.id);
   });
-  it("allows mutations only through imports and preserves data on rejected manual writes", async () => {
+  it("rejects manual data edits and preserves data on rejected writes", async () => {
     const a = create("savings");
     const g = goal();
     service.allocate(owner, g.id, a.id, { amountCents: 100 });
@@ -420,7 +420,6 @@ describe("Finance API permissions and ownership", () => {
       [`/goals/${g.id}`, "PUT", { name: "Changed", targetCents: 10000 }],
       [`/goals/${g.id}`, "DELETE"],
       [`/goals/${g.id}/allocations/${a.id}`, "PUT", { amountCents: 1 }],
-      ["/settings/reset", "POST", { confirmation: "DELETE_FINANCE" }],
     ];
     for (const [path, method, body] of cases) {
       expect((await request(owner, path, method, body)).status).toBe(404);

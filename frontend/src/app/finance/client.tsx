@@ -16,9 +16,10 @@ import { MonthPicker } from "./month-picker";
 import { YearPicker } from "./year-picker";
 import { FinanceImport } from "./import";
 import { Transactions } from "./transactions";
+import { FinanceSettings } from "./settings";
 import { Upload } from "lucide-react";
 
-type Tab = "overview" | "accounts" | "import" | "transactions";
+type Tab = "overview" | "accounts" | "import" | "transactions" | "settings";
 
 export function FinanceClient() {
   const [data, setData] = useState<FinanceData | null>(null),
@@ -36,6 +37,9 @@ export function FinanceClient() {
     [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [notice, setNotice] = useState("");
+  const resetInProgress = useRef(false);
   const revision = useRef(0);
   const refresh = useCallback(async () => {
     const current = ++revision.current;
@@ -70,8 +74,29 @@ export function FinanceClient() {
       tracker.current++;
     };
   }, [refresh]);
+  async function resetFinance() {
+    if (resetInProgress.current || !window.confirm(t("finance.settings.resetConfirm"))) return;
+    resetInProgress.current = true;
+    setResetting(true);
+    setError("");
+    setNotice("");
+    try {
+      await financeApi.reset();
+      revision.current++;
+      setData(null);
+      setReport(null);
+      setTab("overview");
+      setNotice(t("finance.settings.resetSuccess"));
+      await refresh();
+    } catch (error) {
+      setError(errorText(error));
+    } finally {
+      resetInProgress.current = false;
+      setResetting(false);
+    }
+  }
   return (
-    <div className="space-y-6" aria-busy={loading}>
+    <div className="space-y-6" aria-busy={loading || resetting}>
       <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
@@ -80,7 +105,7 @@ export function FinanceClient() {
         </div>
         {data && (
           <div className="flex items-center gap-2">
-            <Action className="bg-brand text-black hover:bg-brand-hover" disabled={loading} onClick={() => setTab("import")}>
+            <Action className="bg-brand text-black hover:bg-brand-hover" disabled={loading || resetting} onClick={() => setTab("import")}>
               <Upload className="size-4" aria-hidden="true" />
               {t("finance.import")}
             </Action>
@@ -91,11 +116,12 @@ export function FinanceClient() {
         aria-label={t("finance.navigation")}
         className="flex gap-1 overflow-x-auto border-b border-border pb-2"
       >
-        {(["overview", "transactions", "accounts"] as Tab[]).map(
+        {(["overview", "transactions", "accounts", "settings"] as Tab[]).map(
           (value) => (
             <Action
               key={value}
               variant="ghost"
+              disabled={resetting}
               aria-current={tab === value ? "page" : undefined}
               className={
                 tab === value
@@ -109,6 +135,7 @@ export function FinanceClient() {
           ),
         )}
       </nav>
+      {notice && <Notice>{notice}</Notice>}
       {error && (
         <div className="space-y-2">
           <Notice error>
@@ -116,7 +143,7 @@ export function FinanceClient() {
           </Notice>
           <Action
             variant="outline"
-            disabled={loading}
+            disabled={loading || resetting}
             onClick={() => void refresh().catch(() => { })}
           >
             {t("finance.retry")}
@@ -144,8 +171,8 @@ export function FinanceClient() {
             </section>
           )}
           <div
-            className={loading ? "pointer-events-none opacity-50" : ""}
-            inert={loading || !!error}
+            className={loading || resetting ? "pointer-events-none opacity-50" : ""}
+            inert={loading || resetting || !!error}
           >
             {(tab === "overview" || tab === "transactions") && data.accounts.length > 0 && (
               <div className="space-y-5">
@@ -187,6 +214,9 @@ export function FinanceClient() {
               </div>
             )}
             {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
+            {tab === "settings" && (
+              <FinanceSettings data={data} busy={loading || resetting} onReset={() => void resetFinance()} />
+            )}
             {tab === "import" && (
               <FinanceImport data={data} onSaved={refresh} />
             )}
