@@ -1,4 +1,9 @@
 export const financeNl: Record<string, string> = {
+  "finance.chartType": "Grafiektype",
+  "finance.netChart": "Inkomsten minus uitgaven",
+  "finance.netChart.month": "Laatste 30 dagen",
+  "finance.netChart.year": "Laatste 12 maanden",
+  "finance.netChart.help": "Groen boven nul: meer ontvangen dan uitgegeven. Rood onder nul: meer uitgegeven dan ontvangen. Alleen geïmporteerde transacties, zonder eigen overboekingen. Wijs een balk aan, tik erop of gebruik Tab om bedragen te bekijken. Ontbrekende imports kunnen het beeld onvolledig maken.",
   "finance.importOnlyHelp": "Saldi en transacties veranderen alleen wanneer je nieuwe bankgegevens importeert.",
   "finance.income": "Inkomsten",
   "finance.spending": "Uitgaven",

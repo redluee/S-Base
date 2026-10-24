@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { FinanceDashboard, FinanceData } from "@backend/types/finance";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { t } from "@/lib/lang";
@@ -5,9 +6,11 @@ import { dateLabel, money } from "@/lib/finance";
 import { AccountIcon } from "./account-icon";
 import { AnimatedMoney } from "./animated-money";
 import { History } from "./history";
-import { Notice, panel } from "./ui";
+import { NetChart } from "./net-chart";
+import { Action, Notice, panel } from "./ui";
 
 export function Overview({ data, report }: { data: FinanceData; report: FinanceDashboard; }) {
+  const [chart, setChart] = useState<"balance" | "net">("balance");
   const activity = report.activity;
   const hasTransactions = !!activity?.transactionCount;
   return (
@@ -43,7 +46,12 @@ export function Overview({ data, report }: { data: FinanceData; report: FinanceD
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">{hasTransactions ? t("finance.activity.scope", { count: String(activity!.transactionCount), excluded: String(activity!.excludedCount) }) : t("finance.activity.empty")}</p>
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
-        <History report={report} data={data} />
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap gap-1" aria-label={t("finance.chartType")}>
+            {(["balance", "net"] as const).map((value) => <Action key={value} variant="outline" aria-pressed={chart === value} onClick={() => setChart(value)}>{t(value === "balance" ? "finance.progression" : "finance.netChart")}</Action>)}
+          </div>
+          {chart === "balance" ? <History report={report} data={data} /> : <NetChart end={report.endDate} />}
+        </div>
         <section className={panel}>
           <h2 className="text-base font-semibold">{t("finance.breakdown")}</h2>
           <div className="mt-3 divide-y divide-border">
