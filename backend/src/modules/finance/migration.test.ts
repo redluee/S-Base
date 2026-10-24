@@ -41,7 +41,7 @@ describe("Finance production migration on disposable databases", () => {
       const permissionsBefore = sqlite
         .query("SELECT * FROM usermodulepermissions")
         .all();
-      expect((await runMigrations(sqlite)).applied).toBe(4);
+      expect((await runMigrations(sqlite)).applied).toBe(5);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
       expect(sqlite.query("SELECT * FROM cashflow_clients").all()).toEqual(
         cashflowBefore,
@@ -102,7 +102,7 @@ describe("Finance production migration on disposable databases", () => {
       sqlite.exec(
         "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1, 'synthetic-legacy');",
       );
-      expect((await runMigrations(sqlite)).applied).toBe(4);
+      expect((await runMigrations(sqlite)).applied).toBe(5);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual([
         { user_id: 1, username: "synthetic-legacy" },
       ]);

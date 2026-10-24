@@ -25,6 +25,12 @@ export function Overview({ data, report }: { data: FinanceData; report: FinanceD
           {report.comparison.changeCents !== null && <p className="mt-3 text-xs tabular-nums text-muted-foreground">{t("finance.balanceChange")}: {report.comparison.changeCents > 0 ? "+" : ""}<AnimatedMoney cents={report.comparison.changeCents} /></p>}
         </div>
       </section>
+      {report.budget && <section className={panel}>
+        <h2 className="text-xs text-muted-foreground">{t("finance.budget.remaining", { month: report.budget.month })}</h2>
+        <p className={`mt-3 break-words text-3xl font-medium tracking-tight tabular-nums ${report.budget.remainingCents < 0 ? "text-destructive" : report.budget.remainingCents > 0 ? "text-brand" : "text-foreground"}`}>{money(report.budget.remainingCents)}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t(report.budget.remainingCents < 0 ? "finance.budget.over" : "finance.budget.available")}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t("finance.budget.summary", { spent: money(report.budget.spendingCents), limit: money(report.budget.limitCents), date: dateLabel(report.endDate) })}</p>
+      </section>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {([
           { key: "income", value: activity?.incomeCents, icon: ArrowDownLeft },

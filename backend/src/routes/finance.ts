@@ -25,6 +25,9 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
       set.headers["Cache-Control"] = "no-store";
     })
     .get("/", ({ userId }) => finance.data(userId))
+    .put("/settings/budget", ({ userId, body }) =>
+      checked(() => finance.setMonthlyBudget(userId, body)),
+    )
     .post("/settings/reset", ({ userId, body }) =>
       checked(() => finance.resetFinance(userId, body)),
     )

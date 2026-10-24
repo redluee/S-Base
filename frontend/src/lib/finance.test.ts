@@ -35,6 +35,7 @@ describe("Finance display and decimal entry", () => {
   });
 });
 const data: FinanceData = {
+  monthlyBudgetCents: null,
   today: "2025-03-01",
   accounts: [
     {

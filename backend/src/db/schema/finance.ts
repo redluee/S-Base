@@ -10,6 +10,13 @@ import {
 import { sql } from "drizzle-orm";
 import { users } from "./auth";
 
+export const financeSettings = sqliteTable("finance_settings", {
+  userId: integer("user_id").primaryKey().references(() => users.userId, { onDelete: "cascade" }),
+  monthlyBudgetCents: integer("monthly_budget_cents"),
+}, (table) => [
+  check("finance_monthly_budget", sql`${table.monthlyBudgetCents} IS NULL OR (typeof(${table.monthlyBudgetCents}) = 'integer' AND ${table.monthlyBudgetCents} >= 0 AND ${table.monthlyBudgetCents} <= 1000000000000)`),
+]);
+
 export const financeAccounts = sqliteTable(
   "finance_accounts",
   {

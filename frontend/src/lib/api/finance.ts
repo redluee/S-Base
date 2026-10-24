@@ -20,6 +20,8 @@ const json = (method: string, body: unknown) => ({
   body: JSON.stringify(body),
 });
 export const financeApi = {
+  setMonthlyBudget: (monthlyBudgetCents: number | null) =>
+    request<{ monthlyBudgetCents: number | null }>("/finance/settings/budget", json("PUT", { monthlyBudgetCents })),
   previewImport: (csv: string, order: FinanceImportOrder, anchors?: Record<string, number>) =>
     request<FinanceImportPreview>(
       "/finance/import/preview",

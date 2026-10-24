@@ -8,6 +8,7 @@ import { FinanceService } from "./index";
 import { isSavingsTransfer } from "./transfer-detection";
 import { accountNumberKey } from "./transactions";
 import { financeRoutes } from "../../routes/finance";
+import { financeSettings } from "../../db/schema/finance";
 import type { FinanceImportSelection } from "../../types/finance";
 
 const service = new FinanceService();
@@ -52,12 +53,51 @@ beforeAll(async () => {
 });
 beforeEach(() => {
   for (const userId of [owner, other]) {
+    db.delete(financeSettings).where(eq(financeSettings.userId, userId)).run();
     db.delete(financeGoals).where(eq(financeGoals.userId, userId)).run();
     db.delete(financeAccounts).where(eq(financeAccounts.userId, userId)).run();
   }
 });
 
 describe("Finance transaction imports and totals", () => {
+  it("persists a per-user monthly budget and rejects invalid amounts", () => {
+    expect(service.data(owner).monthlyBudgetCents).toBeNull();
+    for (const value of [-1, 1.5, "100", undefined, Infinity, 1_000_000_000_001]) {
+      expect(() => service.setMonthlyBudget(owner, { monthlyBudgetCents: value })).toThrow();
+    }
+    service.setMonthlyBudget(owner, { monthlyBudgetCents: 12345 });
+    expect(new FinanceService().data(owner).monthlyBudgetCents).toBe(12345);
+    expect(service.data(other).monthlyBudgetCents).toBeNull();
+    service.setMonthlyBudget(owner, { monthlyBudgetCents: null });
+    expect(service.dashboard(owner, "month", "2025-01-03").budget).toBeNull();
+  });
+  it("subtracts only that month's external expenses and handles positive, zero and negative remaining budgets", () => {
+    initial();
+    service.setMonthlyBudget(owner, { monthlyBudgetCents: 2000 });
+    for (const period of ["month", "year", "all"]) {
+      expect(service.dashboard(owner, period, "2025-01-03").budget).toEqual({ month: "2025-01", limitCents: 2000, spendingCents: 1000, remainingCents: 1000 });
+      expect(service.dashboard(owner, period, "2025-02-01").budget).toEqual({ month: "2025-02", limitCents: 2000, spendingCents: 0, remainingCents: 2000 });
+    }
+    expect(service.dashboard(owner, "month", "2025-01-02").budget?.remainingCents).toBe(2000);
+    service.setMonthlyBudget(owner, { monthlyBudgetCents: 1000 });
+    expect(service.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(0);
+    service.setMonthlyBudget(owner, { monthlyBudgetCents: 0 });
+    expect(service.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(-1000);
+    const shop = service.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")!;
+    service.setTransfer(owner, shop.id, { internalTransfer: true });
+    expect(service.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(0);
+  });
+  it("protects budget settings with authentication and module access and clears only the owner's budget on reset", async () => {
+    expect((await http(null, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(401);
+    expect((await http(forbidden, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(403);
+    expect((await http(owner, "/settings/budget", "PUT", { monthlyBudgetCents: -1 })).status).toBe(400);
+    expect((await http(owner, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(200);
+    expect((await (await http(owner, "/")).json()).monthlyBudgetCents).toBe(100);
+    service.setMonthlyBudget(other, { monthlyBudgetCents: 200 });
+    service.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
+    expect(service.data(owner).monthlyBudgetCents).toBeNull();
+    expect(service.data(other).monthlyBudgetCents).toBe(200);
+  });
   it("stores full transactions, separates transfers, and respects date boundaries", () => {
     expect(initial().transactionsInserted).toBe(4);
     const report = service.dashboard(owner, "all", "2025-01-03");

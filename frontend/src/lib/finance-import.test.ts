@@ -17,6 +17,7 @@ const source: FinanceImportSource = {
   ],
 };
 const data: FinanceData = {
+  monthlyBudgetCents: null,
   today: "2025-02-01",
   accounts: [
     {

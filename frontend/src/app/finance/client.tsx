@@ -215,7 +215,7 @@ export function FinanceClient() {
             )}
             {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
             {tab === "settings" && (
-              <FinanceSettings data={data} busy={loading || resetting} onReset={() => void resetFinance()} />
+              <FinanceSettings data={data} busy={loading || resetting} onReset={() => void resetFinance()} onSaved={refresh} />
             )}
             {tab === "import" && (
               <FinanceImport data={data} onSaved={refresh} />

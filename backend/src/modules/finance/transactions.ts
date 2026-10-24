@@ -6,6 +6,7 @@ import {
   financeGoals as goals,
   financeImportSources as sources,
   financeTransactions as transactions,
+  financeSettings as settings,
 } from "../../db/schema/finance";
 import { FinanceGoalsService } from "./goals";
 import { FinanceNotFound } from "./accounts";
@@ -89,6 +90,7 @@ export class FinanceTransactionsService extends FinanceGoalsService {
   resetFinance(userId: number, input: unknown) {
     if (requireObject(input).confirmation !== "DELETE_FINANCE") throw new ValidationError("finance.settings.confirmRequired");
     return db.transaction((tx) => {
+      tx.delete(settings).where(eq(settings.userId, userId)).run();
       tx.delete(goals).where(eq(goals.userId, userId)).run();
       tx.delete(accounts).where(eq(accounts.userId, userId)).run();
       return { success: true };

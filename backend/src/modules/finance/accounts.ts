@@ -6,6 +6,7 @@ import {
   financeObservations as observations,
   financeGoals as goals,
   financeAllocations as allocations,
+  financeSettings as settings,
 } from "../../db/schema/finance";
 import {
   ConflictError,
@@ -30,6 +31,7 @@ export class FinanceAccountsService {
   }
   data(userId: number): FinanceData {
     return {
+      monthlyBudgetCents: db.select().from(settings).where(eq(settings.userId, userId)).get()?.monthlyBudgetCents ?? null,
       accounts: db
         .select()
         .from(accounts)

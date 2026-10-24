@@ -41,6 +41,7 @@ export interface FinanceAllocation {
   amountCents: number;
 }
 export interface FinanceData {
+  monthlyBudgetCents: number | null;
   accounts: FinanceAccount[];
   observations: FinanceObservation[];
   goals: FinanceGoal[];
@@ -66,6 +67,7 @@ export interface FinanceComparison {
   reason: "insufficient" | "coverage" | "cohort" | "zero" | null;
 }
 export interface FinanceDashboard {
+  budget?: { month: string; limitCents: number; spendingCents: number; remainingCents: number } | null;
   startDate: string;
   endDate: string;
   start: FinanceSnapshot;
