@@ -39,10 +39,10 @@ export function NetChart({ end }: { end: string }) {
     <p className="mt-2 text-xs text-muted-foreground">{dateLabel(range.start)} – {dateLabel(end)}</p>
     {error ? <div className="mt-4 space-y-2"><Notice error>{error}</Notice><Action variant="outline" onClick={() => { setFailure(null); setRetry((value) => value + 1); }}>{t("finance.retry")}</Action></div> : !ready ? <p role="status" className="mt-4 text-sm text-muted-foreground">{t("finance.loading")}</p> : <>
       {!buckets.some((bucket) => bucket.count) && <div className="mt-4"><Notice>{t("finance.activity.empty")}</Notice></div>}
-      <div className="mt-6 overflow-x-auto pb-2">
-        <div className="relative flex pt-24" style={{ minWidth: 576 }}>
+      <div className="mt-6 pb-2">
+        <div className="relative flex pt-24">
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-56 border-t border-foreground/40"><span className="absolute -top-5 left-0 text-xs text-muted-foreground">0</span></div>
-          {buckets.map((bucket, index) => <div key={bucket.date} className="group relative min-w-12 flex-1">
+          {buckets.map((bucket, index) => <div key={bucket.date} className="group relative min-w-0 flex-1">
             <button type="button" aria-label={`${label(bucket.date)}: ${money(bucket.net)}`} className="relative block h-64 w-full cursor-crosshair rounded-sm focus-visible:outline-2 focus-visible:outline-brand">
               <span aria-hidden="true" className={`absolute inset-x-[30%] ${bucket.net > 0 ? "rounded-t-sm bg-brand" : bucket.net < 0 ? "rounded-b-sm bg-destructive" : "bg-muted-foreground"}`} style={{ top: bucket.net > 0 ? `${50 - bucket.net / maximum * 45}%` : "50%", height: bucket.net === 0 ? 2 : `${Math.abs(bucket.net) / maximum * 45}%` }} />
             </button>
@@ -52,7 +52,7 @@ export function NetChart({ end }: { end: string }) {
               <p>{t("finance.spending")}: {money(bucket.spending)}</p>
               <p className={bucket.net < 0 ? "text-destructive" : "text-brand"}>{t("finance.net")}: {money(bucket.net)}</p>
             </div>
-            <p className="mt-3 text-center text-[10px] text-muted-foreground">{label(bucket.date)}</p>
+            <p className="mt-3 text-center text-[9px] leading-tight text-muted-foreground sm:text-[10px]">{label(bucket.date)}</p>
           </div>)}
         </div>
       </div>

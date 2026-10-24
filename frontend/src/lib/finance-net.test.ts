@@ -4,9 +4,24 @@ import { netBuckets, netRange } from "./finance-net";
 
 const transaction = (date: string, amountCents: number, internalTransfer = false): FinanceTransaction => ({ id: 1, accountId: 1, date, amountCents, internalTransfer, automaticTransfer: false, name: "Example", description: "" });
 
-it("builds rolling periods across years and leap days", () => {
-  expect(netRange("2026-02-28")).toEqual({ start: "2025-03-01", end: "2026-02-28" });
-  expect(netRange("2024-02-29").start).toBe("2023-03-01");
+it("starts at January of the selected year, including leap years and year boundaries", () => {
+  for (const end of ["2026-01-01", "2026-02-28", "2024-02-29", "2026-12-31"]) {
+    expect(netRange(end)).toEqual({ start: `${end.slice(0, 4)}-01-01`, end });
+  }
+});
+
+it("only includes months and transactions from the selected year through the end date", () => {
+  const { start, end } = netRange("2026-03-15");
+  const buckets = netBuckets([
+    transaction("2025-12-31", 9000),
+    transaction("2026-01-01", 12000),
+    transaction("2026-03-15", -2000),
+    transaction("2026-03-16", 5000),
+  ], start, end);
+  expect(buckets.map((bucket) => bucket.date)).toEqual(["2026-01", "2026-02", "2026-03"]);
+  expect(buckets.map((bucket) => bucket.net)).toEqual([12000, 0, -2000]);
+  const fullYear = netRange("2026-12-31");
+  expect(netBuckets([], fullYear.start, fullYear.end)).toHaveLength(12);
 });
 
 it("nets income and expenses while excluding internal transfers and out-of-range transactions", () => {

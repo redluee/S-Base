@@ -2,8 +2,7 @@ import type { FinanceTransaction } from "@backend/types/finance";
 
 export function netRange(end: string) {
   const date = new Date(`${end}T12:00:00Z`);
-  date.setUTCDate(1);
-  date.setUTCMonth(date.getUTCMonth() - 11);
+  date.setUTCMonth(0, 1);
   return { start: date.toISOString().slice(0, 10), end };
 }
 
