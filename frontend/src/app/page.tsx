@@ -23,7 +23,7 @@ export default async function LoginPage() {
 
       <header className="text-center mb-10">
         <Image src="/logo.svg" alt="" width={128} height={48} className="mx-auto mb-6" priority />
-        <h1 className="font-display text-[clamp(2rem,5vw+1rem,5rem)] leading-none">
+        <h1 className="font-display text-[min(8vw,5rem)] whitespace-nowrap leading-none">
           {t("Welcome to")}{" "}
           <span className="text-brand">S</span>-Base
         </h1>

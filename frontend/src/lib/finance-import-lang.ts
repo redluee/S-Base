@@ -17,7 +17,7 @@ export const financeImportNl: Record<string, string> = {
   "finance.import.sourceSummary":
     "{rows} mutaties → {days} dagsaldi · {start} t/m {end}",
   "finance.import.defaultName": "ING-rekening {suffix}",
-  "finance.import.destination": "Koppelen aan rekening in Geldzaken",
+  "finance.import.destination": "Koppelen aan rekening in Finance",
   "finance.import.skipAccount": "Deze rekening overslaan / kies een rekening",
   "finance.import.createAccount": "Nieuwe rekening aanmaken",
   "finance.import.archivedHelp":
@@ -35,7 +35,7 @@ export const financeImportNl: Record<string, string> = {
   "finance.import.row.new": "Nieuw saldomoment",
   "finance.import.row.same": "Al aanwezig · wordt overgeslagen",
   "finance.import.duplicateTarget":
-    "Koppel verschillende ING-rekeningen aan verschillende rekeningen in Geldzaken.",
+    "Koppel verschillende ING-rekeningen aan verschillende rekeningen in Finance.",
   "finance.import.consentRequired":
     "Bevestig bij de rekening dat de openingsdatum mag worden vervroegd, of deselecteer de oudere saldi.",
   "finance.import.reviewHelp":

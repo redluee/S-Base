@@ -14,7 +14,7 @@ export interface ModuleDefinition {
 }
 
 export const MODULES: ModuleDefinition[] = [
-  { id: "finance", title: "finance.title", subtitle: "finance.dashboardSubtitle", roles: ["user", "admin"], accentColor: "#00e3a4", glowColor: "transparent", href: "/finance" },
+  { id: "finance", title: "finance.title", subtitle: "finance.dashboardSubtitle", roles: ["user", "admin"], accentColor: "#00e3a4", glowColor: "rgba(0, 227, 164, 0.35)", href: "/finance" },
   {
     id: "workout",
     title: "Workout Studio",

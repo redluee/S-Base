@@ -1,4 +1,4 @@
-# Geldzaken implementation
+# Finance implementation
 
 ## Plan and acceptance checklist
 
@@ -10,7 +10,7 @@
 
 ## Decisions
 
-- Independent `finance` / `/finance` / Geldzaken module; no Cashflow integration or bank connection.
+- Independent `finance` / `/finance` / Finance module; no Cashflow integration or bank connection.
 - EUR integer cents; calendar dates are `YYYY-MM-DD`. Today uses Europe/Amsterdam. Future balance observations are rejected; goal deadlines may be future dates.
 - Opening balance is an ordinary observation at the account opening date. Deleting it makes the balance unknown until the next observation. Account edits can explicitly recreate/change the opening observation.
 - Archived accounts remain in all totals and histories, carrying their last observation forward. Archive hides an account from routine bulk entry; it does not imply closure, transfer, or zero. Archived history remains editable; accounts can be restored.
@@ -36,8 +36,8 @@
 ## Before use
 
 1. Run `bun run db:migrate` against the intended deployment database to apply `0041_create_finance.sql`. This migration was deliberately not applied to the working user database.
-2. Enable `finance` (Geldzaken) for the desired user through Pulse or `bun run db:user grant <username> finance`. Registration never grants access automatically.
-3. Restart the app and open `/finance` or the Geldzaken dashboard link.
+2. Enable `finance` (Finance) for the desired user through Pulse or `bun run db:user grant <username> finance`. Registration never grants access automatically.
+3. Restart the app and open `/finance` or the Finance dashboard link.
 
 ## Limits
 

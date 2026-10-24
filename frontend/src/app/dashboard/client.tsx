@@ -178,9 +178,9 @@ export function DashboardClient({
       </header>
 
       {/* Title Section */}
-      <section className="text-center mb-8 sm:mb-12 max-w-xl relative z-10 w-full px-2">
+      <section className="text-center mb-8 sm:mb-12 max-w-3xl relative z-10 w-full px-2 @container">
         <h1
-          className="font-display text-[clamp(2.25rem,6vw+1rem,4.5rem)] leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl"
+          className="font-display text-[min(9cqw,4.5rem)] whitespace-nowrap leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl"
           style={{ textShadow: "0 0 3rem rgba(0,230,118,0.25)" }}
         >
           {t("Welcome to")} <span className="text-[#00E676]">S</span>-Base

@@ -1,11 +1,11 @@
 export const financeNl: Record<string, string> = {
   "finance.dashboardSubtitle": "Rekeningen, saldoverloop & spaardoelen",
   "finance.confirm": "Bevestigen",
-  "finance.title": "Geldzaken",
+  "finance.title": "Finance",
   "finance.personalOverview": "Persoonlijk overzicht · EUR",
   "finance.subtitle":
     "Je rekeningen, saldoverloop en spaardoelen op één plek. Werk je saldi samen bij wanneer het jou uitkomt.",
-  "finance.navigation": "Navigatie Geldzaken",
+  "finance.navigation": "Navigatie Finance",
   "finance.overview": "Overzicht",
   "finance.accounts": "Rekeningen",
   "finance.balances": "Saldi bijwerken",
@@ -148,15 +148,15 @@ export const financeNl: Record<string, string> = {
   "finance.startTitle": "Begin met je rekeningen",
   "finance.startHelp":
     "Voeg een betaal- of spaarrekening toe met een beginsaldo. Werk daarna je saldi periodiek samen bij. Zo ontstaat vanzelf een overzicht van je bijgehouden geld en je spaardoelen.",
-  "finance.loading": "Geldzaken laden…",
+  "finance.loading": "Finance laden…",
   "finance.failed":
-    "Geldzaken kon de actie niet afronden. Probeer het opnieuw.",
+    "Finance kon de actie niet afronden. Probeer het opnieuw.",
   "finance.reloadHelp": "Ververs de gegevens voordat je verdergaat.",
   "finance.retry": "Opnieuw laden",
   "finance.noActiveAccounts":
     "Geen actieve rekeningen. Herstel een rekening of toon gearchiveerde rekeningen om historische saldi bij te werken.",
   "finance.forbidden":
-    "Je hebt geen toegang tot Geldzaken. Een beheerder kan de module inschakelen via Pulse.",
+    "Je hebt geen toegang tot Finance. Een beheerder kan de module inschakelen via Pulse.",
   "finance.sessionExpired":
     "Je sessie is verlopen. Log opnieuw in om verder te gaan.",
   "finance.notFound": "Dit gegeven is niet gevonden of is niet van jou.",

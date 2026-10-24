@@ -28,9 +28,26 @@ export function ModuleGrid({
   return (
     <nav className="grid grid-cols-1 sm:grid-cols-6 gap-4 sm:gap-5 w-full max-w-3xl mb-8 relative z-10">
       {canAccess("finance") && (
-        <Link href="/finance" className="col-span-1 sm:col-span-6 flex min-h-24 items-center justify-between gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-brand">
-          <div className="flex min-w-0 items-center gap-4"><Wallet className="size-6 shrink-0 text-muted-foreground" /><div className="min-w-0"><h2 className="text-lg font-semibold">{t("finance.title")}</h2><p className="text-xs text-muted-foreground">{t("finance.dashboardSubtitle")}</p></div></div>
-          <ArrowUpRight className="size-5 shrink-0 text-muted-foreground" />
+        <Link
+          href="/finance"
+          className="group relative col-span-1 sm:col-span-6 flex min-h-24 items-center justify-between gap-3 p-4 sm:p-5 squircle-card bg-card ring-1 ring-foreground/10 transition-all duration-200 hover:ring-brand/50 hover:shadow-[0_0_2rem_-0.5rem_rgba(0,227,164,0.35)] focus-visible:outline-2 focus-visible:outline-brand motion-reduce:transition-none"
+        >
+          <div className="flex min-w-0 items-center gap-3.5">
+            <div className="flex size-11 shrink-0 items-center justify-center squircle-icon text-brand ring-1 ring-brand/30 transition-colors group-hover:bg-brand/10 motion-reduce:transition-none">
+              <Wallet className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold tracking-tight text-zinc-100 transition-colors group-hover:text-white sm:text-lg motion-reduce:transition-none">
+                {t("finance.title")}
+              </h2>
+              <p className="text-xs font-medium tracking-wide text-zinc-400">
+                {t("finance.dashboardSubtitle")}
+              </p>
+            </div>
+          </div>
+          <div className="flex size-8 shrink-0 items-center justify-center squircle-action text-brand ring-1 ring-brand/30 transition-colors group-hover:bg-brand group-hover:text-zinc-950 motion-reduce:transition-none">
+            <ArrowUpRight className="size-4" />
+          </div>
         </Link>
       )}
       {/* 1. Workout Studio Card */}
