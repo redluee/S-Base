@@ -41,6 +41,7 @@ export function Notice({
   );
 }
 const errorKeys: Record<string, string> = {
+  "Invalid account icon": "finance.invalidIcon",
   "Invalid amount in cents": "finance.invalidMoney",
   "Invalid calendar date": "finance.invalidDate",
   "Future balances are not allowed": "finance.futureDate",

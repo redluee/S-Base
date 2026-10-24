@@ -1,4 +1,4 @@
-import type { FinanceData } from "@backend/types/finance";
+import type { FinanceData, FinancePeriod } from "@backend/types/finance";
 
 export function money(cents: number | null): string {
   return cents === null
@@ -63,4 +63,14 @@ export function savingsState(data: FinanceData) {
     shortfallCents: accounts.reduce((s, a) => s + a.shortfallCents, 0),
     unknown: accounts.some((a) => a.balanceCents === null),
   };
+}
+
+export function financePeriodEnd(period: FinancePeriod, date: string, today: string): string {
+  if (period === "all") return today;
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  const end = period === "year"
+    ? `${year}-12-31`
+    : `${date.slice(0, 7)}-${new Date(Date.UTC(year, month, 0)).getUTCDate()}`;
+  return end > today ? today : end;
 }

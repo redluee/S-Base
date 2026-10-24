@@ -1,10 +1,21 @@
 export const financeImportNl: Record<string, string> = {
   "finance.import": "Importeren",
+  "finance.import.anchorHelp": "Deze rekening bevat {rows} transacties zonder saldo. Vul alleen het werkelijke eindsaldo na alle transacties op {date} in om de saldi terug te rekenen. Gebruik een volledige export zonder transactiefilter, of sla deze rekening over.",
+  "finance.import.anchorLabel": "Eindsaldo op {date} (EUR)",
+  "finance.import.recheck": "Saldi berekenen en controleren",
+  "finance.import.latestBalance": "Laatste saldo in bestand · {date}",
+  "finance.import.laterBalance": "Er bestaat al een later saldo van {amount} op {date}. Dat blijft je actuele saldo bepalen na deze import. Controleer of dit saldo klopt via Rekeningen.",
+  "finance.import.selectSafe": "Nieuwe en identieke saldi selecteren",
+  "finance.import.previewSummary": "{accounts} rekeningen · {rows} transacties gevonden · {skipped} rekeningen nog niet gekoppeld. Controleer ook je spaarrekeningen.",
+  "finance.import.mappingConflict": "Deze ING-rekening is al aan een andere rekening gekoppeld, of de gekozen rekening hoort bij een andere ING-rekening. Kies de bestaande koppeling om dubbeltellingen te voorkomen.",
+  "finance.import.details": "Werkwijze en privacy",
+  "finance.import.missingBalance": "Deze rekening bevat geen enkel bekend saldo. Download een periode met minstens één saldo na mutatie. Er is niets geïmporteerd.",
+  "finance.import.reconstructed": "Bij {count} mutaties ontbreekt het saldo. Deze saldi zijn berekend vanuit een bekend saldo en de mutatiebedragen. Controleer dat de export volledig is en geen transactiefilter bevat.",
   "finance.import.title": "Importeren vanuit ING",
   "finance.import.instructions":
-    "Download bij ING je volledige af- en bijschrijvingen als CSV, met de kolom ‘Saldo na mutatie’. Zowel komma- als puntkommagescheiden exports van betaal- en spaarrekeningen worden ondersteund, ook met aparte kolommen ‘Bedrag’ en ‘Valuta’. Upload het ongewijzigde bestand hieronder. PDF wordt hier niet ondersteund.",
+    "Upload je volledige Nederlandse of Engelse ING-export als CSV met ‘Saldo na mutatie’ of ‘Resulting balance’. Kies daarna welke rekeningen en saldi je wilt bewaren.",
   "finance.import.privacy":
-    "Alleen de geselecteerde dagsaldi worden bewaard. Het CSV-bestand, rekeningnummers, namen van tegenpartijen en transactieomschrijvingen worden niet opgeslagen. De import maakt geen verbinding met je bank.",
+    "Van de geselecteerde dagen bewaren we dagsaldi, transactiebedragen, namen en omschrijvingen voor je inkomsten- en uitgavenoverzicht. Rekeningnummers worden voor herkenning gehasht; het CSV-bestand zelf wordt niet bewaard. Er is geen bankverbinding.",
   "finance.import.file": "ING CSV-bestand (maximaal 2 MB)",
   "finance.import.sortOrder": "Volgorde in het CSV-bestand",
   "finance.import.descending": "Nieuwste eerst (datum aflopend)",
@@ -27,22 +38,22 @@ export const financeImportNl: Record<string, string> = {
   "finance.import.selectionSummary":
     "{selected} geselecteerd · {same} al aanwezig · {conflicts} afwijkende bestaande saldi",
   "finance.import.conflictHelp":
-    "Afwijkende bestaande saldi staan standaard uit. Vink een datum alleen aan als je het bestaande bedrag wilt vervangen. Identieke saldi worden overgeslagen.",
+    "Afwijkende bestaande saldi staan standaard uit. Vink een datum alleen aan als je het bestaande bedrag wilt vervangen. Identieke saldi blijven behouden; ontbrekende transacties worden aangevuld.",
   "finance.import.selectNew": "Alleen nieuwe saldi selecteren",
   "finance.import.selectNone": "Selectie wissen",
   "finance.import.dates": "Te importeren dagsaldi",
   "finance.import.replace": "Bestaand saldo van {amount} vervangen",
   "finance.import.row.new": "Nieuw saldomoment",
-  "finance.import.row.same": "Al aanwezig · wordt overgeslagen",
+  "finance.import.row.same": "Saldo al aanwezig · transacties worden aangevuld",
   "finance.import.duplicateTarget":
     "Koppel verschillende ING-rekeningen aan verschillende rekeningen in Finance.",
   "finance.import.consentRequired":
     "Bevestig bij de rekening dat de openingsdatum mag worden vervroegd, of deselecteer de oudere saldi.",
   "finance.import.reviewHelp":
-    "Controleer de rekeningkoppeling en bedragen vóór je opslaat. Alleen aangevinkte datums worden geïmporteerd. Lagere saldi kunnen een tekort bij bestaande doeltoewijzingen zichtbaar maken; de toewijzingen zelf blijven behouden.",
+    "Controleer je koppelingen en eindsaldi. Aangevinkte dagen vervangen ook de eerder geïmporteerde transacties van die dag. Gebruik daarom een volledige export zonder transactiefilter. Afwijkende bestaande saldi vervang je alleen door ze expliciet aan te vinken.",
   "finance.import.save": "{count} saldi importeren",
   "finance.import.success":
-    "Import voltooid: {created} rekeningen aangemaakt, {inserted} nieuwe saldi en {updated} bestaande saldi bijgewerkt. Je overzicht is opnieuw berekend.",
+    "Import voltooid: {created} rekeningen, {inserted} nieuwe saldi, {updated} bijgewerkte saldi en {transactions} nieuwe transacties en {removed} verouderde transacties vervangen.",
   "finance.import.fileType":
     "Kies een ING CSV-bestand met ‘Saldo na mutatie’. PDF en Excel-bestanden worden niet ondersteund.",
   "finance.import.size":
@@ -50,9 +61,9 @@ export const financeImportNl: Record<string, string> = {
   "finance.import.malformed":
     "Dit is geen geldig CSV-bestand. Download het opnieuw bij ING en upload het zonder het eerst in Excel op te slaan.",
   "finance.import.empty":
-    "Er zijn geen mutaties met een saldo gevonden. Kies een periode met mutaties, of voer een saldo handmatig in.",
+    "Er zijn geen bruikbare mutaties gevonden. Kies een bankexport met mutaties voor de gewenste periode.",
   "finance.import.columns":
-    "De benodigde ING-kolommen ontbreken. Gebruik een Nederlands ING CSV met Datum, Rekening, Af Bij, Saldo na mutatie en Bedrag (EUR), of Bedrag met Valuta. Een export zonder saldokolom is niet geschikt.",
+    "De benodigde ING-kolommen ontbreken. Gebruik een Nederlandse of Engelse ING-export met datum, rekening, af/bij, bedrag, valuta en saldo na mutatie (Resulting balance).",
   "finance.import.currency":
     "Deze export bevat een andere of ontbrekende valuta. Alleen EUR wordt ondersteund. Er is niets geïmporteerd.",
   "finance.import.order":

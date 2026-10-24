@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseMoney, moneyInput, dateLabel, savingsState } from "./finance";
+import { parseMoney, moneyInput, dateLabel, savingsState, financePeriodEnd } from "./finance";
 import type { FinanceData } from "@backend/types/finance";
 
 describe("Finance display and decimal entry", () => {
@@ -92,5 +92,20 @@ describe("Savings availability and shortfalls", () => {
     expect(state.accounts[0].balanceCents).toBe(-100);
     expect(state.accounts[0].unallocatedCents).toBe(0);
     expect(state.accounts[0].shortfallCents).toBe(8000);
+  });
+});
+
+
+describe("Dashboard calendar periods", () => {
+  it("selects complete months across years and leap years", () => {
+    expect(financePeriodEnd("month", "2024-02-01", "2026-10-24")).toBe("2024-02-29");
+    expect(financePeriodEnd("month", "2025-02-24", "2026-10-24")).toBe("2025-02-28");
+    expect(financePeriodEnd("month", "2025-12-01", "2026-10-24")).toBe("2025-12-31");
+  });
+  it("selects full past years and caps ongoing periods at today", () => {
+    expect(financePeriodEnd("year", "2024-05-01", "2026-10-24")).toBe("2024-12-31");
+    expect(financePeriodEnd("year", "2026-01-01", "2026-10-24")).toBe("2026-10-24");
+    expect(financePeriodEnd("month", "2026-10-01", "2026-10-24")).toBe("2026-10-24");
+    expect(financePeriodEnd("all", "2024-01-01", "2026-10-24")).toBe("2026-10-24");
   });
 });

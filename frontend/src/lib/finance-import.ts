@@ -43,11 +43,11 @@ export function defaultImportChoice(
 ): ImportChoice {
   return {
     target,
-    name: "",
+    name: source.suggestedName ?? "",
     type: source.suggestedType ?? "current",
     extendOpening: false,
     dates: importRows(source, data, target)
-      .filter((row) => row.state === "new")
+      .filter((row) => row.state !== "conflict")
       .map((row) => row.date),
   };
 }

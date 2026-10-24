@@ -2,36 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-  FinanceAccount,
   FinanceDashboard,
   FinanceData,
-  FinanceObservation,
   FinancePeriod,
 } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
-import { dateLabel } from "@/lib/finance";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Action, Field, Notice, errorText, panel } from "./ui";
-import { AccountForm } from "./account-form";
-import { Balances } from "./balances";
+import { financePeriodEnd } from "@/lib/finance";
+import { Action, Notice, errorText, panel } from "./ui";
 import { Accounts } from "./accounts";
 import { Overview } from "./overview";
-import { Goals } from "./goals";
+import { MonthPicker } from "./month-picker";
+import { YearPicker } from "./year-picker";
 import { FinanceImport } from "./import";
+import { Transactions } from "./transactions";
+import { Upload } from "lucide-react";
 
-type Tab = "overview" | "accounts" | "balances" | "goals" | "import";
-type Confirmation = {
-  title: string;
-  description: string;
-  action: () => Promise<unknown>;
-  destructive?: boolean;
-};
+type Tab = "overview" | "accounts" | "import" | "transactions";
 
 export function FinanceClient() {
   const [data, setData] = useState<FinanceData | null>(null),
     [report, setReport] = useState<FinanceDashboard | null>(null);
-  const [date, setDate] = useState(() =>
+  const [today] = useState(() =>
     new Intl.DateTimeFormat("en-CA", {
       timeZone: "Europe/Amsterdam",
       year: "numeric",
@@ -39,14 +31,11 @@ export function FinanceClient() {
       day: "2-digit",
     }).format(new Date()),
   );
+  const [date, setDate] = useState(today);
   const [period, setPeriod] = useState<FinancePeriod>("all"),
     [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true),
-    [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const [editing, setEditing] = useState<FinanceAccount | "new" | null>(null),
-    [observation, setObservation] = useState<FinanceObservation | undefined>();
-  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const revision = useRef(0);
   const refresh = useCallback(async () => {
     const current = ++revision.current;
@@ -55,7 +44,7 @@ export function FinanceClient() {
     try {
       const [nextData, nextReport] = await Promise.all([
         financeApi.data(),
-        financeApi.dashboard(period, date),
+        financeApi.dashboard(period, financePeriodEnd(period, date, today)),
       ]);
       if (current === revision.current) {
         setData(nextData);
@@ -67,7 +56,7 @@ export function FinanceClient() {
     } finally {
       if (current === revision.current) setLoading(false);
     }
-  }, [date, period]);
+  }, [date, period, today]);
   useEffect(() => {
     let active = true;
     const tracker = revision;
@@ -75,74 +64,45 @@ export function FinanceClient() {
       .then(() => {
         if (active) return refresh();
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       active = false;
       tracker.current++;
     };
   }, [refresh]);
-  async function confirm() {
-    if (!confirmation) return;
-    setBusy(true);
-    setError("");
-    try {
-      await confirmation.action();
-      setConfirmation(null);
-      await refresh();
-    } catch (error) {
-      setConfirmation(null);
-      setError(errorText(error));
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <div className="space-y-6" aria-busy={loading}>
       <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-3 text-xs uppercase tracking-widest text-muted-foreground">
-            {t("finance.personalOverview")}
-          </p>
           <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
             {t("finance.title")}
           </h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            {t("finance.subtitle")}
-          </p>
         </div>
         {data && (
-          <Action
-            className="bg-brand text-black hover:bg-brand-hover"
-            disabled={loading || busy}
-            onClick={() => {
-              setObservation(undefined);
-              setTab("balances");
-            }}
-          >
-            {t("finance.updateBalances")}
-          </Action>
+          <div className="flex items-center gap-2">
+            <Action className="bg-brand text-black hover:bg-brand-hover" disabled={loading} onClick={() => setTab("import")}>
+              <Upload className="size-4" aria-hidden="true" />
+              {t("finance.import")}
+            </Action>
+          </div>
         )}
       </header>
       <nav
         aria-label={t("finance.navigation")}
         className="flex gap-1 overflow-x-auto border-b border-border pb-2"
       >
-        {(["overview", "accounts", "balances", "import", "goals"] as Tab[]).map(
+        {(["overview", "transactions", "accounts"] as Tab[]).map(
           (value) => (
             <Action
               key={value}
               variant="ghost"
-              disabled={busy}
               aria-current={tab === value ? "page" : undefined}
               className={
                 tab === value
                   ? "bg-zinc-900 text-brand hover:bg-zinc-800 hover:text-brand"
                   : "text-muted-foreground"
               }
-              onClick={() => {
-                setTab(value);
-                if (value === "balances") setObservation(undefined);
-              }}
+              onClick={() => setTab(value)}
             >
               {t(`finance.${value}`)}
             </Action>
@@ -157,7 +117,7 @@ export function FinanceClient() {
           <Action
             variant="outline"
             disabled={loading}
-            onClick={() => void refresh().catch(() => {})}
+            onClick={() => void refresh().catch(() => { })}
           >
             {t("finance.retry")}
           </Action>
@@ -170,7 +130,7 @@ export function FinanceClient() {
       )}
       {data && report && (
         <>
-          {data.accounts.length === 0 && tab !== "import" && (
+          {data.accounts.length === 0 && tab === "overview" && (
             <section className={`${panel} space-y-4`}>
               <h2 className="text-lg font-semibold">
                 {t("finance.startTitle")}
@@ -178,8 +138,8 @@ export function FinanceClient() {
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 {t("finance.startHelp")}
               </p>
-              <Action variant="outline" onClick={() => setEditing("new")}>
-                {t("finance.newAccount")}
+              <Action variant="outline" onClick={() => setTab("import")}>
+                {t("finance.import")}
               </Action>
             </section>
           )}
@@ -187,7 +147,7 @@ export function FinanceClient() {
             className={loading ? "pointer-events-none opacity-50" : ""}
             inert={loading || !!error}
           >
-            {tab === "overview" && data.accounts.length > 0 && (
+            {(tab === "overview" || tab === "transactions") && data.accounts.length > 0 && (
               <div className="space-y-5">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                   <div
@@ -212,106 +172,27 @@ export function FinanceClient() {
                       ),
                     )}
                   </div>
-                  <div className="w-full sm:w-48">
-                    <Field
-                      label={t("finance.asOfDate")}
-                      type="date"
-                      min="1900-01-01"
-                      max={data.today}
-                      required
-                      value={date}
-                      onInput={(e) => {
-                        if (e.currentTarget.value)
-                          setDate(e.currentTarget.value);
-                      }}
-                    />
-                  </div>
+                  {period === "month" && (
+                    <MonthPicker value={date.slice(0, 7)} today={today} onChange={(month) => setDate(`${month}-01`)} />
+                  )}
+                  {period === "year" && (
+                    <div className="w-full sm:w-48">
+                      <YearPicker value={Number(date.slice(0, 4))} maxYear={Number(today.slice(0, 4))} onChange={(year) => setDate(`${year}-01-01`)} />
+                    </div>
+                  )}
                 </div>
-                <Overview report={report} data={data} />
+                {tab === "overview" ? <Overview report={report} data={data} /> : (
+                  <Transactions key={`${report.startDate}-${report.endDate}`} data={data} start={report.startDate} end={report.endDate} />
+                )}
               </div>
             )}
-            {tab === "accounts" && (
-              <Accounts
-                data={data}
-                busy={busy}
-                onNew={() => setEditing("new")}
-                onEdit={setEditing}
-                onArchive={(account) =>
-                  setConfirmation({
-                    title: t(
-                      account.archived ? "finance.restore" : "finance.archive",
-                    ),
-                    description: t("finance.archiveHelp"),
-                    action: () =>
-                      financeApi.archive(account.id, !account.archived),
-                  })
-                }
-                onObservationEdit={(entry) => {
-                  setObservation(entry);
-                  setTab("balances");
-                }}
-                onObservationDelete={(entry) =>
-                  setConfirmation({
-                    title: t("finance.deleteObservation"),
-                    description: t("finance.deleteObservationHelp", {
-                      date: dateLabel(entry.date),
-                    }),
-                    action: () =>
-                      financeApi.deleteObservation(entry.accountId, entry.date),
-                    destructive: true,
-                  })
-                }
-              />
-            )}
-            {tab === "balances" && data.accounts.length > 0 && (
-              <Balances
-                key={observation?.id ?? "bulk"}
-                data={data}
-                editing={observation}
-                onSaved={refresh}
-              />
-            )}
+            {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
             {tab === "import" && (
               <FinanceImport data={data} onSaved={refresh} />
-            )}
-            {tab === "goals" && (
-              <Goals
-                data={data}
-                onSaved={refresh}
-                onDelete={(goal) =>
-                  setConfirmation({
-                    title: t("finance.deleteGoal"),
-                    description: t("finance.deleteGoalHelp"),
-                    action: () => financeApi.deleteGoal(goal.id),
-                    destructive: true,
-                  })
-                }
-              />
             )}
           </div>
         </>
       )}
-      {data && editing && (
-        <AccountForm
-          account={editing === "new" ? undefined : editing}
-          data={data}
-          onClose={() => setEditing(null)}
-          onSaved={refresh}
-        />
-      )}
-      <ConfirmDialog
-        open={!!confirmation}
-        title={confirmation?.title ?? ""}
-        description={confirmation?.description ?? ""}
-        confirmLabel={t("finance.confirm")}
-        cancelLabel={t("Cancel")}
-        onConfirm={() => void confirm()}
-        onCancel={() => {
-          if (!busy) setConfirmation(null);
-        }}
-        busy={busy}
-        tone={confirmation?.destructive ? "destructive" : "primary"}
-      />
     </div>
   );
 }

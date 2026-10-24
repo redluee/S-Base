@@ -5,6 +5,7 @@ import type {
   FinanceObservation,
 } from "@backend/types/finance";
 import {
+  closestHistoryIndex,
   financeHistoryGeometry,
   financeHistoryPoints,
 } from "./finance-history";
@@ -119,6 +120,16 @@ describe("Combined money and savings chart", () => {
 });
 
 describe("Money chart geometry", () => {
+  it("rounds the ceiling to the nearest thousand euros without extra padding", () => {
+    for (const [value, upper] of [[1_234_567, 1_300_000], [1_300_000, 1_300_000], [1_300_001, 1_400_000]]) {
+      const point = { date: "2025-01-01", value, savingsValue: null, known: 1, expected: 1 };
+      const chart = financeHistoryGeometry([point], false, point.date, point.date);
+      expect(chart.upper).toBe(upper);
+      expect(chart.ticks[0]).toBe(upper);
+      expect(chart.ticks).toContain(0);
+      expect(chart.ticks.every((tick) => tick >= chart.lower && tick <= chart.upper)).toBe(true);
+    }
+  });
   it("fits both series to one scale and preserves calendar positioning over DST changes", () => {
     const points = [
       {
@@ -157,7 +168,7 @@ describe("Money chart geometry", () => {
     expect(chart.x(points[1].date)).toBe(
       (chart.x(points[0].date) + chart.x(points[2].date)) / 2,
     );
-    expect(chart.savingsPath).toContain(" H ");
+    expect(chart.savingsPath).toContain(" C ");
   });
   it("breaks lines at unknown observations instead of drawing through the gap", () => {
     const points = [
@@ -210,11 +221,56 @@ describe("Money chart geometry", () => {
       );
       expect(Number.isFinite(chart.y(value))).toBe(true);
       expect(chart.y(value)).toBeGreaterThan(20);
-      expect(chart.y(value)).toBeLessThan(190);
+      expect(chart.y(value)).toBeLessThanOrEqual(190);
       expect(chart.totalPath).not.toContain("NaN");
     }
     expect(
       financeHistoryGeometry([], true, "2025-01-01", "2025-01-01").hasValues,
     ).toBe(false);
+  });
+});
+
+
+describe("Zero-based chart scale", () => {
+  for (const values of [[0, 0], [1, 29], [100, 10000], [-100, 100], [-10000, -200]]) {
+    it(`keeps zero and whole-euro ticks for ${values.join(", ")}`, () => {
+      const points = values.map((value, index) => ({
+        date: `2025-01-0${index + 1}`, value, savingsValue: null, known: 1, expected: 1,
+      }));
+      const chart = financeHistoryGeometry(points, false, points[0].date, points[1].date);
+      expect(chart.ticks).toContain(0);
+      expect(chart.lower < 0).toBe(values.some((value) => value < 0));
+      expect(chart.ticks.every((tick) => Number.isInteger(tick / 100))).toBe(true);
+      for (const value of values) {
+        expect(chart.y(value)).toBeGreaterThanOrEqual(20);
+        expect(chart.y(value)).toBeLessThanOrEqual(190);
+      }
+      expect(chart.totalPath).toContain(" C ");
+      expect(chart.totalPath).not.toContain(" V ");
+    });
+  }
+});
+
+
+describe("Graph pointer lookup", () => {
+  it("selects the nearest point across irregular gaps and prefers the earlier tie", () => {
+    const positions = [12, 30, 90, 588];
+    for (const [position, expected] of [[-10, 0], [12, 0], [21, 0], [22, 1], [89, 2], [339, 2], [340, 3], [700, 3]]) {
+      expect(closestHistoryIndex(positions, position)).toBe(expected);
+    }
+    expect(closestHistoryIndex([], 20)).toBe(-1);
+    expect(closestHistoryIndex([12], 700)).toBe(0);
+  });
+
+  it("looks up a large history without scanning every point", () => {
+    let reads = 0;
+    const positions = new Proxy(Array.from({ length: 100000 }, (_, index) => index * 2), {
+      get(target, property, receiver) {
+        if (typeof property === "string" && /^\d+$/.test(property)) reads++;
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    expect(closestHistoryIndex(positions, 123455)).toBe(61727);
+    expect(reads).toBeLessThan(25);
   });
 });

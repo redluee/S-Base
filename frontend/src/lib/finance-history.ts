@@ -66,33 +66,46 @@ export function financeHistoryGeometry(
     .filter((value): value is number => value !== null);
   const min = values.length ? Math.min(...values) : 0;
   const max = values.length ? Math.max(...values) : 0;
-  const padding = (max - min || Math.max(Math.abs(max) * 0.1, 100)) * 0.1;
-  const lower = min - padding,
-    upper = max + padding;
+  const scaleMin = Math.min(0, min);
+  const scaleMax = Math.max(0, max);
+  const rawStep = Math.max(100, (scaleMax - scaleMin) * 1.1 / 4);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const step = ([1, 2, 5, 10].find((value) => value * magnitude >= rawStep) ?? 10) * magnitude;
+  const lower = min < 0 ? Math.floor(min * 1.05 / step) * step : 0;
+  const upper = max > 0 ? Math.ceil(max / 100_000) * 100_000 : min < 0 ? 0 : step;
+  const ticks = Array.from({ length: Math.ceil((upper - lower) / step) }, (_, index) => lower + index * step).reverse();
+  if (ticks[0] !== upper) ticks.unshift(upper);
   const time = (date: string) => Date.parse(`${date}T12:00:00Z`);
   const duration = time(endDate) - time(startDate) || 1;
   const x = (date: string) =>
     12 + ((time(date) - time(startDate)) / duration) * 576;
   const y = (value: number) => 190 - ((value - lower) / (upper - lower)) * 170;
   function path(key: "value" | "savingsValue") {
-    let result = "",
-      connected = false;
+    let result = "";
+    let previous: { x: number; y: number } | null = null;
     for (const point of points) {
       const value = point[key];
       if (value === null) {
-        connected = false;
+        previous = null;
         continue;
       }
-      result += connected
-        ? ` H ${x(point.date)} V ${y(value)}`
-        : ` M ${x(point.date)} ${y(value)}`;
-      connected = true;
+      const current = { x: x(point.date), y: y(value) };
+      if (previous) {
+        const middle = (previous.x + current.x) / 2;
+        result += ` C ${middle} ${previous.y}, ${middle} ${current.y}, ${current.x} ${current.y}`;
+      } else {
+        result += ` M ${current.x} ${current.y}`;
+      }
+      previous = current;
     }
     return result;
   }
   return {
     min,
     max,
+    lower,
+    upper,
+    ticks,
     seriesMin: mainValues.length ? Math.min(...mainValues) : null,
     seriesMax: mainValues.length ? Math.max(...mainValues) : null,
     hasValues: values.length > 0,
@@ -101,4 +114,16 @@ export function financeHistoryGeometry(
     totalPath: path("value"),
     savingsPath: showSavings ? path("savingsValue") : "",
   };
+}
+
+export function closestHistoryIndex(positions: readonly number[], position: number): number {
+  if (!positions.length) return -1;
+  let left = 0;
+  let right = positions.length - 1;
+  while (left < right) {
+    const middle = Math.floor((left + right) / 2);
+    if (positions[middle] < position) left = middle + 1;
+    else right = middle;
+  }
+  return left > 0 && position - positions[left - 1] <= positions[left] - position ? left - 1 : left;
 }

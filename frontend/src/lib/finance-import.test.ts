@@ -68,6 +68,7 @@ describe("Finance import selections", () => {
       ["new", null],
     ]);
     expect(defaultImportChoice(source, data, "1").dates).toEqual([
+      "2025-01-01",
       "2025-01-03",
     ]);
   });

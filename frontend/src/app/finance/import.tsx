@@ -9,12 +9,13 @@ import type {
 } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
+import { dateLabel, parseMoney } from "@/lib/finance";
 import {
   defaultImportChoice,
   importSelections,
   type ImportChoice,
 } from "@/lib/finance-import";
-import { Action, Notice, panel, selectClass, errorText } from "./ui";
+import { Action, Field, Notice, panel, selectClass, errorText } from "./ui";
 import { ImportSource } from "./import-source";
 
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -29,13 +30,15 @@ export function FinanceImport({
     [order, setOrder] = useState<FinanceImportOrder>("descending");
   const [csv, setCsv] = useState(""),
     [preview, setPreview] = useState<FinanceImportPreview | null>(null);
+  const [anchors, setAnchors] = useState<Record<string, string>>({});
+  const [confirmedAnchors, setConfirmedAnchors] = useState<Record<string, number>>({});
   const [choices, setChoices] = useState<Record<string, ImportChoice>>({});
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [result, setResult] = useState<FinanceImportResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  async function analyze(event: FormEvent) {
-    event.preventDefault();
+  async function analyze(event?: FormEvent) {
+    event?.preventDefault();
     setBusy(true);
     setError("");
     setResult(null);
@@ -52,7 +55,9 @@ export function FinanceImport({
       } catch {
         content = new TextDecoder("windows-1252").decode(bytes);
       }
-      const analyzed = await financeApi.previewImport(content, order);
+      const enteredAnchors = Object.fromEntries(Object.entries(anchors).filter(([, value]) => value.trim()).map(([key, value]) => [key, parseMoney(value)]));
+      const analyzed = await financeApi.previewImport(content, order, enteredAnchors);
+      setConfirmedAnchors(enteredAnchors);
       const initial = Object.fromEntries(
         analyzed.sources.map((source) => [
           source.sourceKey,
@@ -60,9 +65,9 @@ export function FinanceImport({
             ...defaultImportChoice(
               source,
               data,
-              data.accounts.length ? "" : "new",
+              source.matchedAccountId ? String(source.matchedAccountId) : data.accounts.length ? "" : "new",
             ),
-            name: t("finance.import.defaultName", { suffix: source.label }),
+            name: source.suggestedName ?? t("finance.import.defaultName", { suffix: source.label }),
           },
         ]),
       );
@@ -104,12 +109,14 @@ export function FinanceImport({
     setBusy(true);
     setError("");
     try {
-      const imported = await financeApi.importBalances(csv, order, selections);
+      const imported = await financeApi.importBalances(csv, order, selections, confirmedAnchors);
       setResult(imported);
       setPreview(null);
       setCsv("");
       setChoices({});
       setFile(null);
+      setAnchors({});
+      setConfirmedAnchors({});
       if (fileInput.current) fileInput.current.value = "";
       await onSaved();
     } catch (error) {
@@ -125,9 +132,6 @@ export function FinanceImport({
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
           {t("finance.import.instructions")}
         </p>
-        <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
-          {t("finance.import.privacy")}
-        </p>
         <form onSubmit={analyze} className="space-y-4">
           <label className="flex flex-col gap-2 text-sm text-muted-foreground">
             {t("finance.import.file")}
@@ -140,6 +144,8 @@ export function FinanceImport({
               className="min-h-11 w-full min-w-0 rounded-lg border border-input p-2 text-sm text-foreground file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-zinc-800 file:px-3 file:py-2 file:text-foreground"
               onChange={(event) => {
                 setFile(event.target.files?.[0] ?? null);
+                setAnchors({});
+                setConfirmedAnchors({});
                 setPreview(null);
                 setCsv("");
                 setResult(null);
@@ -170,9 +176,15 @@ export function FinanceImport({
             {t(busy ? "finance.import.processing" : "finance.import.preview")}
           </Action>
         </form>
-        <p className="text-xs text-muted-foreground">
-          {t("finance.import.coverageHelp")}
-        </p>
+        <details className="border-t border-border pt-2">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm">{t("finance.import.details")}</summary>
+          <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
+            {t("finance.import.privacy")}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t("finance.import.coverageHelp")}
+          </p>
+        </details>
       </section>
       {error && <Notice error>{error}</Notice>}
       {result && (
@@ -181,12 +193,26 @@ export function FinanceImport({
             created: String(result.createdAccounts),
             inserted: String(result.inserted),
             updated: String(result.updated),
+            transactions: String(result.transactionsInserted),
+            removed: String(result.transactionsRemoved),
           })}
         </Notice>
       )}
       {preview && (
         <form onSubmit={save} className="space-y-5">
-          {preview.sources.map((source) => (
+          <Notice>{t("finance.import.previewSummary", {
+            accounts: String(preview.sources.length),
+            rows: String(preview.rowCount),
+            skipped: String(preview.sources.filter((source) => source.needsBalance || !choices[source.sourceKey]?.target).length),
+          })}</Notice>
+          {preview.sources.map((source) => source.needsBalance ? (
+            <section key={source.sourceKey} className={`${panel} space-y-4`}>
+              <h3 className="font-semibold">{source.suggestedName || t("finance.import.sourceAccount", { suffix: source.label })}</h3>
+              <Notice>{t("finance.import.anchorHelp", { date: dateLabel(source.lastDate ?? null), rows: String(source.rowCount) })}</Notice>
+              <Field label={t("finance.import.anchorLabel", { date: dateLabel(source.lastDate ?? null) })} inputMode="decimal" value={anchors[source.sourceKey] ?? ""} disabled={busy} onChange={(event) => setAnchors({ ...anchors, [source.sourceKey]: event.target.value })} />
+              <Action type="button" variant="outline" disabled={busy || !anchors[source.sourceKey]?.trim()} onClick={() => void analyze()}>{t("finance.import.recheck")}</Action>
+            </section>
+          ) : (
             <ImportSource
               key={source.sourceKey}
               source={source}

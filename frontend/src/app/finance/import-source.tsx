@@ -33,19 +33,23 @@ export function ImportSource({
       (row) =>
         choice.dates.includes(row.date) && row.date < account.openingDate,
     );
+  const lastImported = rows.at(-1)!;
+  const laterBalance = data.observations
+    .filter((entry) => entry.accountId === account?.id && entry.date > lastImported.date)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
   const conflicts = rows.filter((row) => row.state === "conflict").length;
   const changeTarget = (target: string) =>
     onChange({
       ...defaultImportChoice(source, data, target),
       name:
-        choice.name ||
+        choice.name || source.suggestedName ||
         t("finance.import.defaultName", { suffix: source.label }),
     });
   return (
     <section className={`${panel} space-y-5`}>
       <header>
         <h3 className="font-semibold">
-          {t("finance.import.sourceAccount", { suffix: source.label })}
+          {source.suggestedName ? `${source.suggestedName} · ${source.label}` : t("finance.import.sourceAccount", { suffix: source.label })}
         </h3>
         <p className="mt-2 text-xs text-muted-foreground">
           {t("finance.import.sourceSummary", {
@@ -56,6 +60,14 @@ export function ImportSource({
           })}
         </p>
       </header>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-4">
+        <p className="text-xs text-muted-foreground">{t("finance.import.latestBalance", { date: dateLabel(lastImported.date) })}</p>
+        <p className="text-xl font-medium tabular-nums">{money(lastImported.balanceCents)}</p>
+      </div>
+      {laterBalance && <Notice>{t("finance.import.laterBalance", { date: dateLabel(laterBalance.date), amount: money(laterBalance.balanceCents) })}</Notice>}
+      {!!source.reconstructedRowCount && (
+        <Notice>{t("finance.import.reconstructed", { count: String(source.reconstructedRowCount) })}</Notice>
+      )}
       <label className="flex flex-col gap-2 text-sm text-muted-foreground">
         {t("finance.import.destination")}
         <select
@@ -143,12 +155,12 @@ export function ImportSource({
                 onChange({
                   ...choice,
                   dates: rows
-                    .filter((row) => row.state === "new")
+                    .filter((row) => row.state !== "conflict")
                     .map((row) => row.date),
                 })
               }
             >
-              {t("finance.import.selectNew")}
+              {t("finance.import.selectSafe")}
             </Action>
             <Action
               type="button"
@@ -172,9 +184,8 @@ export function ImportSource({
                 <input
                   type="checkbox"
                   className="size-5 shrink-0 accent-brand"
-                  disabled={row.state === "same"}
                   checked={
-                    choice.dates.includes(row.date) && row.state !== "same"
+                    choice.dates.includes(row.date)
                   }
                   onChange={(event) =>
                     onChange({
@@ -193,8 +204,8 @@ export function ImportSource({
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {row.state === "conflict"
                       ? t("finance.import.replace", {
-                          amount: money(row.expectedCents),
-                        })
+                        amount: money(row.expectedCents),
+                      })
                       : t(`finance.import.row.${row.state}`)}
                   </span>
                 </span>
