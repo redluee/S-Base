@@ -40,7 +40,7 @@ export function AccountIconPicker({ account, onClose, onSaved }: {
             const Icon = accountIconComponents[icon];
             return (
               <button key={icon} type="button" disabled={busy} aria-label={t(`finance.icon.${icon}`)} title={t(`finance.icon.${icon}`)} aria-pressed={selected === icon} onClick={() => setSelected(icon)}
-                className={`flex min-h-11 min-w-11 items-center justify-center rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 ${selected === icon ? "border-brand bg-muted text-brand" : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                className={`flex min-h-11 min-w-11 items-center justify-center rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 ${selected === icon ? "border-brand bg-brand text-black hover:bg-brand-hover" : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
                 <Icon className="size-5" aria-hidden="true" />
               </button>
             );

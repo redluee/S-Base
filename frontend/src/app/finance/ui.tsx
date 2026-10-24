@@ -9,9 +9,13 @@ export const selectClass =
   "min-h-11 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-brand";
 export function Action({
   className = "",
+  variant = "default",
   ...props
 }: ComponentProps<typeof Button>) {
-  return <Button className={`min-h-11 min-w-11 ${className}`} {...props} />;
+  const highlightClass = variant === "ghost" || variant === "outline"
+    ? "hover:bg-accent aria-expanded:bg-accent dark:hover:bg-accent"
+    : "";
+  return <Button variant={variant} className={`min-h-11 min-w-11 ${highlightClass} ${className}`} {...props} />;
 }
 export function Field({
   label,

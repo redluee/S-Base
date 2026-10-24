@@ -241,7 +241,7 @@ export function Goals({
               aria-valuenow={Math.round(percent)}
               aria-valuemin={0}
               aria-valuemax={100}
-              className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+              className="mt-3 h-1.5 overflow-hidden rounded-full bg-accent"
             >
               <div
                 className="h-full rounded-full bg-zinc-300"

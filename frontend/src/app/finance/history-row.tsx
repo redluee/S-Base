@@ -15,7 +15,7 @@ export const HistoryRow = memo(function HistoryRow({ point, selected, rowRef, en
   failed: boolean;
 }) {
   return (
-    <tr ref={rowRef} aria-current={selected ? "true" : undefined} className={`border-t border-border ${selected ? "bg-muted text-foreground" : ""}`}>
+    <tr ref={rowRef} aria-current={selected ? "true" : undefined} className={`border-t border-border ${selected ? "bg-accent text-foreground" : ""}`}>
       <td className="whitespace-nowrap py-3 pr-3">{dateLabel(point.date)}</td>
       <td className="whitespace-nowrap pr-3">{point.value === null ? t("finance.unknown") : money(point.value)}</td>
       <td className="min-w-40 py-3 pr-3">

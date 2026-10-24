@@ -20,7 +20,7 @@ export function YearPicker({ value, maxYear, onChange }: {
           <SelectItem
             key={year}
             value={String(year)}
-            className="min-h-11 tabular-nums data-[selected]:border-0 data-[selected]:bg-muted data-[selected]:font-medium data-[checked]:border-0 data-[checked]:bg-muted data-[checked]:font-medium data-[highlighted]:data-[selected]:bg-muted"
+            className="min-h-11 tabular-nums data-[selected]:border-0 data-[selected]:bg-accent data-[selected]:font-medium data-[checked]:border-0 data-[checked]:bg-accent data-[checked]:font-medium data-[highlighted]:data-[selected]:bg-accent"
           >{year}</SelectItem>
         ))}
       </SelectContent>

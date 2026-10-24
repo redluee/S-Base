@@ -54,7 +54,7 @@ export function MonthPicker({ value, today, onChange }: {
                     variant="ghost"
                     aria-pressed={selected}
                     disabled={month > today.slice(0, 7)}
-                    className={`h-12 min-w-0 px-1 text-xs ${selected ? "bg-muted text-brand hover:text-brand" : ""}`}
+                    className={`h-12 min-w-0 px-1 text-xs ${selected ? "bg-accent text-brand hover:text-brand" : ""}`}
                     onClick={() => {
                       onChange(month);
                       setOpen(false);
