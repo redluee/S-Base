@@ -9,8 +9,7 @@ import { detectSubscriptions, subscriptionSourceKey } from "./subscriptions";
 import { text, today } from "./validation";
 
 export class FinanceSubscriptionService extends FinanceImportService {
-  subscriptions(userId: number): FinanceSubscriptions {
-    const end = today();
+  subscriptions(userId: number, end = today()): FinanceSubscriptions {
     const rules = db.select().from(preferences).where(eq(preferences.userId, userId)).all();
     const overrides = new Map(rules.filter((rule) => rule.cadence !== null).map((rule) => [rule.sourceKey, rule.cadence!]));
     const report = detectSubscriptions(this.periodTransactions(userId, "1900-01-01", end), end, overrides);

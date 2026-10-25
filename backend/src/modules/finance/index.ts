@@ -4,6 +4,7 @@ import { calendarDate, cents, today } from "./validation";
 import { requireObject, ValidationError } from "../../utils/validation";
 import db from "../../db/client";
 import { financeSettings } from "../../db/schema/finance";
+import { subscriptionSourceKey } from "./subscriptions";
 
 export class FinanceService extends FinanceSubscriptionService {
   setMonthlyBudget(userId: number, input: unknown) {
@@ -27,8 +28,15 @@ export class FinanceService extends FinanceSubscriptionService {
     const report = dashboard(accounts, observations, period, endDate);
     const monthStart = `${report.endDate.slice(0, 7)}-01`;
     const activity = this.activity(userId, report.startDate, report.endDate);
-    const monthlyActivity = monthlyBudgetCents === null || period === "month"
-      ? activity : this.activity(userId, monthStart, report.endDate);
+    let budgetSpendingCents = 0;
+    if (monthlyBudgetCents !== null) {
+      const subscriptionSources = new Set(this.subscriptions(userId, report.endDate).entries
+        .filter((entry) => entry.active).flatMap((entry) => entry.sourceKeys));
+      budgetSpendingCents = this.periodTransactions(userId, monthStart, report.endDate)
+        .filter((entry) => entry.amountCents < 0 && !entry.internalTransfer
+          && !subscriptionSources.has(subscriptionSourceKey(entry)))
+        .reduce((sum, entry) => sum - entry.amountCents, 0);
+    }
     return {
       ...report,
       history: this.dashboardHistory(userId, report.history, report.startDate, report.endDate),
@@ -36,8 +44,8 @@ export class FinanceService extends FinanceSubscriptionService {
       budget: monthlyBudgetCents === null ? null : {
         month: report.endDate.slice(0, 7),
         limitCents: monthlyBudgetCents,
-        spendingCents: monthlyActivity.spendingCents,
-        remainingCents: monthlyBudgetCents - monthlyActivity.spendingCents,
+        spendingCents: budgetSpendingCents,
+        remainingCents: monthlyBudgetCents - budgetSpendingCents,
       },
     };
   }
