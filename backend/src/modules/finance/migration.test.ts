@@ -41,7 +41,7 @@ describe("Finance production migration on disposable databases", () => {
       const permissionsBefore = sqlite
         .query("SELECT * FROM usermodulepermissions")
         .all();
-      expect((await runMigrations(sqlite)).applied).toBe(7);
+      expect((await runMigrations(sqlite)).applied).toBe(8);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
       expect(sqlite.query("SELECT * FROM cashflow_clients").all()).toEqual(
         cashflowBefore,
@@ -102,7 +102,7 @@ describe("Finance production migration on disposable databases", () => {
       sqlite.exec(
         "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1, 'synthetic-legacy');",
       );
-      expect((await runMigrations(sqlite)).applied).toBe(7);
+      expect((await runMigrations(sqlite)).applied).toBe(8);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual([
         { user_id: 1, username: "synthetic-legacy" },
       ]);
@@ -176,6 +176,13 @@ it("adds subscription preferences without changing transactions or balances", as
     expect(sqlite.query("SELECT user_id, source_key, group_key, name, excluded, cadence FROM finance_subscription_preferences").get()).toEqual({ ...preference, cadence: null });
     sqlite.exec("UPDATE finance_subscription_preferences SET cadence='monthly'");
     expect(() => sqlite.exec("UPDATE finance_subscription_preferences SET cadence='daily'")).toThrow();
+    expect(sqlite.query("SELECT * FROM finance_transactions").all()).toEqual(transactions);
+    expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(balances);
+    const saved = sqlite.query("SELECT user_id, source_key, group_key, name, excluded, cadence FROM finance_subscription_preferences").get() as Record<string, unknown>;
+    sqlite.exec(await Bun.file(join(migrations, "0048_finance_irregular_subscriptions.sql")).text());
+    expect(sqlite.query("SELECT user_id, source_key, group_key, name, excluded, cadence, irregular FROM finance_subscription_preferences").get()).toEqual({ ...saved, irregular: 0 });
+    sqlite.exec("UPDATE finance_subscription_preferences SET cadence=NULL, irregular=1");
+    expect(() => sqlite.exec("UPDATE finance_subscription_preferences SET irregular=2")).toThrow();
     expect(sqlite.query("SELECT * FROM finance_transactions").all()).toEqual(transactions);
     expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(balances);
     expect(sqlite.query("PRAGMA foreign_key_check").all()).toEqual([]);

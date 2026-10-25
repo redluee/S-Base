@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { FinanceTransaction } from "../../types/finance";
-import { detectSubscriptions } from "./subscriptions";
+import { detectSubscriptions, subscriptionSourceKey } from "./subscriptions";
 
 function payments(dates: string[], overrides: Partial<FinanceTransaction> = {}): FinanceTransaction[] {
   return dates.map((date, index) => ({
@@ -57,5 +57,32 @@ describe("Subscription detection", () => {
   });
   it("returns an empty report without transaction history", () => {
     expect(detectSubscriptions([], "2025-04-01")).toEqual({ entries: [], monthlyCents: 0, totalCents: 0, asOf: "2025-04-01", lastImportedDate: null });
+  });
+});
+
+describe("Irregular subscription averages", () => {
+  it("averages all debits over calendar months including empty months and excludes credits and other accounts", () => {
+    const entries = payments(["2024-12-29", "2025-02-03", "2025-02-03"]);
+    entries[1].amountCents = -2300;
+    entries[2].amountCents = -500;
+    const report = detectSubscriptions([
+      ...entries,
+      ...payments(["2025-03-31"], { amountCents: 9000 }),
+      ...payments(["2025-02-10"], { amountCents: -7000, internalTransfer: true }),
+      ...payments(["2025-05-01"], { name: "Other recipient", accountId: 2 }),
+      ...payments(["2025-06-01"], { amountCents: -9000 }),
+    ], "2025-05-01", new Map([[subscriptionSourceKey(entries[0]), "irregular"]]));
+    expect(report.entries).toHaveLength(1);
+    expect(report.entries[0]).toMatchObject({ cadence: "irregular", totalCents: 4000, monthlyCents: 1000, paymentCount: 3, active: true });
+    expect(report.monthlyCents).toBe(1000);
+  });
+  it("supports a single debit and updates the average when later imports extend coverage", () => {
+    const entries = payments(["2025-01-31"]);
+    const overrides = new Map([[subscriptionSourceKey(entries[0]), "irregular" as const]]);
+    expect(detectSubscriptions(entries, "2025-05-01", overrides).monthlyCents).toBe(1200);
+    const next = [...entries, ...payments(["2025-04-01"], { name: "Other recipient", amountCents: 1000 })];
+    expect(detectSubscriptions(next, "2025-05-01", overrides).monthlyCents).toBe(300);
+    next.push(...payments(["2025-04-15"], { amountCents: -801 }));
+    expect(detectSubscriptions(next, "2025-05-01", overrides).monthlyCents).toBe(500);
   });
 });

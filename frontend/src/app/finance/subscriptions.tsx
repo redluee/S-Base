@@ -50,7 +50,7 @@ export function Subscriptions({ report, data, onSaved }: { report: FinanceSubscr
                     </span>
                   </div>
                   <p className="mt-2 break-words text-xs text-muted-foreground">{entry.accountIds.map((id) => data.accounts.find((account) => account.id === id)?.name).filter(Boolean).join(" · ")}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{money(entry.paymentCents)} · {t(`finance.subscriptions.${entry.cadence}`)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{money(entry.cadence === "irregular" ? entry.monthlyCents : entry.paymentCents)} · {t(`finance.subscriptions.${entry.cadence === "irregular" ? "monthly" : entry.cadence}`)}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{t("finance.subscriptions.payments", { count: String(entry.paymentCount) })} · {dateLabel(entry.firstDate)} — {dateLabel(entry.lastDate)}</p>
                 </div>
                 <dl className="order-3 col-span-2 grid min-w-0 grid-cols-2 gap-4 self-center lg:order-none lg:col-span-1">

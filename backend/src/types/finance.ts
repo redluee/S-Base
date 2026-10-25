@@ -138,7 +138,7 @@ export interface FinanceTransactionPage {
   pageSize: number;
 }
 
-export type FinanceSubscriptionCadence = "weekly" | "fortnightly" | "fourWeekly" | "monthly" | "quarterly" | "yearly";
+export type FinanceSubscriptionCadence = "weekly" | "fortnightly" | "fourWeekly" | "monthly" | "quarterly" | "yearly" | "irregular";
 export interface FinanceSubscription {
   id: string;
   sourceKeys: string[];

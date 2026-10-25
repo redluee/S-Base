@@ -66,9 +66,10 @@ export function AddSubscription({ data, onClose, onSaved }: { data: FinanceData;
       {selected && <p className="break-words text-sm">{t("finance.subscriptions.selected", { name: selected.name })} · {dateLabel(selected.date)} · {money(selected.amountCents)}</p>}
       <label className="flex flex-col gap-2 text-sm text-muted-foreground">{t("finance.subscriptions.cadence")}
         <select className={selectClass} value={cadence} disabled={busy} onChange={(event) => setCadence(event.target.value as FinanceSubscriptionCadence)}>
-          {(["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly"] as const).map((value) => <option key={value} value={value}>{t(`finance.subscriptions.${value}`)}</option>)}
+          {(["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly", "irregular"] as const).map((value) => <option key={value} value={value}>{t(`finance.subscriptions.${value}`)}</option>)}
         </select>
       </label>
+      {cadence === "irregular" && <p className="text-sm leading-relaxed text-muted-foreground">{t("finance.subscriptions.irregularHelp")}</p>}
       {error && <><Notice error>{error}</Notice><Action type="button" variant="outline" disabled={busy} onClick={() => { setLoading(true); setError(""); setRetry(retry + 1); }}>{t("finance.retry")}</Action></>}
       <div className="flex flex-wrap justify-end gap-2">
         <Action type="button" variant="outline" disabled={busy} onClick={onClose}>{t("Cancel")}</Action>

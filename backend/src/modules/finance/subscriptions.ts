@@ -16,8 +16,18 @@ export function subscriptionSourceKey(entry: Pick<FinanceTransaction, "accountId
   return createHash("sha256").update(JSON.stringify([entry.accountId, entry.name.trim().replace(/\s+/g, " ").toLowerCase()])).digest("hex");
 }
 
+export function monthlyAverage(totalCents: number, firstDate: string, lastDate: string) {
+  const monthIndex = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7));
+  return Math.round(totalCents / Math.max(1, monthIndex(lastDate) - monthIndex(firstDate) + 1));
+}
+
 export function detectSubscriptions(transactions: FinanceTransaction[], asOf: string, overrides: ReadonlyMap<string, FinanceSubscriptionCadence> = new Map()): FinanceSubscriptions {
   const groups = new Map<string, FinanceTransaction[]>();
+  const lastImportedDates = new Map<number, string>();
+  for (const entry of transactions) {
+    if (entry.date <= asOf && entry.date > (lastImportedDates.get(entry.accountId) ?? ""))
+      lastImportedDates.set(entry.accountId, entry.date);
+  }
   for (const entry of transactions) {
     if (entry.date > asOf || entry.amountCents >= 0 || entry.internalTransfer) continue;
     const name = entry.name.trim().replace(/\s+/g, " ").toLowerCase();
@@ -36,24 +46,26 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
     const cadence = cadences.find((candidate) => candidate.cadence === override) ?? cadences.find((candidate) => group.length >= candidate.minimum
       && gaps.every((gap) => gap > 0)
       && gaps.filter((gap) => Math.abs(gap - candidate.days) <= candidate.tolerance).length / gaps.length >= 0.8);
-    if (!cadence) continue;
+    const irregular = override === "irregular";
+    if (!cadence && !irregular) continue;
     const first = group[0], last = group[group.length - 1];
     const paymentCents = -last.amountCents;
     const id = subscriptionSourceKey(last);
+    const totalCents = group.reduce((sum, entry) => sum - entry.amountCents, 0);
     entries.push({
       id,
       sourceKeys: [id],
       accountIds: [last.accountId],
       accountId: last.accountId,
       name: last.name.trim(),
-      cadence: cadence.cadence,
+      cadence: irregular ? "irregular" : cadence!.cadence,
       paymentCents,
-      monthlyCents: Math.round(paymentCents * cadence.perYear / 12),
-      totalCents: group.reduce((sum, entry) => sum - entry.amountCents, 0),
+      monthlyCents: irregular ? monthlyAverage(totalCents, first.date, lastImportedDates.get(last.accountId)!) : Math.round(paymentCents * cadence!.perYear / 12),
+      totalCents,
       paymentCount: group.length,
       firstDate: first.date,
       lastDate: last.date,
-      active: (timestamp(asOf) - timestamp(last.date)) / day <= cadence.days + Math.max(7, cadence.tolerance * 2),
+      active: irregular || (timestamp(asOf) - timestamp(last.date)) / day <= cadence!.days + Math.max(7, cadence!.tolerance * 2),
     });
   }
   entries.sort((a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name));

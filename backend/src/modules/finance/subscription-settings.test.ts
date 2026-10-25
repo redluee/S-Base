@@ -201,6 +201,37 @@ describe("Manual subscriptions", () => {
     service.addSubscription(owner, { transactionId: transaction.id, cadence: "quarterly" });
     expect(service.subscriptions(owner).entries[0]).toMatchObject({ name: "Sample renamed", cadence: "quarterly", monthlyCents: 800 });
   });
+  it("persists irregular selection, recalculates imports and can switch back to a fixed cadence", async () => {
+    const transaction = payment(owner);
+    db.insert(financeTransactions).values([
+      { accountId: transaction.accountId, fingerprint: "irregular-old", date: month(-3), amountCents: -1200, name: " SAMPLE manual ", description: "" },
+      { accountId: transaction.accountId, fingerprint: "irregular-credit", date: month(-1), amountCents: 9000, name: transaction.name, description: "" },
+    ]).run();
+    expect((await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "irregular" })).status).toBe(200);
+    let report = new FinanceService().subscriptions(owner);
+    expect(report.entries[0]).toMatchObject({ cadence: "irregular", monthlyCents: 900, totalCents: 3600, paymentCount: 2, active: true });
+    expect(service.subscriptionTransactions(owner, report.entries[0].id).total).toBe(2);
+    db.insert(financeTransactions).values({ accountId: transaction.accountId, fingerprint: "irregular-new", date: month(-2), amountCents: -800, name: transaction.name, description: "" }).run();
+    report = service.subscriptions(owner);
+    expect(report.monthlyCents).toBe(1100);
+    service.renameSubscription(owner, { id: report.entries[0].id, name: "Sample irregular" });
+    expect(service.subscriptions(owner).entries[0].cadence).toBe("irregular");
+    service.addSubscription(owner, { transactionId: transaction.id, cadence: "monthly" });
+    expect(service.subscriptions(owner).entries[0]).toMatchObject({ cadence: "monthly", monthlyCents: 2400 });
+  });
+  it("recalculates merged irregular histories using all payments and the combined month range", () => {
+    const first = payment(owner, -1200, "Sample previous");
+    const second = payment(owner, -2400, "Sample replacement");
+    db.update(financeTransactions).set({ date: month(-3) }).where(eq(financeTransactions.id, first.id)).run();
+    service.addSubscription(owner, { transactionId: first.id, cadence: "irregular" });
+    service.addSubscription(owner, { transactionId: second.id, cadence: "irregular" });
+    const entries = service.subscriptions(owner).entries;
+    const original = entries.find((entry) => entry.accountId === first.accountId)!;
+    const replacement = entries.find((entry) => entry.accountId === second.accountId)!;
+    service.mergeSubscriptions(owner, { id: original.id, targetId: replacement.id });
+    expect(service.subscriptions(owner)).toMatchObject({ monthlyCents: 900, totalCents: 3600 });
+    expect(service.subscriptions(owner).entries[0]).toMatchObject({ cadence: "irregular", paymentCount: 2 });
+  });
   it("rejects foreign payments, income, transfers, unnamed payments, invalid cadence and unauthorized requests", async () => {
     const foreign = payment(other);
     expect((await http(owner, "/subscriptions", "POST", { transactionId: foreign.id, cadence: "monthly" })).status).toBe(404);

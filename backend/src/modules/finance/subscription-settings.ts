@@ -5,14 +5,19 @@ import type { FinanceSubscription, FinanceSubscriptionCadence, FinanceSubscripti
 import { requireId, requireObject, ValidationError } from "../../utils/validation";
 import { FinanceNotFound } from "./accounts";
 import { FinanceImportService } from "./import";
-import { detectSubscriptions, subscriptionSourceKey } from "./subscriptions";
+import { detectSubscriptions, monthlyAverage, subscriptionSourceKey } from "./subscriptions";
 import { text, today } from "./validation";
 
 export class FinanceSubscriptionService extends FinanceImportService {
   subscriptions(userId: number, end = today()): FinanceSubscriptions {
     const rules = db.select().from(preferences).where(eq(preferences.userId, userId)).all();
-    const overrides = new Map(rules.filter((rule) => rule.cadence !== null).map((rule) => [rule.sourceKey, rule.cadence!]));
-    const report = detectSubscriptions(this.periodTransactions(userId, "1900-01-01", end), end, overrides);
+    const overrides = new Map(rules.filter((rule) => rule.irregular || rule.cadence !== null).map((rule) => [rule.sourceKey, rule.irregular ? "irregular" as const : rule.cadence!]));
+    const transactions = this.periodTransactions(userId, "1900-01-01", end);
+    const report = detectSubscriptions(transactions, end, overrides);
+    const lastImportedDates = new Map<number, string>();
+    for (const entry of transactions) {
+      if (entry.date > (lastImportedDates.get(entry.accountId) ?? "")) lastImportedDates.set(entry.accountId, entry.date);
+    }
     const bySource = new Map(rules.map((rule) => [rule.sourceKey, rule]));
     const groups = new Map<string, FinanceSubscription[]>();
     for (const entry of report.entries) {
@@ -26,14 +31,19 @@ export class FinanceSubscriptionService extends FinanceImportService {
     const entries = [...groups].map(([id, group]) => {
       group.sort((a, b) => a.lastDate.localeCompare(b.lastDate) || a.id.localeCompare(b.id));
       const latest = group[group.length - 1];
+      const totalCents = group.reduce((sum, entry) => sum + entry.totalCents, 0);
+      const firstDate = group.map((entry) => entry.firstDate).sort()[0];
+      const accountIds = [...new Set(group.flatMap((entry) => entry.accountIds))];
+      const lastImportedDate = accountIds.map((accountId) => lastImportedDates.get(accountId)!).sort().at(-1)!;
       return {
         ...latest,
+        monthlyCents: latest.cadence === "irregular" ? monthlyAverage(totalCents, firstDate, lastImportedDate) : latest.monthlyCents,
         id,
         sourceKeys: group.flatMap((entry) => entry.sourceKeys),
-        accountIds: [...new Set(group.flatMap((entry) => entry.accountIds))],
-        totalCents: group.reduce((sum, entry) => sum + entry.totalCents, 0),
+        accountIds,
+        totalCents,
         paymentCount: group.reduce((sum, entry) => sum + entry.paymentCount, 0),
-        firstDate: group.map((entry) => entry.firstDate).sort()[0],
+        firstDate,
       };
     });
     entries.sort((a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name));
@@ -47,7 +57,7 @@ export class FinanceSubscriptionService extends FinanceImportService {
   addSubscription(userId: number, input: unknown) {
     const body = requireObject(input);
     const transactionId = requireId(body.transactionId);
-    const cadences: FinanceSubscriptionCadence[] = ["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly"];
+    const cadences: FinanceSubscriptionCadence[] = ["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly", "irregular"];
     if (!cadences.includes(body.cadence as FinanceSubscriptionCadence))
       throw new ValidationError("finance.subscriptions.invalidSelection");
     const entry = this.periodTransactions(userId, "1900-01-01", today()).find((entry) => entry.id === transactionId);
@@ -55,9 +65,10 @@ export class FinanceSubscriptionService extends FinanceImportService {
     if (entry.amountCents >= 0 || entry.internalTransfer || !entry.name.trim())
       throw new ValidationError("finance.subscriptions.invalidTransaction");
     const sourceKey = subscriptionSourceKey(entry);
-    const cadence = body.cadence as FinanceSubscriptionCadence;
-    db.insert(preferences).values({ userId, sourceKey, groupKey: sourceKey, cadence, excluded: false })
-      .onConflictDoUpdate({ target: [preferences.userId, preferences.sourceKey], set: { cadence, excluded: false } }).run();
+    const irregular = body.cadence === "irregular";
+    const cadence = irregular ? null : body.cadence as Exclude<FinanceSubscriptionCadence, "irregular">;
+    db.insert(preferences).values({ userId, sourceKey, groupKey: sourceKey, cadence, irregular, excluded: false })
+      .onConflictDoUpdate({ target: [preferences.userId, preferences.sourceKey], set: { cadence, irregular, excluded: false } }).run();
     return { success: true };
   }
   subscriptionTransactions(userId: number, id: unknown, input: Record<string, unknown> = {}): FinanceTransactionPage {
