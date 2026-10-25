@@ -103,17 +103,16 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
   }
   return (
     <div className="space-y-6" aria-busy={loading || resetting}>
-      <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
+      <header className="flex items-center justify-between gap-3 sm:gap-5">
+        <div className="min-w-0">
           <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
             {t("finance.title")}
           </h1>
         </div>
         {data && (
-          <div className="flex items-center gap-2">
-            <Action className="bg-brand text-black hover:bg-brand-hover" disabled={loading || resetting} onClick={() => setTab("import")}>
+          <div className="flex shrink-0 items-center gap-2">
+            <Action variant="ghost" className="text-muted-foreground" aria-label={t("finance.import")} title={t("finance.import")} disabled={loading || resetting} onClick={() => setTab("import")}>
               <Upload className="size-4" aria-hidden="true" />
-              {t("finance.import")}
             </Action>
           </div>
         )}
