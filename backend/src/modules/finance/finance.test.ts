@@ -130,13 +130,13 @@ describe("Finance validation and exact amounts", () => {
     expect(
       report.end.accounts.find((x) => x.id === b.id)?.balanceCents,
     ).toBeNull();
-    expect(report.comparison.reason).toBe("coverage");
+    expect(report.comparison.reason).toBe("insufficient");
   });
 });
 
 describe("Historical observations and period comparisons", () => {
   it("uses calendar period boundaries, reports zero baselines and changed coverage", () => {
-    const a = create("current", 0);
+    const a = create("current", 0, "2024-12-31");
     balance(a.id, "2025-01-20", 123);
     const year = service.dashboard(owner, "year", "2025-02-10");
     expect(year.comparison).toEqual({
@@ -164,7 +164,7 @@ describe("Historical observations and period comparisons", () => {
     ).toBeNull();
   });
   it("calculates absolute and percentage change without rounding cents", () => {
-    const a = create("current", 10001);
+    const a = create("current", 10001, "2024-12-31");
     balance(a.id, "2025-02-01", 11002);
     const { comparison } = service.dashboard(owner, "year", "2025-03-01");
     expect(comparison.changeCents).toBe(1001);
@@ -198,7 +198,7 @@ describe("Historical observations and period comparisons", () => {
     balance(a.id, "2025-02-01", 15000);
     balance(a.id, "2025-01-01", 5000, 10000);
     expect(
-      service.dashboard(owner, "year", "2025-03-01").comparison.changeCents,
+      service.dashboard(owner, "all", "2025-03-01").comparison.changeCents,
     ).toBe(10000);
     service.archiveAccount(owner, a.id, { archived: true });
     expect(service.dashboard(owner, "year", "2025-03-01").end.totalCents).toBe(
@@ -230,7 +230,7 @@ describe("Historical observations and period comparisons", () => {
       true,
     );
     balance(b.id, "2025-02-01", 15000);
-    const report = service.dashboard(owner, "year", "2025-02-01");
+    const report = service.dashboard(owner, "month", "2025-02-01");
     expect(report.comparison.changeCents).toBe(0);
     expect(report.savingsComparison.changeCents).toBe(5000);
     expect(report.end.mixedDates).toBe(false);

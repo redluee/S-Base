@@ -117,7 +117,11 @@ export function dashboard(
     .filter((d) => d >= startDate && d <= endDate)
     .sort();
   const history = dates.map((date) => snapshot(accounts, observations, date));
-  const start = history[0],
+  const baselineDate = new Date(`${startDate}T00:00:00Z`);
+  baselineDate.setUTCDate(baselineDate.getUTCDate() - 1);
+  const start = period === "all"
+      ? history[0]
+      : snapshot(accounts, observations, baselineDate.toISOString().slice(0, 10)),
     end = history[history.length - 1];
   return {
     startDate,

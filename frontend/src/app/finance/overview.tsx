@@ -56,12 +56,11 @@ export function Overview({ data, report, period }: { data: FinanceData; report: 
           </div>
         </ModalOverlay>}
       </>}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3">
         {([
           { key: "income", value: activity?.incomeCents, icon: ArrowDownLeft },
           { key: "spending", value: activity?.spendingCents, icon: ArrowUpRight },
-          { key: "net", value: activity?.netCents, icon: Wallet },
-        ] as const).map(({ key, value, icon: Icon }) => <section key={key} className={`${panel} ${key === "net" ? "col-span-2 sm:col-span-1" : ""}`}>
+        ] as const).map(({ key, value, icon: Icon }) => <section key={key} className={panel}>
           <h2 className="flex items-center gap-2 text-xs text-muted-foreground"><Icon className="size-4" aria-hidden="true" />{t(`finance.${key}`)}</h2>
           <p className="mt-3 break-words text-xl font-medium tracking-tight tabular-nums sm:text-2xl">{hasTransactions ? <AnimatedMoney cents={value ?? 0} /> : t("finance.unknown")}</p>
         </section>)}
