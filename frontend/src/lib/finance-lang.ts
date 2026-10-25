@@ -29,7 +29,7 @@ export const financeNl: Record<string, string> = {
   "finance.budget.remaining": "Resterend maandbudget · {month}",
   "finance.budget.available": "Nog beschikbaar deze maand",
   "finance.budget.over": "Maandbudget overschreden",
-  "finance.budget.summary": "{spent} uitgegeven van {limit} · op basis van geïmporteerde transacties t/m {date}, zonder interne overboekingen.",
+  "finance.budget.summary": "{spent} uitgegeven van {limit}",
   "finance.settings.resetTitle": "Alle Finance-gegevens verwijderen",
   "finance.settings.resetHelp": "Begin opnieuw met je eigen Finance-module. Je rekeningen, saldi, transacties, importkoppelingen, maandbudget en spaardoelen worden definitief verwijderd. Andere modules en andere gebruikers blijven behouden.",
   "finance.settings.scope": "{accounts} rekeningen · {balances} saldomomenten · {goals} spaardoelen, inclusief alle transacties en toewijzingen.",
