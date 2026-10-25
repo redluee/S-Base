@@ -7,6 +7,7 @@ import {
   financeImportSources as sources,
   financeTransactions as transactions,
   financeSettings as settings,
+  financeSubscriptionPreferences as subscriptionPreferences,
 } from "../../db/schema/finance";
 import { FinanceGoalsService } from "./goals";
 import { FinanceNotFound } from "./accounts";
@@ -14,7 +15,6 @@ import { calendarDate, today } from "./validation";
 import { requireId, requireObject, ValidationError } from "../../utils/validation";
 import { isSavingsTransfer, savingsTransferAccount } from "./transfer-detection";
 import { transferAdjustedHistory, transferBalances } from "./transfer-balances";
-import { detectSubscriptions } from "./subscriptions";
 import type { FinanceActivity, FinanceData, FinanceSnapshot } from "../../types/finance";
 
 export function importKey(userId: number, value: unknown) {
@@ -62,7 +62,7 @@ export class FinanceTransactionsService extends FinanceGoalsService {
         };
       });
   }
-  private periodTransactions(userId: number, start: string, end: string) {
+  protected periodTransactions(userId: number, start: string, end: string) {
     return this.transferEntries(userId, start, end).map(({ counterpartyAccountId, ...entry }) => entry);
   }
   protected dashboardObservations(userId: number, data: FinanceData, end: string) {
@@ -101,10 +101,6 @@ export class FinanceTransactionsService extends FinanceGoalsService {
     const entries = this.periodTransactions(userId, start, end);
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
-  subscriptions(userId: number) {
-    const end = today();
-    return detectSubscriptions(this.periodTransactions(userId, "1900-01-01", end), end);
-  }
   setTransfer(userId: number, id: number, input: unknown) {
     const { internalTransfer } = requireObject(input);
     if (typeof internalTransfer !== "boolean" && internalTransfer !== null) throw new ValidationError("finance.transactions.invalidFilter");
@@ -118,6 +114,7 @@ export class FinanceTransactionsService extends FinanceGoalsService {
   resetFinance(userId: number, input: unknown) {
     if (requireObject(input).confirmation !== "DELETE_FINANCE") throw new ValidationError("finance.settings.confirmRequired");
     return db.transaction((tx) => {
+      tx.delete(subscriptionPreferences).where(eq(subscriptionPreferences.userId, userId)).run();
       tx.delete(settings).where(eq(settings.userId, userId)).run();
       tx.delete(goals).where(eq(goals.userId, userId)).run();
       tx.delete(accounts).where(eq(accounts.userId, userId)).run();

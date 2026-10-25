@@ -1,11 +1,11 @@
-import { FinanceImportService } from "./import";
+import { FinanceSubscriptionService } from "./subscription-settings";
 import { dashboard } from "./calculations";
 import { calendarDate, cents, today } from "./validation";
 import { requireObject, ValidationError } from "../../utils/validation";
 import db from "../../db/client";
 import { financeSettings } from "../../db/schema/finance";
 
-export class FinanceService extends FinanceImportService {
+export class FinanceService extends FinanceSubscriptionService {
   setMonthlyBudget(userId: number, input: unknown) {
     const value = requireObject(input).monthlyBudgetCents;
     const monthlyBudgetCents = value === null ? null : cents(value, 0);

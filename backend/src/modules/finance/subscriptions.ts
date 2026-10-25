@@ -1,4 +1,5 @@
 import type { FinanceSubscriptionCadence, FinanceSubscriptions, FinanceTransaction } from "../../types/finance";
+import { createHash } from "node:crypto";
 
 const day = 86_400_000;
 const timestamp = (date: string) => Date.parse(`${date}T00:00:00Z`);
@@ -33,7 +34,11 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
     if (!cadence) continue;
     const first = group[0], last = group[group.length - 1];
     const paymentCents = -last.amountCents;
+    const id = createHash("sha256").update(JSON.stringify([last.accountId, last.name.trim().replace(/\s+/g, " ").toLowerCase()])).digest("hex");
     entries.push({
+      id,
+      sourceKeys: [id],
+      accountIds: [last.accountId],
       accountId: last.accountId,
       name: last.name.trim(),
       cadence: cadence.cadence,

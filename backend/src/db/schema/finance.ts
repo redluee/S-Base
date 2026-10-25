@@ -17,6 +17,17 @@ export const financeSettings = sqliteTable("finance_settings", {
   check("finance_monthly_budget", sql`${table.monthlyBudgetCents} IS NULL OR (typeof(${table.monthlyBudgetCents}) = 'integer' AND ${table.monthlyBudgetCents} >= 0 AND ${table.monthlyBudgetCents} <= 1000000000000)`),
 ]);
 
+export const financeSubscriptionPreferences = sqliteTable("finance_subscription_preferences", {
+  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  sourceKey: text("source_key").notNull(),
+  groupKey: text("group_key").notNull(),
+  name: text("name"),
+  excluded: integer("excluded", { mode: "boolean" }).notNull().default(false),
+}, (table) => [
+  uniqueIndex("finance_subscription_preference_source").on(table.userId, table.sourceKey),
+  check("finance_subscription_excluded", sql`${table.excluded} IN (0, 1)`),
+]);
+
 export const financeAccounts = sqliteTable(
   "finance_accounts",
   {

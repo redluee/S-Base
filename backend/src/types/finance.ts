@@ -140,6 +140,9 @@ export interface FinanceTransactionPage {
 
 export type FinanceSubscriptionCadence = "weekly" | "fortnightly" | "fourWeekly" | "monthly" | "quarterly" | "yearly";
 export interface FinanceSubscription {
+  id: string;
+  sourceKeys: string[];
+  accountIds: number[];
   accountId: number;
   name: string;
   cadence: FinanceSubscriptionCadence;

@@ -22,6 +22,12 @@ const json = (method: string, body: unknown) => ({
 });
 export const financeApi = {
   subscriptions: () => request<FinanceSubscriptions>("/finance/subscriptions"),
+  renameSubscription: (id: string, name: string) =>
+    request<{ success: boolean }>("/finance/subscriptions/name", json("PUT", { id, name })),
+  mergeSubscriptions: (id: string, targetId: string) =>
+    request<{ success: boolean }>("/finance/subscriptions/merge", json("POST", { id, targetId })),
+  excludeSubscription: (id: string) =>
+    request<{ success: boolean }>("/finance/subscriptions", json("DELETE", { id })),
   setMonthlyBudget: (monthlyBudgetCents: number | null) =>
     request<{ monthlyBudgetCents: number | null }>("/finance/settings/budget", json("PUT", { monthlyBudgetCents })),
   previewImport: (csv: string, order: FinanceImportOrder, anchors?: Record<string, number>) =>

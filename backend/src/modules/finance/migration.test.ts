@@ -41,7 +41,7 @@ describe("Finance production migration on disposable databases", () => {
       const permissionsBefore = sqlite
         .query("SELECT * FROM usermodulepermissions")
         .all();
-      expect((await runMigrations(sqlite)).applied).toBe(5);
+      expect((await runMigrations(sqlite)).applied).toBe(6);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
       expect(sqlite.query("SELECT * FROM cashflow_clients").all()).toEqual(
         cashflowBefore,
@@ -102,7 +102,7 @@ describe("Finance production migration on disposable databases", () => {
       sqlite.exec(
         "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1, 'synthetic-legacy');",
       );
-      expect((await runMigrations(sqlite)).applied).toBe(5);
+      expect((await runMigrations(sqlite)).applied).toBe(6);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual([
         { user_id: 1, username: "synthetic-legacy" },
       ]);
@@ -151,5 +151,26 @@ it("adds account icons to populated finance tables without changing existing dat
     sqlite.exec("UPDATE finance_accounts SET icon='wallet' WHERE id=1");
     expect(() => sqlite.exec("UPDATE finance_accounts SET icon='unsupported' WHERE id=1")).toThrow();
     expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(balances);
+  } finally { sqlite.close(); }
+});
+
+it("adds subscription preferences without changing transactions or balances", async () => {
+  const sqlite = new Database(":memory:");
+  sqlite.run("PRAGMA foreign_keys = ON");
+  try {
+    sqlite.exec("CREATE TABLE users (user_id INTEGER PRIMARY KEY); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1);");
+    sqlite.exec(await financeSql());
+    sqlite.exec(await Bun.file(join(migrations, "0043_finance_transactions.sql")).text());
+    sqlite.exec("INSERT INTO finance_accounts (id,user_id,name,type,opening_date) VALUES (1,1,'Sample','current','2025-01-01'); INSERT INTO finance_observations (account_id,date,balance_cents) VALUES (1,'2025-01-01',12345); INSERT INTO finance_transactions (account_id,fingerprint,date,amount_cents,name,description) VALUES (1,'sample-payment','2025-01-01',-1000,'Sample subscription','Sample payment');");
+    const transactions = sqlite.query("SELECT * FROM finance_transactions").all();
+    const balances = sqlite.query("SELECT * FROM finance_observations").all();
+    const migration = await Bun.file(join(migrations, "0046_finance_subscription_preferences.sql")).text();
+    sqlite.exec(migration);
+    sqlite.exec(migration);
+    sqlite.exec("INSERT INTO finance_subscription_preferences (user_id,source_key,group_key,name,excluded) VALUES (1,'sample-source','sample-group','Sample name',1)");
+    expect(sqlite.query("SELECT * FROM finance_transactions").all()).toEqual(transactions);
+    expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(balances);
+    expect(() => sqlite.exec("INSERT INTO finance_subscription_preferences (user_id,source_key,group_key) VALUES (1,'sample-source','other-group')")).toThrow();
+    expect(sqlite.query("PRAGMA foreign_key_check").all()).toEqual([]);
   } finally { sqlite.close(); }
 });

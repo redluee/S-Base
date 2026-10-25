@@ -221,7 +221,7 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
               </div>
             )}
             {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
-            {tab === "subscriptions" && subscriptions && <Subscriptions report={subscriptions} data={data} />}
+            {tab === "subscriptions" && subscriptions && <Subscriptions report={subscriptions} data={data} onSaved={refresh} />}
             {tab === "settings" && (
               <FinanceSettings data={data} busy={loading || resetting} onReset={() => void resetFinance()} onSaved={refresh} />
             )}
