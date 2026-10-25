@@ -12,8 +12,9 @@ import { FinanceGoalsService } from "./goals";
 import { FinanceNotFound } from "./accounts";
 import { calendarDate, today } from "./validation";
 import { requireId, requireObject, ValidationError } from "../../utils/validation";
-import { isSavingsTransfer } from "./transfer-detection";
-import type { FinanceActivity, FinanceTransaction } from "../../types/finance";
+import { isSavingsTransfer, savingsTransferAccount } from "./transfer-detection";
+import { transferBalances } from "./transfer-balances";
+import type { FinanceActivity, FinanceData } from "../../types/finance";
 
 export function importKey(userId: number, value: unknown) {
   return createHash("sha256").update(JSON.stringify([userId, value])).digest("hex");
@@ -26,8 +27,9 @@ export function accountNumberKey(userId: number, value: string) {
 }
 
 export class FinanceTransactionsService extends FinanceGoalsService {
-  private periodTransactions(userId: number, start: string, end: string): FinanceTransaction[] {
-    const ownNumbers = new Set(db.select().from(sources).where(eq(sources.userId, userId)).all().map((source) => source.numberKey));
+  private transferEntries(userId: number, start: string, end: string) {
+    const bindings = db.select().from(sources).where(eq(sources.userId, userId)).all();
+    const ownNumbers = new Set(bindings.map((source) => source.numberKey));
     return db.select({
       id: transactions.id,
       accountId: transactions.accountId,
@@ -45,12 +47,28 @@ export class FinanceTransactionsService extends FinanceGoalsService {
         const automaticTransfer = counterpartyKey !== null
           ? ownNumbers.has(counterpartyKey)
           : isSavingsTransfer(entry.description, entry.amountCents);
+        const savingsNumber = counterpartyKey === null ? savingsTransferAccount(entry.description, entry.amountCents)?.replace(/[- ]/g, "").toUpperCase() : null;
+        const possibleKeys = savingsNumber
+          ? [savingsNumber, `${savingsNumber.slice(0, 4)}-${savingsNumber.slice(4)}`].map((number) => accountNumberKey(userId, number))
+          : [];
+        const counterparties = bindings.filter((source) => source.numberKey === counterpartyKey || possibleKeys.includes(source.numberKey));
+        const counterpartyAccountId = counterparties.length === 1 ? counterparties[0].accountId : undefined;
         return {
           ...entry,
           internalTransfer: transferOverride ?? automaticTransfer,
           automaticTransfer,
+          counterpartyAccountId,
         };
       });
+  }
+  private periodTransactions(userId: number, start: string, end: string) {
+    return this.transferEntries(userId, start, end).map(({ counterpartyAccountId, ...entry }) => entry);
+  }
+  protected dashboardObservations(userId: number, data: FinanceData, end: string) {
+    const transfers = this.transferEntries(userId, "1900-01-01", end)
+      .filter((entry) => entry.internalTransfer && entry.counterpartyAccountId !== undefined)
+      .map((entry) => ({ ...entry, counterpartyAccountId: entry.counterpartyAccountId! }));
+    return transferBalances(data.accounts, data.observations, transfers);
   }
   activity(userId: number, start: string, end: string): FinanceActivity {
     const entries = this.periodTransactions(userId, start, end);

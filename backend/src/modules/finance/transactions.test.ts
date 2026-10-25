@@ -60,6 +60,55 @@ beforeEach(() => {
 });
 
 describe("Finance transaction imports and totals", () => {
+  it("projects known counteraccounts and respects transfer overrides", () => {
+    const content = csv + "\n20250104;Sample transfer;DEMO0001;DEMO0002;Af;10,00;Sample transfer;60,00";
+    const selected = service.previewImport({ csv: content, order: "ascending" }).sources.map((source, index) => ({
+      sourceKey: source.sourceKey,
+      newAccount: { name: `Sample account ${index}`, type: index ? "savings" : "current" },
+      extendOpening: false,
+      entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: null })),
+    }));
+    service.importBalances(owner, { csv: content, order: "ascending", selections: selected });
+    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
+    const entry = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-04")!;
+    service.setTransfer(owner, entry.id, { internalTransfer: false });
+    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(58000);
+    service.setTransfer(owner, entry.id, { internalTransfer: null });
+    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
+  });
+  it("keeps total wealth stable for savings transfers while the savings export is stale", () => {
+    const savingsCsv = [
+      "Date;Description;Account;Account name;Counterparty;Debit/credit;Amount;Currency;Transaction type;Notifications;Resulting balance",
+      "2025-01-01;Sample opening;S000-00001;Sample savings;;Credit;500,00;EUR;Interest;;500,00",
+    ].join("\n");
+    service.importBalances(owner, { csv: savingsCsv, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample savings", type: "savings" }, extendOpening: false, entries: [{ date: "2025-01-01", expectedCents: null }] }] });
+    const currentCsv = [
+      "Datum;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
+      "20250101;DEMO0001;EXTERNAL0001;Bij;100,00;Sample salary;100,00",
+      "20250102;DEMO0001;;Bij;20,00;Van Oranje spaarrekening S00000001;120,00",
+      "20250103;DEMO0001;;Af;10,00;Naar Oranje spaarrekening S00000001;110,00",
+      "20250104;DEMO0001;EXTERNAL0002;Af;5,00;Sample shop;105,00",
+    ].join("\n");
+    const entries = service.previewImport({ csv: currentCsv, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.importBalances(owner, { csv: currentCsv, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
+    const before = service.data(owner);
+    const report = service.dashboard(owner, "all", "2025-01-04");
+    expect(report.history.map((point) => point.totalCents)).toEqual([60000, 60000, 60000, 59500]);
+    expect(report.history.map((point) => point.savingsCents)).toEqual([50000, 48000, 49000, 49000]);
+    expect(report.comparison.changeCents).toBe(-500);
+    expect(service.dashboard(owner, "month", "2025-02-01").start.totalCents).toBe(59500);
+    expect(service.data(owner)).toEqual(before);
+    expect(service.dashboard(other, "all", "2025-01-04").end.totalCents).toBeNull();
+
+    const savingsAccount = before.accounts.find((entry) => entry.type === "savings")!;
+    const updatedCsv = savingsCsv.split("\n")[0] + "\n" + [
+      "2025-01-02;Sample withdrawal;S000-00001;Sample savings;DEMO0001;Debit;20,00;EUR;Withdrawal;;480,00",
+      "2025-01-03;Sample deposit;S000-00001;Sample savings;DEMO0001;Credit;10,00;EUR;Deposit;;490,00",
+      "2025-01-04;Sample interest;S000-00001;Sample savings;;Credit;0,50;EUR;Interest;;490,50",
+    ].join("\n");
+    service.importBalances(owner, { csv: updatedCsv, order: "ascending", selections: [{ sourceKey: "1", accountId: savingsAccount.id, extendOpening: false, entries: ["02", "03", "04"].map((day) => ({ date: `2025-01-${day}`, expectedCents: null })) }] });
+    expect(service.dashboard(owner, "all", "2025-01-04").history.map((point) => point.totalCents)).toEqual([60000, 60000, 60000, 59550]);
+  });
   it("persists a per-user monthly budget and rejects invalid amounts", () => {
     expect(service.data(owner).monthlyBudgetCents).toBeNull();
     for (const value of [-1, 1.5, "100", undefined, Infinity, 1_000_000_000_001]) {
