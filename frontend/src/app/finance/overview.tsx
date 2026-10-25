@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { FinanceDashboard, FinanceData } from "@backend/types/finance";
-import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, Wallet } from "lucide-react";
 import { t } from "@/lib/lang";
 import { dateLabel, money } from "@/lib/finance";
 import { AccountIcon } from "./account-icon";
 import { AnimatedMoney } from "./animated-money";
+import { Transactions } from "./transactions";
 import { History } from "./history";
 import { NetChart } from "./net-chart";
 import { Action, Notice, panel } from "./ui";
 
 export function Overview({ data, report }: { data: FinanceData; report: FinanceDashboard; }) {
   const [chart, setChart] = useState<"balance" | "net">("balance");
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const budgetDetailsId = useId();
   const activity = report.activity;
   const hasTransactions = !!activity?.transactionCount;
   return (
@@ -28,12 +31,18 @@ export function Overview({ data, report }: { data: FinanceData; report: FinanceD
           {report.comparison.changeCents !== null && <p className="mt-3 text-xs tabular-nums text-muted-foreground">{t("finance.balanceChange")}: {report.comparison.changeCents > 0 ? "+" : ""}<AnimatedMoney cents={report.comparison.changeCents} /></p>}
         </div>
       </section>
-      {report.budget && <section className={panel}>
-        <h2 className="text-xs text-muted-foreground">{t("finance.budget.remaining", { month: report.budget.month })}</h2>
-        <p className={`mt-3 break-words text-3xl font-medium tracking-tight tabular-nums ${report.budget.remainingCents < 0 ? "text-destructive" : report.budget.remainingCents > 0 ? "text-brand" : "text-foreground"}`}>{money(report.budget.remainingCents)}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{t(report.budget.remainingCents < 0 ? "finance.budget.over" : "finance.budget.available")}</p>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t("finance.budget.summary", { spent: money(report.budget.spendingCents), limit: money(report.budget.limitCents) })}</p>
-      </section>}
+      {report.budget && <>
+        <button type="button" className={`${panel} block w-full cursor-pointer text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-brand`} aria-expanded={budgetOpen} aria-controls={budgetDetailsId} onClick={() => setBudgetOpen(!budgetOpen)}>
+          <span className="flex items-center justify-between gap-3 text-xs text-muted-foreground">{t("finance.budget.remaining", { month: report.budget.month })}<ChevronDown className={`size-4 shrink-0 ${budgetOpen ? "rotate-180" : ""}`} aria-hidden="true" /></span>
+          <span className={`mt-3 block break-words text-3xl font-medium tracking-tight tabular-nums ${report.budget.remainingCents < 0 ? "text-destructive" : report.budget.remainingCents > 0 ? "text-brand" : "text-foreground"}`}>{money(report.budget.remainingCents)}</span>
+          <span className="mt-2 block text-sm text-muted-foreground">{t(report.budget.remainingCents < 0 ? "finance.budget.over" : "finance.budget.available")}</span>
+          <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">{t("finance.budget.summary", { spent: money(report.budget.spendingCents), limit: money(report.budget.limitCents) })}</span>
+          <span className="mt-3 block text-xs underline underline-offset-4">{t(budgetOpen ? "finance.budget.hideTransactions" : "finance.budget.showTransactions")}</span>
+        </button>
+        <div id={budgetDetailsId} hidden={!budgetOpen}>
+          {budgetOpen && <Transactions key={report.endDate} data={data} start={`${report.budget.month}-01`} end={report.endDate} budget title={t("finance.budget.transactions", { month: report.budget.month })} />}
+        </div>
+      </>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {([
           { key: "income", value: activity?.incomeCents, icon: ArrowDownLeft },

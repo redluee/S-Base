@@ -32,10 +32,24 @@ beforeEach(() => {
 });
 
 describe("Monthly budget excluding subscriptions", () => {
+  it("paginates eligible expenses and validates filters", () => {
+    for (let index = 0; index < 51; index++) payment(`Sample shop ${index}`, "2025-02-02", -100);
+    const first = service.budgetTransactions(owner, { date: "2025-02-02" });
+    const second = service.budgetTransactions(owner, { date: "2025-02-02", page: "2" });
+    expect(first.total).toBe(51);
+    expect(first.entries).toHaveLength(50);
+    expect(second.entries).toHaveLength(1);
+    expect(new Set([...first.entries, ...second.entries].map((entry) => entry.id)).size).toBe(51);
+    expect(service.budgetTransactions(owner, { date: "2025-03-01" }).total).toBe(0);
+    for (const page of [0, -1, 1.5, "invalid", 100001])
+      expect(() => service.budgetTransactions(owner, { date: "2025-02-02", page })).toThrow();
+    expect(() => service.budgetTransactions(owner, { date: "invalid" })).toThrow();
+  });
   it("excludes actual active subscription payments across periods without changing total spending", () => {
     payment("Sample subscription", "2025-01-01");
     payment("Sample subscription", "2025-02-01", -1500);
-    payment("Sample shop", "2025-02-02", -700);
+    const shop = payment("Sample shop", "2025-02-02", -700);
+    payment("Sample future shop", "2025-02-03", -800);
     payment("Sample transfer", "2025-02-02", -2000, true);
     payment("Sample income", "2025-02-02", 3000);
     for (const period of ["month", "year", "all"]) {
@@ -43,6 +57,12 @@ describe("Monthly budget excluding subscriptions", () => {
         month: "2025-02", limitCents: 5000, spendingCents: 700, remainingCents: 4300,
       });
     }
+    const details = service.budgetTransactions(owner, { date: "2025-02-02" });
+    expect(details.total).toBe(1);
+    expect(details.entries.map((entry) => entry.id)).toEqual([shop.id]);
+    expect(details.entries.reduce((sum, entry) => sum - entry.amountCents, 0))
+      .toBe(service.dashboard(owner, "all", "2025-02-02").budget!.spendingCents);
+    expect(service.budgetTransactions(other, { date: "2025-02-02" }).total).toBe(0);
     expect(service.dashboard(owner, "month", "2025-02-02").activity.spendingCents).toBe(2200);
     expect(service.dashboard(owner, "month", "2025-03-01").budget?.remainingCents).toBe(5000);
     expect(service.dashboard(owner, "month", "2025-01-01").budget?.spendingCents).toBe(1000);
@@ -55,8 +75,10 @@ describe("Monthly budget excluding subscriptions", () => {
     payment("Sample shop", "2025-02-02", -600);
     expect(service.subscriptions(owner, "2025-02-02").monthlyCents).toBe(1000);
     expect(service.dashboard(owner, "month", "2025-02-02").budget?.remainingCents).toBe(4400);
+    expect(service.budgetTransactions(owner, { date: "2025-02-02" }).total).toBe(1);
     service.excludeSubscription(owner, { id: service.subscriptions(owner).entries[0].id });
     expect(service.dashboard(owner, "month", "2025-02-02").budget?.remainingCents).toBe(-7600);
+    expect(service.budgetTransactions(owner, { date: "2025-02-02" }).total).toBe(2);
   });
 
   it("excludes all merged sources and uses activity at the selected date", () => {
@@ -68,6 +90,7 @@ describe("Monthly budget excluding subscriptions", () => {
     service.mergeSubscriptions(owner, { id: entries[0].id, targetId: entries[1].id });
     service.renameSubscription(owner, { id: entries[1].id, name: "Sample merged" });
     expect(service.subscriptions(owner, "2025-02-02").monthlyCents).toBe(1100);
+    expect(service.budgetTransactions(owner, { date: "2025-02-02" }).total).toBe(0);
     expect(service.dashboard(owner, "month", "2025-02-02").budget?.remainingCents).toBe(5000);
     expect(service.dashboard(owner, "month", "2025-02-28").budget?.remainingCents).toBe(5000);
     expect(service.dashboard(owner, "month", "2025-04-01").budget?.remainingCents).toBe(5000);

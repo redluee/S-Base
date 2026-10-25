@@ -60,6 +60,17 @@ beforeEach(() => {
 });
 
 describe("Finance transaction imports and totals", () => {
+  it("protects budget spending details and filters them to the signed-in user", async () => {
+    initial();
+    expect((await http(null, "/budget/transactions?date=2025-01-03")).status).toBe(401);
+    expect((await http(forbidden, "/budget/transactions?date=2025-01-03")).status).toBe(403);
+    expect((await http(owner, "/budget/transactions?date=invalid")).status).toBe(400);
+    expect((await http(owner, "/budget/transactions?date=2025-01-03&page=0")).status).toBe(400);
+    const response = await http(owner, "/budget/transactions?date=2025-01-03");
+    expect(response.status).toBe(200);
+    expect((await response.json()).entries.map((entry: { amountCents: number }) => entry.amountCents)).toEqual([-1000]);
+    expect((await (await http(other, "/budget/transactions?date=2025-01-03")).json()).total).toBe(0);
+  });
   it("filters transfers to a closed untracked savings account out of balance history", async () => {
     const content = [
       "Datum;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",

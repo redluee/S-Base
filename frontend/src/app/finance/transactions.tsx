@@ -7,11 +7,12 @@ import { dateLabel, money } from "@/lib/finance";
 import { t } from "@/lib/lang";
 import { Action, errorText, Notice, panel } from "./ui";
 
-export function Transactions({ data, start, end, subscriptionId, title, onClose }: {
+export function Transactions({ data, start, end, subscriptionId, budget = false, title, onClose }: {
   data: FinanceData;
   start: string;
   end: string;
   subscriptionId?: string;
+  budget?: boolean;
   title?: string;
   onClose?: () => void;
 }) {
@@ -21,7 +22,8 @@ export function Transactions({ data, start, end, subscriptionId, title, onClose 
   const [loading, setLoading] = useState(true);
   const fetchPage = useCallback(() => subscriptionId
     ? financeApi.subscriptionTransactions(subscriptionId, page)
-    : financeApi.transactions(start, end, page), [subscriptionId, start, end, page]);
+    : budget ? financeApi.budgetTransactions(end, page)
+    : financeApi.transactions(start, end, page), [subscriptionId, budget, start, end, page]);
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -45,7 +47,7 @@ export function Transactions({ data, start, end, subscriptionId, title, onClose 
         <p className="text-xs tabular-nums text-muted-foreground">{dateLabel(start)} — {dateLabel(end)}</p>
       </div>
       {onClose && <Action variant="outline" className="mt-3" onClick={onClose}>{t("Sluiten")}</Action>}
-      {!subscriptionId && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t("finance.transactions.help")}</p>}
+      {!subscriptionId && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t(budget ? "finance.budget.transactionsHelp" : "finance.transactions.help")}</p>}
       {error && <div className="mt-4"><Notice error>{error}</Notice><Action variant="outline" onClick={() => void load()}>{t("finance.retry")}</Action></div>}
       {loading && <p role="status" className="py-6 text-sm text-muted-foreground">{t("finance.loading")}</p>}
       {!loading && result?.total === 0 && <p className="py-8 text-sm text-muted-foreground">{t("finance.transactions.empty")}</p>}

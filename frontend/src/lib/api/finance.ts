@@ -35,6 +35,8 @@ export const financeApi = {
     request<{ success: boolean }>("/finance/subscriptions/merge", json("POST", { id, targetId })),
   excludeSubscription: (id: string) =>
     request<{ success: boolean }>("/finance/subscriptions", json("DELETE", { id })),
+  budgetTransactions: (date: string, page: number) =>
+    request<FinanceTransactionPage>(`/finance/budget/transactions?date=${date}&page=${page}`),
   setMonthlyBudget: (monthlyBudgetCents: number | null) =>
     request<{ monthlyBudgetCents: number | null }>("/finance/settings/budget", json("PUT", { monthlyBudgetCents })),
   previewImport: (csv: string, order: FinanceImportOrder, anchors?: Record<string, number>) =>

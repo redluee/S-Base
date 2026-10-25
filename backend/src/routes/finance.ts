@@ -34,6 +34,9 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     .get("/dashboard", ({ userId, query }) =>
       checked(() => finance.dashboard(userId, query.period, query.date)),
     )
+    .get("/budget/transactions", ({ userId, query }) =>
+      checked(() => finance.budgetTransactions(userId, query)),
+    )
     .post("/import/preview", ({ userId, body }) =>
       checked(() => finance.previewImport(body, userId)),
     )
