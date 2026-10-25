@@ -41,6 +41,7 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
       checked(() => finance.importBalances(userId, body)),
     )
     .get("/transactions", ({ userId, query }) => checked(() => finance.transactionList(userId, query)))
+    .get("/subscriptions", ({ userId }) => finance.subscriptions(userId))
     .put("/accounts/:id/icon", ({ userId, params, body }) =>
       checked(() => finance.setAccountIcon(userId, requireId(params.id), body)),
     )

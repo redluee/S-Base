@@ -137,3 +137,24 @@ export interface FinanceTransactionPage {
   page: number;
   pageSize: number;
 }
+
+export type FinanceSubscriptionCadence = "weekly" | "fortnightly" | "fourWeekly" | "monthly" | "quarterly" | "yearly";
+export interface FinanceSubscription {
+  accountId: number;
+  name: string;
+  cadence: FinanceSubscriptionCadence;
+  paymentCents: number;
+  monthlyCents: number;
+  totalCents: number;
+  paymentCount: number;
+  firstDate: string;
+  lastDate: string;
+  active: boolean;
+}
+export interface FinanceSubscriptions {
+  entries: FinanceSubscription[];
+  monthlyCents: number;
+  totalCents: number;
+  asOf: string;
+  lastImportedDate: string | null;
+}

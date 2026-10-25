@@ -14,6 +14,7 @@ import { calendarDate, today } from "./validation";
 import { requireId, requireObject, ValidationError } from "../../utils/validation";
 import { isSavingsTransfer, savingsTransferAccount } from "./transfer-detection";
 import { transferAdjustedHistory, transferBalances } from "./transfer-balances";
+import { detectSubscriptions } from "./subscriptions";
 import type { FinanceActivity, FinanceData, FinanceSnapshot } from "../../types/finance";
 
 export function importKey(userId: number, value: unknown) {
@@ -99,6 +100,10 @@ export class FinanceTransactionsService extends FinanceGoalsService {
     if (start > end || !Number.isInteger(page) || page < 1 || page > 100000) throw new ValidationError("finance.transactions.invalidFilter");
     const entries = this.periodTransactions(userId, start, end);
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
+  }
+  subscriptions(userId: number) {
+    const end = today();
+    return detectSubscriptions(this.periodTransactions(userId, "1900-01-01", end), end);
   }
   setTransfer(userId: number, id: number, input: unknown) {
     const { internalTransfer } = requireObject(input);

@@ -345,6 +345,7 @@ describe("Finance reset and HTTP isolation", () => {
     const foreignId = service.transactionList(other, {}).entries[0].id;
     for (const [path, method, body] of [
       ["/transactions", "GET", undefined],
+      ["/subscriptions", "GET", undefined],
     ] as const) {
       expect((await http(null, path, method, body)).status).toBe(401);
       expect((await http(forbidden, path, method, body)).status).toBe(403);
@@ -357,6 +358,46 @@ describe("Finance reset and HTTP isolation", () => {
     const list = await http(owner, "/transactions");
     expect(list.headers.get("Cache-Control")).toBe("no-store");
     expect((await list.json()).total).toBe(4);
+  });
+  it("scopes subscription spending to the authenticated user's accounts", async () => {
+    initial(); initial(other);
+    const account = service.data(owner).accounts[0];
+    const foreign = service.data(other).accounts[0];
+    for (const [accountId, amountCents] of [[account.id, -1200], [foreign.id, -9900]]) {
+      for (const date of ["2025-01-01", "2025-02-01", "2025-03-01"]) {
+        db.insert(financeTransactions).values({ accountId, fingerprint: `subscription-${accountId}-${date}`, date, amountCents, name: "Sample subscription", description: "" }).run();
+      }
+    }
+    const response = await http(owner, "/subscriptions");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const report = await response.json();
+    expect(report.totalCents).toBe(3600);
+    expect(report.entries).toHaveLength(1);
+    expect(report.entries[0].accountId).toBe(account.id);
+    expect(service.subscriptions(other).totalCents).toBe(29700);
+  });
+  it("automatically recognizes subscriptions from imports without manual setup or duplicate spending", async () => {
+    const content = [
+      "Datum;Naam / Omschrijving;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
+      "20250101;Sample subscription;DEMO0001;EXTERNAL0001;Af;12,00;Sample payment;88,00",
+      "20250201;Sample subscription;DEMO0001;EXTERNAL0001;Af;12,00;Sample payment;76,00",
+      "20250301;Sample subscription;DEMO0001;EXTERNAL0001;Af;15,00;Sample payment;61,00",
+    ].join("\n");
+    const source = service.previewImport({ csv: content, order: "ascending" }).sources[0];
+    const body = {
+      csv: content, order: "ascending",
+      selections: [{ sourceKey: source.sourceKey, newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: null })) }],
+    };
+    expect((await http(owner, "/import", "POST", body)).status).toBe(200);
+    const report = await (await http(owner, "/subscriptions")).json();
+    expect(report.entries).toHaveLength(1);
+    expect(report.entries[0]).toMatchObject({ name: "Sample subscription", cadence: "monthly", monthlyCents: 1500, totalCents: 3900, paymentCount: 3 });
+    const matched = service.previewImport({ csv: content, order: "ascending" }, owner).sources[0];
+    const accountId = matched.matchedAccountId!;
+    const observations = service.history(owner, accountId);
+    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: matched.sourceKey, accountId, extendOpening: false, entries: matched.balances.map((entry) => ({ date: entry.date, expectedCents: observations.find((observation) => observation.date === entry.date)?.balanceCents ?? null })) }] });
+    expect(service.subscriptions(owner)).toEqual(report);
   });
   it("authenticates resets, requires confirmation and isolates deletion to the session owner", async () => {
     initial(); initial(other);

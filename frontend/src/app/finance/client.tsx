@@ -5,6 +5,7 @@ import type {
   FinanceDashboard,
   FinanceData,
   FinancePeriod,
+  FinanceSubscriptions,
 } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
@@ -18,10 +19,13 @@ import { FinanceImport } from "./import";
 import { Transactions } from "./transactions";
 import { FinanceSettings } from "./settings";
 import { Upload } from "lucide-react";
+import Link from "next/link";
+import { Subscriptions } from "./subscriptions";
 
-type Tab = "overview" | "accounts" | "import" | "transactions" | "settings";
+type Tab = "overview" | "accounts" | "import" | "transactions" | "subscriptions" | "settings";
 
-export function FinanceClient() {
+export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab }) {
+  const [subscriptions, setSubscriptions] = useState<FinanceSubscriptions | null>(null);
   const [data, setData] = useState<FinanceData | null>(null),
     [report, setReport] = useState<FinanceDashboard | null>(null);
   const [today] = useState(() =>
@@ -34,7 +38,7 @@ export function FinanceClient() {
   );
   const [date, setDate] = useState(today);
   const [period, setPeriod] = useState<FinancePeriod>("all"),
-    [tab, setTab] = useState<Tab>("overview");
+    [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -46,13 +50,15 @@ export function FinanceClient() {
     setLoading(true);
     setError("");
     try {
-      const [nextData, nextReport] = await Promise.all([
+      const [nextData, nextReport, nextSubscriptions] = await Promise.all([
         financeApi.data(),
         financeApi.dashboard(period, financePeriodEnd(period, date, today)),
+        financeApi.subscriptions(),
       ]);
       if (current === revision.current) {
         setData(nextData);
         setReport(nextReport);
+        setSubscriptions(nextSubscriptions);
       }
     } catch (error) {
       if (current === revision.current) setError(errorText(error));
@@ -116,7 +122,7 @@ export function FinanceClient() {
         aria-label={t("finance.navigation")}
         className="flex gap-1 overflow-x-auto border-b border-border pb-2"
       >
-        {(["overview", "transactions", "accounts", "settings"] as Tab[]).map(
+        {(["overview", "transactions", "subscriptions", "accounts", "settings"] as Tab[]).map(
           (value) => (
             <Action
               key={value}
@@ -128,6 +134,7 @@ export function FinanceClient() {
                   ? "bg-zinc-900 text-brand hover:bg-zinc-800 hover:text-brand"
                   : "text-muted-foreground"
               }
+              render={value === "subscriptions" ? <Link href="/finance/subscriptions" /> : undefined}
               onClick={() => setTab(value)}
             >
               {t(`finance.${value}`)}
@@ -214,6 +221,7 @@ export function FinanceClient() {
               </div>
             )}
             {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
+            {tab === "subscriptions" && subscriptions && <Subscriptions report={subscriptions} data={data} />}
             {tab === "settings" && (
               <FinanceSettings data={data} busy={loading || resetting} onReset={() => void resetFinance()} onSaved={refresh} />
             )}

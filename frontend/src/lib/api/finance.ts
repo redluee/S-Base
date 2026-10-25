@@ -13,6 +13,7 @@ import type {
   FinanceImportSelection,
   FinanceImportResult,
   FinanceTransactionPage,
+  FinanceSubscriptions,
 } from "@backend/types/finance";
 
 const json = (method: string, body: unknown) => ({
@@ -20,6 +21,7 @@ const json = (method: string, body: unknown) => ({
   body: JSON.stringify(body),
 });
 export const financeApi = {
+  subscriptions: () => request<FinanceSubscriptions>("/finance/subscriptions"),
   setMonthlyBudget: (monthlyBudgetCents: number | null) =>
     request<{ monthlyBudgetCents: number | null }>("/finance/settings/budget", json("PUT", { monthlyBudgetCents })),
   previewImport: (csv: string, order: FinanceImportOrder, anchors?: Record<string, number>) =>
