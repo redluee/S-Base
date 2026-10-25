@@ -37,7 +37,7 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
     }).format(new Date()),
   );
   const [date, setDate] = useState(today);
-  const [period, setPeriod] = useState<FinancePeriod>("all"),
+  const [period, setPeriod] = useState<FinancePeriod>("month"),
     [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
