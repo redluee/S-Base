@@ -63,25 +63,24 @@ export const app = new Elysia()
   .use(resumeRoutes)
   .use(financeRoutes)
   .use(pulseRoutes)
-  .use(minecraftRoutes)
+  .use(minecraftRoutes);
 
+if (process.env.NODE_ENV !== "test") {
+  app.listen({ port: PORT, hostname: HOST });
+  console.log(`Backend running on http://${HOST}:${PORT}`);
 
-  .listen({ port: PORT, hostname: HOST });
+  if (isProduction() && process.env.DB_PATH !== ":memory:") startBackupSchedule(sqlite);
 
-console.log(`Backend running on http://${HOST}:${PORT}`);
+  const discordBot = createDiscordBot(minecraft);
 
-if (isProduction() && process.env.DB_PATH !== ":memory:") startBackupSchedule(sqlite);
-
-const discordBot = process.env.NODE_ENV !== "test" ? createDiscordBot(minecraft) : null;
-
-process.on("SIGINT", () => {
-  minecraft.stopIdleMonitor();
-  discordBot?.stop();
-  process.exit(0);
-});
-process.on("SIGTERM", () => {
-  minecraft.stopIdleMonitor();
-  discordBot?.stop();
-  process.exit(0);
-});
-
+  process.on("SIGINT", () => {
+    minecraft.stopIdleMonitor();
+    discordBot?.stop();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    minecraft.stopIdleMonitor();
+    discordBot?.stop();
+    process.exit(0);
+  });
+}

@@ -4,6 +4,10 @@ import { setupTestDb } from "./test-utils";
 import { app } from "./index";
 
 describe("Elysia API Routes", () => {
+  it("loads the API without starting a network listener in tests", () => {
+    expect(app.server).toBeNull();
+  });
+
   beforeEach(async () => {
     await setupTestDb();
   });

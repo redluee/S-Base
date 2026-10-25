@@ -1,29 +1,73 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { setupTestDb } from "../../test-utils";
 import { MinecraftService, parseJavaArgs, formatJavaLaunchCommand, AIKAR_FLAGS, ZGC_FLAGS } from "./index";
 import { join } from "path";
-import { tmpdir } from "os";
+import { BASE_DIR } from "./paths";
 import { mkdir, writeFile, readFile, rm } from "fs/promises";
 import db from "../../db/client";
 import { mc_servers, mc_templates } from "../../db/schema/minecraft";
 import { eq } from "drizzle-orm";
+import { writeFileSync } from "node:fs";
 
 describe("MinecraftService", () => {
   let minecraft: MinecraftService;
-  const testDir = join(tmpdir(), "sbase-mc-test-" + Date.now());
+  const testDir = join(BASE_DIR, "fixtures");
+  let restoreExternalCalls: () => void;
 
   beforeEach(async () => {
     await setupTestDb();
     minecraft = new MinecraftService();
+    const fetchMock = spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json") {
+        return Response.json({ versions: [
+          { id: "1.21.1", type: "release", url: "https://example.com/version.json" },
+          { id: "24w33a", type: "snapshot" },
+          { id: "1.21", type: "release" },
+        ] });
+      }
+      if (url === "https://example.com/version.json") {
+        return Response.json({ downloads: { server: { url: "https://example.com/server.jar" } } });
+      }
+      if (url === "https://meta.fabricmc.net/v2/versions/loader/1.21.1") {
+        return Response.json([{ loader: { stable: true, version: "0.16.0" } }]);
+      }
+      if (url === "https://meta.fabricmc.net/v2/versions/installer") {
+        return Response.json([{ stable: true, url: "https://example.com/installer.jar" }]);
+      }
+      if (url === "https://example.com/server.jar" || url === "https://example.com/installer.jar") {
+        return new Response("test jar bytes");
+      }
+      throw new Error(`Unexpected test URL: ${url}`);
+    });
+    const spawnSync = Bun.spawnSync;
+    const spawnMock = spyOn(Bun, "spawnSync").mockImplementation((command, options) => {
+      if (Array.isArray(command) && command[0] === "tail") {
+        return spawnSync(command, options);
+      }
+      if (Array.isArray(command) && command[0] === "tmux" && command[1] === "has-session") {
+        return { exitCode: 1, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) } as ReturnType<typeof Bun.spawnSync>;
+      }
+      expect(command).toEqual([
+        "java", "-jar", join(String(options?.cwd), "fabric-installer.jar"),
+        "server", "-mcversion", "1.21.1", "-loader", "0.16.0", "-downloadMinecraft",
+      ]);
+      writeFileSync(join(String(options?.cwd), "fabric-server-launch.jar"), "test fabric jar");
+      return { exitCode: 0, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) } as ReturnType<typeof Bun.spawnSync>;
+    });
+    restoreExternalCalls = () => {
+      fetchMock.mockRestore();
+      spawnMock.mockRestore();
+    };
   });
 
+  afterEach(() => restoreExternalCalls());
+
   it("lists available versions as string array", async () => {
-    const versions = await minecraft.listAvailableVersions();
-    expect(Array.isArray(versions)).toBe(true);
-    if (versions.length > 0) {
-      expect(typeof versions[0]).toBe("string");
-      expect(versions.some(v => v.startsWith("1."))).toBe(true);
-    }
+    expect(await minecraft.listAvailableVersions()).toEqual(["1.21.1", "1.21"]);
+    expect(await minecraft.listAvailableVersions()).toEqual(["1.21.1", "1.21"]);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith("https://launchermeta.mojang.com/mc/game/version_manifest_v2.json");
   }, 15000);
 
   it("validates server slugs correctly", async () => {
@@ -297,6 +341,7 @@ describe("MinecraftService", () => {
     expect(speedrunServer).not.toBeNull();
     expect(speedrunServer?.engine).toBe("fabric");
     expect(speedrunServer?.mcVersion).toBe("1.21.1");
+    expect(await readFile(join(speedrunServer!.serverDir, "fabric-server-launch.jar"), "utf8")).toBe("test fabric jar");
 
     // Check server properties copied from template
     const srvProps = await minecraft.readProperties("tmpl-speedrun-test");
@@ -349,6 +394,7 @@ describe("MinecraftService", () => {
       javaArgs: "-Xms2G -Xmx4G",
     });
     expect(s?.javaArgs).toBe("-Xms2G -Xmx4G");
+    expect(await readFile(join(s!.serverDir, "server.jar"), "utf8")).toBe("test jar bytes");
 
     // Update javaArgs
     const updated = await minecraft.updateServer("test-java-args", {

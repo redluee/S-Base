@@ -20,6 +20,10 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 | `bun run --cwd frontend lint` | ESLint (frontend only) |
 | `bun run --cwd frontend build` | Next.js production build |
 
+When committing and pushing to `main`, rely on the enforced Git pre-push hook to run `test:all` and `build` once. Do not run `bun run pre-push` immediately before `git push`; use it for standalone validation when no push follows. Never bypass the hook. Backend tests preload an in-memory database and temporary Minecraft fixture directories via `backend/bunfig.toml`.
+
+In restricted agent sandboxes, Git writes to `.git`, SSH pushes, and Next.js Turbopack builds require expanded execution permission. Request that execution permission from the outset for commits, pushes (including their pre-push hook), and standalone builds. Turbopack's build workers bind a local port; an `Operation not permitted` error there is an execution restriction, not an application failure. Keep the production build and all validation checks enabled.
+
 ## Architecture
 
 - **Backend** (`backend/src/index.ts`, routes in `backend/src/routes/`): Elysia.js on port `:3001`, Drizzle ORM + `bun:sqlite` (WAL mode). Session-based auth via `session_id` cookie (7-day expiry). Module-level permissions checked via `AuthService.moduleAccessCheck()`.
