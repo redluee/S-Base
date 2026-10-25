@@ -1,7 +1,8 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { FinanceDashboard, FinanceData, FinancePeriod } from "@backend/types/finance";
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { t } from "@/lib/lang";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { dateLabel, money } from "@/lib/finance";
 import { AccountIcon } from "./account-icon";
 import { AnimatedMoney } from "./animated-money";
@@ -13,7 +14,6 @@ import { Action, Notice, panel } from "./ui";
 export function Overview({ data, report, period }: { data: FinanceData; report: FinanceDashboard; period: FinancePeriod; }) {
   const [chart, setChart] = useState<"balance" | "net">("balance");
   const [budgetOpen, setBudgetOpen] = useState(false);
-  const budgetDetailsId = useId();
   const activity = report.activity;
   const hasTransactions = !!activity?.transactionCount;
   const lastDataDate = report.end.accounts.reduce<string | null>((latest, account) =>
@@ -46,14 +46,15 @@ export function Overview({ data, report, period }: { data: FinanceData; report: 
         </div>
       </section>
       {period === "month" && report.budget && <>
-        <button type="button" className={`${panel} block w-full cursor-pointer text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-brand`} aria-expanded={budgetOpen} aria-controls={budgetDetailsId} onClick={() => setBudgetOpen(!budgetOpen)}>
-          <span className="flex items-center justify-between gap-3 text-xs text-muted-foreground">{t("finance.budget.remaining", { month: report.budget.month })}<ChevronDown className={`size-4 shrink-0 ${budgetOpen ? "rotate-180" : ""}`} aria-hidden="true" /></span>
+        <button type="button" className={`${panel} block w-full cursor-pointer text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-brand`} aria-haspopup="dialog" aria-expanded={budgetOpen} onClick={() => setBudgetOpen(true)}>
+          <span className="flex items-center justify-between gap-3 text-xs text-muted-foreground">{t("finance.budget.remaining", { month: report.budget.month })}<ArrowUpRight className="size-4 shrink-0" aria-hidden="true" /></span>
           <span className={`mt-3 block break-words text-3xl font-medium tracking-tight tabular-nums ${report.budget.remainingCents < 0 ? "text-destructive" : report.budget.remainingCents > 0 ? "text-brand" : "text-foreground"}`}>{money(report.budget.remainingCents)}</span>
         </button>
-        <div id={budgetDetailsId} hidden={!budgetOpen} className="space-y-4">
-          <p className="text-sm text-muted-foreground">{t("finance.budget.summary", { spent: money(report.budget.spendingCents), limit: money(report.budget.limitCents) })}</p>
-          {budgetOpen && <Transactions key={report.endDate} data={data} start={`${report.budget.month}-01`} end={report.endDate} budget title={t("finance.budget.transactions", { month: report.budget.month })} />}
-        </div>
+        {budgetOpen && <ModalOverlay open onClose={() => setBudgetOpen(false)} label={t("finance.budget.transactions", { month: report.budget.month })}>
+          <div className="max-h-[85dvh] w-[min(42rem,calc(100vw-2rem))] overflow-y-auto">
+            <Transactions key={report.endDate} data={data} start={`${report.budget.month}-01`} end={report.endDate} budget title={t("finance.budget.transactions", { month: report.budget.month })} onClose={() => setBudgetOpen(false)} />
+          </div>
+        </ModalOverlay>}
       </>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {([
