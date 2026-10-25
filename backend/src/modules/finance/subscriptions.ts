@@ -12,6 +12,10 @@ const cadences: { cadence: FinanceSubscriptionCadence; days: number; tolerance: 
   { cadence: "yearly", days: 365.25, tolerance: 15, perYear: 1, minimum: 2 },
 ];
 
+export function subscriptionSourceKey(entry: Pick<FinanceTransaction, "accountId" | "name">) {
+  return createHash("sha256").update(JSON.stringify([entry.accountId, entry.name.trim().replace(/\s+/g, " ").toLowerCase()])).digest("hex");
+}
+
 export function detectSubscriptions(transactions: FinanceTransaction[], asOf: string): FinanceSubscriptions {
   const groups = new Map<string, FinanceTransaction[]>();
   for (const entry of transactions) {
@@ -34,7 +38,7 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
     if (!cadence) continue;
     const first = group[0], last = group[group.length - 1];
     const paymentCents = -last.amountCents;
-    const id = createHash("sha256").update(JSON.stringify([last.accountId, last.name.trim().replace(/\s+/g, " ").toLowerCase()])).digest("hex");
+    const id = subscriptionSourceKey(last);
     entries.push({
       id,
       sourceKeys: [id],

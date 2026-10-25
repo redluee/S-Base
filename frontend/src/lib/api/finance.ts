@@ -22,6 +22,8 @@ const json = (method: string, body: unknown) => ({
 });
 export const financeApi = {
   subscriptions: () => request<FinanceSubscriptions>("/finance/subscriptions"),
+  subscriptionTransactions: (id: string, page: number) =>
+    request<FinanceTransactionPage>(`/finance/subscriptions/${encodeURIComponent(id)}/transactions?page=${page}`),
   renameSubscription: (id: string, name: string) =>
     request<{ success: boolean }>("/finance/subscriptions/name", json("PUT", { id, name })),
   mergeSubscriptions: (id: string, targetId: string) =>

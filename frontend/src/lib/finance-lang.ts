@@ -1,4 +1,6 @@
 export const financeNl: Record<string, string> = {
+  "finance.subscriptions.actions": "Acties voor {name}",
+  "finance.subscriptions.history": "Transacties bekijken",
   "finance.subscriptions": "Abonnementen",
   "finance.subscriptions.monthlyTotal": "Geschatte maandlasten",
   "finance.subscriptions.total": "Totaal uitgegeven",

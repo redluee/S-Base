@@ -120,6 +120,52 @@ describe("Subscription corrections", () => {
     expect(report.entries).toHaveLength(1);
     expect(report.entries[0]).toMatchObject({ id: second.id, name: "Sample custom", paymentCount: 5, totalCents: 4900, monthlyCents: 1000, firstDate: month(-2) });
   });
+  it("returns only subscription payments after renaming and merging, newest first", () => {
+    const first = addSubscription(owner, "Sample first", -1000, -2);
+    const second = addSubscription(owner, "Sample second", -1800);
+    addSubscription(owner, "Sample unrelated");
+    addSubscription(other, "Sample first");
+    db.insert(financeTransactions).values([
+      { accountId: first.accountId, fingerprint: "history-income", date: month(0), amountCents: 1000, name: "Sample first", description: "" },
+      { accountId: first.accountId, fingerprint: "history-transfer", date: month(0), amountCents: -1000, name: "Sample first", description: "", transferOverride: true },
+    ]).run();
+    service.mergeSubscriptions(owner, { id: first.id, targetId: second.id });
+    service.renameSubscription(owner, { id: second.id, name: "Custom label" });
+    const result = service.subscriptionTransactions(owner, second.id);
+    expect(result.total).toBe(4);
+    expect(result.entries.map((entry) => entry.date)).toEqual([month(0), month(-1), month(-2), month(-3)]);
+    expect(result.entries.map((entry) => entry.name)).toEqual(["Sample second", "Sample second", "Sample first", "Sample first"]);
+    expect(result.entries.reduce((sum, entry) => sum - entry.amountCents, 0)).toBe(5600);
+    expect(service.subscriptionTransactions(owner, second.id, { page: 2 }).entries).toEqual([]);
+    expect(() => service.subscriptionTransactions(owner, second.id, { page: 0 })).toThrow();
+  });
+  it("paginates long subscription histories without omissions", () => {
+    const entry = addSubscription(owner, "Sample long history");
+    for (let offset = -2; offset >= -54; offset--) {
+      db.insert(financeTransactions).values({ accountId: entry.accountId, fingerprint: `history-${offset}`, date: month(offset), amountCents: -1000, name: " Sample  long history ", description: "" }).run();
+    }
+    const first = service.subscriptionTransactions(owner, entry.id);
+    const second = service.subscriptionTransactions(owner, entry.id, { page: 2 });
+    expect(first).toMatchObject({ total: 55, page: 1, pageSize: 50 });
+    expect(first.entries).toHaveLength(50);
+    expect(second.entries).toHaveLength(5);
+    expect(new Set([...first.entries, ...second.entries].map((entry) => entry.id)).size).toBe(55);
+  });
+  it("protects subscription history through session and module permissions", async () => {
+    const own = addSubscription(owner, "Sample own");
+    const foreign = addSubscription(other, "Sample foreign");
+    const get = (userId: number | null, id: string, query = "") => app.handle(new Request(`http://localhost/api/finance/subscriptions/${id}/transactions${query}`, {
+      headers: userId ? { Cookie: `session_id=subscription-settings-${userId}` } : {},
+    }));
+    expect((await get(null, own.id)).status).toBe(401);
+    expect((await get(forbidden, own.id)).status).toBe(403);
+    expect((await get(owner, foreign.id)).status).toBe(404);
+    expect((await get(owner, "invalid")).status).toBe(400);
+    expect((await get(owner, own.id, "?page=invalid")).status).toBe(400);
+    const response = await get(owner, own.id);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ total: 2, page: 1, pageSize: 50 });
+  });
   it("clears corrections on finance reset while preserving another user's corrections", () => {
     const own = addSubscription(owner, "Sample own");
     const foreign = addSubscription(other, "Sample foreign");

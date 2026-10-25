@@ -7,38 +7,45 @@ import { dateLabel, money } from "@/lib/finance";
 import { t } from "@/lib/lang";
 import { Action, errorText, Notice, panel } from "./ui";
 
-export function Transactions({ data, start, end }: {
+export function Transactions({ data, start, end, subscriptionId, title, onClose }: {
   data: FinanceData;
   start: string;
   end: string;
+  subscriptionId?: string;
+  title?: string;
+  onClose?: () => void;
 }) {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<FinanceTransactionPage | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const fetchPage = useCallback(() => subscriptionId
+    ? financeApi.subscriptionTransactions(subscriptionId, page)
+    : financeApi.transactions(start, end, page), [subscriptionId, start, end, page]);
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    try { setResult(await financeApi.transactions(start, end, page)); }
+    try { setResult(await fetchPage()); }
     catch (error) { setError(errorText(error)); }
     finally { setLoading(false); }
-  }, [start, end, page]);
+  }, [fetchPage]);
   useEffect(() => {
     let active = true;
-    void financeApi.transactions(start, end, page).then((value) => {
+    void fetchPage().then((value) => {
       if (active) { setResult(value); setError(""); setLoading(false); }
     }).catch((error) => {
       if (active) { setError(errorText(error)); setLoading(false); }
     });
     return () => { active = false; };
-  }, [start, end, page]);
+  }, [fetchPage]);
   return (
     <section className={panel} aria-busy={loading}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">{t("finance.transactions")}</h2>
+        <h2 className="text-lg font-semibold">{title ?? t("finance.transactions")}</h2>
         <p className="text-xs tabular-nums text-muted-foreground">{dateLabel(start)} — {dateLabel(end)}</p>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t("finance.transactions.help")}</p>
+      {onClose && <Action variant="outline" className="mt-3" onClick={onClose}>{t("Sluiten")}</Action>}
+      {!subscriptionId && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t("finance.transactions.help")}</p>}
       {error && <div className="mt-4"><Notice error>{error}</Notice><Action variant="outline" onClick={() => void load()}>{t("finance.retry")}</Action></div>}
       {loading && <p role="status" className="py-6 text-sm text-muted-foreground">{t("finance.loading")}</p>}
       {!loading && result?.total === 0 && <p className="py-8 text-sm text-muted-foreground">{t("finance.transactions.empty")}</p>}

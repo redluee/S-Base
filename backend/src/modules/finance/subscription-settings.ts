@@ -1,11 +1,11 @@
 import { eq } from "drizzle-orm";
 import db from "../../db/client";
 import { financeSubscriptionPreferences as preferences } from "../../db/schema/finance";
-import type { FinanceSubscription, FinanceSubscriptions } from "../../types/finance";
+import type { FinanceSubscription, FinanceSubscriptions, FinanceTransactionPage } from "../../types/finance";
 import { requireObject, ValidationError } from "../../utils/validation";
 import { FinanceNotFound } from "./accounts";
 import { FinanceImportService } from "./import";
-import { detectSubscriptions } from "./subscriptions";
+import { detectSubscriptions, subscriptionSourceKey } from "./subscriptions";
 import { text, today } from "./validation";
 
 export class FinanceSubscriptionService extends FinanceImportService {
@@ -43,6 +43,16 @@ export class FinanceSubscriptionService extends FinanceImportService {
       monthlyCents: entries.filter((entry) => entry.active).reduce((sum, entry) => sum + entry.monthlyCents, 0),
       totalCents: entries.reduce((sum, entry) => sum + entry.totalCents, 0),
     };
+  }
+  subscriptionTransactions(userId: number, id: unknown, input: Record<string, unknown> = {}): FinanceTransactionPage {
+    const subscription = this.subscription(userId, id);
+    const page = Number(input.page ?? 1);
+    if (!Number.isInteger(page) || page < 1 || page > 100000)
+      throw new ValidationError("finance.transactions.invalidFilter");
+    const sources = new Set(subscription.sourceKeys);
+    const entries = this.periodTransactions(userId, "1900-01-01", today())
+      .filter((entry) => entry.amountCents < 0 && !entry.internalTransfer && sources.has(subscriptionSourceKey(entry)));
+    return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
   private subscription(userId: number, id: unknown) {
     if (typeof id !== "string" || !/^[a-f0-9]{64}$/.test(id))

@@ -42,6 +42,7 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     )
     .get("/transactions", ({ userId, query }) => checked(() => finance.transactionList(userId, query)))
     .get("/subscriptions", ({ userId }) => finance.subscriptions(userId))
+    .get("/subscriptions/:id/transactions", ({ userId, params, query }) => checked(() => finance.subscriptionTransactions(userId, params.id, query)))
     .put("/subscriptions/name", ({ userId, body }) => checked(() => finance.renameSubscription(userId, body)))
     .post("/subscriptions/merge", ({ userId, body }) => checked(() => finance.mergeSubscriptions(userId, body)))
     .delete("/subscriptions", ({ userId, body }) => checked(() => finance.excludeSubscription(userId, body)))
