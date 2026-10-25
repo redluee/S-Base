@@ -24,7 +24,7 @@ export function financeHistoryPoints(
     if (series === "total")
       return {
         date: point.date,
-        value: point.complete ? point.totalCents : null,
+        value: point.complete ? (point.transferAdjustedTotalCents ?? point.totalCents) : null,
         savingsValue,
         known: point.known,
         expected: point.expected,

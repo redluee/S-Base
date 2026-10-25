@@ -31,6 +31,7 @@ export class FinanceService extends FinanceImportService {
       ? activity : this.activity(userId, monthStart, report.endDate);
     return {
       ...report,
+      history: this.dashboardHistory(userId, report.history, report.startDate, report.endDate),
       activity,
       budget: monthlyBudgetCents === null ? null : {
         month: report.endDate.slice(0, 7),

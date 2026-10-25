@@ -60,6 +60,35 @@ beforeEach(() => {
 });
 
 describe("Finance transaction imports and totals", () => {
+  it("filters transfers to a closed untracked savings account out of balance history", async () => {
+    const content = [
+      "Datum;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
+      "20250101;DEMO0001;EXTERNAL0001;Bij;100,00;Sample salary;100,00",
+      "20250102;DEMO0001;;Bij;20,00;Van Oranje spaarrekening S00000001;120,00",
+      "20250103;DEMO0001;EXTERNAL0001;Bij;50,00;Sample salary;170,00",
+      "20250104;DEMO0001;;Af;10,00;Naar Oranje spaarrekening S00000001;160,00",
+      "20250105;DEMO0001;EXTERNAL0002;Af;5,00;Sample shop;155,00",
+      "20250106;DEMO0001;EXTERNAL0001;Bij;0,50;Sample interest;155,50",
+    ].join("\n");
+    const entries = service.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
+    const before = service.data(owner);
+    const report = await (await http(owner, "/dashboard?period=all&date=2025-01-06")).json();
+    expect(report.history.map((point: { transferAdjustedTotalCents: number }) => point.transferAdjustedTotalCents)).toEqual([11000, 11000, 16000, 16000, 15500, 15550]);
+    expect(report.history.map((point: { totalCents: number }) => point.totalCents)).toEqual([10000, 12000, 17000, 16000, 15500, 15550]);
+    expect(report.end.totalCents).toBe(15550);
+    expect(report.activity).toMatchObject({ incomeCents: 15050, spendingCents: 500, excludedCount: 2 });
+    expect(service.data(owner)).toEqual(before);
+    expect(service.dashboard(other, "all", "2025-01-06").history.every((point) => point.transferAdjustedTotalCents === undefined)).toBe(true);
+    const past = service.dashboard(owner, "all", "2025-01-02");
+    expect(past.history.map((point) => point.transferAdjustedTotalCents)).toEqual([12000, 12000]);
+    const incoming = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
+    service.setTransfer(owner, incoming.id, { internalTransfer: false });
+    const corrected = service.dashboard(owner, "all", "2025-01-06");
+    expect(corrected.history[1].transferAdjustedTotalCents! - corrected.history[0].transferAdjustedTotalCents!).toBe(2000);
+    service.setTransfer(owner, incoming.id, { internalTransfer: null });
+    expect(service.dashboard(owner, "all", "2025-01-06").history.map((point) => point.transferAdjustedTotalCents)).toEqual(report.history.map((point: { transferAdjustedTotalCents: number }) => point.transferAdjustedTotalCents));
+  });
   it("projects known counteraccounts and respects transfer overrides", () => {
     const content = csv + "\n20250104;Sample transfer;DEMO0001;DEMO0002;Af;10,00;Sample transfer;60,00";
     const selected = service.previewImport({ csv: content, order: "ascending" }).sources.map((source, index) => ({
@@ -70,6 +99,7 @@ describe("Finance transaction imports and totals", () => {
     }));
     service.importBalances(owner, { csv: content, order: "ascending", selections: selected });
     expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
+    expect(service.dashboard(owner, "all", "2025-01-04").history.every((point) => point.transferAdjustedTotalCents === undefined)).toBe(true);
     const entry = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-04")!;
     service.setTransfer(owner, entry.id, { internalTransfer: false });
     expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(58000);

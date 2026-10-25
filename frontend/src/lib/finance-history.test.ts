@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { dashboard } from "../../../backend/src/modules/finance/calculations";
+import { transferAdjustedHistory } from "../../../backend/src/modules/finance/transfer-balances";
 import type {
   FinanceAccount,
   FinanceObservation,
@@ -46,6 +47,19 @@ const observations: FinanceObservation[] = [
 const report = () => dashboard(accounts, observations, "all", "2025-03-01");
 
 describe("Combined money and savings chart", () => {
+  it("keeps transfers from a missing closed account flat while retaining actual account balances", () => {
+    const current = accounts[0];
+    const report = dashboard([current], [
+      { id: 1, accountId: current.id, date: "2025-01-01", balanceCents: 10000 },
+      { id: 2, accountId: current.id, date: "2025-01-02", balanceCents: 12000 },
+      { id: 3, accountId: current.id, date: "2025-01-03", balanceCents: 11500 },
+    ], "all", "2025-01-03");
+    const history = transferAdjustedHistory(report.history, [{ date: "2025-01-02", amountCents: 2000 }]);
+    expect(financeHistoryPoints(history, "total").map((point) => point.value)).toEqual([12000, 12000, 11500]);
+    expect(financeHistoryPoints(history, String(current.id)).map((point) => point.value)).toEqual([10000, 12000, 11500]);
+    const incomplete = history.map((point) => ({ ...point, complete: false }));
+    expect(financeHistoryPoints(incomplete, "total").every((point) => point.value === null)).toBe(true);
+  });
   it("includes every current and savings balance exactly once, including archived savings", () => {
     const points = financeHistoryPoints(report().history, "total");
     expect(points[0].value).toBe(80029);
