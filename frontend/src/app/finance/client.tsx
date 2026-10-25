@@ -183,9 +183,9 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
           >
             {(tab === "overview" || tab === "transactions") && data.accounts.length > 0 && (
               <div className="space-y-5">
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                <div className="flex items-end justify-between gap-2 sm:gap-4">
                   <div
-                    className="flex flex-wrap gap-1"
+                    className="flex shrink-0 gap-1"
                     aria-label={t("finance.period")}
                   >
                     {(["month", "year", "all"] as FinancePeriod[]).map(
@@ -194,11 +194,11 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
                           key={value}
                           variant="outline"
                           aria-pressed={period === value}
-                          className={
+                          className={`px-2 text-xs sm:px-2.5 sm:text-sm ${
                             period === value
                               ? "border-foreground text-foreground"
                               : "text-muted-foreground"
-                          }
+                          }`}
                           onClick={() => setPeriod(value)}
                         >
                           {t(`finance.${value}`)}
@@ -210,12 +210,12 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
                     <MonthPicker value={date.slice(0, 7)} today={today} onChange={(month) => setDate(`${month}-01`)} />
                   )}
                   {period === "year" && (
-                    <div className="w-full sm:w-48">
+                    <div className="min-w-0 flex-1 sm:w-48 sm:flex-none">
                       <YearPicker value={Number(date.slice(0, 4))} maxYear={Number(today.slice(0, 4))} onChange={(year) => setDate(`${year}-01-01`)} />
                     </div>
                   )}
                 </div>
-                {tab === "overview" ? <Overview report={report} data={data} /> : (
+                {tab === "overview" ? <Overview report={report} data={data} period={period} /> : (
                   <Transactions key={`${report.startDate}-${report.endDate}`} data={data} start={report.startDate} end={report.endDate} />
                 )}
               </div>

@@ -20,14 +20,15 @@ export function MonthPicker({ value, today, onChange }: {
   const selectedMonth = t(`finance.calendar.month.${Number(value.slice(5, 7))}`);
 
   return (
-    <div className="w-full sm:w-56">
+    <div className="min-w-0 flex-1 sm:w-56 sm:flex-none">
       <span id={labelId} className="sr-only">{t("finance.month")}</span>
       <Popover.Root open={open} onOpenChange={(nextOpen) => {
         if (nextOpen) setYear(Number(value.slice(0, 4)));
         setOpen(nextOpen);
       }}>
-        <Popover.Trigger aria-labelledby={`${labelId} ${valueId}`} render={<Action variant="outline" className="w-full justify-between" />}>
-          <span id={valueId}>{selectedMonth} {value.slice(0, 4)}</span>
+        <Popover.Trigger aria-labelledby={`${labelId} ${valueId}`} render={<Action variant="outline" className="w-full justify-between px-2 text-xs sm:px-2.5 sm:text-sm" />}>
+          <span id={valueId} className="sr-only">{selectedMonth} {value.slice(0, 4)}</span>
+          <span aria-hidden="true" className="truncate"><span className="sm:hidden">{selectedMonth.slice(0, 3)}</span><span className="hidden sm:inline">{selectedMonth}</span> {value.slice(0, 4)}</span>
           <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />
         </Popover.Trigger>
         <Popover.Portal>

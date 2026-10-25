@@ -69,7 +69,7 @@ export const financeNl: Record<string, string> = {
   "finance.budget.remaining": "Resterend maandbudget · {month}",
   "finance.budget.available": "Nog beschikbaar deze maand",
   "finance.budget.over": "Maandbudget overschreden",
-  "finance.budget.summary": "{spent} uitgegeven van {limit} · exclusief abonnementen",
+  "finance.budget.summary": "{spent} uitgegeven van {limit}",
   "finance.settings.resetTitle": "Alle Finance-gegevens verwijderen",
   "finance.settings.resetHelp": "Begin opnieuw met je eigen Finance-module. Je rekeningen, saldi, transacties, importkoppelingen, maandbudget en spaardoelen worden definitief verwijderd. Andere modules en andere gebruikers blijven behouden.",
   "finance.settings.scope": "{accounts} rekeningen · {balances} saldomomenten · {goals} spaardoelen, inclusief alle transacties en toewijzingen.",
@@ -196,6 +196,8 @@ export const financeNl: Record<string, string> = {
   "finance.archiveHelp":
     "Archiveren verbergt een rekening bij het dagelijks bijwerken. Het laatst bekende saldo blijft meetellen, ook nu en in de geschiedenis. Archiveren betekent dus geen nulstand of afgesloten rekening. Registreer een werkelijk eindsaldo op de juiste datum vóór je archiveert. Je kunt de rekening herstellen en historische saldi blijven bewerken.",
   "finance.trackedMoney": "Totaal op je rekeningen",
+  "finance.latestData": "Laatste gegevens: {date}",
+  "finance.currentTotal": "Op betaalrekeningen",
   "finance.savingsTotal": "Op spaarrekeningen",
   "finance.balanceChange": "Saldoverandering in deze periode",
   "finance.knownPart": "Bekend deel · geen volledig totaal",
