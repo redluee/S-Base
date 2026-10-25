@@ -14,6 +14,7 @@ import type {
   FinanceImportResult,
   FinanceTransactionPage,
   FinanceSubscriptions,
+  FinanceSubscriptionCadence,
 } from "@backend/types/finance";
 
 const json = (method: string, body: unknown) => ({
@@ -21,6 +22,10 @@ const json = (method: string, body: unknown) => ({
   body: JSON.stringify(body),
 });
 export const financeApi = {
+  addSubscription: (transactionId: number, cadence: FinanceSubscriptionCadence) =>
+    request<{ success: boolean }>("/finance/subscriptions", json("POST", { transactionId, cadence })),
+  subscriptionCandidates: (search: string, page: number) =>
+    request<FinanceTransactionPage>(`/finance/transactions?subscriptionCandidate=true&search=${encodeURIComponent(search)}&page=${page}`),
   subscriptions: () => request<FinanceSubscriptions>("/finance/subscriptions"),
   subscriptionTransactions: (id: string, page: number) =>
     request<FinanceTransactionPage>(`/finance/subscriptions/${encodeURIComponent(id)}/transactions?page=${page}`),

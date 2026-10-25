@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import db from "../../db/client";
 import { financeSubscriptionPreferences as preferences } from "../../db/schema/finance";
-import type { FinanceSubscription, FinanceSubscriptions, FinanceTransactionPage } from "../../types/finance";
-import { requireObject, ValidationError } from "../../utils/validation";
+import type { FinanceSubscription, FinanceSubscriptionCadence, FinanceSubscriptions, FinanceTransactionPage } from "../../types/finance";
+import { requireId, requireObject, ValidationError } from "../../utils/validation";
 import { FinanceNotFound } from "./accounts";
 import { FinanceImportService } from "./import";
 import { detectSubscriptions, subscriptionSourceKey } from "./subscriptions";
@@ -11,8 +11,9 @@ import { text, today } from "./validation";
 export class FinanceSubscriptionService extends FinanceImportService {
   subscriptions(userId: number): FinanceSubscriptions {
     const end = today();
-    const report = detectSubscriptions(this.periodTransactions(userId, "1900-01-01", end), end);
     const rules = db.select().from(preferences).where(eq(preferences.userId, userId)).all();
+    const overrides = new Map(rules.filter((rule) => rule.cadence !== null).map((rule) => [rule.sourceKey, rule.cadence!]));
+    const report = detectSubscriptions(this.periodTransactions(userId, "1900-01-01", end), end, overrides);
     const bySource = new Map(rules.map((rule) => [rule.sourceKey, rule]));
     const groups = new Map<string, FinanceSubscription[]>();
     for (const entry of report.entries) {
@@ -43,6 +44,22 @@ export class FinanceSubscriptionService extends FinanceImportService {
       monthlyCents: entries.filter((entry) => entry.active).reduce((sum, entry) => sum + entry.monthlyCents, 0),
       totalCents: entries.reduce((sum, entry) => sum + entry.totalCents, 0),
     };
+  }
+  addSubscription(userId: number, input: unknown) {
+    const body = requireObject(input);
+    const transactionId = requireId(body.transactionId);
+    const cadences: FinanceSubscriptionCadence[] = ["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly"];
+    if (!cadences.includes(body.cadence as FinanceSubscriptionCadence))
+      throw new ValidationError("finance.subscriptions.invalidSelection");
+    const entry = this.periodTransactions(userId, "1900-01-01", today()).find((entry) => entry.id === transactionId);
+    if (!entry) throw new FinanceNotFound("Transaction not found");
+    if (entry.amountCents >= 0 || entry.internalTransfer || !entry.name.trim())
+      throw new ValidationError("finance.subscriptions.invalidTransaction");
+    const sourceKey = subscriptionSourceKey(entry);
+    const cadence = body.cadence as FinanceSubscriptionCadence;
+    db.insert(preferences).values({ userId, sourceKey, groupKey: sourceKey, cadence, excluded: false })
+      .onConflictDoUpdate({ target: [preferences.userId, preferences.sourceKey], set: { cadence, excluded: false } }).run();
+    return { success: true };
   }
   subscriptionTransactions(userId: number, id: unknown, input: Record<string, unknown> = {}): FinanceTransactionPage {
     const subscription = this.subscription(userId, id);

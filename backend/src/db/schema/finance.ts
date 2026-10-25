@@ -21,6 +21,7 @@ export const financeSubscriptionPreferences = sqliteTable("finance_subscription_
   userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
   sourceKey: text("source_key").notNull(),
   groupKey: text("group_key").notNull(),
+  cadence: text("cadence", { enum: ["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly"] }),
   name: text("name"),
   excluded: integer("excluded", { mode: "boolean" }).notNull().default(false),
 }, (table) => [

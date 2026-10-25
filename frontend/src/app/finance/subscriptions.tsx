@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import type { FinanceData, FinanceSubscription, FinanceSubscriptions } from "@backend/types/finance";
-import { History, Merge, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { History, Merge, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { dateLabel, money } from "@/lib/finance";
 import { t } from "@/lib/lang";
 import { Menu } from "@base-ui/react/menu";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Transactions } from "./transactions";
-import { panel } from "./ui";
+import { Action, panel } from "./ui";
+import { AddSubscription } from "./add-subscription";
 import { SubscriptionForm, type SubscriptionAction } from "./subscription-form";
 
 export function Subscriptions({ report, data, onSaved }: { report: FinanceSubscriptions; data: FinanceData; onSaved: () => Promise<void> }) {
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<{ entry: FinanceSubscription; action: SubscriptionAction } | null>(null);
   const [history, setHistory] = useState<FinanceSubscription | null>(null);
   const menuItem = "flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
@@ -28,7 +30,12 @@ export function Subscriptions({ report, data, onSaved }: { report: FinanceSubscr
         </div>
       </div>
       <section className={panel} aria-labelledby="subscriptions-title">
-        <h2 id="subscriptions-title" className="text-lg font-semibold">{t("finance.subscriptions")}</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="subscriptions-title" className="text-lg font-semibold">{t("finance.subscriptions")}</h2>
+          <Action variant="outline" onClick={() => setAdding(true)} aria-label={t("finance.subscriptions.add")}>
+            <Plus className="size-4" aria-hidden="true" /><span className="hidden sm:inline">{t("finance.subscriptions.add")}</span>
+          </Action>
+        </div>
         {report.entries.length === 0 ? (
           <p className="py-8 text-sm text-muted-foreground">{t("finance.subscriptions.empty")}</p>
         ) : (
@@ -84,6 +91,7 @@ export function Subscriptions({ report, data, onSaved }: { report: FinanceSubscr
           </div>
         )}
       </section>
+      {adding && <AddSubscription data={data} onClose={() => setAdding(false)} onSaved={onSaved} />}
       {history && <ModalOverlay open onClose={() => setHistory(null)} label={`${t("finance.transactions")} · ${history.name}`}>
         <div className="max-h-[85dvh] w-[min(42rem,calc(100vw-2rem))] overflow-y-auto">
           <Transactions data={data} start={history.firstDate} end={history.lastDate} subscriptionId={history.id} title={history.name} onClose={() => setHistory(null)} />

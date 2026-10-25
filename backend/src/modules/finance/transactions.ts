@@ -98,7 +98,10 @@ export class FinanceTransactionsService extends FinanceGoalsService {
     const start = calendarDate(input.start ?? "1900-01-01"), end = calendarDate(input.end ?? today());
     const page = Number(input.page ?? 1);
     if (start > end || !Number.isInteger(page) || page < 1 || page > 100000) throw new ValidationError("finance.transactions.invalidFilter");
-    const entries = this.periodTransactions(userId, start, end);
+    const query = typeof input.search === "string" ? input.search.trim().toLowerCase() : "";
+    const entries = this.periodTransactions(userId, start, end).filter((entry) =>
+      (input.subscriptionCandidate !== "true" || (entry.amountCents < 0 && !entry.internalTransfer && entry.name.trim()))
+      && (!query || `${entry.name} ${entry.description}`.toLowerCase().includes(query)));
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
   setTransfer(userId: number, id: number, input: unknown) {

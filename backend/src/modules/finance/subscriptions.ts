@@ -16,7 +16,7 @@ export function subscriptionSourceKey(entry: Pick<FinanceTransaction, "accountId
   return createHash("sha256").update(JSON.stringify([entry.accountId, entry.name.trim().replace(/\s+/g, " ").toLowerCase()])).digest("hex");
 }
 
-export function detectSubscriptions(transactions: FinanceTransaction[], asOf: string): FinanceSubscriptions {
+export function detectSubscriptions(transactions: FinanceTransaction[], asOf: string, overrides: ReadonlyMap<string, FinanceSubscriptionCadence> = new Map()): FinanceSubscriptions {
   const groups = new Map<string, FinanceTransaction[]>();
   for (const entry of transactions) {
     if (entry.date > asOf || entry.amountCents >= 0 || entry.internalTransfer) continue;
@@ -30,9 +30,10 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
   const entries: FinanceSubscriptions["entries"] = [];
   for (const group of groups.values()) {
     group.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
-    if (group.length < 2) continue;
+    const override = overrides.get(subscriptionSourceKey(group[0]));
+    if (group.length < 2 && !override) continue;
     const gaps = group.slice(1).map((entry, index) => (timestamp(entry.date) - timestamp(group[index].date)) / day);
-    const cadence = cadences.find((candidate) => group.length >= candidate.minimum
+    const cadence = cadences.find((candidate) => candidate.cadence === override) ?? cadences.find((candidate) => group.length >= candidate.minimum
       && gaps.every((gap) => gap > 0)
       && gaps.filter((gap) => Math.abs(gap - candidate.days) <= candidate.tolerance).length / gaps.length >= 0.8);
     if (!cadence) continue;

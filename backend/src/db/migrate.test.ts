@@ -65,7 +65,7 @@ describe("Database Migration Runner", () => {
     memDb.run("INSERT INTO users (username) VALUES ('admin');");
 
     const result = await runMigrations(memDb);
-    expect(result.applied).toBe(6);
+    expect(result.applied).toBe(7);
 
     const rows = memDb.query<{ name: string }, []>("SELECT name FROM _migrations").all();
     expect(rows.length).toBeGreaterThan(0);

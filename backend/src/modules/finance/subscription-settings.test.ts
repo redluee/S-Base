@@ -176,3 +176,50 @@ describe("Subscription corrections", () => {
     expect(service.subscriptions(other).entries[0].name).toBe("Sample custom");
   });
 });
+
+
+describe("Manual subscriptions", () => {
+  function payment(userId: number, amountCents = -2400, name = "Sample manual", transferOverride = false) {
+    const account = service.createAccount(userId, { name: "Sample account", type: "current", openingDate: "2020-01-01", openingBalanceCents: 100000 });
+    return db.insert(financeTransactions).values({ accountId: account.id, fingerprint: `manual-${account.id}`, date: month(0), amountCents, name, description: "Sample description", transferOverride }).returning().get();
+  }
+  it("adds one payment, retains its frequency and includes irregular future imports without duplicates", async () => {
+    const transaction = payment(owner);
+    expect(service.subscriptions(owner).entries).toEqual([]);
+    const response = await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "yearly" });
+    expect(response.status).toBe(200);
+    expect(new FinanceService().subscriptions(owner)).toMatchObject({ monthlyCents: 200, totalCents: 2400 });
+    db.insert(financeTransactions).values({ accountId: transaction.accountId, fingerprint: "manual-extra", date: month(-2), amountCents: -2000, name: "  SAMPLE manual  ", description: "" }).run();
+    service.addSubscription(owner, { transactionId: transaction.id, cadence: "yearly" });
+    const report = service.subscriptions(owner);
+    expect(report.entries).toHaveLength(1);
+    expect(report.entries[0]).toMatchObject({ cadence: "yearly", monthlyCents: 200, totalCents: 4400, paymentCount: 2 });
+    expect(service.subscriptionTransactions(owner, report.entries[0].id).total).toBe(2);
+    service.renameSubscription(owner, { id: report.entries[0].id, name: "Sample renamed" });
+    service.excludeSubscription(owner, { id: report.entries[0].id });
+    expect(service.subscriptions(owner).entries).toEqual([]);
+    service.addSubscription(owner, { transactionId: transaction.id, cadence: "quarterly" });
+    expect(service.subscriptions(owner).entries[0]).toMatchObject({ name: "Sample renamed", cadence: "quarterly", monthlyCents: 800 });
+  });
+  it("rejects foreign payments, income, transfers, unnamed payments, invalid cadence and unauthorized requests", async () => {
+    const foreign = payment(other);
+    expect((await http(owner, "/subscriptions", "POST", { transactionId: foreign.id, cadence: "monthly" })).status).toBe(404);
+    for (const transaction of [payment(owner, 1000), payment(owner, -1000, "Sample transfer", true), payment(owner, -1000, " ")]) {
+      expect((await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status).toBe(400);
+    }
+    const transaction = payment(owner);
+    expect((await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "daily" })).status).toBe(400);
+    expect((await http(null, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status).toBe(401);
+    expect((await http(forbidden, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status).toBe(403);
+  });
+  it("searches eligible payments before pagination and isolates candidate history by owner", () => {
+    const eligible = payment(owner);
+    payment(owner, 1200);
+    payment(owner, -1000, "Sample transfer", true);
+    payment(other);
+    const result = service.transactionList(owner, { subscriptionCandidate: "true", search: "DESCRIPTION" });
+    expect(result.total).toBe(1);
+    expect(result.entries[0].id).toBe(eligible.id);
+    expect(service.transactionList(owner, { subscriptionCandidate: "true", search: "missing" }).total).toBe(0);
+  });
+});
