@@ -90,8 +90,7 @@ export function financeHistoryGeometry(
       }
       const current = { x: x(point.date), y: y(value) };
       if (previous) {
-        const middle = (previous.x + current.x) / 2;
-        result += ` C ${middle} ${previous.y}, ${middle} ${current.y}, ${current.x} ${current.y}`;
+        result += ` H ${current.x} V ${current.y}`;
       } else {
         result += ` M ${current.x} ${current.y}`;
       }

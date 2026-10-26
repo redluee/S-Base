@@ -21,6 +21,14 @@ export function snapshot(
     )
       latest.set(observation.accountId, observation);
   }
+  return snapshotFromBalances(accounts, latest, date);
+}
+
+function snapshotFromBalances(
+  accounts: FinanceAccount[],
+  latest: Map<number, FinanceObservation>,
+  date: string,
+): FinanceSnapshot {
   const rows = accounts
     .filter((a) => a.openingDate <= date)
     .map((a) => {
@@ -50,6 +58,28 @@ export function snapshot(
     complete: rows.length > 0 && rows.length === known.length,
     mixedDates: new Set(known.map((a) => a.lastDate)).size > 1,
   };
+}
+
+export function dailyBalanceHistory(
+  accounts: FinanceAccount[],
+  observations: FinanceObservation[],
+  startDate: string,
+  endDate: string,
+): FinanceSnapshot[] {
+  const ordered = [...observations].sort((a, b) => a.date.localeCompare(b.date));
+  const latest = new Map<number, FinanceObservation>();
+  const history: FinanceSnapshot[] = [];
+  const day = new Date(`${startDate}T12:00:00Z`);
+  let index = 0;
+  for (let date = startDate; date <= endDate; date = day.toISOString().slice(0, 10)) {
+    while (index < ordered.length && ordered[index].date <= date) {
+      const observation = ordered[index++];
+      latest.set(observation.accountId, observation);
+    }
+    history.push(snapshotFromBalances(accounts, latest, date));
+    day.setUTCDate(day.getUTCDate() + 1);
+  }
+  return history;
 }
 export function compare(
   start: FinanceSnapshot,
@@ -106,17 +136,7 @@ export function dashboard(
       : period === "year"
         ? `${endDate.slice(0, 4)}-01-01`
         : (earliest ?? endDate);
-  const dates = [
-    ...new Set([
-      startDate,
-      endDate,
-      ...accounts.map((a) => a.openingDate),
-      ...observations.map((o) => o.date),
-    ]),
-  ]
-    .filter((d) => d >= startDate && d <= endDate)
-    .sort();
-  const history = dates.map((date) => snapshot(accounts, observations, date));
+  const history = dailyBalanceHistory(accounts, observations, startDate, endDate);
   const baselineDate = new Date(`${startDate}T00:00:00Z`);
   baselineDate.setUTCDate(baselineDate.getUTCDate() - 1);
   const start = period === "all"

@@ -232,7 +232,7 @@ export const financeNl: Record<string, string> = {
   "finance.historyPointValue": "{date}: {amount}",
   "finance.progression": "Saldoverloop",
   "finance.historySeries": "Getoonde reeks",
-  "finance.chartHelp": "De lijn volgt je geïmporteerde saldi. Tussen imports blijft het laatst bekende saldo staan. Ontbrekende saldi onderbreken de lijn.",
+  "finance.chartHelp": "Elke dag toont de som van je betaal- en spaarrekeningen. Het laatst bekende saldo wordt aangevuld met herkende overboekingen tussen je rekeningen. De periode bepaalt alleen welke dagen je ziet. Ontbrekende saldi onderbreken de lijn.",
   "finance.insufficientHistory": "Importeer saldi op minstens twee verschillende datums om je verloop te kunnen beoordelen.",
   "finance.lowest": "Laagste",
   "finance.highest": "Hoogste",

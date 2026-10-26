@@ -70,8 +70,9 @@ describe("Combined money and savings chart", () => {
   });
   it("shows a transfer as stable total money and a changed savings component", () => {
     const points = financeHistoryPoints(report().history, "total");
-    expect(points[1].value! - points[0].value!).toBe(0);
-    expect(points[1].savingsValue! - points[0].savingsValue!).toBe(5000);
+    const transferred = points.find((point) => point.date === "2025-02-01")!;
+    expect(transferred.value! - points[0].value!).toBe(0);
+    expect(transferred.savingsValue! - points[0].savingsValue!).toBe(5000);
   });
   it("keeps unknown coverage as gaps without future backfill, while exposing known savings separately", () => {
     const partial = dashboard(
@@ -87,7 +88,7 @@ describe("Combined money and savings chart", () => {
     expect(points[0].value).toBeNull();
     expect(points[0].savingsValue).toBe(70000);
     expect(points[0].known).toBe(2);
-    expect(points[1].value).toBe(80029);
+    expect(points.find((point) => point.date === "2025-02-01")?.value).toBe(80029);
     const unknownSavings = dashboard(
       accounts,
       observations.filter((observation) => observation.accountId !== 3),
@@ -126,8 +127,8 @@ describe("Combined money and savings chart", () => {
     const points = financeHistoryPoints(history, "total");
     expect(points[0].value).toBe(0);
     expect(points[0].savingsValue).toBeNull();
-    expect(points[1].value).toBe(0);
-    expect(points[1].savingsValue).toBe(100);
+    expect(points.find((point) => point.date === "2025-02-01")?.value).toBe(0);
+    expect(points.find((point) => point.date === "2025-02-01")?.savingsValue).toBe(100);
     expect(financeHistoryPoints(history, "2")[0].value).toBeNull();
   });
 });
@@ -188,7 +189,8 @@ describe("Money chart geometry", () => {
     expect(chart.x(points[1].date)).toBe(
       (chart.x(points[0].date) + chart.x(points[2].date)) / 2,
     );
-    expect(chart.savingsPath).toContain(" C ");
+    expect(chart.savingsPath).toContain(" H ");
+    expect(chart.savingsPath).not.toContain(" C ");
   });
   it("breaks lines at unknown observations instead of drawing through the gap", () => {
     const points = [
@@ -265,8 +267,9 @@ describe("Zero-based chart scale", () => {
         expect(chart.y(value)).toBeGreaterThanOrEqual(20);
         expect(chart.y(value)).toBeLessThanOrEqual(190);
       }
-      expect(chart.totalPath).toContain(" C ");
-      expect(chart.totalPath).not.toContain(" V ");
+      expect(chart.totalPath).toContain(" H ");
+      expect(chart.totalPath).toContain(" V ");
+      expect(chart.totalPath).not.toContain(" C ");
     });
   }
 });
