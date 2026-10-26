@@ -12,7 +12,7 @@ export default async function SubscriptionsPage() {
       <NavHeader username={user.username} />
       <main id="main-content" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
         {user.modules?.includes("finance") ? (
-          <FinanceClient initialTab="subscriptions" />
+          <FinanceClient />
         ) : (
           <p role="alert">{t("finance.forbidden")}</p>
         )}

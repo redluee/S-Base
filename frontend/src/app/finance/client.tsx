@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import type {
   FinanceDashboard,
   FinanceData,
@@ -19,12 +20,28 @@ import { FinanceImport } from "./import";
 import { Transactions } from "./transactions";
 import { FinanceSettings } from "./settings";
 import { Upload } from "lucide-react";
-import Link from "next/link";
 import { Subscriptions } from "./subscriptions";
 
 type Tab = "overview" | "accounts" | "import" | "transactions" | "subscriptions" | "settings";
 
-export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab }) {
+export function FinanceClient() {
+  return <Suspense fallback={<p role="status" className="text-sm text-muted-foreground">{t("finance.loading")}</p>}>
+    <FinanceContent />
+  </Suspense>;
+}
+
+function FinanceContent() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const tab: Tab = requestedTab && ["overview", "accounts", "import", "transactions", "subscriptions", "settings"].includes(requestedTab)
+    ? requestedTab as Tab
+    : pathname === "/finance/subscriptions" ? "subscriptions" : "overview";
+  function setTab(value: Tab) {
+    const href = value === "subscriptions" ? "/finance/subscriptions"
+      : value === "overview" ? "/finance" : `/finance?tab=${value}`;
+    window.history.pushState(null, "", href);
+  }
   const [subscriptions, setSubscriptions] = useState<FinanceSubscriptions | null>(null);
   const [data, setData] = useState<FinanceData | null>(null),
     [report, setReport] = useState<FinanceDashboard | null>(null);
@@ -37,8 +54,7 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
     }).format(new Date()),
   );
   const [date, setDate] = useState(today);
-  const [period, setPeriod] = useState<FinancePeriod>("month"),
-    [tab, setTab] = useState<Tab>(initialTab);
+  const [period, setPeriod] = useState<FinancePeriod>("month");
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -133,7 +149,6 @@ export function FinanceClient({ initialTab = "overview" }: { initialTab?: Tab })
                   ? "bg-zinc-900 text-brand hover:bg-zinc-800 hover:text-brand"
                   : "text-muted-foreground"
               }
-              render={value === "subscriptions" ? <Link href="/finance/subscriptions" /> : undefined}
               onClick={() => setTab(value)}
             >
               {t(`finance.${value}`)}
