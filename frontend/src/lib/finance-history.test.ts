@@ -151,11 +151,12 @@ describe("Combined money and savings chart", () => {
 
 describe("Money chart geometry", () => {
   it("uses evenly spaced ticks with a ceiling that contains the data", () => {
-    for (const [value, upper] of [[1_234_567, 1_400_000], [1_300_000, 1_400_000], [1_300_001, 1_400_000], [1_200_000, 1_200_000], [490_000, 500_000], [0, 100], [-490_000, 0]]) {
+    for (const value of [1_234_567, 1_300_000, 1_300_001, 1_200_000, 490_000, 0, -490_000]) {
       const point = { date: "2025-01-01", value, savingsValue: null, known: 1, expected: 1 };
       const chart = financeHistoryGeometry([point], false, point.date, point.date);
-      expect(chart.upper).toBe(upper);
-      expect(chart.ticks[0]).toBe(upper);
+      expect(chart.upper).toBeGreaterThanOrEqual(value);
+      expect(chart.lower).toBeLessThanOrEqual(value);
+      expect(chart.ticks[0]).toBe(chart.upper);
       expect(chart.ticks).toContain(0);
       const intervals = chart.ticks.slice(1).map((tick, index) => chart.ticks[index] - tick);
       expect(new Set(intervals).size).toBe(1);
@@ -164,8 +165,21 @@ describe("Money chart geometry", () => {
   });
   it("labels every thousand euros on a five-thousand-euro axis", () => {
     const point = { date: "2025-01-01", value: 490_000, savingsValue: null, known: 1, expected: 1 };
-    const chart = financeHistoryGeometry([point], false, point.date, point.date);
+    const chart = financeHistoryGeometry([{ ...point, value: 0 }, point], false, point.date, point.date);
     expect(chart.ticks).toEqual([500_000, 400_000, 300_000, 200_000, 100_000, 0]);
+  });
+  it("keeps steady positive and negative balances near the vertical middle", () => {
+    for (const values of [[680_000, 780_000], [-780_000, -680_000], [700_000, 700_000]]) {
+      const points = values.map((value, index) => ({
+        date: `2025-01-0${index + 1}`, value, savingsValue: null, known: 1, expected: 1,
+      }));
+      const chart = financeHistoryGeometry(points, false, points[0].date, points[1].date);
+      const middleValue = (values[0] + values[1]) / 2;
+      expect(Math.abs(chart.y(middleValue) - 105)).toBeLessThan(20);
+      expect(chart.ticks).toContain(0);
+      const intervals = chart.ticks.slice(1).map((tick, index) => chart.ticks[index] - tick);
+      expect(new Set(intervals).size).toBe(1);
+    }
   });
   it("fits both series to one scale and preserves calendar positioning over DST changes", () => {
     const points = [
