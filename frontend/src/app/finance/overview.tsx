@@ -26,7 +26,6 @@ export function Overview({ data, report, period }: { data: FinanceData; report: 
   return (
     <div className="space-y-5">
       {!report.end.complete && <Notice>{t("finance.incomplete")}</Notice>}
-      {report.end.accounts.some((account) => account.inferred) && <Notice>{t("finance.inferredBalancesHelp")}</Notice>}
       <section className={`${panel} flex flex-wrap items-end justify-between gap-6`}>
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"><Wallet className="size-4 shrink-0" aria-hidden="true" /><span>{t("finance.trackedMoney")}</span><span className="text-xs">· {t("finance.latestData", { date: dateLabel(lastDataDate) })}</span></p>

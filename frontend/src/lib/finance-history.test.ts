@@ -168,14 +168,14 @@ describe("Money chart geometry", () => {
     const chart = financeHistoryGeometry([{ ...point, value: 0 }, point], false, point.date, point.date);
     expect(chart.ticks).toEqual([500_000, 400_000, 300_000, 200_000, 100_000, 0]);
   });
-  it("keeps steady positive and negative balances near the vertical middle", () => {
+  it("fits steady balances between zero and the nearest axis boundary", () => {
     for (const values of [[680_000, 780_000], [-780_000, -680_000], [700_000, 700_000]]) {
       const points = values.map((value, index) => ({
         date: `2025-01-0${index + 1}`, value, savingsValue: null, known: 1, expected: 1,
       }));
       const chart = financeHistoryGeometry(points, false, points[0].date, points[1].date);
-      const middleValue = (values[0] + values[1]) / 2;
-      expect(Math.abs(chart.y(middleValue) - 105)).toBeLessThan(20);
+      expect(chart.lower).toBe(values[0] < 0 ? -800_000 : 0);
+      expect(chart.upper).toBe(values[0] < 0 ? 0 : values[0] === values[1] ? 700_000 : 800_000);
       expect(chart.ticks).toContain(0);
       const intervals = chart.ticks.slice(1).map((tick, index) => chart.ticks[index] - tick);
       expect(new Set(intervals).size).toBe(1);

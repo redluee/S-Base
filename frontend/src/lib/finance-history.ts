@@ -1,4 +1,5 @@
 import type { FinanceSnapshot } from "@backend/types/finance";
+import { financeChartScale } from "./finance-chart-scale";
 
 export interface FinanceHistoryPoint {
   date: string;
@@ -66,14 +67,7 @@ export function financeHistoryGeometry(
     .filter((value): value is number => value !== null);
   const min = values.length ? Math.min(...values) : 0;
   const max = values.length ? Math.max(...values) : 0;
-  const scaleMin = Math.min(0, min, min + max);
-  const scaleMax = Math.max(0, max, min + max);
-  const rawStep = Math.max(100, (scaleMax - scaleMin) / 4);
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const step = ([10, 5, 2, 1].find((value) => value * magnitude <= rawStep) ?? 1) * magnitude;
-  const lower = Math.floor(scaleMin / step) * step;
-  const upper = scaleMax > 0 ? Math.ceil(scaleMax / step) * step : scaleMin < 0 ? 0 : step;
-  const ticks = Array.from({ length: Math.round((upper - lower) / step) + 1 }, (_, index) => lower + index * step).reverse();
+  const { lower, upper, ticks } = financeChartScale(values);
   const time = (date: string) => Date.parse(`${date}T12:00:00Z`);
   const duration = time(endDate) - time(startDate) || 1;
   const x = (date: string) =>

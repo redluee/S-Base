@@ -236,7 +236,6 @@ export const financeNl: Record<string, string> = {
   "finance.inferredSavings": "Spaarrekening {number} (berekend)",
   "finance.inferredOwnAccount": "Eigen rekening {number} (berekend)",
   "finance.untracked": "Niet geïmporteerde eigen rekening",
-  "finance.inferredBalancesHelp": "Het totaal bevat berekende saldi van eigen rekeningen zonder import, ook van gesloten rekeningen. Deze zijn afgeleid van eigen overboekingen, met het laagste beginsaldo dat de bekende overboekingen kan verklaren. Ontbrekende rente of transacties zijn niet bekend. Importeer de rekeninghistorie voor exacte saldi.",
   "finance.insufficientHistory": "Importeer saldi op minstens twee verschillende datums om je verloop te kunnen beoordelen.",
   "finance.lowest": "Laagste",
   "finance.highest": "Hoogste",

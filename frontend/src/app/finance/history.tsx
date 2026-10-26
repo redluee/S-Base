@@ -245,7 +245,7 @@ export function History({
               )}
             </svg>
           </div>
-          <div className="flex justify-between gap-2 text-xs tabular-nums text-muted-foreground">
+          <div className="flex justify-between gap-2 pl-16 text-xs tabular-nums text-muted-foreground sm:pl-20">
             <span>{dateLabel(report.startDate)}</span>
             <span>{dateLabel(report.endDate)}</span>
           </div>
