@@ -25,10 +25,12 @@ export const financeSubscriptionPreferences = sqliteTable("finance_subscription_
   irregular: integer("irregular", { mode: "boolean" }).notNull().default(false),
   name: text("name"),
   excluded: integer("excluded", { mode: "boolean" }).notNull().default(false),
+  inactive: integer("inactive", { mode: "boolean" }).notNull().default(false),
 }, (table) => [
   uniqueIndex("finance_subscription_preference_source").on(table.userId, table.sourceKey),
   check("finance_subscription_irregular", sql`${table.irregular} IN (0, 1)`),
   check("finance_subscription_excluded", sql`${table.excluded} IN (0, 1)`),
+  check("finance_subscription_inactive", sql`${table.inactive} IN (0, 1)`),
 ]);
 
 export const financeAccounts = sqliteTable(

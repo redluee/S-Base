@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { FinanceData, FinanceSubscription, FinanceSubscriptions } from "@backend/types/finance";
-import { History, Merge, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { History, Merge, MoreHorizontal, Pencil, Plus, Trash2, Pause, Play } from "lucide-react";
 import { dateLabel, money } from "@/lib/finance";
 import { t } from "@/lib/lang";
 import { Menu } from "@base-ui/react/menu";
@@ -46,7 +46,7 @@ export function Subscriptions({ report, data, onSaved }: { report: FinanceSubscr
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="min-w-0 break-words text-sm font-medium">{entry.name}</h3>
                     <span className={`rounded-full border border-border px-2 py-1 text-xs ${entry.active ? "text-brand" : "text-muted-foreground"}`}>
-                      {t(entry.active ? "finance.subscriptions.active" : "finance.subscriptions.inactive")}
+                      {t(entry.inactive ? "finance.subscriptions.deactivated" : entry.active ? "finance.subscriptions.active" : "finance.subscriptions.inactive")}
                     </span>
                   </div>
                   <p className="mt-2 break-words text-xs text-muted-foreground">{entry.accountIds.map((id) => data.accounts.find((account) => account.id === id)?.name).filter(Boolean).join(" · ")}</p>
@@ -78,6 +78,10 @@ export function Subscriptions({ report, data, onSaved }: { report: FinanceSubscr
                         </Menu.Item>
                         <Menu.Item className={menuItem} disabled={report.entries.length < 2} onClick={() => setEditing({ entry, action: "merge" })}>
                           <Merge className="size-4" aria-hidden="true" />{t("finance.subscriptions.merge")}
+                        </Menu.Item>
+                        <Menu.Item className={menuItem} onClick={() => setEditing({ entry, action: entry.inactive ? "reactivate" : "deactivate" })}>
+                          {entry.inactive ? <Play className="size-4" aria-hidden="true" /> : <Pause className="size-4" aria-hidden="true" />}
+                          {t(`finance.subscriptions.${entry.inactive ? "reactivate" : "deactivate"}`)}
                         </Menu.Item>
                         <Menu.Item className={`${menuItem} text-destructive`} onClick={() => setEditing({ entry, action: "exclude" })}>
                           <Trash2 className="size-4" aria-hidden="true" />{t("finance.subscriptions.exclude")}

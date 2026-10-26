@@ -7,7 +7,7 @@ import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Action, Field, Notice, errorText, panel, selectClass } from "./ui";
 
-export type SubscriptionAction = "rename" | "merge" | "exclude";
+export type SubscriptionAction = "rename" | "merge" | "exclude" | "deactivate" | "reactivate";
 
 export function SubscriptionForm({ entry, action, entries, accounts, onClose, onSaved }: {
   entry: FinanceSubscription;
@@ -30,6 +30,7 @@ export function SubscriptionForm({ entry, action, entries, accounts, onClose, on
     try {
       if (action === "rename") await financeApi.renameSubscription(entry.id, name);
       else if (action === "merge") await financeApi.mergeSubscriptions(entry.id, targetId);
+      else if (action === "deactivate" || action === "reactivate") await financeApi.setSubscriptionInactive(entry.id, action === "deactivate");
       else await financeApi.excludeSubscription(entry.id);
       await onSaved();
       onClose();
@@ -56,6 +57,7 @@ export function SubscriptionForm({ entry, action, entries, accounts, onClose, on
           <p className="text-sm leading-relaxed text-muted-foreground">{t("finance.subscriptions.mergeHelp")}</p>
         </>}
         {action === "exclude" && <p className="text-sm leading-relaxed text-muted-foreground">{t("finance.subscriptions.excludeHelp")}</p>}
+        {(action === "deactivate" || action === "reactivate") && <p className="text-sm leading-relaxed text-muted-foreground">{t(`finance.subscriptions.${action}Help`)}</p>}
         {error && <Notice error>{error}</Notice>}
         <div className="flex flex-wrap justify-end gap-2">
           <Action type="button" variant="outline" disabled={busy} onClick={onClose}>{t("Cancel")}</Action>

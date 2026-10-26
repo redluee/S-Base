@@ -5,6 +5,7 @@ import {
   financeObservations as observations,
   financeImportSources as importSources,
   financeTransactions as transactions,
+  financeSubscriptionPreferences as preferences,
 } from "../../db/schema/finance";
 import {
   ConflictError,
@@ -16,6 +17,7 @@ import { FinanceTransactionsService, importKey, accountNumberKey } from "./trans
 import { parseIngCsv, parseIngFile } from "./ing-csv";
 import { accountInput, calendarDate, cents } from "./validation";
 import type { FinanceImportResult } from "../../types/finance";
+import { subscriptionSourceKey } from "./subscriptions";
 
 export class FinanceImportService extends FinanceTransactionsService {
   previewImport(input: unknown, userId?: number) {
@@ -109,6 +111,7 @@ export class FinanceImportService extends FinanceTransactionsService {
     )
       throw new ValidationError("finance.import.selection");
     return db.transaction((tx) => {
+      const insertedIds = new Set<number>();
       const result = {
         createdAccounts: 0,
         inserted: 0,
@@ -196,7 +199,10 @@ export class FinanceImportService extends FinanceTransactionsService {
             description: entry.description,
             counterpartyKey: entry.counterparty ? accountNumberKey(userId, entry.counterparty) : null,
           }).onConflictDoNothing().returning({ id: transactions.id }).get();
-          if (inserted) result.transactionsInserted++;
+          if (inserted) {
+            result.transactionsInserted++;
+            insertedIds.add(inserted.id);
+          }
         }
         const prior = tx.select().from(transactions).where(eq(transactions.accountId, account.id)).all();
         for (const entry of prior) {
@@ -206,6 +212,18 @@ export class FinanceImportService extends FinanceTransactionsService {
           }
         }
 
+      }
+      const inactiveRules = insertedIds.size
+        ? tx.select().from(preferences).where(and(eq(preferences.userId, userId), eq(preferences.inactive, true))).all()
+        : [];
+      if (inactiveRules.length) {
+        const sourceKeys = new Set(this.periodTransactions(userId, "1900-01-01", "9999-12-31")
+          .filter((entry) => insertedIds.has(entry.id) && entry.amountCents < 0 && !entry.internalTransfer)
+          .map(subscriptionSourceKey));
+        const groups = new Set(inactiveRules.filter((rule) => sourceKeys.has(rule.sourceKey)).map((rule) => rule.groupKey));
+        for (const groupKey of groups) {
+          tx.update(preferences).set({ inactive: false }).where(and(eq(preferences.userId, userId), eq(preferences.groupKey, groupKey))).run();
+        }
       }
       return result;
     });

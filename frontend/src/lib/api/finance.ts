@@ -35,6 +35,8 @@ export const financeApi = {
     request<{ success: boolean }>("/finance/subscriptions/merge", json("POST", { id, targetId })),
   excludeSubscription: (id: string) =>
     request<{ success: boolean }>("/finance/subscriptions", json("DELETE", { id })),
+  setSubscriptionInactive: (id: string, inactive: boolean) =>
+    request<{ success: boolean }>("/finance/subscriptions/inactive", json("PUT", { id, inactive })),
   budgetTransactions: (date: string, page: number) =>
     request<FinanceTransactionPage>(`/finance/budget/transactions?date=${date}&page=${page}`),
   setMonthlyBudget: (monthlyBudgetCents: number | null) =>

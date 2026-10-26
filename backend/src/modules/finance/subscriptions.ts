@@ -66,6 +66,7 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
       firstDate: first.date,
       lastDate: last.date,
       active: irregular || (timestamp(asOf) - timestamp(last.date)) / day <= cadence!.days + Math.max(7, cadence!.tolerance * 2),
+      inactive: false,
     });
   }
   entries.sort((a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name));

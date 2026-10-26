@@ -153,6 +153,7 @@ export interface FinanceSubscription {
   firstDate: string;
   lastDate: string;
   active: boolean;
+  inactive: boolean;
 }
 export interface FinanceSubscriptions {
   entries: FinanceSubscription[];

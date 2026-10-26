@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { financeSubscriptionPreferences as preferences } from "../../db/schema/finance";
 import type { FinanceSubscription, FinanceSubscriptionCadence, FinanceSubscriptions, FinanceTransactionPage } from "../../types/finance";
@@ -35,8 +35,11 @@ export class FinanceSubscriptionService extends FinanceImportService {
       const firstDate = group.map((entry) => entry.firstDate).sort()[0];
       const accountIds = [...new Set(group.flatMap((entry) => entry.accountIds))];
       const lastImportedDate = accountIds.map((accountId) => lastImportedDates.get(accountId)!).sort().at(-1)!;
+      const inactive = rules.some((rule) => rule.groupKey === id && rule.inactive);
       return {
         ...latest,
+        inactive,
+        active: !inactive && latest.active,
         monthlyCents: latest.cadence === "irregular" ? monthlyAverage(totalCents, firstDate, lastImportedDate) : latest.monthlyCents,
         id,
         sourceKeys: group.flatMap((entry) => entry.sourceKeys),
@@ -121,6 +124,17 @@ export class FinanceSubscriptionService extends FinanceImportService {
     return db.transaction(() => {
       const entry = this.subscription(userId, body.id);
       return this.saveSubscription(userId, [entry], entry.id, entry.name, true);
+    });
+  }
+  setSubscriptionInactive(userId: number, input: unknown) {
+    const body = requireObject(input);
+    if (typeof body.inactive !== "boolean") throw new ValidationError("finance.subscriptions.invalidSelection");
+    const inactive = body.inactive;
+    return db.transaction(() => {
+      const entry = this.subscription(userId, body.id);
+      this.saveSubscription(userId, [entry], entry.id, entry.name, false);
+      db.update(preferences).set({ inactive }).where(and(eq(preferences.userId, userId), eq(preferences.groupKey, entry.id))).run();
+      return { success: true };
     });
   }
 }

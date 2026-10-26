@@ -89,11 +89,56 @@ describe("Subscription corrections", () => {
     expect(service.subscriptions(owner).entries).toEqual([]);
     expect(service.transactionList(owner, {}).total).toBe(7);
   });
+  it("deactivates without losing history and can be reactivated", async () => {
+    const entry = addSubscription(owner, "Sample subscription");
+    const before = db.select().from(financeTransactions).all();
+    expect((await http(owner, "/subscriptions/inactive", "PUT", { id: entry.id, inactive: true })).status).toBe(200);
+    service.renameSubscription(owner, { id: entry.id, name: "Sample renamed" });
+    const report = new FinanceService().subscriptions(owner);
+    expect(report).toMatchObject({ monthlyCents: 0, totalCents: 2000 });
+    expect(report.entries[0]).toMatchObject({ active: false, inactive: true, name: "Sample renamed", paymentCount: 2 });
+    expect(service.subscriptionTransactions(owner, entry.id).total).toBe(2);
+    expect(db.select().from(financeTransactions).all()).toEqual(before);
+    expect((await http(owner, "/subscriptions/inactive", "PUT", { id: entry.id, inactive: false })).status).toBe(200);
+    expect(service.subscriptions(owner)).toMatchObject({ monthlyCents: 1000 });
+    expect(service.subscriptions(owner).entries[0]).toMatchObject({ active: true, inactive: false });
+    expect((await http(owner, "/subscriptions/inactive", "PUT", { id: entry.id, inactive: "true" })).status).toBe(400);
+  });
+  it("reactivates merged irregular subscriptions only for newly imported matching debits", () => {
+    const first = addSubscription(owner, "Sample previous");
+    const second = addSubscription(owner, "Sample current");
+    const previousTransaction = service.subscriptionTransactions(owner, first.id).entries[0];
+    service.addSubscription(owner, { transactionId: previousTransaction.id, cadence: "irregular" });
+    const transaction = service.subscriptionTransactions(owner, second.id).entries[0];
+    service.addSubscription(owner, { transactionId: transaction.id, cadence: "irregular" });
+    service.mergeSubscriptions(owner, { id: first.id, targetId: second.id });
+    service.renameSubscription(owner, { id: second.id, name: "Sample custom" });
+    const importPayment = (date: string, name: string, direction = "Af", description = "Sample payment") => {
+      const csv = `Datum;Naam / Omschrijving;Rekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie\n${date.replaceAll("-", "")};${name};DEMO0001;${direction};10,00;${description};100,00`;
+      const preview = service.previewImport({ csv, order: "descending" });
+      const existing = service.data(owner).observations.find((entry) => entry.accountId === first.accountId && entry.date === date);
+      return service.importBalances(owner, { csv, order: "descending", selections: [{ sourceKey: preview.sources[0].sourceKey, accountId: first.accountId, extendOpening: false, entries: [{ date, expectedCents: existing?.balanceCents ?? null }] }] });
+    };
+    importPayment(month(-3), "Sample previous");
+    service.setSubscriptionInactive(owner, { id: second.id, inactive: true });
+    expect(importPayment(month(-3), "Sample previous").transactionsInserted).toBe(0);
+    expect(service.subscriptions(owner).monthlyCents).toBe(0);
+    importPayment(month(-4), "Sample unrelated");
+    importPayment(month(-5), "Sample previous", "Bij");
+    importPayment(month(-6), "Sample previous", "Af", "Naar Oranje Spaarrekening A12345678");
+    expect(service.subscriptions(owner).entries.find((entry) => entry.id === second.id)!.inactive).toBe(true);
+    expect(importPayment(today(), " SAMPLE previous ").transactionsInserted).toBe(1);
+    const report = new FinanceService().subscriptions(owner);
+    expect(report.entries.find((entry) => entry.id === second.id)).toMatchObject({ inactive: false, active: true, name: "Sample custom", cadence: "irregular" });
+    expect(report.monthlyCents).toBeGreaterThan(0);
+    expect(db.select().from(financeSubscriptionPreferences).where(eq(financeSubscriptionPreferences.userId, owner)).all().every((rule) => !rule.inactive)).toBe(true);
+  });
   it("isolates all mutations to the session owner and enforces module access", async () => {
     const own = addSubscription(owner, "Sample own");
     const foreign = addSubscription(other, "Sample foreign");
     const requests = [
       ["/subscriptions/name", "PUT", { id: foreign.id, name: "Changed" }],
+      ["/subscriptions/inactive", "PUT", { id: foreign.id, inactive: true }],
       ["/subscriptions/merge", "POST", { id: own.id, targetId: foreign.id }],
       ["/subscriptions", "DELETE", { id: foreign.id }],
     ] as const;
