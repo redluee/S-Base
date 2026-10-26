@@ -24,6 +24,10 @@ export interface FinanceAccountInput {
   openingDate: string;
   openingBalanceCents: number;
 }
+export type FinanceBalanceAccount = Omit<FinanceAccount, "type"> & {
+  type: FinanceAccountType | "untracked";
+  inferred?: boolean;
+};
 export interface FinanceBalanceEntry {
   accountId: number;
   balanceCents: number;
@@ -56,7 +60,7 @@ export interface FinanceSnapshot {
   mixedDates: boolean;
   known: number;
   expected: number;
-  accounts: (FinanceAccount & {
+  accounts: (FinanceBalanceAccount & {
     balanceCents: number | null;
     lastDate: string | null;
   })[];

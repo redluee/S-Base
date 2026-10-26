@@ -3,7 +3,7 @@ import type { FinanceDashboard, FinanceData, FinancePeriod } from "@backend/type
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, financeAccountLabel, money } from "@/lib/finance";
 import { AccountIcon } from "./account-icon";
 import { AnimatedMoney } from "./animated-money";
 import { Transactions } from "./transactions";
@@ -26,6 +26,7 @@ export function Overview({ data, report, period }: { data: FinanceData; report: 
   return (
     <div className="space-y-5">
       {!report.end.complete && <Notice>{t("finance.incomplete")}</Notice>}
+      {report.end.accounts.some((account) => account.inferred) && <Notice>{t("finance.inferredBalancesHelp")}</Notice>}
       <section className={`${panel} flex flex-wrap items-end justify-between gap-6`}>
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"><Wallet className="size-4 shrink-0" aria-hidden="true" /><span>{t("finance.trackedMoney")}</span><span className="text-xs">· {t("finance.latestData", { date: dateLabel(lastDataDate) })}</span></p>
@@ -80,7 +81,7 @@ export function Overview({ data, report, period }: { data: FinanceData; report: 
               const coverage = activity?.coverage.find((entry) => entry.accountId === account.id);
               return <div key={account.id} className="py-4">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="flex min-w-0 items-center gap-2 text-sm font-medium"><AccountIcon icon={account.icon} /><span className="min-w-0 break-words">{account.name}</span></p>
+                  <p className="flex min-w-0 items-center gap-2 text-sm font-medium"><AccountIcon icon={account.icon} /><span className="min-w-0 break-words">{financeAccountLabel(account)}</span></p>
                   <p className="shrink-0 text-sm tabular-nums">{account.balanceCents === null ? t("finance.unknown") : money(account.balanceCents)}</p>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{t(`finance.${account.type}`)}{account.archived ? ` · ${t("finance.archived")}` : ""}</p>

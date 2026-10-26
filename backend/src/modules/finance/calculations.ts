@@ -1,5 +1,5 @@
 import type {
-  FinanceAccount,
+  FinanceBalanceAccount,
   FinanceObservation,
   FinanceSnapshot,
   FinanceComparison,
@@ -8,7 +8,7 @@ import type {
 } from "../../types/finance";
 
 export function snapshot(
-  accounts: FinanceAccount[],
+  accounts: FinanceBalanceAccount[],
   observations: FinanceObservation[],
   date: string,
 ): FinanceSnapshot {
@@ -25,7 +25,7 @@ export function snapshot(
 }
 
 function snapshotFromBalances(
-  accounts: FinanceAccount[],
+  accounts: FinanceBalanceAccount[],
   latest: Map<number, FinanceObservation>,
   date: string,
 ): FinanceSnapshot {
@@ -61,7 +61,7 @@ function snapshotFromBalances(
 }
 
 export function dailyBalanceHistory(
-  accounts: FinanceAccount[],
+  accounts: FinanceBalanceAccount[],
   observations: FinanceObservation[],
   startDate: string,
   endDate: string,
@@ -121,7 +121,7 @@ export function compare(
   };
 }
 export function dashboard(
-  accounts: FinanceAccount[],
+  accounts: FinanceBalanceAccount[],
   observations: FinanceObservation[],
   period: FinancePeriod,
   endDate: string,

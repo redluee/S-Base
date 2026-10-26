@@ -13,8 +13,8 @@ import { FinanceGoalsService } from "./goals";
 import { FinanceNotFound } from "./accounts";
 import { calendarDate, today } from "./validation";
 import { requireId, requireObject, ValidationError } from "../../utils/validation";
-import { isSavingsTransfer, savingsTransferAccount } from "./transfer-detection";
-import { transferBalances } from "./transfer-balances";
+import { savingsTransferAccount } from "./transfer-detection";
+import { inferredBalances } from "./inferred-balances";
 import type { FinanceActivity, FinanceData } from "../../types/finance";
 
 export function importKey(userId: number, value: unknown) {
@@ -45,10 +45,8 @@ export class FinanceTransactionsService extends FinanceGoalsService {
       .where(and(eq(accounts.userId, userId), gte(transactions.date, start), lte(transactions.date, end)))
       .orderBy(desc(transactions.date), desc(transactions.id)).all()
       .map(({ counterpartyKey, transferOverride, ...entry }) => {
-        const automaticTransfer = counterpartyKey !== null
-          ? ownNumbers.has(counterpartyKey)
-          : isSavingsTransfer(entry.description, entry.amountCents);
-        const savingsNumber = counterpartyKey === null ? savingsTransferAccount(entry.description, entry.amountCents)?.replace(/[- ]/g, "").toUpperCase() : null;
+        const savingsNumber = savingsTransferAccount(entry.description, entry.amountCents)?.replace(/[- ]/g, "").toUpperCase() ?? null;
+        const automaticTransfer = (counterpartyKey !== null && ownNumbers.has(counterpartyKey)) || savingsNumber !== null;
         const possibleKeys = savingsNumber
           ? [savingsNumber, `${savingsNumber.slice(0, 4)}-${savingsNumber.slice(4)}`].map((number) => accountNumberKey(userId, number))
           : [];
@@ -59,17 +57,18 @@ export class FinanceTransactionsService extends FinanceGoalsService {
           internalTransfer: transferOverride ?? automaticTransfer,
           automaticTransfer,
           counterpartyAccountId,
+          counterpartyIdentity: possibleKeys[0] ?? counterpartyKey ?? "unidentified",
+          savings: savingsNumber !== null,
         };
       });
   }
   protected periodTransactions(userId: number, start: string, end: string) {
-    return this.transferEntries(userId, start, end).map(({ counterpartyAccountId, ...entry }) => entry);
+    return this.transferEntries(userId, start, end).map(({ counterpartyAccountId, counterpartyIdentity, savings, ...entry }) => entry);
   }
-  protected dashboardObservations(userId: number, data: FinanceData, end: string) {
-    const transfers = this.transferEntries(userId, "1900-01-01", end)
-      .filter((entry) => entry.internalTransfer && entry.counterpartyAccountId !== undefined)
-      .map((entry) => ({ ...entry, counterpartyAccountId: entry.counterpartyAccountId! }));
-    return transferBalances(data.accounts, data.observations, transfers);
+  protected dashboardBalances(userId: number, data: FinanceData) {
+    const transfers = this.transferEntries(userId, "1900-01-01", "9999-12-31")
+      .filter((entry) => entry.internalTransfer);
+    return inferredBalances(data, transfers);
   }
   activity(userId: number, start: string, end: string): FinanceActivity {
     const entries = this.periodTransactions(userId, start, end);

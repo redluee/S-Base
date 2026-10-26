@@ -1,4 +1,11 @@
-import type { FinanceData, FinancePeriod } from "@backend/types/finance";
+import type { FinanceBalanceAccount, FinanceData, FinancePeriod } from "@backend/types/finance";
+import { t } from "@/lib/lang";
+
+export function financeAccountLabel(account: FinanceBalanceAccount): string {
+  return account.inferred
+    ? t(account.type === "savings" ? "finance.inferredSavings" : "finance.inferredOwnAccount", { number: account.name })
+    : account.name;
+}
 
 export function money(cents: number | null): string {
   return cents === null

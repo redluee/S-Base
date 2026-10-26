@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { dashboard } from "../../../backend/src/modules/finance/calculations";
+import { inferredBalances } from "../../../backend/src/modules/finance/inferred-balances";
 import type {
   FinanceAccount,
   FinanceObservation,
@@ -46,6 +47,21 @@ const observations: FinanceObservation[] = [
 const report = () => dashboard(accounts, observations, "all", "2025-03-01");
 
 describe("Combined money and savings chart", () => {
+  it("includes a missing savings account before its closing payout without a peak in any period", () => {
+    const balances = inferredBalances({
+      accounts: [accounts[0]],
+      observations: [
+        { id: 1, accountId: 1, date: "2025-01-01", balanceCents: 10000 },
+        { id: 2, accountId: 1, date: "2025-02-01", balanceCents: 14000 },
+      ],
+      monthlyBudgetCents: null, goals: [], allocations: [], today: "2025-03-01",
+    }, [{ accountId: 1, counterpartyIdentity: "sample-closed-savings", savings: true, date: "2025-02-01", amountCents: 4000 }]);
+    for (const [period, end] of [["all", "2025-03-01"], ["year", "2025-03-01"], ["month", "2025-01-31"], ["month", "2025-02-28"]] as const) {
+      const history = dashboard(balances.accounts, balances.observations, period, end).history;
+      expect(financeHistoryPoints(history, "total").every((point) => point.value === 14000)).toBe(true);
+      expect(financeHistoryPoints(history, "savings").every((point) => point.value === (point.date < "2025-02-01" ? 4000 : 0))).toBe(true);
+    }
+  });
   it("uses recorded balances even when an older response includes transfer adjustments", () => {
     const current = accounts[0];
     const report = dashboard([current], [

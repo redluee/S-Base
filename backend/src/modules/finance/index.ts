@@ -37,9 +37,9 @@ export class FinanceService extends FinanceSubscriptionService {
     if (period !== "month" && period !== "year" && period !== "all")
       throw new ValidationError("Invalid period");
     const data = this.data(userId);
-    const { accounts, monthlyBudgetCents } = data;
+    const { monthlyBudgetCents } = data;
     const endDate = calendarDate(date);
-    const observations = this.dashboardObservations(userId, data, endDate);
+    const { accounts, observations } = this.dashboardBalances(userId, data);
     const report = dashboard(accounts, observations, period, endDate);
     const activity = this.activity(userId, report.startDate, report.endDate);
     const budgetSpendingCents = monthlyBudgetCents === null ? 0

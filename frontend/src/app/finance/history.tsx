@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from "
 import type { FinanceDashboard, FinanceData, FinanceTransaction } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { historyTransactionsByDate, loadHistoryTransactions } from "@/lib/finance-history-transactions";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, financeAccountLabel, money } from "@/lib/finance";
 import {
   closestHistoryIndex,
   financeHistoryGeometry,
@@ -54,6 +54,10 @@ export function History({
   const transactionError = transactionFailure?.start === report.startDate && transactionFailure?.end === report.endDate ? transactionFailure.message : "";
   const transactionsLoaded = transactions?.start === report.startDate && transactions?.end === report.endDate;
   const points = useMemo(() => financeHistoryPoints(report.history, series), [report.history, series]);
+  const chartAccounts = useMemo(() => [
+    ...data.accounts,
+    ...report.end.accounts.filter((account) => account.inferred),
+  ], [data.accounts, report.end.accounts]);
   const chart = useMemo(() => financeHistoryGeometry(
     points,
     false,
@@ -77,13 +81,13 @@ export function History({
       list.scrollTop = top - (list.clientHeight - row.offsetHeight) / 2;
     }
   }, [index, series, detailsOpen, transactions]);
+  const selectedAccount = chartAccounts.find((account) => account.id === Number(series));
   const mainLabel =
     series === "total"
       ? t("finance.totalChartSeries")
       : series === "savings"
         ? t("finance.savingsTotal")
-        : (data.accounts.find((account) => account.id === Number(series))
-          ?.name ?? t("finance.balance"));
+        : selectedAccount ? financeAccountLabel(selectedAccount) : t("finance.balance");
   const title = t("finance.progression");
   const selectedIds = useMemo(() =>
     series === "total"
@@ -137,9 +141,9 @@ export function History({
           >
             <option value="total">{t("finance.totalChartSeries")}</option>
             <option value="savings">{t("finance.savingsTotal")}</option>
-            {data.accounts.map((account) => (
+            {chartAccounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.name}
+                {financeAccountLabel(account)}
                 {account.archived ? ` · ${t("finance.archived")}` : ""}
               </option>
             ))}
