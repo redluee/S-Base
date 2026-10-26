@@ -92,13 +92,37 @@ describe("Finance transaction imports and totals", () => {
     expect(service.data(owner)).toEqual(before);
     expect(service.dashboard(other, "all", "2025-01-06").history.every((point) => point.transferAdjustedTotalCents === undefined)).toBe(true);
     const past = service.dashboard(owner, "all", "2025-01-02");
-    expect(past.history.map((point) => point.transferAdjustedTotalCents)).toEqual([12000, 12000]);
+    expect(past.history.map((point) => point.transferAdjustedTotalCents)).toEqual([11000, 11000]);
     const incoming = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
     service.setTransfer(owner, incoming.id, { internalTransfer: false });
     const corrected = service.dashboard(owner, "all", "2025-01-06");
     expect(corrected.history[1].transferAdjustedTotalCents! - corrected.history[0].transferAdjustedTotalCents!).toBe(2000);
     service.setTransfer(owner, incoming.id, { internalTransfer: null });
     expect(service.dashboard(owner, "all", "2025-01-06").history.map((point) => point.transferAdjustedTotalCents)).toEqual(report.history.map((point: { transferAdjustedTotalCents: number }) => point.transferAdjustedTotalCents));
+  });
+  it("keeps historical chart values identical across all, year and month filters", () => {
+    const content = [
+      "Datum;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
+      "20240101;DEMO0001;EXTERNAL0001;Bij;100,00;Sample salary;100,00",
+      "20240210;DEMO0001;;Bij;20,00;Van Oranje spaarrekening S00000001;120,00",
+      "20240211;DEMO0001;EXTERNAL0001;Bij;50,00;Sample salary;170,00",
+      "20250102;DEMO0001;;Bij;30,00;Van Oranje spaarrekening S00000001;200,00",
+      "20250201;DEMO0001;;Af;10,00;Naar Oranje spaarrekening S00000001;190,00",
+    ].join("\n");
+    const entries = service.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
+    const all = service.dashboard(owner, "all", "2025-02-01");
+    expect(all.history.find((point) => point.date === "2024-02-10")).toMatchObject({ totalCents: 12000, transferAdjustedTotalCents: 14000 });
+    for (const [period, end] of [["year", "2024-12-31"], ["month", "2024-02-29"], ["month", "2024-01-31"], ["all", "2024-02-10"]] as const) {
+      const filtered = service.dashboard(owner, period, end);
+      for (const point of filtered.history) {
+        const matching = all.history.find((entry) => entry.date === point.date);
+        if (matching) {
+          expect(point.totalCents).toBe(matching.totalCents);
+          expect(point.transferAdjustedTotalCents).toBe(matching.transferAdjustedTotalCents);
+        }
+      }
+    }
   });
   it("projects known counteraccounts and respects transfer overrides", () => {
     const content = csv + "\n20250104;Sample transfer;DEMO0001;DEMO0002;Af;10,00;Sample transfer;60,00";

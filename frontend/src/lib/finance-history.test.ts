@@ -134,15 +134,22 @@ describe("Combined money and savings chart", () => {
 });
 
 describe("Money chart geometry", () => {
-  it("rounds the ceiling to the nearest thousand euros without extra padding", () => {
-    for (const [value, upper] of [[1_234_567, 1_300_000], [1_300_000, 1_300_000], [1_300_001, 1_400_000]]) {
+  it("uses evenly spaced ticks with a ceiling that contains the data", () => {
+    for (const [value, upper] of [[1_234_567, 1_400_000], [1_300_000, 1_400_000], [1_300_001, 1_400_000], [1_200_000, 1_200_000], [490_000, 500_000], [0, 100], [-490_000, 0]]) {
       const point = { date: "2025-01-01", value, savingsValue: null, known: 1, expected: 1 };
       const chart = financeHistoryGeometry([point], false, point.date, point.date);
       expect(chart.upper).toBe(upper);
       expect(chart.ticks[0]).toBe(upper);
       expect(chart.ticks).toContain(0);
+      const intervals = chart.ticks.slice(1).map((tick, index) => chart.ticks[index] - tick);
+      expect(new Set(intervals).size).toBe(1);
       expect(chart.ticks.every((tick) => tick >= chart.lower && tick <= chart.upper)).toBe(true);
     }
+  });
+  it("labels every thousand euros on a five-thousand-euro axis", () => {
+    const point = { date: "2025-01-01", value: 490_000, savingsValue: null, known: 1, expected: 1 };
+    const chart = financeHistoryGeometry([point], false, point.date, point.date);
+    expect(chart.ticks).toEqual([500_000, 400_000, 300_000, 200_000, 100_000, 0]);
   });
   it("fits both series to one scale and preserves calendar positioning over DST changes", () => {
     const points = [
@@ -234,7 +241,7 @@ describe("Money chart geometry", () => {
         point.date,
       );
       expect(Number.isFinite(chart.y(value))).toBe(true);
-      expect(chart.y(value)).toBeGreaterThan(20);
+      expect(chart.y(value)).toBeGreaterThanOrEqual(20);
       expect(chart.y(value)).toBeLessThanOrEqual(190);
       expect(chart.totalPath).not.toContain("NaN");
     }

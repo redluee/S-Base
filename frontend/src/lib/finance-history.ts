@@ -68,13 +68,12 @@ export function financeHistoryGeometry(
   const max = values.length ? Math.max(...values) : 0;
   const scaleMin = Math.min(0, min);
   const scaleMax = Math.max(0, max);
-  const rawStep = Math.max(100, (scaleMax - scaleMin) * 1.1 / 4);
+  const rawStep = Math.max(100, (scaleMax - scaleMin) / 4);
   const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const step = ([1, 2, 5, 10].find((value) => value * magnitude >= rawStep) ?? 10) * magnitude;
-  const lower = min < 0 ? Math.floor(min * 1.05 / step) * step : 0;
-  const upper = max > 0 ? Math.ceil(max / 100_000) * 100_000 : min < 0 ? 0 : step;
-  const ticks = Array.from({ length: Math.ceil((upper - lower) / step) }, (_, index) => lower + index * step).reverse();
-  if (ticks[0] !== upper) ticks.unshift(upper);
+  const step = ([10, 5, 2, 1].find((value) => value * magnitude <= rawStep) ?? 1) * magnitude;
+  const lower = min < 0 ? Math.floor(min / step) * step : 0;
+  const upper = max > 0 ? Math.ceil(max / step) * step : min < 0 ? 0 : step;
+  const ticks = Array.from({ length: Math.round((upper - lower) / step) + 1 }, (_, index) => lower + index * step).reverse();
   const time = (date: string) => Date.parse(`${date}T12:00:00Z`);
   const duration = time(endDate) - time(startDate) || 1;
   const x = (date: string) =>

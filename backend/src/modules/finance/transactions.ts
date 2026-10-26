@@ -71,8 +71,8 @@ export class FinanceTransactionsService extends FinanceGoalsService {
       .map((entry) => ({ ...entry, counterpartyAccountId: entry.counterpartyAccountId! }));
     return transferBalances(data.accounts, data.observations, transfers);
   }
-  protected dashboardHistory(userId: number, history: FinanceSnapshot[], start: string, end: string) {
-    const transfers = this.transferEntries(userId, start, end)
+  protected dashboardHistory(userId: number, history: FinanceSnapshot[], start: string) {
+    const transfers = this.transferEntries(userId, start, "9999-12-31")
       .filter((entry) => entry.internalTransfer && entry.counterpartyAccountId === undefined);
     return transferAdjustedHistory(history, transfers);
   }

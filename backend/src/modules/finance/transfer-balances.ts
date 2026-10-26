@@ -5,9 +5,7 @@ export function transferAdjustedHistory(
   transfers: { date: string; amountCents: number }[],
 ): FinanceSnapshot[] {
   if (!transfers.length || !history.length) return history;
-  const endDate = history[history.length - 1].date;
-  const remaining = transfers.filter((entry) => entry.date <= endDate)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const remaining = [...transfers].sort((a, b) => b.date.localeCompare(a.date));
   let index = 0;
   let adjustment = 0;
   return [...history].reverse().map((point) => {
