@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type {
   FinanceDashboard,
   FinanceData,
@@ -31,15 +31,13 @@ export function FinanceClient() {
 }
 
 function FinanceContent() {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const tab: Tab = requestedTab && ["overview", "accounts", "import", "transactions", "subscriptions", "settings"].includes(requestedTab)
     ? requestedTab as Tab
-    : pathname === "/finance/subscriptions" ? "subscriptions" : "overview";
+    : "overview";
   function setTab(value: Tab) {
-    const href = value === "subscriptions" ? "/finance/subscriptions"
-      : value === "overview" ? "/finance" : `/finance?tab=${value}`;
+    const href = value === "overview" ? "/finance" : `/finance?tab=${value}`;
     window.history.pushState(null, "", href);
   }
   const [subscriptions, setSubscriptions] = useState<FinanceSubscriptions | null>(null);
