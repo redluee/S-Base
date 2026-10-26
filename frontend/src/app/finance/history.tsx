@@ -146,9 +146,6 @@ export function History({
           </select>
         </label>
       </div>
-      {series === "total" && report.history.some((point) => point.transferAdjustedTotalCents !== undefined) && (
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t("finance.historyTransferAdjustment")}</p>
-      )}
       {selected && (
         <div className="mt-5 flex flex-wrap items-baseline justify-between gap-2 tabular-nums" aria-live="polite" aria-atomic="true">
           <p className="text-xl font-medium tracking-tight">

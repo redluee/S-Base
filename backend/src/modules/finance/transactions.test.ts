@@ -71,7 +71,7 @@ describe("Finance transaction imports and totals", () => {
     expect((await response.json()).entries.map((entry: { amountCents: number }) => entry.amountCents)).toEqual([-1000]);
     expect((await (await http(other, "/budget/transactions?date=2025-01-03")).json()).total).toBe(0);
   });
-  it("filters transfers to a closed untracked savings account out of balance history", async () => {
+  it("preserves recorded balances for untracked savings transfers while excluding them from income", async () => {
     const content = [
       "Datum;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
       "20250101;DEMO0001;EXTERNAL0001;Bij;100,00;Sample salary;100,00",
@@ -85,20 +85,21 @@ describe("Finance transaction imports and totals", () => {
     service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
     const before = service.data(owner);
     const report = await (await http(owner, "/dashboard?period=all&date=2025-01-06")).json();
-    expect(report.history.map((point: { transferAdjustedTotalCents: number }) => point.transferAdjustedTotalCents)).toEqual([11000, 11000, 16000, 16000, 15500, 15550]);
+    expect(report.history.every((point: object) => !("transferAdjustedTotalCents" in point))).toBe(true);
     expect(report.history.map((point: { totalCents: number }) => point.totalCents)).toEqual([10000, 12000, 17000, 16000, 15500, 15550]);
     expect(report.end.totalCents).toBe(15550);
     expect(report.activity).toMatchObject({ incomeCents: 15050, spendingCents: 500, excludedCount: 2 });
     expect(service.data(owner)).toEqual(before);
-    expect(service.dashboard(other, "all", "2025-01-06").history.every((point) => point.transferAdjustedTotalCents === undefined)).toBe(true);
+    expect(service.dashboard(other, "all", "2025-01-06").history.every((point) => point.totalCents === null)).toBe(true);
     const past = service.dashboard(owner, "all", "2025-01-02");
-    expect(past.history.map((point) => point.transferAdjustedTotalCents)).toEqual([11000, 11000]);
+    expect(past.history.map((point) => point.totalCents)).toEqual([10000, 12000]);
     const incoming = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
     service.setTransfer(owner, incoming.id, { internalTransfer: false });
     const corrected = service.dashboard(owner, "all", "2025-01-06");
-    expect(corrected.history[1].transferAdjustedTotalCents! - corrected.history[0].transferAdjustedTotalCents!).toBe(2000);
+    expect(corrected.history).toEqual(report.history);
+    expect(corrected.activity.incomeCents).toBe(report.activity.incomeCents + 2000);
     service.setTransfer(owner, incoming.id, { internalTransfer: null });
-    expect(service.dashboard(owner, "all", "2025-01-06").history.map((point) => point.transferAdjustedTotalCents)).toEqual(report.history.map((point: { transferAdjustedTotalCents: number }) => point.transferAdjustedTotalCents));
+    expect(service.dashboard(owner, "all", "2025-01-06").history).toEqual(report.history);
   });
   it("keeps historical chart values identical across all, year and month filters", () => {
     const content = [
@@ -112,14 +113,15 @@ describe("Finance transaction imports and totals", () => {
     const entries = service.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
     service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
     const all = service.dashboard(owner, "all", "2025-02-01");
-    expect(all.history.find((point) => point.date === "2024-02-10")).toMatchObject({ totalCents: 12000, transferAdjustedTotalCents: 14000 });
+    expect(all.history.find((point) => point.date === "2024-02-10")?.totalCents).toBe(12000);
     for (const [period, end] of [["year", "2024-12-31"], ["month", "2024-02-29"], ["month", "2024-01-31"], ["all", "2024-02-10"]] as const) {
       const filtered = service.dashboard(owner, period, end);
+      expect(filtered.history.length).toBeGreaterThan(0);
       for (const point of filtered.history) {
+        expect(point.totalCents).toBe(point.accounts.reduce((sum, account) => sum + account.balanceCents!, 0));
         const matching = all.history.find((entry) => entry.date === point.date);
         if (matching) {
           expect(point.totalCents).toBe(matching.totalCents);
-          expect(point.transferAdjustedTotalCents).toBe(matching.transferAdjustedTotalCents);
         }
       }
     }
@@ -134,7 +136,7 @@ describe("Finance transaction imports and totals", () => {
     }));
     service.importBalances(owner, { csv: content, order: "ascending", selections: selected });
     expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
-    expect(service.dashboard(owner, "all", "2025-01-04").history.every((point) => point.transferAdjustedTotalCents === undefined)).toBe(true);
+    expect(service.dashboard(owner, "all", "2025-01-04").history.every((point) => !("transferAdjustedTotalCents" in point))).toBe(true);
     const entry = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-04")!;
     service.setTransfer(owner, entry.id, { internalTransfer: false });
     expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(58000);

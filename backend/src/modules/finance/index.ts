@@ -46,7 +46,6 @@ export class FinanceService extends FinanceSubscriptionService {
       : this.budgetEntries(userId, report.endDate).reduce((sum, entry) => sum - entry.amountCents, 0);
     return {
       ...report,
-      history: this.dashboardHistory(userId, report.history, report.startDate),
       activity,
       budget: monthlyBudgetCents === null ? null : {
         month: report.endDate.slice(0, 7),

@@ -14,8 +14,8 @@ import { FinanceNotFound } from "./accounts";
 import { calendarDate, today } from "./validation";
 import { requireId, requireObject, ValidationError } from "../../utils/validation";
 import { isSavingsTransfer, savingsTransferAccount } from "./transfer-detection";
-import { transferAdjustedHistory, transferBalances } from "./transfer-balances";
-import type { FinanceActivity, FinanceData, FinanceSnapshot } from "../../types/finance";
+import { transferBalances } from "./transfer-balances";
+import type { FinanceActivity, FinanceData } from "../../types/finance";
 
 export function importKey(userId: number, value: unknown) {
   return createHash("sha256").update(JSON.stringify([userId, value])).digest("hex");
@@ -70,11 +70,6 @@ export class FinanceTransactionsService extends FinanceGoalsService {
       .filter((entry) => entry.internalTransfer && entry.counterpartyAccountId !== undefined)
       .map((entry) => ({ ...entry, counterpartyAccountId: entry.counterpartyAccountId! }));
     return transferBalances(data.accounts, data.observations, transfers);
-  }
-  protected dashboardHistory(userId: number, history: FinanceSnapshot[], start: string) {
-    const transfers = this.transferEntries(userId, start, "9999-12-31")
-      .filter((entry) => entry.internalTransfer && entry.counterpartyAccountId === undefined);
-    return transferAdjustedHistory(history, transfers);
   }
   activity(userId: number, start: string, end: string): FinanceActivity {
     const entries = this.periodTransactions(userId, start, end);

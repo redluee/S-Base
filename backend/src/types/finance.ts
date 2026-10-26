@@ -51,7 +51,6 @@ export interface FinanceData {
 export interface FinanceSnapshot {
   date: string;
   totalCents: number | null;
-  transferAdjustedTotalCents?: number | null;
   savingsCents: number | null;
   complete: boolean;
   mixedDates: boolean;

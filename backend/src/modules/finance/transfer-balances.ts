@@ -1,23 +1,4 @@
-import type { FinanceAccount, FinanceObservation, FinanceSnapshot } from "../../types/finance";
-
-export function transferAdjustedHistory(
-  history: FinanceSnapshot[],
-  transfers: { date: string; amountCents: number }[],
-): FinanceSnapshot[] {
-  if (!transfers.length || !history.length) return history;
-  const remaining = [...transfers].sort((a, b) => b.date.localeCompare(a.date));
-  let index = 0;
-  let adjustment = 0;
-  return [...history].reverse().map((point) => {
-    while (index < remaining.length && remaining[index].date > point.date) {
-      adjustment += remaining[index++].amountCents;
-    }
-    return {
-      ...point,
-      transferAdjustedTotalCents: point.totalCents === null ? null : point.totalCents + adjustment,
-    };
-  }).reverse();
-}
+import type { FinanceAccount, FinanceObservation } from "../../types/finance";
 
 export interface BalanceTransfer {
   accountId: number;

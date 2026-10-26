@@ -40,7 +40,6 @@ export const financeNl: Record<string, string> = {
   "finance.subscriptions.payments": "{count} betalingen",
   "finance.subscriptions.perMonth": "Per maand (schatting)",
   "finance.subscriptions.spent": "Totaal betaald",
-  "finance.historyTransferAdjustment": "Eigen overboekingen zonder gegevens van de tegenrekening zijn uit dit saldoverloop gefilterd. De lijn is teruggerekend vanaf het eindsaldo en toont daardoor geen volledige historische vermogensstand. Individuele rekeningen tonen hun werkelijke saldi.",
   "finance.chartType": "Grafiektype",
   "finance.netChart": "Inkomsten minus uitgaven",
   "finance.importOnlyHelp": "Saldi en transacties veranderen alleen wanneer je nieuwe bankgegevens importeert.",
