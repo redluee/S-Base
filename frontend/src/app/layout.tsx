@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ModuleTransitionProvider } from "@/components/module-transition-provider";
 import { OfflineSyncProvider } from "@/components/offline-sync-provider";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default function RootLayout({
     <html lang="nl" className="dark h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <OfflineSyncProvider />
-        {children}
+        <ModuleTransitionProvider>{children}</ModuleTransitionProvider>
       </body>
     </html>
   );

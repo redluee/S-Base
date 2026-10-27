@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import { ModuleLink } from "./module-link";
 import { ArrowUpRight } from "lucide-react";
 import { t } from "@/lib/lang";
 import { MODULES } from "./dashboard-modules";
@@ -60,9 +60,9 @@ export function ModuleGrid({
             {content}
           </a>
         ) : (
-          <Link key={module.id} href={module.href} className={className} style={style}>
+          <ModuleLink key={module.id} module={module} className={className} style={style}>
             {content}
-          </Link>
+          </ModuleLink>
         );
       })}
     </nav>
