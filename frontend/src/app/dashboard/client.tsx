@@ -9,7 +9,6 @@ import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { MODULES, DEFAULT_BG, DEFAULT_BLUR, DEFAULT_BRIGHTNESS } from "./dashboard-modules";
 import { ModuleGrid } from "./module-grid";
-import { AdminSection } from "./admin-section";
 import { BackgroundSettingsPanel } from "./background-settings-panel";
 import { User, Settings } from "lucide-react";
 
@@ -82,11 +81,6 @@ export function DashboardClient({
     return hasModule(moduleId);
   };
 
-  // Cashflow (4 cols) and CV Builder (2 cols) share one grid row (4+2=6).
-  // When only one of the pair is accessible, it expands to fill the full row.
-  const cashflowOnlyInPair = canAccess("cashflow") && !canAccess("resume");
-  const resumeOnlyInPair = canAccess("resume") && !canAccess("cashflow");
-
   // Load saved background settings from localStorage per user
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -145,7 +139,7 @@ export function DashboardClient({
   };
 
   return (
-    <main id="main-content" className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 pt-20 sm:pt-24 pb-28 relative overflow-x-hidden bg-zinc-950 text-foreground w-full font-sans">
+    <main id="main-content" className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 pt-20 sm:pt-20 pb-20 sm:pb-16 relative overflow-x-hidden bg-zinc-950 text-foreground w-full font-sans">
       {/* Impersonation Banner */}
       {isImpersonated && impersonatedBy && (
         <div className="fixed top-0 left-0 right-0 z-50">
@@ -178,9 +172,9 @@ export function DashboardClient({
       </header>
 
       {/* Title Section */}
-      <section className="text-center mb-8 sm:mb-12 max-w-3xl relative z-10 w-full px-2 @container">
+      <section className="text-center mb-5 sm:mb-6 max-w-3xl relative z-10 w-full px-2 @container">
         <h1
-          className="font-display text-[min(9cqw,4.5rem)] whitespace-nowrap leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl"
+          className="font-display text-[clamp(1.75rem,5cqw,2.75rem)] whitespace-nowrap leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl"
           style={{ textShadow: "0 0 3rem rgba(0,230,118,0.25)" }}
         >
           {t("Welcome to")} <span className="text-[#00E676]">S</span>-Base
@@ -192,7 +186,7 @@ export function DashboardClient({
 
       {/* Active Status Banner (Elevated Glowing Pill) */}
       {runningSession && (
-        <div className="w-full max-w-3xl mb-6 relative z-20 animate-in fade-in slide-in-from-top-3 duration-300">
+        <div className="w-full max-w-5xl mb-3 relative z-20 animate-in fade-in slide-in-from-top-3 duration-300">
           <RunningWorkoutCard
             session={runningSession}
             compact
@@ -201,16 +195,11 @@ export function DashboardClient({
         </div>
       )}
 
-      {/* Module Grid Hierarchy (Asymmetric Bento Grid) */}
+      {/* Module Grid */}
       <ModuleGrid
         canAccess={canAccess}
         hasOnlineServer={hasOnlineServer}
-        cashflowOnlyInPair={cashflowOnlyInPair}
-        resumeOnlyInPair={resumeOnlyInPair}
       />
-
-      {/* Admin Section (Role-Gated for user.role === 'admin') */}
-      {currentRole === "admin" && canAccess("pulse") && <AdminSection />}
 
       {/* Settings Toggle Button (Bottom Right) */}
       <button
