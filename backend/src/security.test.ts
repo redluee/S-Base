@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { mkdtempSync, readdirSync } from "fs";
 import { tmpdir } from "os";
@@ -6,6 +6,7 @@ import { join } from "path";
 import { RateLimiter, verifyInternalSecret, getClientIp } from "./security";
 import { createBackup } from "./db/backup";
 import { app } from "./index";
+import { setupTestDb } from "./test-utils";
 
 describe("RateLimiter", () => {
   test("blocks after max hits and recovers after window", () => {
@@ -60,6 +61,10 @@ test("createBackup writes a copy and prunes old ones", () => {
 });
 
 describe("http hardening", () => {
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+
   test("health endpoint and security headers", async () => {
     const res = await app.handle(new Request("http://localhost/api/health"));
     expect(res.status).toBe(200);
