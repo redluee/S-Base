@@ -8,7 +8,7 @@ export default async function FinancePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
   return (
-    <>
+    <div className="min-h-full flex flex-col">
       <NavHeader username={user.username} />
       <main
         id="main-content"
@@ -20,6 +20,6 @@ export default async function FinancePage() {
           <p role="alert">{t("finance.forbidden")}</p>
         )}
       </main>
-    </>
+    </div>
   );
 }

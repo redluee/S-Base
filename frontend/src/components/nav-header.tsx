@@ -93,7 +93,7 @@ export function NavHeader({
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-zinc-900 focus:border focus:border-brand focus:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus:font-semibold focus:text-sm"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-50 focus-visible:px-4 focus-visible:py-2 focus-visible:rounded-lg focus-visible:bg-zinc-900 focus-visible:border focus-visible:border-brand focus-visible:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:font-semibold focus-visible:text-sm"
       >
         {t("Skip to content")}
       </a>

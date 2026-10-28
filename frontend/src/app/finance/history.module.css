@@ -1,0 +1,23 @@
+@media (width < 40rem) {
+  .plot {
+    margin-inline: -1rem;
+    overflow: clip;
+  }
+
+  .graph {
+    width: calc(100% * 600 / 576);
+    max-width: none;
+    margin-left: calc(-100% * 12 / 576);
+  }
+
+  .axis {
+    width: max-content;
+  }
+
+  .tick {
+    left: 0;
+    width: max-content;
+    padding: 0.375rem 1.5rem 0.375rem 1rem;
+    background: linear-gradient(to right, var(--color-background) calc(100% - 1.5rem), transparent);
+  }
+}

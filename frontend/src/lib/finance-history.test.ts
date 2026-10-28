@@ -157,26 +157,26 @@ describe("Money chart geometry", () => {
       expect(chart.upper).toBeGreaterThanOrEqual(value);
       expect(chart.lower).toBeLessThanOrEqual(value);
       expect(chart.ticks[0]).toBe(chart.upper);
-      expect(chart.ticks).toContain(0);
       const intervals = chart.ticks.slice(1).map((tick, index) => chart.ticks[index] - tick);
       expect(new Set(intervals).size).toBe(1);
       expect(chart.ticks.every((tick) => tick >= chart.lower && tick <= chart.upper)).toBe(true);
     }
   });
-  it("labels every thousand euros on a five-thousand-euro axis", () => {
+  it("labels every thousand euros with padding above a five-thousand-euro range", () => {
     const point = { date: "2025-01-01", value: 490_000, savingsValue: null, known: 1, expected: 1 };
     const chart = financeHistoryGeometry([{ ...point, value: 0 }, point], false, point.date, point.date);
-    expect(chart.ticks).toEqual([500_000, 400_000, 300_000, 200_000, 100_000, 0]);
+    expect(chart.ticks).toEqual([700_000, 600_000, 500_000, 400_000, 300_000, 200_000, 100_000, 0]);
   });
-  it("fits steady balances between zero and the nearest axis boundary", () => {
-    for (const values of [[680_000, 780_000], [-780_000, -680_000], [700_000, 700_000]]) {
+  it("centers steady balances within a padded axis instead of anchoring them to zero", () => {
+    for (const values of [[680_000, 780_000], [-780_000, -680_000], [700_000, 700_000], [12_000_000, 14_000_000]]) {
       const points = values.map((value, index) => ({
         date: `2025-01-0${index + 1}`, value, savingsValue: null, known: 1, expected: 1,
       }));
       const chart = financeHistoryGeometry(points, false, points[0].date, points[1].date);
-      expect(chart.lower).toBe(values[0] < 0 ? -800_000 : 0);
-      expect(chart.upper).toBe(values[0] < 0 ? 0 : values[0] === values[1] ? 700_000 : 800_000);
-      expect(chart.ticks).toContain(0);
+      expect(chart.lower).toBeLessThan(Math.min(...values));
+      expect(chart.upper).toBeGreaterThan(Math.max(...values));
+      expect(chart.ticks).not.toContain(0);
+      expect(Math.abs(chart.y((values[0] + values[1]) / 2) - 105)).toBeLessThan(20);
       const intervals = chart.ticks.slice(1).map((tick, index) => chart.ticks[index] - tick);
       expect(new Set(intervals).size).toBe(1);
     }
@@ -283,14 +283,13 @@ describe("Money chart geometry", () => {
 });
 
 
-describe("Zero-based chart scale", () => {
+describe("Balance chart scale", () => {
   for (const values of [[0, 0], [1, 29], [100, 10000], [-100, 100], [-10000, -200]]) {
-    it(`keeps zero and whole-euro ticks for ${values.join(", ")}`, () => {
+    it(`keeps whole-euro ticks and contains balances for ${values.join(", ")}`, () => {
       const points = values.map((value, index) => ({
         date: `2025-01-0${index + 1}`, value, savingsValue: null, known: 1, expected: 1,
       }));
       const chart = financeHistoryGeometry(points, false, points[0].date, points[1].date);
-      expect(chart.ticks).toContain(0);
       expect(chart.lower < 0).toBe(values.some((value) => value < 0));
       expect(chart.ticks.every((tick) => Number.isInteger(tick / 100))).toBe(true);
       for (const value of values) {

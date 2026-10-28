@@ -12,7 +12,8 @@ import {
 } from "@/lib/finance-history";
 import { t } from "@/lib/lang";
 import { HistoryRow } from "./history-row";
-import { Action, errorText, Notice, panel, selectClass } from "./ui";
+import { Action, errorText, Notice, selectClass } from "./ui";
+import styles from "./history.module.css";
 
 export function History({
   report,
@@ -36,6 +37,7 @@ export function History({
   const pendingPosition = useRef<number | null>(null);
   const pointerFrame = useRef<number | null>(null);
   const titleId = useId();
+  const fillId = useId();
   useEffect(() => {
     if (!detailsOpen) return;
     let cancelled = false;
@@ -125,7 +127,7 @@ export function History({
     });
   }
   return (
-    <section className={panel} aria-labelledby={titleId}>
+    <section className="py-4 sm:rounded-xl sm:bg-card sm:p-6 sm:ring-1 sm:ring-foreground/10" aria-labelledby={titleId}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 id={titleId} className="text-lg font-semibold">
@@ -165,10 +167,10 @@ export function History({
       )}
       {chart.hasValues ? (
         <div className="mt-5">
-          <div className="relative pl-16 sm:pl-20">
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-14 text-right text-[10px] tabular-nums text-muted-foreground sm:w-16 sm:text-xs">
+          <div className={`${styles.plot} relative sm:pl-20`}>
+            <div aria-hidden="true" className={`${styles.axis} pointer-events-none absolute inset-y-0 left-0 z-10 text-[10px] tabular-nums text-muted-foreground sm:w-16 sm:text-right sm:text-xs`}>
               {chart.ticks.map((value) => (
-                <span key={value} className="absolute right-0 -translate-y-1/2" style={{ top: `${chart.y(value) / 210 * 100}%` }}>
+                <span key={value} className={`${styles.tick} absolute -translate-y-1/2 sm:right-0`} style={{ top: `${chart.y(value) / 210 * 100}%` }}>
                   {new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 }).format(value / 100)}
                 </span>
               ))}
@@ -178,7 +180,7 @@ export function History({
               aria-label={title}
               viewBox="0 0 600 210"
               preserveAspectRatio="none"
-              className="h-56 w-full cursor-crosshair touch-pan-y overflow-visible sm:h-64"
+              className={`${styles.graph} h-56 cursor-crosshair touch-pan-y overflow-visible sm:h-64 sm:w-full`}
               tabIndex={0}
               onKeyDown={(event) => {
                 if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -201,6 +203,14 @@ export function History({
               <desc>
                 {t("finance.chartHelp")}
               </desc>
+              <defs>
+                <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#00e3a4" stopOpacity="0.18" />
+                  <stop offset="65%" stopColor="#00e3a4" stopOpacity="0.06" />
+                  <stop offset="100%" stopColor="#00e3a4" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={chart.totalAreaPath} fill={`url(#${fillId})`} aria-hidden="true" />
               {chart.ticks.map((value) => (
                 <line
                   key={value}
@@ -245,7 +255,7 @@ export function History({
               )}
             </svg>
           </div>
-          <div className="flex justify-between gap-2 pl-16 text-xs tabular-nums text-muted-foreground sm:pl-20">
+          <div className="flex justify-between gap-2 text-xs tabular-nums text-muted-foreground sm:pl-20">
             <span>{dateLabel(report.startDate)}</span>
             <span>{dateLabel(report.endDate)}</span>
           </div>

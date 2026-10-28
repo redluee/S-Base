@@ -67,18 +67,23 @@ export function financeHistoryGeometry(
     .filter((value): value is number => value !== null);
   const min = values.length ? Math.min(...values) : 0;
   const max = values.length ? Math.max(...values) : 0;
-  const { lower, upper, ticks } = financeChartScale(values);
+  const { lower, upper, ticks } = financeChartScale(values, false);
   const time = (date: string) => Date.parse(`${date}T12:00:00Z`);
   const duration = time(endDate) - time(startDate) || 1;
   const x = (date: string) =>
     12 + ((time(date) - time(startDate)) / duration) * 576;
   const y = (value: number) => 190 - ((value - lower) / (upper - lower)) * 170;
-  function path(key: "value" | "savingsValue") {
+  function path(key: "value" | "savingsValue", area = false) {
     let result = "";
     let previous: { x: number; y: number } | null = null;
+    let startX = 0;
+    function closeArea() {
+      if (area && previous) result += ` V 210 H ${startX} Z`;
+    }
     for (const point of points) {
       const value = point[key];
       if (value === null) {
+        closeArea();
         previous = null;
         continue;
       }
@@ -87,9 +92,11 @@ export function financeHistoryGeometry(
         result += ` H ${current.x} V ${current.y}`;
       } else {
         result += ` M ${current.x} ${current.y}`;
+        startX = current.x;
       }
       previous = current;
     }
+    closeArea();
     return result;
   }
   return {
@@ -104,6 +111,7 @@ export function financeHistoryGeometry(
     x,
     y,
     totalPath: path("value"),
+    totalAreaPath: path("value", true),
     savingsPath: showSavings ? path("savingsValue") : "",
   };
 }
