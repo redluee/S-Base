@@ -51,6 +51,7 @@ export function ImportSource({
         <h3 className="font-semibold">
           {source.suggestedName ? `${source.suggestedName} · ${source.label}` : t("finance.import.sourceAccount", { suffix: source.label })}
         </h3>
+        {source.bank && <p className="mt-1 text-xs text-muted-foreground">{source.bank}</p>}
         <p className="mt-2 text-xs text-muted-foreground">
           {t("finance.import.sourceSummary", {
             rows: String(source.rowCount),

@@ -321,6 +321,8 @@ describe("Finance transaction imports and totals", () => {
   });
   it("matches Dutch IBAN and legacy counteraccount formats within one user", () => {
     expect(accountNumberKey(owner, "NL00INGB0000000001")).toBe(accountNumberKey(owner, "1"));
+    expect(accountNumberKey(owner, "NL00INGB0000000001")).not.toBe(accountNumberKey(owner, "NL00RABO0000000001"));
+    expect(accountNumberKey(owner, "NL00ABNA0000000001")).not.toBe(accountNumberKey(owner, "NL00RABO0000000001"));
     expect(accountNumberKey(owner, "DEMO0001")).not.toBe(accountNumberKey(other, "DEMO0001"));
   });
   it("matches known sources and makes repeat and overlapping imports idempotent", () => {

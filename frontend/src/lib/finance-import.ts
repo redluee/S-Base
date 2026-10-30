@@ -3,7 +3,25 @@ import type {
   FinanceImportSelection,
   FinanceImportSource,
   FinanceAccountType,
+  FinanceImportFormat,
 } from "@backend/types/finance";
+
+export function detectImportFormat(content: string): FinanceImportFormat {
+  return content.replace(/^\uFEFF/, "").trimStart().startsWith("<") ? "camt053" : "ing-csv";
+}
+
+export async function readImportFile(file: File): Promise<string> {
+  if (!/\.(csv|xml)$/i.test(file.name)) throw new Error("finance.import.fileType");
+  if (file.size > 2 * 1024 * 1024) throw new Error("finance.import.size");
+  const bytes = await file.arrayBuffer();
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    const content = new TextDecoder("windows-1252").decode(bytes);
+    if (detectImportFormat(content) === "camt053") throw new Error("finance.import.xml");
+    return content;
+  }
+}
 
 export interface ImportChoice {
   target: string;

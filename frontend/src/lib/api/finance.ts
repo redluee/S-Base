@@ -41,20 +41,20 @@ export const financeApi = {
     request<FinanceTransactionPage>(`/finance/budget/transactions?date=${date}&page=${page}`),
   setMonthlyBudget: (monthlyBudgetCents: number | null) =>
     request<{ monthlyBudgetCents: number | null }>("/finance/settings/budget", json("PUT", { monthlyBudgetCents })),
-  previewImport: (csv: string, order: FinanceImportOrder, anchors?: Record<string, number>) =>
+  previewImport: (content: string, order: FinanceImportOrder, anchors?: Record<string, number>) =>
     request<FinanceImportPreview>(
       "/finance/import/preview",
-      json("POST", { csv, order, anchors }),
+      json("POST", { content, order, anchors }),
     ),
   importBalances: (
-    csv: string,
+    content: string,
     order: FinanceImportOrder,
     selections: FinanceImportSelection[],
     anchors?: Record<string, number>,
   ) =>
     request<FinanceImportResult>(
       "/finance/import",
-      json("POST", { csv, order, selections, anchors }),
+      json("POST", { content, order, selections, anchors }),
     ),
   transactions: (start: string, end: string, page: number) =>
     request<FinanceTransactionPage>(`/finance/transactions?start=${start}&end=${end}&page=${page}`),

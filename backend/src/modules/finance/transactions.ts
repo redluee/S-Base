@@ -23,7 +23,7 @@ export function importKey(userId: number, value: unknown) {
 
 export function accountNumberKey(userId: number, value: string) {
   const normalized = value.replace(/\s/g, "").toUpperCase();
-  const dutch = /^NL\d{2}[A-Z]{4}(\d{10})$/.exec(normalized);
+  const dutch = /^NL\d{2}INGB(\d{10})$/.exec(normalized);
   return importKey(userId, dutch ? dutch[1] : /^\d{1,10}$/.test(normalized) ? normalized.padStart(10, "0") : normalized);
 }
 

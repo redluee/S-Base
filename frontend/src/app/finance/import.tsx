@@ -14,11 +14,12 @@ import {
   defaultImportChoice,
   importSelections,
   type ImportChoice,
+  detectImportFormat,
+  readImportFile,
 } from "@/lib/finance-import";
 import { Action, Field, Notice, panel, selectClass, errorText } from "./ui";
 import { ImportSource } from "./import-source";
 
-const MAX_BYTES = 2 * 1024 * 1024;
 export function FinanceImport({
   data,
   onSaved,
@@ -28,7 +29,7 @@ export function FinanceImport({
 }) {
   const [file, setFile] = useState<File | null>(null),
     [order, setOrder] = useState<FinanceImportOrder>("descending");
-  const [csv, setCsv] = useState(""),
+  const [content, setContent] = useState(""),
     [preview, setPreview] = useState<FinanceImportPreview | null>(null);
   const [anchors, setAnchors] = useState<Record<string, string>>({});
   const [confirmedAnchors, setConfirmedAnchors] = useState<Record<string, number>>({});
@@ -43,18 +44,9 @@ export function FinanceImport({
     setError("");
     setResult(null);
     setPreview(null);
-    setCsv("");
     try {
-      if (!file || !/\.csv$/i.test(file.name))
+      if (!file || !content)
         throw new Error("finance.import.fileType");
-      if (file.size > MAX_BYTES) throw new Error("finance.import.size");
-      const bytes = await file.arrayBuffer();
-      let content: string;
-      try {
-        content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      } catch {
-        content = new TextDecoder("windows-1252").decode(bytes);
-      }
       const enteredAnchors = Object.fromEntries(Object.entries(anchors).filter(([, value]) => value.trim()).map(([key, value]) => [key, parseMoney(value)]));
       const analyzed = await financeApi.previewImport(content, order, enteredAnchors);
       setConfirmedAnchors(enteredAnchors);
@@ -72,7 +64,6 @@ export function FinanceImport({
         ]),
       );
       setChoices(initial);
-      setCsv(content);
       setPreview(analyzed);
     } catch (error) {
       setError(errorText(error));
@@ -109,10 +100,10 @@ export function FinanceImport({
     setBusy(true);
     setError("");
     try {
-      const imported = await financeApi.importBalances(csv, order, selections, confirmedAnchors);
+      const imported = await financeApi.importBalances(content, order, selections, confirmedAnchors);
       setResult(imported);
       setPreview(null);
-      setCsv("");
+      setContent("");
       setChoices({});
       setFile(null);
       setAnchors({});
@@ -138,22 +129,34 @@ export function FinanceImport({
             <input
               ref={fileInput}
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,.xml,text/csv,application/xml,text/xml"
               required
               disabled={busy}
               className="min-h-11 w-full min-w-0 rounded-lg border border-input p-2 text-sm text-foreground file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-zinc-800 file:px-3 file:py-2 file:text-foreground"
-              onChange={(event) => {
-                setFile(event.target.files?.[0] ?? null);
+              onChange={async (event) => {
+                const selected = event.target.files?.[0] ?? null;
+                setFile(selected);
                 setAnchors({});
                 setConfirmedAnchors({});
+                setChoices({});
                 setPreview(null);
-                setCsv("");
+                setContent("");
                 setResult(null);
                 setError("");
+                if (!selected) return;
+                setBusy(true);
+                try {
+                  setContent(await readImportFile(selected));
+                } catch (error) {
+                  setError(errorText(error));
+                } finally {
+                  setBusy(false);
+                }
               }}
             />
           </label>
-          <label className="flex max-w-sm flex-col gap-2 text-sm text-muted-foreground">
+          {content && <p role="status" className="text-sm text-muted-foreground">{t("finance.import.detected", { format: t(`finance.import.format.${preview?.format ?? detectImportFormat(content)}`) })}</p>}
+          {content && detectImportFormat(content) === "ing-csv" && <label className="flex max-w-sm flex-col gap-2 text-sm text-muted-foreground">
             {t("finance.import.sortOrder")}
             <select
               className={selectClass}
@@ -162,7 +165,6 @@ export function FinanceImport({
               onChange={(event) => {
                 setOrder(event.target.value as FinanceImportOrder);
                 setPreview(null);
-                setCsv("");
                 setError("");
               }}
             >
@@ -171,8 +173,8 @@ export function FinanceImport({
               </option>
               <option value="ascending">{t("finance.import.ascending")}</option>
             </select>
-          </label>
-          <Action type="submit" variant="outline" disabled={busy || !file}>
+          </label>}
+          <Action type="submit" variant="outline" disabled={busy || !file || !content}>
             {t(busy ? "finance.import.processing" : "finance.import.preview")}
           </Action>
         </form>

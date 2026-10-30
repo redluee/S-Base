@@ -14,21 +14,29 @@ import {
   requireObject,
 } from "../../utils/validation";
 import { FinanceTransactionsService, importKey, accountNumberKey } from "./transactions";
-import { parseIngCsv, parseIngFile } from "./ing-csv";
+import { parseImport } from "./import-parser";
+import { importPreview, type ImportSource } from "./import-model";
 import { accountInput, calendarDate, cents } from "./validation";
 import type { FinanceImportResult } from "../../types/finance";
 import { subscriptionSourceKey } from "./subscriptions";
 
 export class FinanceImportService extends FinanceTransactionsService {
+  private sourceBinding(userId: number, source: ImportSource, camt: boolean) {
+    const known = db.select().from(importSources).where(eq(importSources.userId, userId)).all();
+    if (camt) {
+      const matches = known.filter((entry) => entry.numberKey === accountNumberKey(userId, source.account));
+      if (matches.length > 1) throw new ConflictError("finance.import.mappingConflict");
+      return matches[0];
+    }
+    return known.find((entry) => entry.identity === importKey(userId, [source.account, source.accountName]));
+  }
   previewImport(input: unknown, userId?: number) {
-    const data = requireObject(input);
-    const preview = parseIngCsv(data.csv, data.order, data.anchors);
+    const parsed = parseImport(input);
+    const preview = importPreview(parsed);
     if (userId !== undefined) {
-      const parsed = parseIngFile(data.csv, data.order, data.anchors);
-      const known = db.select().from(importSources).where(eq(importSources.userId, userId)).all();
       preview.sources.forEach((source, index) => {
         const raw = parsed.sources[index];
-        const match = known.find((entry) => entry.identity === importKey(userId, [raw.account, raw.accountName]));
+        const match = this.sourceBinding(userId, raw, parsed.format === "camt053");
         if (match) source.matchedAccountId = match.accountId;
       });
     }
@@ -36,7 +44,7 @@ export class FinanceImportService extends FinanceTransactionsService {
   }
   importBalances(userId: number, input: unknown): FinanceImportResult {
     const data = requireObject(input),
-      preview = parseIngFile(data.csv, data.order, data.anchors);
+      preview = parseImport(data);
     if (
       !Array.isArray(data.selections) ||
       !data.selections.length ||
@@ -85,7 +93,7 @@ export class FinanceImportService extends FinanceTransactionsService {
           ? undefined
           : accountInput({
             ...requireObject(selection.newAccount),
-            bank: "ING",
+            bank: source.bank,
             openingDate: first.date,
             openingBalanceCents: first.balanceCents,
           });
@@ -125,10 +133,10 @@ export class FinanceImportService extends FinanceTransactionsService {
           selection.accountId !== undefined
             ? this.account(userId, selection.accountId)
             : this.createAccount(userId, selection.newAccount);
-        const identity = importKey(userId, [selection.source.account, selection.source.accountName]);
-        const sourceBinding = tx.select().from(importSources).where(and(eq(importSources.userId, userId), eq(importSources.identity, identity))).get();
+        const identity = importKey(userId, [selection.source.account, preview.format === "camt053" ? "" : selection.source.accountName]);
+        const sourceBinding = this.sourceBinding(userId, selection.source, preview.format === "camt053");
         const targetBinding = tx.select().from(importSources).where(eq(importSources.accountId, account.id)).get();
-        if ((sourceBinding && sourceBinding.accountId !== account.id) || (targetBinding && targetBinding.identity !== identity))
+        if ((sourceBinding && sourceBinding.accountId !== account.id) || (targetBinding && targetBinding.identity !== identity && targetBinding.accountId !== sourceBinding?.accountId))
           throw new ConflictError("finance.import.mappingConflict");
         tx.insert(importSources).values({ accountId: account.id, userId, identity, numberKey: accountNumberKey(userId, selection.source.account) }).onConflictDoNothing().run();
         if (selection.newAccount) result.createdAccounts++;

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
   defaultImportChoice,
+  detectImportFormat,
+  readImportFile,
   importRows,
   importSelections,
 } from "./finance-import";
@@ -108,5 +110,24 @@ describe("Finance import selections", () => {
     });
     expect(selection.entries).toHaveLength(3);
     expect(selection.accountId).toBeUndefined();
+  });
+});
+
+
+describe("Automatic bank file format selection", () => {
+  it("detects content independently of extension, including prefixed XML and BOM", async () => {
+    for (const xml of ['<?xml version="1.0"?><Document/>', '\uFEFF  <c:Document/>']) {
+      expect(detectImportFormat(await readImportFile(new File([xml], "sample.csv")))).toBe("camt053");
+    }
+    expect(detectImportFormat(await readImportFile(new File(["Datum;Rekening\nSample"], "sample.xml")))).toBe("ing-csv");
+  });
+  it("retains Windows-1252 decoding for CSV, but rejects invalid UTF-8 XML", async () => {
+    const bytes = new Uint8Array([0x44, 0x61, 0x74, 0x75, 0x6d, 0x3b, 0xe9]);
+    expect(await readImportFile(new File([bytes], "sample.csv"))).toBe("Datum;é");
+    await expect(readImportFile(new File(["<Document>", bytes], "sample.xml"))).rejects.toThrow("finance.import.xml");
+  });
+  it("rejects ZIP/PDF uploads and files exceeding the shared 2 MB limit", async () => {
+    for (const name of ["sample.zip", "sample.pdf"]) await expect(readImportFile(new File(["sample"], name))).rejects.toThrow("finance.import.fileType");
+    await expect(readImportFile(new File([new Uint8Array(2 * 1024 * 1024 + 1)], "sample.xml"))).rejects.toThrow("finance.import.size");
   });
 });

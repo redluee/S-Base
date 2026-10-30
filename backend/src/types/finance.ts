@@ -83,7 +83,9 @@ export interface FinanceDashboard {
 }
 
 export type FinanceImportOrder = "descending" | "ascending";
+export type FinanceImportFormat = "ing-csv" | "camt053";
 export interface FinanceImportSource {
+  bank?: string | null;
   sourceKey: string;
   label: string;
   suggestedType?: FinanceAccountType;
@@ -97,6 +99,7 @@ export interface FinanceImportSource {
   balances: { date: string; balanceCents: number }[];
 }
 export interface FinanceImportPreview {
+  format: FinanceImportFormat;
   sources: FinanceImportSource[];
   rowCount: number;
 }

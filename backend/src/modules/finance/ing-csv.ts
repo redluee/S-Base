@@ -237,6 +237,7 @@ export function parseIngFile(
 export function parseIngCsv(content: unknown, order: unknown, anchors?: unknown): FinanceImportPreview {
   const parsed = parseIngFile(content, order, anchors);
   return {
+    format: "ing-csv",
     rowCount: parsed.rowCount,
     sources: parsed.sources.map((source) => ({
       sourceKey: source.sourceKey,

@@ -9,11 +9,14 @@ import {
   usermodulepermissions,
   financeAccounts,
   financeGoals,
+  financeImportSources,
 } from "../../db/schema";
 import { setupTestDb } from "../../test-utils";
 import { FinanceService } from "./index";
 import { financeRoutes } from "../../routes/finance";
 import type { FinanceImportSelection } from "../../types/finance";
+
+import { camtDocument, camtStatement, camtBalance, sampleIban } from "./fixtures/camt";
 
 const service = new FinanceService(),
   app = new Elysia().use(financeRoutes);
@@ -382,5 +385,98 @@ describe("ING import HTTP ownership and module access", () => {
       )
       .all().length;
     expect(count).toBe(1);
+  });
+});
+
+describe("CAMT import persistence and compatibility", () => {
+  const prepare = (content = camtDocument(), accountId?: number) => {
+    const preview = service.previewImport({ content }, owner);
+    const data = service.data(owner);
+    return { content, selections: preview.sources.map((source) => ({
+      sourceKey: source.sourceKey,
+      ...(accountId ? { accountId } : { newAccount: { name: "Sample XML account", type: "current" } }),
+      extendOpening: false,
+      entries: source.balances.map((balance) => ({ date: balance.date, expectedCents: data.observations.find((entry) => entry.accountId === accountId && entry.date === balance.date)?.balanceCents ?? null })),
+    })) };
+  };
+  it("detects XML without an order and persists bank attribution, balances and transactions idempotently", () => {
+    const input = prepare(camtDocument(camtStatement({ bank: "ABNA" })));
+    expect(service.data(owner).accounts).toHaveLength(0);
+    expect(service.importBalances(owner, input)).toMatchObject({ createdAccounts: 1, inserted: 1, transactionsInserted: 1 });
+    const account = service.data(owner).accounts[0];
+    expect(account.bank).toBe("ABN AMRO");
+    expect(service.importBalances(owner, prepare(input.content, account.id))).toMatchObject({ unchanged: 1, transactionsInserted: 0, transactionsRemoved: 0 });
+    const result = service.transactionList(owner, {});
+    expect(result.total).toBe(1);
+    expect(result.entries[0]).toMatchObject({ amountCents: -2000, name: "Sample counterparty" });
+    const stored = db.select().from(financeImportSources).where(eq(financeImportSources.userId, owner)).all();
+    expect(JSON.stringify(stored)).not.toContain(sampleIban("ABNA"));
+  });
+  it("matches existing ING CSV by number despite account-name differences, replacing selected days without duplicates", () => {
+    const content = `Datum;Rekening;Af Bij;Bedrag (EUR);Saldo na mutatie\n20250102;${sampleIban()};Af;20,00;80,00`;
+    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ ...selection(), entries: [{ date: "2025-01-02", expectedCents: null }] }] });
+    const account = service.data(owner).accounts[0];
+    const binding = db.select().from(financeImportSources).where(eq(financeImportSources.accountId, account.id)).get()!;
+    expect(service.previewImport({ content: camtDocument() }, owner).sources[0].matchedAccountId).toBe(account.id);
+    expect(service.importBalances(owner, prepare(camtDocument(), account.id))).toMatchObject({ createdAccounts: 0, transactionsInserted: 1, transactionsRemoved: 1 });
+    expect(service.transactionList(owner, {}).total).toBe(1);
+    expect(db.select().from(financeImportSources).where(eq(financeImportSources.accountId, account.id)).get()!.identity).toBe(binding.identity);
+    expect(service.importBalances(owner, { csv: content, order: "ascending", selections: [{ ...selection(account.id), entries: [{ date: "2025-01-02", expectedCents: 8000 }] }] })).toMatchObject({ transactionsInserted: 1, transactionsRemoved: 1 });
+    expect(service.transactionList(owner, {}).total).toBe(1);
+  });
+  it("rejects duplicate target creation and ambiguous ING savings bindings without writing", () => {
+    const initial = prepare();
+    service.importBalances(owner, initial);
+    expect(() => service.importBalances(owner, initial)).toThrow("finance.import.mappingConflict");
+    expect(service.data(owner).accounts).toHaveLength(1);
+    db.delete(financeAccounts).where(eq(financeAccounts.userId, owner)).run();
+    const content = `Datum;Rekening;Rekening naam;Af Bij;Bedrag;Valuta;Saldo na mutatie\n20250102;${sampleIban()};Sample savings A;Af;20,00;EUR;80,00\n20250102;${sampleIban()};Sample savings B;Af;20,00;EUR;80,00`;
+    service.importBalances(owner, { csv: content, order: "ascending", selections: ["1", "2"].map((sourceKey) => ({ ...selection(), sourceKey, entries: [{ date: "2025-01-02", expectedCents: null }] })) });
+    expect(() => service.previewImport({ content: camtDocument() }, owner)).toThrow("finance.import.mappingConflict");
+    expect(() => service.importBalances(owner, { content: camtDocument(), selections: initial.selections })).toThrow("finance.import.mappingConflict");
+    expect(service.data(owner).accounts).toHaveLength(2);
+  });
+  it("rolls back earlier sources when a later source has stale observations", () => {
+    const account = create(owner, "2025-01-02", 0);
+    const content = camtDocument(camtStatement() + camtStatement({ bank: "RABO" }));
+    const input = prepare(content);
+    input.selections[1] = { sourceKey: "2", accountId: account.id, extendOpening: false, entries: [{ date: "2025-01-02", expectedCents: 999 }] };
+    expect(() => service.importBalances(owner, input)).toThrow("finance.import.stale");
+    expect(service.data(owner).accounts).toHaveLength(1);
+    expect(service.transactionList(owner, {}).total).toBe(0);
+    expect(service.history(owner, account.id)[0].balanceCents).toBe(0);
+  });
+  it("imports empty statements and preserves existing account metadata", () => {
+    const account = service.createAccount(owner, { name: "Sample existing", bank: "Sample bank", type: "savings", openingDate: "2025-01-01", openingBalanceCents: 0 });
+    const content = camtDocument(camtStatement({ entries: "", opening: "", closing: camtBalance("CLBD", "100.00") }));
+    expect(service.importBalances(owner, prepare(content, account.id))).toMatchObject({ inserted: 1, transactionsInserted: 0 });
+    expect(service.account(owner, account.id)).toMatchObject({ name: "Sample existing", bank: "Sample bank", type: "savings" });
+  });
+  it("recognizes internal transfers between CAMT accounts", () => {
+    service.importBalances(owner, prepare(camtDocument(camtStatement() + camtStatement({ iban: sampleIban("RABO", "0000000002"), bank: "RABO" }))));
+    const entries = service.transactionList(owner, {}).entries;
+    expect(entries.find((entry) => entry.name === "Sample counterparty")?.internalTransfer).toBe(true);
+    expect(service.activity(owner, "2025-01-01", "2025-01-03").excludedCount).toBe(2);
+  });
+  it("enforces HTTP ownership/access and returns useful errors without exposing XML", async () => {
+    const input = prepare();
+    for (const path of ["/import", "/import/preview"]) {
+      expect((await request(null, path, input)).status).toBe(401);
+      expect((await request(forbidden, path, input)).status).toBe(403);
+    }
+    const preview = await request(owner, "/import/preview", input);
+    expect(preview.status).toBe(200);
+    const response = await preview.text();
+    expect(response).toContain('"format":"camt053"');
+    expect(response).not.toContain(sampleIban());
+    const foreign = create(other);
+    expect((await request(owner, "/import", { ...input, selections: [{ ...input.selections[0], newAccount: undefined, accountId: foreign.id }] })).status).toBe(404);
+    expect(service.data(owner).accounts).toHaveLength(0);
+    expect((await request(owner, "/import/preview", { content: camtDocument().replace("BOOK", "PDNG") })).status).toBe(400);
+    service.importBalances(owner, input);
+    const account = service.data(owner).accounts[0];
+    const stale = prepare(input.content, account.id);
+    stale.selections[0].entries[0].expectedCents = 0;
+    expect((await request(owner, "/import", stale)).status).toBe(409);
   });
 });
