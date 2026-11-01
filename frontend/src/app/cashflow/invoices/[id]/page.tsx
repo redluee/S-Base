@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { HARDWARE_PREPAYMENT_MESSAGE, invoiceTypeLabel } from "@/lib/cashflow-invoice";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
@@ -328,10 +327,6 @@ export default function InvoiceDetailPage() {
             </tr>
           </tfoot>
         </table>
-        <div className="text-sm text-zinc-300 space-y-2">
-          <p>{invoiceTypeLabel(invoice.invoiceType)}</p>
-          {invoice.invoiceType === "hardware_prepayment" && <p>{HARDWARE_PREPAYMENT_MESSAGE}</p>}
-        </div>
         {invoice.isKor && (
           <div className="px-4 py-3 bg-zinc-950/20">
             <p className="text-xs text-zinc-500 italic">

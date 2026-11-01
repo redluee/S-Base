@@ -1,7 +1,5 @@
 "use client";
 
-import type { CashflowInvoiceType } from "@/lib/api/types";
-import { HARDWARE_PREPAYMENT_MESSAGE } from "@/lib/cashflow-invoice";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,8 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import type { Dispatch, SetStateAction } from "react";
 
 export function DetailsSection({
-  invoiceType,
-  onInvoiceTypeChange,
   dateCreated,
   datePaid,
   dateService,
@@ -28,8 +24,6 @@ export function DetailsSection({
   setStatus,
   status,
 }: {
-  invoiceType: CashflowInvoiceType;
-  onInvoiceTypeChange: (type: CashflowInvoiceType) => void;
   dateCreated: string;
   datePaid: string;
   dateService: string;
@@ -50,19 +44,6 @@ export function DetailsSection({
   return (
         <div className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
           <h2 className="text-sm font-semibold text-zinc-300">{t("Factuurdetails")}</h2>
-          <div className="space-y-1.5">
-            <Label htmlFor="invoice-type" className="text-xs text-zinc-400">{t("Factuurtype")}</Label>
-            <select id="invoice-type" value={invoiceType} onChange={e => onInvoiceTypeChange(e.target.value as CashflowInvoiceType)} className="min-h-11 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand">
-              <option value="standard">{t("Standaardfactuur")}</option>
-              <option value="hardware_prepayment">{t("Hardware vooruitbetaling")}</option>
-            </select>
-            {invoiceType === "hardware_prepayment" && (
-              <div className="text-xs text-zinc-400 space-y-2 pt-2">
-                <p>{t("Direct te betalen. De vervaldatum staat standaard op de factuurdatum.")}</p>
-                <p>{HARDWARE_PREPAYMENT_MESSAGE}</p>
-              </div>
-            )}
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-zinc-400">{t("Factuurnummer")}</Label>

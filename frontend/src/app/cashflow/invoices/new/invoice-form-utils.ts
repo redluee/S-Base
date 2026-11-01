@@ -1,4 +1,4 @@
-export type LineType = "hours" | "service" | "product" | "travel_costs" | "discount";
+export type LineType = "hours" | "service" | "travel_costs" | "discount";
 export type DiscountType = "percentage" | "amount";
 
 export interface InvoiceLine {
@@ -40,7 +40,7 @@ export function recalculateLines(rawLines: InvoiceLine[]): InvoiceLine[] {
     .reduce((sum, l) => {
       const q = l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity);
       const p = l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice);
-      return sum + (l.type === "product" ? Math.round((q * p + Number.EPSILON) * 100) / 100 : q * p);
+      return sum + (q * p);
     }, 0);
 
   return rawLines.map(l => {
@@ -56,7 +56,7 @@ export function recalculateLines(rawLines: InvoiceLine[]): InvoiceLine[] {
     } else {
       const q = l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity);
       const p = l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice);
-      return { ...l, totalCost: l.type === "product" ? Math.round((q * p + Number.EPSILON) * 100) / 100 : q * p };
+      return { ...l, totalCost: q * p };
     }
   });
 }

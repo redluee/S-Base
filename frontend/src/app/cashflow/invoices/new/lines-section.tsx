@@ -73,7 +73,6 @@ export function LinesSection({
                       >
                         <option value="hours">{t("Uren")}</option>
                         <option value="service">{t("Dienst")}</option>
-                    <option value="product">{t("Product")}</option>
                         <option value="travel_costs">{t("Reiskosten")}</option>
                         <option value="discount">{t("Korting")}</option>
                       </select>
@@ -180,7 +179,6 @@ export function LinesSection({
                   >
                     <option value="hours">{t("Uren")}</option>
                     <option value="service">{t("Dienst")}</option>
-                    <option value="product">{t("Product")}</option>
                     <option value="travel_costs">{t("Reiskosten")}</option>
                     <option value="discount">{t("Korting")}</option>
                   </select>

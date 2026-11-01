@@ -14,46 +14,6 @@ describe("CashflowService", () => {
     cashflow = new CashflowService();
   });
 
-  it("stores hardware prepayments and calculates fixed product prices on create and edit", () => {
-    const client = cashflow.createClient(adminId, { name: "Sample hardware client" });
-    const created = cashflow.createInvoice(adminId, {
-      clientId: client.id, invoiceNumber: "HARDWARE-001", isKor: true,
-      invoiceType: "hardware_prepayment", dateCreated: 1793491200000,
-      lines: [{ type: "product", taskDescription: "Sample hardware", quantity: 3, unitPrice: 19.99, totalCost: 1 }],
-    })!;
-    expect(created.invoiceType).toBe("hardware_prepayment");
-    expect(created.paymentDueDate).toBe(created.dateCreated);
-    expect(created.lines[0].type).toBe("product");
-    expect(created.total).toBe(59.97);
-    expect(cashflow.listInvoices(adminId).find(i => i.id === created.id)?.invoiceType).toBe("hardware_prepayment");
-    const updated = cashflow.updateInvoice(created.id, {
-      lines: [{ type: "product", taskDescription: "Sample hardware", quantity: 2, unitPrice: 25, totalCost: 1 }],
-    })!;
-    expect(updated.total).toBe(50);
-    expect(updated.invoiceType).toBe("hardware_prepayment");
-    expect(updated.paymentDueDate).toBe(created.paymentDueDate);
-    expect(() => cashflow.updateInvoice(created.id, {
-      lines: [{ type: "product", taskDescription: "Invalid", quantity: -1, unitPrice: 20, totalCost: 0 }],
-    })).toThrow("Invalid product");
-    expect(cashflow.getInvoiceById(created.id)?.total).toBe(50);
-    cashflow.removeClient(client.id);
-  });
-
-  it("keeps standard invoices and supports switching to prepayment with a custom due date", () => {
-    const client = cashflow.createClient(adminId, { name: "Sample invoice client" });
-    const created = cashflow.createInvoice(adminId, {
-      clientId: client.id, invoiceNumber: "STANDARD-TYPE-001", isKor: true, lines: [],
-    })!;
-    expect(created.invoiceType).toBe("standard");
-    expect(created.paymentDueDate).toBeNull();
-    const switched = cashflow.updateInvoice(created.id, { invoiceType: "hardware_prepayment" })!;
-    expect(switched.paymentDueDate).toBeGreaterThan(0);
-    expect(switched.dateCreated).toBe(switched.paymentDueDate);
-    const custom = cashflow.updateInvoice(created.id, { paymentDueDate: 1794009600000 })!;
-    expect(custom.paymentDueDate).toBe(1794009600000);
-    cashflow.removeClient(client.id);
-  });
-
   it("manages trade names CRUD", () => {
     expect(() => cashflow.createTradeName(adminId, { displayName: "" })).toThrow("Display name is required");
 

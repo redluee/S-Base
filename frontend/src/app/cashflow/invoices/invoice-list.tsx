@@ -119,7 +119,6 @@ export function InvoiceList({
               {/* Client / Project */}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate" title={inv.clientName}>{inv.clientName}</p>
-                {inv.invoiceType === "hardware_prepayment" && <p className="text-xs text-zinc-400">{t("Hardware vooruitbetaling")}</p>}
                 {inv.projectName ? (
                   <p className="text-xs text-zinc-400 truncate" title={inv.projectName}>{inv.projectName}</p>
                 ) : inv.name ? (
@@ -216,7 +215,6 @@ export function InvoiceList({
                 <span className="text-base font-bold text-white">{formatEuro(inv.total)}</span>
               </div>
 
-              {inv.invoiceType === "hardware_prepayment" && <p className="text-xs text-zinc-400">{t("Hardware vooruitbetaling")}</p>}
               <div className="text-xs space-y-1 pt-2 border-t border-zinc-800/80">
                 <div className="flex justify-between">
                   <span className="text-zinc-500">{t("Klant")}:</span>

@@ -64,9 +64,8 @@ describe("Database Migration Runner", () => {
     memDb.run("CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT);");
     memDb.run("INSERT INTO users (username) VALUES ('admin');");
 
-    memDb.run("CREATE TABLE cashflow_invoices (id INTEGER PRIMARY KEY);");
     const result = await runMigrations(memDb);
-    expect(result.applied).toBe(10);
+    expect(result.applied).toBe(9);
 
     const rows = memDb.query<{ name: string }, []>("SELECT name FROM _migrations").all();
     expect(rows.length).toBeGreaterThan(0);

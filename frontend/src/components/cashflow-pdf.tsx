@@ -25,7 +25,7 @@ export function getInvoiceValidationWarnings(invoice: CashflowInvoiceFull): stri
   if (!invoice.dateCreated) {
     warnings.push("Datum van facturering ontbreekt");
   }
-  if (!invoice.dateService && invoice.invoiceType !== "hardware_prepayment") {
+  if (!invoice.dateService) {
     warnings.push("Datum van dienstverlening ontbreekt");
   }
   if (!invoice.paymentDueDate) {
