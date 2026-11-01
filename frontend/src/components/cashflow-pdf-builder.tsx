@@ -153,7 +153,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
       flexDirection: "row",
       justifyContent: "flex-end",
       marginTop: 2,
-      marginBottom: 30,
+      marginBottom: 12,
     },
     totalsTable: {
       width: 260,
