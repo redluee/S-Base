@@ -42,6 +42,7 @@ export const cashflowInvoices = sqliteTable("cashflow_invoices", {
   projectId: integer("project_id").references(() => cashflowProjects.id, { onDelete: "set null" }),
   tradeNameId: integer("trade_name_id").references(() => cashflowTradeNames.id, { onDelete: "set null" }),
   invoiceNumber: text("invoice_number").notNull(),
+  invoiceType: text("invoice_type", { enum: ["standard", "hardware_prepayment"] }).notNull().default("standard"),
   name: text("name"),
   dateCreated: integer("date_created"),
   dateService: integer("date_service"),

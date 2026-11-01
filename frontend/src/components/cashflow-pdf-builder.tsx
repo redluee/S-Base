@@ -1,3 +1,5 @@
+import { t } from "@/lib/lang";
+import { HARDWARE_PREPAYMENT_MESSAGE } from "@/lib/cashflow-invoice";
 import type { CashflowInvoiceFull } from "@/lib/api";
 
 function formatEuro(n: number) {
@@ -259,7 +261,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
             {invoice.tradeNameAddress ? <Text style={styles.tradeSub}>{invoice.tradeNameAddress}</Text> : null}
           </View>
           <View style={styles.invoiceLabel}>
-            <Text style={styles.docType}>Factuur</Text>
+            <Text style={styles.docType}>{invoice.invoiceType === "hardware_prepayment" ? t("Vooruitbetalingsfactuur") : t("Factuur")}</Text>
             <Text style={styles.referenceText}>
               Referentie: <Text style={styles.referenceValue}>{invoice.invoiceNumber}</Text>
             </Text>
@@ -297,6 +299,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
               <View style={styles.colDesc}>
                 <Text style={styles.td}>{line.taskDescription}</Text>
                 {line.date ? <Text style={styles.tdMuted}>{formatDate(line.date)}</Text> : null}
+                {line.type === "product" ? <Text style={styles.tdMuted}>{t("Product")}</Text> : null}
                 {line.type === "travel_costs" ? <Text style={styles.tdMuted}>Reiskosten</Text> : null}
                 {line.type === "discount" ? (
                   <Text style={[styles.tdMuted, { color: accentColor }]}>
@@ -354,6 +357,13 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
             </View>
           ) : null}
         </View>
+
+        {invoice.invoiceType === "hardware_prepayment" && (
+          <View style={{ marginTop: 12, marginBottom: 20 }} wrap={false}>
+            <Text style={styles.infoTitle}>{t("Direct te betalen")}</Text>
+            <Text style={styles.noteText}>{HARDWARE_PREPAYMENT_MESSAGE}</Text>
+          </View>
+        )}
 
         {/* Notes (KOR) */}
         {invoice.isKor && (

@@ -5,6 +5,16 @@ import { sendMail } from "../../lib/mailer";
 import { INVOICE_STATUSES } from "./cashflow-helpers";
 import { CashflowRecordService } from "./cashflow-records";
 
+function normalizeProductLine<T extends { type?: string; quantity?: number; unitPrice?: number; totalCost: number }>(line: T): T {
+  if (line.type !== "product") return line;
+  const quantity = Number(line.quantity ?? 1);
+  const unitPrice = Number(line.unitPrice ?? 0);
+  if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+    throw new Error("Invalid product quantity or price");
+  }
+  return { ...line, quantity, unitPrice, totalCost: Math.round((quantity * unitPrice + Number.EPSILON) * 100) / 100 };
+}
+
 export class CashflowInvoiceService extends CashflowRecordService {
   generateInvoiceNumber(userId: number, year: number): string {
     const yearStr = String(year);
@@ -34,6 +44,7 @@ export class CashflowInvoiceService extends CashflowRecordService {
     const rows = db.select({
       id: cashflowInvoices.id,
       invoiceNumber: cashflowInvoices.invoiceNumber,
+      invoiceType: cashflowInvoices.invoiceType,
       name: cashflowInvoices.name,
       status: cashflowInvoices.status,
       dateCreated: cashflowInvoices.dateCreated,
@@ -75,6 +86,7 @@ export class CashflowInvoiceService extends CashflowRecordService {
     const row = db.select({
       id: cashflowInvoices.id,
       invoiceNumber: cashflowInvoices.invoiceNumber,
+      invoiceType: cashflowInvoices.invoiceType,
       name: cashflowInvoices.name,
       status: cashflowInvoices.status,
       dateCreated: cashflowInvoices.dateCreated,
@@ -128,6 +140,7 @@ export class CashflowInvoiceService extends CashflowRecordService {
     tradeNameId?: number | null;
     invoiceNumber: string;
     name?: string | null;
+    invoiceType?: "standard" | "hardware_prepayment";
     dateCreated?: number | null;
     dateService?: number | null;
     paymentDueDate?: number | null;
@@ -145,6 +158,7 @@ export class CashflowInvoiceService extends CashflowRecordService {
       discountValue?: number | null;
     }[];
   }) {
+    if (data.invoiceType !== undefined && !["standard", "hardware_prepayment"].includes(data.invoiceType)) throw new Error("Invalid invoice type");
     const invNum = data.invoiceNumber?.trim();
     if (!invNum) throw new Error("Invoice number is required");
 
@@ -177,21 +191,25 @@ export class CashflowInvoiceService extends CashflowRecordService {
     const status = (data.status as any) ?? "draft";
     const datePaid = data.datePaid !== undefined ? data.datePaid : (status === "paid" ? Date.now() : null);
 
+    const invoiceType = data.invoiceType ?? "standard";
+    const dateCreated = data.dateCreated ?? (invoiceType === "hardware_prepayment" ? Date.now() : null);
+    const lines = (data.lines ?? []).map(normalizeProductLine);
     const invoice = db.insert(cashflowInvoices).values({
       clientId: finalClientId,
       projectId: data.projectId ?? null,
       tradeNameId: finalTradeNameId ?? null,
       invoiceNumber: invNum,
       name: data.name?.trim() || null,
-      dateCreated: data.dateCreated ?? null,
+      invoiceType,
+      dateCreated,
       dateService: data.dateService ?? null,
-      paymentDueDate: data.paymentDueDate ?? null,
+      paymentDueDate: data.paymentDueDate ?? (invoiceType === "hardware_prepayment" ? dateCreated : null),
       datePaid,
       status,
       isKor: data.isKor,
     }).returning().get();
 
-    for (const line of data.lines ?? []) {
+    for (const line of lines) {
       db.insert(cashflowInvoiceLines).values({
         invoiceId: invoice.id,
         date: line.date ?? null,
@@ -214,6 +232,7 @@ export class CashflowInvoiceService extends CashflowRecordService {
     tradeNameId?: number | null;
     invoiceNumber?: string;
     name?: string | null;
+    invoiceType?: "standard" | "hardware_prepayment";
     dateCreated?: number | null;
     dateService?: number | null;
     paymentDueDate?: number | null;
@@ -261,6 +280,14 @@ export class CashflowInvoiceService extends CashflowRecordService {
       }
     }
 
+    if (data.invoiceType !== undefined && !["standard", "hardware_prepayment"].includes(data.invoiceType)) throw new Error("Invalid invoice type");
+    const lines = data.lines?.map(normalizeProductLine);
+    const invoiceType = data.invoiceType ?? existing.invoiceType;
+    const dateCreated = (data.dateCreated !== undefined ? data.dateCreated : existing.dateCreated)
+      ?? (invoiceType === "hardware_prepayment" ? Date.now() : null);
+    const paymentDueDate = data.paymentDueDate !== undefined ? data.paymentDueDate
+      : data.invoiceType === "hardware_prepayment" && existing.invoiceType !== "hardware_prepayment"
+        ? (dateCreated ?? Date.now()) : existing.paymentDueDate;
     const nextStatus = (data.status as any) ?? existing.status;
     let nextDatePaid = data.datePaid;
     if (nextDatePaid === undefined) {
@@ -288,17 +315,18 @@ export class CashflowInvoiceService extends CashflowRecordService {
       tradeNameId: finalTradeNameId,
       invoiceNumber: data.invoiceNumber?.trim() ?? existing.invoiceNumber,
       name: data.name !== undefined ? (data.name?.trim() || null) : existing.name,
-      dateCreated: data.dateCreated !== undefined ? data.dateCreated : existing.dateCreated,
+      invoiceType,
+      dateCreated,
       dateService: data.dateService !== undefined ? data.dateService : existing.dateService,
-      paymentDueDate: data.paymentDueDate !== undefined ? data.paymentDueDate : existing.paymentDueDate,
+      paymentDueDate,
       datePaid: nextDatePaid,
       status: nextStatus,
       isKor: data.isKor !== undefined ? data.isKor : existing.isKor,
     }).where(eq(cashflowInvoices.id, id)).run();
 
-    if (data.lines) {
+    if (lines) {
       db.delete(cashflowInvoiceLines).where(eq(cashflowInvoiceLines.invoiceId, id)).run();
-      for (const line of data.lines) {
+      for (const line of lines) {
         db.insert(cashflowInvoiceLines).values({
           invoiceId: id,
           date: line.date ?? null,

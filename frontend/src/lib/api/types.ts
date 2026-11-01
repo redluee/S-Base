@@ -273,12 +273,15 @@ export interface CashflowInvoiceLine {
   quantity: number;
   unitPrice: number;
   totalCost: number;
-  type: "hours" | "service" | "travel_costs" | "discount";
+  type: "hours" | "service" | "product" | "travel_costs" | "discount";
   discountType: "percentage" | "amount" | null;
   discountValue: number | null;
 }
 
+export type CashflowInvoiceType = "standard" | "hardware_prepayment";
+
 export interface CashflowInvoiceSummary {
+  invoiceType: CashflowInvoiceType;
   id: number;
   invoiceNumber: string;
   name?: string | null;

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
-import type { CashflowClient, CashflowProject, CashflowTradeName } from "@/lib/api";
+import type { CashflowClient, CashflowProject, CashflowTradeName, CashflowInvoiceType } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   toTs,
@@ -38,6 +38,7 @@ export function NewInvoiceForm() {
   const [tradeNameId, setTradeNameId] = useState<number | "">("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceName, setInvoiceName] = useState("");
+  const [invoiceType, setInvoiceType] = useState<CashflowInvoiceType>("standard");
   const [dateCreated, setDateCreated] = useState("");
   const [dateService, setDateService] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState("");
@@ -70,7 +71,7 @@ export function NewInvoiceForm() {
   const updateFirstLineRate = (rate: number | null | undefined) => {
     if (rate !== undefined && rate !== null) {
       setLines(prev => {
-        if (prev.length === 0) return prev;
+        if (prev.length === 0 || prev[0].type !== "hours") return prev;
         const updated = [...prev];
         updated[0] = { ...updated[0], unitPrice: rate };
         return recalculateLines(updated);
@@ -142,6 +143,7 @@ export function NewInvoiceForm() {
           setTradeNameId(inv.tradeNameId ?? "");
           setInvoiceNumber(inv.invoiceNumber);
           setInvoiceName(inv.name ?? "");
+          setInvoiceType(inv.invoiceType ?? "standard");
           setDateCreated(toDate(inv.dateCreated));
           setDateService(toDate(inv.dateService));
           setPaymentDueDate(toDate(inv.paymentDueDate));
@@ -172,9 +174,24 @@ export function NewInvoiceForm() {
   const handleDateCreatedChange = (val: string) => {
     setDateCreated(val);
     if (val) {
-      setPaymentDueDate(addDays(val, 14));
+      setPaymentDueDate(addDays(val, invoiceType === "hardware_prepayment" ? 0 : 14));
     }
   };
+
+  function handleInvoiceTypeChange(type: CashflowInvoiceType) {
+    setInvoiceType(type);
+    const date = dateCreated || new Date().toISOString().split("T")[0];
+    if (type === "hardware_prepayment") {
+      setDateCreated(date);
+      setPaymentDueDate(date);
+      setLines(prev => recalculateLines(prev.map(line =>
+        !line.taskDescription && !line.quantity && !line.totalCost
+          ? { ...line, type: "product", quantity: 1, unitPrice: 0 } : line
+      )));
+    } else if (dateCreated) {
+      setPaymentDueDate(addDays(dateCreated, 14));
+    }
+  }
 
   // Auto-fill unit price from client standard rate when adding lines
   function addLine() {
@@ -183,10 +200,10 @@ export function NewInvoiceForm() {
       localId: crypto.randomUUID(),
       date: "",
       taskDescription: "",
-      quantity: "",
-      unitPrice: rate,
+      quantity: invoiceType === "hardware_prepayment" ? 1 : "",
+      unitPrice: invoiceType === "hardware_prepayment" ? 0 : rate,
       totalCost: 0,
-      type: "hours",
+      type: invoiceType === "hardware_prepayment" ? "product" : "hours",
       discountType: "percentage",
       discountValue: 0,
     }]));
@@ -196,6 +213,9 @@ export function NewInvoiceForm() {
     setLines(prev => {
       const updated = prev.map(l => {
         if (l.localId !== id) return l;
+        if (field === "type" && value === "product") {
+          return { ...l, type: "product" as const, quantity: l.quantity || 1, unitPrice: 0 };
+        }
         return { ...l, [field]: value };
       });
       return recalculateLines(updated);
@@ -255,6 +275,7 @@ export function NewInvoiceForm() {
         projectId: projectId ? Number(projectId) : null,
         tradeNameId: tradeNameId ? Number(tradeNameId) : null,
         invoiceNumber: invoiceNumber.trim(),
+        invoiceType,
         name: invoiceName.trim() || null,
         dateCreated: toTs(dateCreated),
         dateService: toTs(dateService),
@@ -338,6 +359,8 @@ export function NewInvoiceForm() {
       />
       {/* Invoice Meta */}
       <DetailsSection
+        invoiceType={invoiceType}
+        onInvoiceTypeChange={handleInvoiceTypeChange}
         dateCreated={dateCreated}
         datePaid={datePaid}
         dateService={dateService}

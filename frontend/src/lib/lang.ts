@@ -3,6 +3,8 @@ import { financeNl } from "./finance-lang";
 
 const nl: Record<string, string> = {
   ...financeNl,
+  "Invalid invoice type": "Ongeldig factuurtype",
+  "Invalid product quantity or price": "Ongeldig productaantal of ongeldige productprijs",
   ...financeImportNl,
   "Skip to content": "Naar hoofdinhoud",
   "Recipe name is required.": "Receptnaam is verplicht.",

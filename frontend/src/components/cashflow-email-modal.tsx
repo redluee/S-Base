@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Mail, X, Send, Loader2 } from "lucide-react";
+import { HARDWARE_PREPAYMENT_MESSAGE } from "@/lib/cashflow-invoice";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
@@ -56,7 +57,9 @@ function buildDefaultMessage(invoice: CashflowInvoiceFull): string {
   let msg = `Beste ${clientName},\n\nHierbij ontvangt u factuur ${invoice.invoiceNumber}`;
   if (subject) msg += ` voor ${subject}`;
   msg += ` ter waarde van ${total}.`;
-  if (dueDate) msg += `\nGraag ontvang ik de betaling voor ${dueDate}.`;
+  if (invoice.invoiceType === "hardware_prepayment") {
+    msg += `\n\n${HARDWARE_PREPAYMENT_MESSAGE}\n\n${t("Graag ontvang ik uw betaling zo spoedig mogelijk, zodat ik de bestelling direct kan plaatsen.")}`;
+  } else if (dueDate) msg += `\nGraag ontvang ik de betaling voor ${dueDate}.`;
   msg += `\n\nMet vriendelijke groet,\nSteven Heijn\nFotografie & Software/Website Development\nStevenHeijn.nl`;
   return msg;
 }
