@@ -1,3 +1,5 @@
+import { getServicePeriod, formatServicePeriod } from "@/lib/cashflow-service-period";
+import { t } from "@/lib/lang";
 import type { CashflowInvoiceFull } from "@/lib/api";
 
 function formatEuro(n: number) {
@@ -13,6 +15,7 @@ function formatDate(ts: number | null | undefined): string {
 export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise<Blob> {
   const { pdf, Document, Page, Text, View, StyleSheet } = await import("@react-pdf/renderer");
 
+  const servicePeriod = getServicePeriod(invoice);
   const accentColor = "#008767";
 
   const styles = StyleSheet.create({
@@ -214,6 +217,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
       color: "#2b2b2b",
       fontFamily: "Helvetica-Bold",
       textAlign: "right",
+      width: "55%",
     },
 
     /* Note Box */
@@ -341,10 +345,10 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
             <Text style={styles.metaLabel}>Factuurdatum</Text>
             <Text style={styles.metaValue}>{formatDate(invoice.dateCreated)}</Text>
           </View>
-          {invoice.dateService ? (
+          {servicePeriod ? (
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Datum van dienstverlening</Text>
-              <Text style={styles.metaValue}>{formatDate(invoice.dateService)}</Text>
+              <Text style={styles.metaLabel}>{t(servicePeriod.start === servicePeriod.end ? "Datum van dienstverlening" : "Periode van dienstverlening")}</Text>
+              <Text style={styles.metaValue}>{formatServicePeriod(servicePeriod)}</Text>
             </View>
           ) : null}
           {invoice.paymentDueDate ? (

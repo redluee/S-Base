@@ -1,5 +1,6 @@
 "use client";
 
+import { getServicePeriod } from "@/lib/cashflow-service-period";
 import { useState, useCallback } from "react";
 import { Download, AlertTriangle, X } from "lucide-react";
 import { t } from "@/lib/lang";
@@ -25,8 +26,8 @@ export function getInvoiceValidationWarnings(invoice: CashflowInvoiceFull): stri
   if (!invoice.dateCreated) {
     warnings.push("Datum van facturering ontbreekt");
   }
-  if (!invoice.dateService) {
-    warnings.push("Datum van dienstverlening ontbreekt");
+  if (!getServicePeriod(invoice)) {
+    warnings.push("Dienstverleningsdatum ontbreekt: vul alle regeldatums of een handmatige datum in");
   }
   if (!invoice.paymentDueDate) {
     warnings.push("Vervaldatum ontbreekt");

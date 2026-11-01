@@ -7,6 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import type { Dispatch, SetStateAction } from "react";
 
 export function DetailsSection({
+  automaticServicePeriod,
+  setAutomaticServicePeriod,
+  servicePeriodPreview,
   dateCreated,
   datePaid,
   dateService,
@@ -24,6 +27,9 @@ export function DetailsSection({
   setStatus,
   status,
 }: {
+  automaticServicePeriod: boolean;
+  setAutomaticServicePeriod: Dispatch<SetStateAction<boolean>>;
+  servicePeriodPreview: string;
   dateCreated: string;
   datePaid: string;
   dateService: string;
@@ -64,8 +70,29 @@ export function DetailsSection({
               <Input type="date" value={dateCreated} onChange={e => handleDateCreatedChange(e.target.value)} className="bg-zinc-800 border-zinc-700" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-400">{t("Datum van dienstverlening")}</Label>
-              <Input type="date" value={dateService} onChange={e => setDateService(e.target.value)} className="bg-zinc-800 border-zinc-700" />
+              <Label htmlFor="service-period-mode" className="text-xs text-zinc-400">{t("Dienstverlening")}</Label>
+              <select
+                id="service-period-mode"
+                value={automaticServicePeriod ? "automatic" : "manual"}
+                onChange={e => setAutomaticServicePeriod(e.target.value === "automatic")}
+                className="min-h-11 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus-visible:outline-2 focus-visible:outline-brand"
+              >
+                <option value="automatic">{t("Automatisch uit factuurregels")}</option>
+                <option value="manual">{t("Handmatige datum")}</option>
+              </select>
+              {automaticServicePeriod ? (
+                <div aria-live="polite" className="text-xs text-zinc-300 space-y-1 pt-1">
+                  <p>{servicePeriodPreview}</p>
+                  <p className="text-zinc-400">{t(servicePeriodPreview === "—"
+                    ? "Vul bij elke factuurregel een datum in. Kortingsregels tellen niet mee."
+                    : "Van de eerste tot en met de laatste regeldatum. Past automatisch mee aan.")}</p>
+                </div>
+              ) : (
+                <>
+                  <Label htmlFor="service-date" className="text-xs text-zinc-400">{t("Datum van dienstverlening")}</Label>
+                  <Input id="service-date" type="date" value={dateService} onChange={e => setDateService(e.target.value)} className="min-h-11 bg-zinc-800 border-zinc-700" />
+                </>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-zinc-400">{t("Vervaldatum")}</Label>

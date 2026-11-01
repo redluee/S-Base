@@ -1,5 +1,6 @@
 "use client";
 
+import { getServicePeriod, formatServicePeriod } from "@/lib/cashflow-service-period";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -95,6 +96,7 @@ export default function InvoiceDetailPage() {
     return <div className="flex justify-center py-24"><div className="size-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" /></div>;
   }
 
+  const servicePeriod = getServicePeriod(invoice);
   const cfg = statusConfig[invoice.status] ?? statusConfig.draft;
   const isOverdue = invoice.status !== "paid" && invoice.status !== "draft" && Boolean(invoice.paymentDueDate && invoice.paymentDueDate < now);
 
@@ -166,8 +168,8 @@ export default function InvoiceDetailPage() {
               <dd className="text-xs text-zinc-200 text-right">{formatDate(invoice.dateCreated)}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <dt className="text-xs text-zinc-500">{t("Datum van dienstverlening")}</dt>
-              <dd className="text-xs text-zinc-200 text-right">{formatDate(invoice.dateService)}</dd>
+              <dt className="text-xs text-zinc-500">{t(!servicePeriod || servicePeriod.start === servicePeriod.end ? "Datum van dienstverlening" : "Periode van dienstverlening")}</dt>
+              <dd className="text-xs text-zinc-200 text-right">{formatServicePeriod(servicePeriod)}</dd>
             </div>
             <div className="flex justify-between gap-2">
               <dt className="text-xs text-zinc-500">{t("Vervaldatum")}</dt>

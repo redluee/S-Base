@@ -15,6 +15,7 @@ import {
   type LineType,
   type DiscountType,
 } from "./invoice-form-utils";
+import { formatServicePeriod, getServicePeriod } from "@/lib/cashflow-service-period";
 import { ClientSection } from "./client-section";
 import { DetailsSection } from "./details-section";
 import { LinesSection } from "./lines-section";
@@ -40,6 +41,7 @@ export function NewInvoiceForm() {
   const [invoiceName, setInvoiceName] = useState("");
   const [dateCreated, setDateCreated] = useState("");
   const [dateService, setDateService] = useState("");
+  const [automaticServicePeriod, setAutomaticServicePeriod] = useState(true);
   const [paymentDueDate, setPaymentDueDate] = useState("");
   const [status, setStatus] = useState<string>("draft");
   const [datePaid, setDatePaid] = useState<string>("");
@@ -144,6 +146,7 @@ export function NewInvoiceForm() {
           setInvoiceName(inv.name ?? "");
           setDateCreated(toDate(inv.dateCreated));
           setDateService(toDate(inv.dateService));
+          setAutomaticServicePeriod(inv.dateService == null);
           setPaymentDueDate(toDate(inv.paymentDueDate));
           setStatus(inv.status);
           setDatePaid(toDate(inv.datePaid));
@@ -257,7 +260,7 @@ export function NewInvoiceForm() {
         invoiceNumber: invoiceNumber.trim(),
         name: invoiceName.trim() || null,
         dateCreated: toTs(dateCreated),
-        dateService: toTs(dateService),
+        dateService: automaticServicePeriod ? null : toTs(dateService),
         paymentDueDate: toTs(paymentDueDate),
         datePaid: targetStatus === "paid" ? (datePaid ? toTs(datePaid) : Date.now()) : null,
         status: targetStatus,
@@ -341,6 +344,12 @@ export function NewInvoiceForm() {
         dateCreated={dateCreated}
         datePaid={datePaid}
         dateService={dateService}
+        automaticServicePeriod={automaticServicePeriod}
+        setAutomaticServicePeriod={setAutomaticServicePeriod}
+        servicePeriodPreview={formatServicePeriod(getServicePeriod({
+          dateService: automaticServicePeriod ? null : toTs(dateService),
+          lines: lines.map(line => ({ date: toTs(line.date), type: line.type })),
+        }))}
         fieldErrors={fieldErrors}
         handleDateCreatedChange={handleDateCreatedChange}
         invoiceNumber={invoiceNumber}
