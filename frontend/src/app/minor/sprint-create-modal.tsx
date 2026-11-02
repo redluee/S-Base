@@ -16,8 +16,6 @@ export type CalculatedDates = {
 interface SprintCreateModalProps {
   sprintNumber: string;
   setSprintNumber: (v: string) => void;
-  sprintName: string;
-  setSprintName: (v: string) => void;
   startDate: string;
   setStartDate: (v: string) => void;
   durationDays: number;
@@ -28,7 +26,7 @@ interface SprintCreateModalProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-export function SprintCreateModal({ sprintNumber, setSprintNumber, sprintName, setSprintName, startDate, setStartDate, durationDays, setDurationDays, calculatedDates, savingSprint, onClose, onSubmit }: SprintCreateModalProps) {
+export function SprintCreateModal({ sprintNumber, setSprintNumber, startDate, setStartDate, durationDays, setDurationDays, calculatedDates, savingSprint, onClose, onSubmit }: SprintCreateModalProps) {
   return (
       <ModalOverlay
         open
@@ -54,7 +52,7 @@ export function SprintCreateModal({ sprintNumber, setSprintNumber, sprintName, s
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="block text-zinc-400 mb-1">{t("Sprintnummer")}</label>
                 <input
@@ -63,17 +61,6 @@ export function SprintCreateModal({ sprintNumber, setSprintNumber, sprintName, s
                   value={sprintNumber}
                   onChange={(e) => setSprintNumber(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-brand"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Sprintnaam")}</label>
-                <input
-                  type="text"
-                  placeholder="bijv. Sprint 1"
-                  value={sprintName}
-                  onChange={(e) => setSprintName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
                   required
                 />
               </div>

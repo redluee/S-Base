@@ -26,7 +26,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
   // Form state
   const [sprintNumber, setSprintNumber] = useState("");
-  const [name, setName] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [durationDays, setDurationDays] = useState(14);
   const [calculatedDates, setCalculatedDates] = useState<SprintCalculatedDates>(null);
@@ -37,7 +36,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     if (isModalOpen && !editingSprint) {
       api.minor.sprints.nextNumber().then((res) => {
         setSprintNumber(res.nextNumber);
-        setName(res.nextName);
       }).catch(() => {});
     }
   }, [isModalOpen, editingSprint]);
@@ -76,7 +74,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
   function openEditModal(sprint: MinorSprint) {
     setEditingSprint(sprint);
     setSprintNumber(sprint.sprintNumber);
-    setName(sprint.name);
     setStartDate(sprint.startDate);
     setDurationDays(sprint.durationDays);
     setCalculatedDates({
@@ -96,7 +93,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
       if (editingSprint) {
         const updated = await api.minor.sprints.update(editingSprint.id, {
           sprintNumber,
-          name,
           startDate,
           durationDays,
         });
@@ -104,7 +100,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
       } else {
         const created = await api.minor.sprints.create({
           sprintNumber,
-          name,
           startDate,
           durationDays,
         });
@@ -219,8 +214,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
           editingSprint={editingSprint}
           sprintNumber={sprintNumber}
           setSprintNumber={setSprintNumber}
-          name={name}
-          setName={setName}
           startDate={startDate}
           setStartDate={setStartDate}
           durationDays={durationDays}

@@ -16,8 +16,6 @@ interface SprintFormModalProps {
   editingSprint: MinorSprint | null;
   sprintNumber: string;
   setSprintNumber: (v: string) => void;
-  name: string;
-  setName: (v: string) => void;
   startDate: string;
   setStartDate: (v: string) => void;
   durationDays: number;
@@ -29,7 +27,7 @@ interface SprintFormModalProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, name, setName, startDate, setStartDate, durationDays, setDurationDays, calculatedDates, saving, handleDeleteSprint, onClose, onSubmit }: SprintFormModalProps) {
+export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, startDate, setStartDate, durationDays, setDurationDays, calculatedDates, saving, handleDeleteSprint, onClose, onSubmit }: SprintFormModalProps) {
   return (
       <ModalOverlay
         open
@@ -55,7 +53,7 @@ export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, 
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="block text-zinc-400 mb-1">{t("Sprintnummer")}</label>
                 <input
@@ -64,17 +62,6 @@ export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, 
                   value={sprintNumber}
                   onChange={(e) => setSprintNumber(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-brand"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Sprintnaam")}</label>
-                <input
-                  type="text"
-                  placeholder="bijv. Sprint 1"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
                   required
                 />
               </div>

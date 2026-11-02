@@ -32,8 +32,7 @@ export function MinorSprintImportModal({
   const [isDragging, setIsDragging] = useState(false);
   const [fetchedSprints, setFetchedSprints] = useState<MinorSprint[]>([]);
   const existingSprints = sprints && sprints.length > 0 ? sprints : fetchedSprints;
-  const [conflictAction, setConflictAction] = useState<"overwrite" | "rename">("rename");
-  const [userCustomName, setUserCustomName] = useState<string | null>(null);
+  const [conflictAction, setConflictAction] = useState<"overwrite" | "new">("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch sprints if not provided
@@ -57,31 +56,27 @@ export function MinorSprintImportModal({
           : (parsed as Record<string, unknown>);
       if (!data || typeof data !== "object") return null;
 
-      const name = typeof data.name === "string" ? data.name.trim() : "";
       const sprintNumber = typeof data.sprintNumber === "string" ? data.sprintNumber.trim() : "";
       const storiesCount = Array.isArray(data.stories) ? data.stories.length : 0;
       const isStoryPayload = Boolean(data.storyTypeCode && !data.stories && !data.sprintNumber);
 
-      return { data, name, sprintNumber, storiesCount, isStoryPayload };
+      return { data, sprintNumber, storiesCount, isStoryPayload };
     } catch {
       return null;
     }
   }, [jsonText]);
 
-  // Check if name collides with an existing sprint
+  // Check if the sprint number collides with an existing sprint
   const overlappingSprint = useMemo(() => {
-    if (!detectedSprint || !detectedSprint.name) return null;
-    const nameLower = detectedSprint.name.toLowerCase();
+    if (!detectedSprint || !detectedSprint.sprintNumber) return null;
+    const numberLower = detectedSprint.sprintNumber.toLowerCase();
     return (
       existingSprints.find((s) => {
         if (currentSprintId && s.id === currentSprintId) return false;
-        return s.name.trim().toLowerCase() === nameLower;
+        return s.sprintNumber.trim().toLowerCase() === numberLower;
       }) || null
     );
   }, [detectedSprint, existingSprints, currentSprintId]);
-
-  const defaultRenamedName = overlappingSprint ? `${overlappingSprint.name} (kopie)` : "";
-  const customSprintName = userCustomName !== null ? userCustomName : defaultRenamedName;
 
   if (!isOpen) return null;
 
@@ -167,14 +162,10 @@ export function MinorSprintImportModal({
             overwrite: true,
           });
         } else {
-          const cleanCustomName = customSprintName.trim();
-          if (!cleanCustomName) {
-            setError(t("Geef een nieuwe naam op voor de sprint."));
-            setIsImporting(false);
-            return;
-          }
+          const { nextNumber } = await api.minor.sprints.nextNumber();
           result = await api.minor.sprints.import(parsedData, undefined, {
-            customName: cleanCustomName,
+            customSprintNumber: nextNumber,
+            customName: `Sprint ${nextNumber}`,
           });
         }
       } else {
@@ -305,7 +296,7 @@ export function MinorSprintImportModal({
                   setJsonText(e.target.value);
                   setError(null);
                 }}
-                placeholder={`{\n  "sprintNumber": "Sprint 1",\n  "name": "Sprint 1: Basis & Setup",\n  "startDate": "2026-09-07",\n  "durationDays": 14,\n  "stories": [\n    {\n      "storyTypeCode": "US",\n      "title": "Voorbeeld story",\n      "learningOutcomes": [1, 2],\n      "acceptanceCriteria": [\n        { "text": "Criterium 1", "isCompleted": true }\n      ]\n    }\n  ]\n}`}
+                placeholder={`{\n  "sprintNumber": "1",\n  "startDate": "2026-09-07",\n  "durationDays": 14,\n  "stories": [\n    {\n      "storyTypeCode": "US",\n      "title": "Voorbeeld story",\n      "learningOutcomes": [1, 2],\n      "acceptanceCriteria": [\n        { "text": "Criterium 1", "isCompleted": true }\n      ]\n    }\n  ]\n}`}
                 className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-zinc-200 focus:outline-none focus:border-brand"
               />
             </div>
@@ -318,14 +309,13 @@ export function MinorSprintImportModal({
                 <AlertTriangle className="size-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="text-xs font-semibold text-white">
-                    {t("Sprint met deze naam bestaat al")}
+                    {t("Sprint met dit nummer bestaat al")}
                   </p>
                   <p className="text-[11px] text-zinc-400">
-                    {t("Er bestaat al een sprint genaamd")}{" "}
+                    {t("Er bestaat al een sprint met nummer")}{" "}
                     <strong className="text-zinc-200 font-mono font-medium">
-                      &quot;{overlappingSprint.name}&quot;
-                    </strong>
-                    {overlappingSprint.sprintNumber ? ` (${overlappingSprint.sprintNumber})` : ""}.{" "}
+                      {overlappingSprint.sprintNumber}
+                    </strong>.{" "}
                     {t("Kies wat je wilt doen:")}
                   </p>
                 </div>
@@ -357,35 +347,20 @@ export function MinorSprintImportModal({
                   <input
                     type="radio"
                     name="conflictAction"
-                    value="rename"
-                    checked={conflictAction === "rename"}
-                    onChange={() => setConflictAction("rename")}
+                    value="new"
+                    checked={conflictAction === "new"}
+                    onChange={() => setConflictAction("new")}
                     className="mt-0.5 accent-[#00e3a4]"
                   />
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div>
                       <span className="text-xs font-medium text-white block">
-                        {t("Geïmporteerde sprint hernoemen")}
+                        {t("Als nieuwe sprint aanmaken")}
                       </span>
                       <span className="text-[11px] text-zinc-400 block">
-                        {t("Maak een nieuwe sprint aan onder een andere naam.")}
+                        {t("Maak een nieuwe sprint aan met het volgende sprintnummer.")}
                       </span>
                     </div>
-
-                    {conflictAction === "rename" && (
-                      <div className="pt-1">
-                        <label className="block text-[11px] text-zinc-400 mb-1">
-                          {t("Nieuwe sprintnaam:")}
-                        </label>
-                        <input
-                          type="text"
-                          value={customSprintName}
-                          onChange={(e) => setUserCustomName(e.target.value)}
-                          placeholder={t("Voer een nieuwe sprintnaam in...")}
-                          className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-brand transition-colors font-medium"
-                        />
-                      </div>
-                    )}
                   </div>
                 </label>
               </div>
