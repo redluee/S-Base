@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, ApiError, apiErrorMessage } from "@/lib/api";
 import type { CashflowClient, CashflowProject, CashflowTradeName } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -283,12 +283,11 @@ export function NewInvoiceForm() {
       }
       router.push("/cashflow/invoices");
     } catch (e: unknown) {
-      const rawMsg = e instanceof Error ? e.message : "Fout bij opslaan.";
-      const translated = t(rawMsg);
-      const lower = (rawMsg + " " + translated).toLowerCase();
-      if (lower.includes("invoice number") || lower.includes("factuurnummer")) {
+      const translated = apiErrorMessage(e, "Fout bij opslaan.");
+      const key = e instanceof ApiError ? e.key : "";
+      if (key === "cashflow.invoiceNumberRequired" || key === "cashflow.invoiceNumberInUse") {
         setFieldErrors(prev => ({ ...prev, invoiceNumber: translated }));
-      } else if (lower.includes("client") || lower.includes("klant")) {
+      } else if (key === "cashflow.clientRequired" || key === "cashflow.clientNotFound") {
         setFieldErrors(prev => ({ ...prev, clientId: translated }));
       } else {
         setError(translated);

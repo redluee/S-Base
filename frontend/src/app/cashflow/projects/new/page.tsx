@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import type { CashflowClient, CashflowTradeName } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,7 +105,7 @@ export default function NewProjectPage() {
       }
       router.push("/cashflow/projects");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Fout bij opslaan.");
+      setError(apiErrorMessage(e, "Fout bij opslaan."));
     } finally {
       setSaving(false);
     }

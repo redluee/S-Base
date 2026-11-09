@@ -1,12 +1,11 @@
-import { eq, and, desc, sql, like, ne } from "drizzle-orm";
+import { and, desc, eq, like, sql, type SQL } from "drizzle-orm";
 import db from "../../db/client";
-import { cashflowTradeNames, cashflowClients, cashflowProjects, cashflowInvoices, cashflowInvoiceLines } from "../../db/schema";
-import { sendMail } from "../../lib/mailer";
-import { INVOICE_STATUSES } from "./cashflow-helpers";
-import { CashflowRecordService } from "./cashflow-records";
+import { cashflowClients, cashflowInvoiceLines, cashflowInvoices, cashflowProjects, cashflowTradeNames } from "../../db/schema";
+import { NotFoundError } from "../../utils/errors";
+import { computeInvoiceStatus, isInvoiceStatus } from "./cashflow-helpers";
 
-export class CashflowInvoiceService extends CashflowRecordService {
-  generateInvoiceNumber(userId: number, year: number): string {
+export class CashflowInvoices {
+  generateNumber(userId: number, year: number): string {
     const yearStr = String(year);
     const latest = db.select({ invoiceNumber: cashflowInvoices.invoiceNumber })
       .from(cashflowInvoices)
@@ -25,9 +24,9 @@ export class CashflowInvoiceService extends CashflowRecordService {
     return `${yearStr}-${String(num).padStart(3, "0")}`;
   }
 
-  listInvoices(userId: number, status?: string, projectId?: number, clientId?: number) {
-    const conditions: any[] = [eq(cashflowClients.userId, userId)];
-    if (status && INVOICE_STATUSES.includes(status as any)) conditions.push(eq(cashflowInvoices.status, status as any));
+  list(userId: number, status?: string, projectId?: number, clientId?: number) {
+    const conditions: SQL[] = [eq(cashflowClients.userId, userId)];
+    if (isInvoiceStatus(status)) conditions.push(eq(cashflowInvoices.status, status));
     if (projectId) conditions.push(eq(cashflowInvoices.projectId, projectId));
     if (clientId) conditions.push(eq(cashflowInvoices.clientId, clientId));
 
@@ -58,20 +57,13 @@ export class CashflowInvoiceService extends CashflowRecordService {
       .all();
 
     const now = Date.now();
-    return rows.map((inv) => {
-      let computedStatus = inv.status;
-      if (inv.status !== "paid" && inv.status !== "draft") {
-        if (inv.paymentDueDate && inv.paymentDueDate < now) {
-          computedStatus = "overdue";
-        } else if (inv.dateCreated) {
-          computedStatus = "sent";
-        }
-      }
-      return { ...inv, status: computedStatus };
-    });
+    return rows.map((inv) => ({
+      ...inv,
+      status: computeInvoiceStatus(inv.status, inv.paymentDueDate, inv.dateCreated, now),
+    }));
   }
 
-  getInvoiceById(id: number) {
+  getById(id: number) {
     const row = db.select({
       id: cashflowInvoices.id,
       invoiceNumber: cashflowInvoices.invoiceNumber,
@@ -105,256 +97,30 @@ export class CashflowInvoiceService extends CashflowRecordService {
       .where(eq(cashflowInvoices.id, id))
       .get();
 
-    if (!row) return null;
+    if (!row) throw new NotFoundError("cashflow.invoiceNotFound");
 
-    let computedStatus = row.status;
-    const now = Date.now();
-    if (row.status !== "paid" && row.status !== "draft") {
-      if (row.paymentDueDate && row.paymentDueDate < now) {
-        computedStatus = "overdue";
-      } else if (row.dateCreated) {
-        computedStatus = "sent";
-      }
-    }
-
+    const status = computeInvoiceStatus(row.status, row.paymentDueDate, row.dateCreated, Date.now());
     const lines = db.select().from(cashflowInvoiceLines).where(eq(cashflowInvoiceLines.invoiceId, id)).all();
     const total = lines.reduce((sum, l) => sum + l.totalCost, 0);
-    return { ...row, status: computedStatus, lines, total };
+    return { ...row, status, lines, total };
   }
 
-  createInvoice(userId: number, data: {
-    clientId?: number;
-    projectId?: number | null;
-    tradeNameId?: number | null;
-    invoiceNumber: string;
-    name?: string | null;
-    dateCreated?: number | null;
-    dateService?: number | null;
-    paymentDueDate?: number | null;
-    datePaid?: number | null;
-    status?: string;
-    isKor: boolean;
-    lines: {
-      taskDescription: string;
-      date?: number | null;
-      quantity?: number;
-      unitPrice?: number;
-      totalCost: number;
-      type?: string;
-      discountType?: string | null;
-      discountValue?: number | null;
-    }[];
-  }) {
-    const invNum = data.invoiceNumber?.trim();
-    if (!invNum) throw new Error("Invoice number is required");
-
-    const existingInv = db.select({ id: cashflowInvoices.id })
-      .from(cashflowInvoices)
-      .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
-      .where(and(
-        eq(cashflowClients.userId, userId),
-        sql`LOWER(${cashflowInvoices.invoiceNumber}) = LOWER(${invNum})`
-      ))
-      .get();
-
-    if (existingInv) {
-      throw new Error("Factuurnummer is al in gebruik");
-    }
-
-    let finalClientId = data.clientId;
-    let finalTradeNameId = data.tradeNameId;
-
-    if (data.projectId) {
-      const proj = this.getProjectById(data.projectId);
-      if (proj) {
-        if (!finalClientId) finalClientId = proj.clientId;
-        if (!finalTradeNameId) finalTradeNameId = proj.tradeNameId ?? null;
-      }
-    }
-
-    if (!finalClientId) throw new Error("Client is required");
-
-    const status = (data.status as any) ?? "draft";
-    const datePaid = data.datePaid !== undefined ? data.datePaid : (status === "paid" ? Date.now() : null);
-
-    const invoice = db.insert(cashflowInvoices).values({
-      clientId: finalClientId,
-      projectId: data.projectId ?? null,
-      tradeNameId: finalTradeNameId ?? null,
-      invoiceNumber: invNum,
-      name: data.name?.trim() || null,
-      dateCreated: data.dateCreated ?? null,
-      dateService: data.dateService ?? null,
-      paymentDueDate: data.paymentDueDate ?? null,
-      datePaid,
-      status,
-      isKor: data.isKor,
-    }).returning().get();
-
-    for (const line of data.lines ?? []) {
-      db.insert(cashflowInvoiceLines).values({
-        invoiceId: invoice.id,
-        date: line.date ?? null,
-        taskDescription: line.taskDescription,
-        quantity: Number(line.quantity ?? 1),
-        unitPrice: Number(line.unitPrice ?? 0),
-        totalCost: Number(line.totalCost),
-        type: line.type ?? "hours",
-        discountType: line.discountType ?? null,
-        discountValue: line.discountValue !== undefined && line.discountValue !== null ? Number(line.discountValue) : null,
-      }).run();
-    }
-
-    return this.getInvoiceById(invoice.id);
-  }
-
-  updateInvoice(id: number, data: {
-    clientId?: number;
-    projectId?: number | null;
-    tradeNameId?: number | null;
-    invoiceNumber?: string;
-    name?: string | null;
-    dateCreated?: number | null;
-    dateService?: number | null;
-    paymentDueDate?: number | null;
-    datePaid?: number | null;
-    status?: string;
-    isKor?: boolean;
-    lines?: {
-      taskDescription: string;
-      date?: number | null;
-      quantity?: number;
-      unitPrice?: number;
-      totalCost: number;
-      type?: string;
-      discountType?: string | null;
-      discountValue?: number | null;
-    }[];
-  }) {
-    const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
-    if (!existing) return null;
-    if (data.status && !INVOICE_STATUSES.includes(data.status as any)) throw new Error("Invalid status");
-
-    if (data.invoiceNumber !== undefined) {
-      const invNum = data.invoiceNumber.trim();
-      if (!invNum) throw new Error("Invoice number is required");
-
-      const client = db.select({ userId: cashflowClients.userId })
-        .from(cashflowClients)
-        .where(eq(cashflowClients.id, existing.clientId))
-        .get();
-
-      if (client) {
-        const duplicateInv = db.select({ id: cashflowInvoices.id })
-          .from(cashflowInvoices)
-          .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
-          .where(and(
-            eq(cashflowClients.userId, client.userId),
-            sql`LOWER(${cashflowInvoices.invoiceNumber}) = LOWER(${invNum})`,
-            ne(cashflowInvoices.id, id)
-          ))
-          .get();
-
-        if (duplicateInv) {
-          throw new Error("Factuurnummer is al in gebruik");
-        }
-      }
-    }
-
-    const nextStatus = (data.status as any) ?? existing.status;
-    let nextDatePaid = data.datePaid;
-    if (nextDatePaid === undefined) {
-      if (nextStatus === "paid" && existing.status !== "paid") {
-        nextDatePaid = Date.now();
-      } else if (nextStatus !== "paid" && existing.status === "paid") {
-        nextDatePaid = null;
-      } else {
-        nextDatePaid = existing.datePaid;
-      }
-    }
-
-    let finalClientId = data.clientId ?? existing.clientId;
-    const finalProjectId = data.projectId !== undefined ? data.projectId : existing.projectId;
-    const finalTradeNameId = data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId;
-
-    if (finalProjectId && !finalClientId) {
-      const proj = this.getProjectById(finalProjectId);
-      if (proj) finalClientId = proj.clientId;
-    }
-
-    db.update(cashflowInvoices).set({
-      clientId: finalClientId,
-      projectId: finalProjectId,
-      tradeNameId: finalTradeNameId,
-      invoiceNumber: data.invoiceNumber?.trim() ?? existing.invoiceNumber,
-      name: data.name !== undefined ? (data.name?.trim() || null) : existing.name,
-      dateCreated: data.dateCreated !== undefined ? data.dateCreated : existing.dateCreated,
-      dateService: data.dateService !== undefined ? data.dateService : existing.dateService,
-      paymentDueDate: data.paymentDueDate !== undefined ? data.paymentDueDate : existing.paymentDueDate,
-      datePaid: nextDatePaid,
-      status: nextStatus,
-      isKor: data.isKor !== undefined ? data.isKor : existing.isKor,
-    }).where(eq(cashflowInvoices.id, id)).run();
-
-    if (data.lines) {
-      db.delete(cashflowInvoiceLines).where(eq(cashflowInvoiceLines.invoiceId, id)).run();
-      for (const line of data.lines) {
-        db.insert(cashflowInvoiceLines).values({
-          invoiceId: id,
-          date: line.date ?? null,
-          taskDescription: line.taskDescription,
-          quantity: Number(line.quantity ?? 1),
-          unitPrice: Number(line.unitPrice ?? 0),
-          totalCost: Number(line.totalCost),
-          type: line.type ?? "hours",
-          discountType: line.discountType ?? null,
-          discountValue: line.discountValue !== undefined && line.discountValue !== null ? Number(line.discountValue) : null,
-        }).run();
-      }
-    }
-
-    return this.getInvoiceById(id);
+  findRow(id: number) {
+    const row = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
+    if (!row) throw new NotFoundError("cashflow.invoiceNotFound");
+    return row;
   }
 
   markAsPaid(id: number, datePaid?: number | null) {
-    const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
-    if (!existing) return null;
+    const existing = this.findRow(id);
     const finalDatePaid = datePaid !== undefined ? datePaid : (existing.datePaid ?? Date.now());
     db.update(cashflowInvoices).set({ status: "paid", datePaid: finalDatePaid }).where(eq(cashflowInvoices.id, id)).run();
-    return this.getInvoiceById(id);
+    return this.getById(id);
   }
 
-  removeInvoice(id: number) {
-    const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
-    if (!existing) return null;
+  remove(id: number) {
+    this.findRow(id);
     db.delete(cashflowInvoices).where(eq(cashflowInvoices.id, id)).run();
     return { deleted: true };
-  }
-
-  async sendInvoiceEmail(id: number, data: { to: string; subject: string; message: string; pdfBase64: string }) {
-    const existing = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
-    if (!existing) return null;
-
-    const to = data.to?.trim();
-    if (!to) throw new Error("E-mailadres is verplicht");
-    const subject = data.subject?.trim();
-    if (!subject) throw new Error("Onderwerp is verplicht");
-    if (!data.message?.trim()) throw new Error("Bericht is verplicht");
-    if (!data.pdfBase64) throw new Error("PDF-bijlage ontbreekt");
-
-    await sendMail({
-      to,
-      subject,
-      text: data.message,
-      attachments: [
-        {
-          filename: `factuur-${existing.invoiceNumber}.pdf`,
-          content: Buffer.from(data.pdfBase64, "base64"),
-          contentType: "application/pdf",
-        },
-      ],
-    });
-
-    return { sent: true };
   }
 }

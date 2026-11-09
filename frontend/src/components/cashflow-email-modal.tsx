@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Mail, X, Send, Loader2 } from "lucide-react";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { buildInvoicePDFBlob } from "@/components/cashflow-pdf";
@@ -117,7 +117,7 @@ function CashflowEmailInvoiceModal({ invoice, onClose, onSent }: CashflowEmailIn
       onSent?.();
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t("Fout bij verzenden e-mail"));
+      setError(apiErrorMessage(e, "Fout bij verzenden e-mail"));
     } finally {
       setSending(false);
     }
