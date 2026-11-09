@@ -204,7 +204,7 @@ export const cashflowNl: Record<string, string> = {
   "naam@bedrijf.nl": "naam@bedrijf.nl",
   "Annuleren": "Annuleren",
   "Previous year": "Previous year",
-  "Click to enter year manually": "Click to enter year manually",
+  "Click to enter year manually": "Klik om het jaar handmatig in te voeren",
   "Next year": "Next year",
   "Contract.pdf": "Contract.pdf",
   "Contract PDF": "Contract PDF",
