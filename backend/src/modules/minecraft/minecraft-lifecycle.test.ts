@@ -36,7 +36,10 @@ describe("Minecraft lifecycle and idle monitor", () => {
       expect(() => {
         minecraft.lifecycle.startPlayerTracking("test-server-tracking", srvDir);
       }).not.toThrow();
-      expect(spawnMock).toHaveBeenCalledWith(["tail", "-F", "-n", "0", join(srvDir, "logs", "latest.log")], expect.anything());
+      expect(spawnMock).toHaveBeenCalledWith(
+        ["tail", "-F", "-n", "0", join(srvDir, "logs", "latest.log")],
+        expect.anything(),
+      );
       minecraft.lifecycle.startPlayerTracking("test-server-tracking", srvDir);
       expect(killed.length).toBe(1);
     } finally {
@@ -47,13 +50,15 @@ describe("Minecraft lifecycle and idle monitor", () => {
     const srvDir = join(testDir, "test-server-autostop");
     await mkdir(srvDir, { recursive: true });
 
-    db.insert(mc_servers).values({
-      slug: "test-server-autostop",
-      displayName: "Auto Stop Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-server-autostop",
+        displayName: "Auto Stop Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     let serverStopped = false;
     spyOn(minecraft.lifecycle, "stopServer").mockImplementation(async (slug: string) => {
@@ -84,7 +89,7 @@ describe("Minecraft lifecycle and idle monitor", () => {
     expect(minecraft.idle.getEmptySince("test-server-autostop")).not.toBeNull();
 
     // If checked before 15 minutes (e.g. 10 minutes in), server does not stop
-    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
     minecraft.idle.markEmpty("test-server-autostop", tenMinutesAgo);
     await minecraft.idle.check();
     expect(serverStopped).toBe(false);

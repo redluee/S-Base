@@ -39,12 +39,16 @@ function call(method: string, path: string, body?: unknown) {
 const importBody = (accountId?: number) => ({
   content: csv,
   order: "descending",
-  selections: [{
-    sourceKey: "1",
-    ...(accountId === undefined ? { newAccount: { name: "Sample imported savings", type: "savings" } } : { accountId }),
-    extendOpening: false,
-    entries: dates.map((date) => ({ date, expectedCents: null })),
-  }],
+  selections: [
+    {
+      sourceKey: "1",
+      ...(accountId === undefined
+        ? { newAccount: { name: "Sample imported savings", type: "savings" } }
+        : { accountId }),
+      extendOpening: false,
+      entries: dates.map((date) => ({ date, expectedCents: null })),
+    },
+  ],
 });
 
 describe("finance route error contract", () => {

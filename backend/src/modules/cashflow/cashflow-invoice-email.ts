@@ -30,7 +30,13 @@ export class CashflowInvoiceEmail {
         ],
       });
     } catch (error) {
-      console.error(JSON.stringify({ level: "error", code: "CASHFLOW_EMAIL", message: error instanceof Error ? error.message : String(error) }));
+      console.error(
+        JSON.stringify({
+          level: "error",
+          code: "CASHFLOW_EMAIL",
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
       throw new ValidationError("cashflow.emailSendFailed");
     }
 

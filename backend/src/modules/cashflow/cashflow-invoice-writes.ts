@@ -33,7 +33,8 @@ export class CashflowInvoiceWrites {
       sql`LOWER(${cashflowInvoices.invoiceNumber}) = LOWER(${invoiceNumber})`,
     ];
     if (excludeId !== undefined) conditions.push(ne(cashflowInvoices.id, excludeId));
-    return !!db.select({ id: cashflowInvoices.id })
+    return !!db
+      .select({ id: cashflowInvoices.id })
       .from(cashflowInvoices)
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
       .where(and(...conditions))
@@ -57,21 +58,25 @@ export class CashflowInvoiceWrites {
     if (!finalClientId) throw new ValidationError("cashflow.clientRequired");
 
     const status = data.status ?? "draft";
-    const datePaid = data.datePaid !== undefined ? data.datePaid : (status === "paid" ? Date.now() : null);
+    const datePaid = data.datePaid !== undefined ? data.datePaid : status === "paid" ? Date.now() : null;
 
-    const invoice = db.insert(cashflowInvoices).values({
-      clientId: finalClientId,
-      projectId: data.projectId ?? null,
-      tradeNameId: finalTradeNameId ?? null,
-      invoiceNumber: invNum,
-      name: trimOrNull(data.name),
-      dateCreated: data.dateCreated ?? null,
-      dateService: data.dateService ?? null,
-      paymentDueDate: data.paymentDueDate ?? null,
-      datePaid,
-      status,
-      isKor: data.isKor,
-    }).returning().get();
+    const invoice = db
+      .insert(cashflowInvoices)
+      .values({
+        clientId: finalClientId,
+        projectId: data.projectId ?? null,
+        tradeNameId: finalTradeNameId ?? null,
+        invoiceNumber: invNum,
+        name: trimOrNull(data.name),
+        dateCreated: data.dateCreated ?? null,
+        dateService: data.dateService ?? null,
+        paymentDueDate: data.paymentDueDate ?? null,
+        datePaid,
+        status,
+        isKor: data.isKor,
+      })
+      .returning()
+      .get();
 
     for (const line of data.lines ?? []) {
       db.insert(cashflowInvoiceLines).values(lineValues(invoice.id, line)).run();
@@ -88,7 +93,8 @@ export class CashflowInvoiceWrites {
       const invNum = data.invoiceNumber.trim();
       if (!invNum) throw new ValidationError("cashflow.invoiceNumberRequired");
 
-      const client = db.select({ userId: cashflowClients.userId })
+      const client = db
+        .select({ userId: cashflowClients.userId })
         .from(cashflowClients)
         .where(eq(cashflowClients.id, existing.clientId))
         .get();
@@ -111,19 +117,22 @@ export class CashflowInvoiceWrites {
     const finalProjectId = data.projectId !== undefined ? data.projectId : existing.projectId;
     const finalTradeNameId = data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId;
 
-    db.update(cashflowInvoices).set({
-      clientId: data.clientId ?? existing.clientId,
-      projectId: finalProjectId,
-      tradeNameId: finalTradeNameId,
-      invoiceNumber: data.invoiceNumber?.trim() ?? existing.invoiceNumber,
-      name: data.name !== undefined ? trimOrNull(data.name) : existing.name,
-      dateCreated: data.dateCreated !== undefined ? data.dateCreated : existing.dateCreated,
-      dateService: data.dateService !== undefined ? data.dateService : existing.dateService,
-      paymentDueDate: data.paymentDueDate !== undefined ? data.paymentDueDate : existing.paymentDueDate,
-      datePaid: nextDatePaid,
-      status: nextStatus,
-      isKor: data.isKor !== undefined ? data.isKor : existing.isKor,
-    }).where(eq(cashflowInvoices.id, id)).run();
+    db.update(cashflowInvoices)
+      .set({
+        clientId: data.clientId ?? existing.clientId,
+        projectId: finalProjectId,
+        tradeNameId: finalTradeNameId,
+        invoiceNumber: data.invoiceNumber?.trim() ?? existing.invoiceNumber,
+        name: data.name !== undefined ? trimOrNull(data.name) : existing.name,
+        dateCreated: data.dateCreated !== undefined ? data.dateCreated : existing.dateCreated,
+        dateService: data.dateService !== undefined ? data.dateService : existing.dateService,
+        paymentDueDate: data.paymentDueDate !== undefined ? data.paymentDueDate : existing.paymentDueDate,
+        datePaid: nextDatePaid,
+        status: nextStatus,
+        isKor: data.isKor !== undefined ? data.isKor : existing.isKor,
+      })
+      .where(eq(cashflowInvoices.id, id))
+      .run();
 
     if (data.lines) {
       db.delete(cashflowInvoiceLines).where(eq(cashflowInvoiceLines.invoiceId, id)).run();

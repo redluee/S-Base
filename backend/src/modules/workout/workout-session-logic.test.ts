@@ -52,7 +52,11 @@ describe("workout session, metric and exercise logic", () => {
       })!;
       const s = workout.sessions.create(adminId, template.templateId)!;
       const upper = workout.sessions.update(s.sessionId, adminId, {
-        exercises: s.exercises.map((e) => ({ sessionExerciseId: e.sessionExerciseId, exerciseName: e.exerciseName.toUpperCase(), sortOrder: e.sortOrder })),
+        exercises: s.exercises.map((e) => ({
+          sessionExerciseId: e.sessionExerciseId,
+          exerciseName: e.exerciseName.toUpperCase(),
+          sortOrder: e.sortOrder,
+        })),
       })!;
       expect(upper.exercises.map((e) => e.templateExercise?.defaultRestTime)).toEqual([40, 80]);
     });
@@ -66,7 +70,9 @@ describe("workout session, metric and exercise logic", () => {
       expect(s.exercises[0].restTime).toBe(75);
 
       const updated = workout.sessions.update(s.sessionId, adminId, {
-        exercises: [{ sessionExerciseId: s.exercises[0].sessionExerciseId, exerciseName: "Press", sortOrder: 0, restTime: 20 }],
+        exercises: [
+          { sessionExerciseId: s.exercises[0].sessionExerciseId, exerciseName: "Press", sortOrder: 0, restTime: 20 },
+        ],
       })!;
       expect(updated.exercises[0].restTime).toBe(20);
       expect(updated.exercises[0].templateExercise?.defaultRestTime).toBe(75);
@@ -85,8 +91,10 @@ describe("workout session, metric and exercise logic", () => {
       expect(added.exercises[1].restTime).toBe(45);
       expect(() =>
         workout.sessions.update(s.sessionId, adminId, {
-          exercises: [{ sessionExerciseId: s.exercises[0].sessionExerciseId, exerciseName: "Press", sortOrder: 0, restTime: -1 }],
-        })
+          exercises: [
+            { sessionExerciseId: s.exercises[0].sessionExerciseId, exerciseName: "Press", sortOrder: 0, restTime: -1 },
+          ],
+        }),
       ).toThrow("workout.restTimeNegative");
     });
   });
@@ -94,14 +102,14 @@ describe("workout session, metric and exercise logic", () => {
   describe("DATA-04 / BIZ-11 starting a session while another is running", () => {
     it("returns 409 with the running session and never deletes it", async () => {
       const cookie = await login("admin");
-      const first = await (await call(cookie, "POST", "/api/workouts/sessions", {})).json() as { sessionId: number };
+      const first = (await (await call(cookie, "POST", "/api/workouts/sessions", {})).json()) as { sessionId: number };
       workout.sessions.update(first.sessionId, adminId, {
         exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 0 }] }],
       });
 
       const res = await call(cookie, "POST", "/api/workouts/sessions", {});
       expect(res.status).toBe(409);
-      const body = await res.json() as { activeSession: { sessionId: number; exerciseCount: number } };
+      const body = (await res.json()) as { activeSession: { sessionId: number; exerciseCount: number } };
       expect(body.activeSession.sessionId).toBe(first.sessionId);
       expect(body.activeSession.exerciseCount).toBe(1);
       expect(workout.sessions.get(first.sessionId, adminId)).not.toBeNull();
@@ -110,20 +118,24 @@ describe("workout session, metric and exercise logic", () => {
 
     it("allows an explicit second session with force and does not duplicate otherwise", async () => {
       const cookie = await login("admin");
-      const first = await (await call(cookie, "POST", "/api/workouts/sessions", {})).json() as { sessionId: number };
+      const first = (await (await call(cookie, "POST", "/api/workouts/sessions", {})).json()) as { sessionId: number };
       const forced = await call(cookie, "POST", "/api/workouts/sessions", { force: true });
       expect(forced.status).toBe(200);
-      const second = await forced.json() as { sessionId: number };
+      const second = (await forced.json()) as { sessionId: number };
       expect(second.sessionId).not.toBe(first.sessionId);
       expect(workout.sessions.list(adminId, "active").length).toBe(2);
     });
 
     it("only cleans up stale empty sessions on start", () => {
-      const stale = db.insert(workoutSessions).values({
-        userId: adminId,
-        name: "Stale",
-        startedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-      }).returning().get();
+      const stale = db
+        .insert(workoutSessions)
+        .values({
+          userId: adminId,
+          name: "Stale",
+          startedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+        })
+        .returning()
+        .get();
       const fresh = workout.sessions.create(adminId)!;
       expect(() => workout.sessions.get(stale.sessionId, adminId)).toThrow("workout.sessionNotFound");
       expect(workout.sessions.get(fresh.sessionId, adminId)).not.toBeNull();
@@ -141,12 +153,20 @@ describe("workout session, metric and exercise logic", () => {
     it("excludes paused time from the duration used for PRs", () => {
       const s = workout.sessions.create(adminId)!;
       const now = Date.now();
-      db.update(workoutSessions).set({ startedAt: new Date(now - 3600 * 1000).toISOString() }).where(eq(workoutSessions.sessionId, s.sessionId)).run();
+      db.update(workoutSessions)
+        .set({ startedAt: new Date(now - 3600 * 1000).toISOString() })
+        .where(eq(workoutSessions.sessionId, s.sessionId))
+        .run();
       workout.sessions.update(s.sessionId, adminId, {
         exercises: [{ exerciseName: "Row", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, weight: 10, completed: 1 }] }],
         pausedSeconds: 1800,
       });
-      finishedSession(workout, adminId, [{ exerciseName: "Other", sortOrder: 0, sets: [{ setNumber: 1, reps: 1, completed: 1 }] }], 600);
+      finishedSession(
+        workout,
+        adminId,
+        [{ exerciseName: "Other", sortOrder: 0, sets: [{ setNumber: 1, reps: 1, completed: 1 }] }],
+        600,
+      );
 
       const withPause = workout.stats.sessionPRs(s.sessionId, adminId).find((p) => p.type === "session_duration");
       expect(withPause).toBeDefined();
@@ -162,14 +182,21 @@ describe("workout session, metric and exercise logic", () => {
       const resumed = workout.sessions.update(s.sessionId, adminId, { pausedAt: null, pausedSeconds: 42 })!;
       expect(resumed.pausedAt).toBeNull();
       expect(resumed.pausedSeconds).toBe(42);
-      expect(() => workout.sessions.update(s.sessionId, adminId, { pausedSeconds: -1 })).toThrow("workout.pausedSecondsNegative");
-      expect(() => workout.sessions.update(s.sessionId, adminId, { pausedAt: "nonsense" })).toThrow("workout.invalidDate");
+      expect(() => workout.sessions.update(s.sessionId, adminId, { pausedSeconds: -1 })).toThrow(
+        "workout.pausedSecondsNegative",
+      );
+      expect(() => workout.sessions.update(s.sessionId, adminId, { pausedAt: "nonsense" })).toThrow(
+        "workout.invalidDate",
+      );
     });
 
     it("completes a paused session without counting the paused time", () => {
       const s = workout.sessions.create(adminId)!;
       const now = Date.now();
-      db.update(workoutSessions).set({ startedAt: new Date(now - 3600 * 1000).toISOString() }).where(eq(workoutSessions.sessionId, s.sessionId)).run();
+      db.update(workoutSessions)
+        .set({ startedAt: new Date(now - 3600 * 1000).toISOString() })
+        .where(eq(workoutSessions.sessionId, s.sessionId))
+        .run();
       workout.sessions.update(s.sessionId, adminId, {
         pausedSeconds: 600,
         pausedAt: new Date(now - 1200 * 1000).toISOString(),
@@ -207,7 +234,12 @@ describe("workout session, metric and exercise logic", () => {
     });
 
     it("keeps values that are not part of the update", () => {
-      const t = workout.templates.create(adminId, { name: "Keep", description: "desc", targetMuscleGroups: "legs", estimatedTime: 30 })!;
+      const t = workout.templates.create(adminId, {
+        name: "Keep",
+        description: "desc",
+        targetMuscleGroups: "legs",
+        estimatedTime: 30,
+      })!;
       const updated = workout.templates.update(t.templateId, adminId, { name: "Keep 2" })!;
       expect(updated.description).toBe("desc");
       expect(updated.targetMuscleGroups).toBe("legs");
@@ -218,16 +250,24 @@ describe("workout session, metric and exercise logic", () => {
   describe("BIZ-08 exercise names containing percent signs", () => {
     it("serves progress for names with percent signs without a server error", async () => {
       const cookie = await login("admin");
-      finishedSession(workout, adminId, [{ exerciseName: "100% Effort", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] }]);
-      finishedSession(workout, adminId, [{ exerciseName: "Press 50%25", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] }]);
+      finishedSession(workout, adminId, [
+        { exerciseName: "100% Effort", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] },
+      ]);
+      finishedSession(workout, adminId, [
+        { exerciseName: "Press 50%25", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] },
+      ]);
 
       const res = await call(cookie, "GET", `/api/workouts/exercises/${encodeURIComponent("100% Effort")}/progress`);
       expect(res.status).toBe(200);
-      expect((await res.json() as { sessions: unknown[] }).sessions.length).toBe(1);
+      expect(((await res.json()) as { sessions: unknown[] }).sessions.length).toBe(1);
 
-      const literal = await call(cookie, "GET", `/api/workouts/exercises/${encodeURIComponent("Press 50%25")}/progress`);
+      const literal = await call(
+        cookie,
+        "GET",
+        `/api/workouts/exercises/${encodeURIComponent("Press 50%25")}/progress`,
+      );
       expect(literal.status).toBe(200);
-      expect((await literal.json() as { exerciseName: string }).exerciseName).toBe("Press 50%25");
+      expect(((await literal.json()) as { exerciseName: string }).exerciseName).toBe("Press 50%25");
     });
   });
 
@@ -239,7 +279,14 @@ describe("workout session, metric and exercise logic", () => {
     it("leaves intentional duplicate target blocks alone", () => {
       const id = finishedSession(workout, adminId, [
         { exerciseName: "Row", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] },
-        { exerciseName: "Row", sortOrder: 1, sets: [{ setNumber: 1, reps: 8, completed: 1 }, { setNumber: 2, reps: 8, completed: 1 }] },
+        {
+          exerciseName: "Row",
+          sortOrder: 1,
+          sets: [
+            { setNumber: 1, reps: 8, completed: 1 },
+            { setNumber: 2, reps: 8, completed: 1 },
+          ],
+        },
       ]);
       workout.exercises.merge(adminId, "Unrelated", "Row");
       expect(blocks(id)).toEqual(["Row:1", "Row:2"]);
@@ -274,7 +321,11 @@ describe("workout session, metric and exercise logic", () => {
         ],
       })!;
       workout.exercises.merge(adminId, "Dips Old", "Dip");
-      expect(workout.templates.get(t.templateId, adminId)!.exercises.map((e) => e.exerciseName)).toEqual(["Dip", "Dip", "Dip"]);
+      expect(workout.templates.get(t.templateId, adminId)!.exercises.map((e) => e.exerciseName)).toEqual([
+        "Dip",
+        "Dip",
+        "Dip",
+      ]);
     });
   });
 
@@ -286,7 +337,7 @@ describe("workout session, metric and exercise logic", () => {
         exercises: [{ sessionExerciseId: 987654, exerciseName: "Ghost", sortOrder: 0, sets: [] }],
       });
       expect(res.status).toBe(400);
-      const body = await res.json() as { error: string; sessionExerciseId: number };
+      const body = (await res.json()) as { error: string; sessionExerciseId: number };
       expect(body.error).toBe("workout.exerciseNotInSession");
       expect(body.sessionExerciseId).toBe(987654);
     });

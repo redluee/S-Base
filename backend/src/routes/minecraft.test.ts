@@ -36,7 +36,9 @@ function call(cookie: string, method: string, path: string, body?: unknown) {
 function upload(cookie: string, path: string, files: File[]) {
   const form = new FormData();
   for (const f of files) form.append("files", f);
-  return app.handle(new Request(`http://localhost/api/minecraft${path}`, { method: "POST", headers: { Cookie: cookie }, body: form }));
+  return app.handle(
+    new Request(`http://localhost/api/minecraft${path}`, { method: "POST", headers: { Cookie: cookie }, body: form }),
+  );
 }
 
 describe("minecraft routes error contract", () => {
@@ -47,7 +49,9 @@ describe("minecraft routes error contract", () => {
     await setupTestDb();
     cookie = await login();
     await mkdir(serverDir, { recursive: true });
-    db.insert(mc_servers).values({ slug: SLUG, displayName: "Route Errors", engine: "vanilla", mcVersion: "1.21.1", serverDir }).run();
+    db.insert(mc_servers)
+      .values({ slug: SLUG, displayName: "Route Errors", engine: "vanilla", mcVersion: "1.21.1", serverDir })
+      .run();
   });
 
   afterEach(async () => {
@@ -187,10 +191,16 @@ describe("minecraft routes error contract", () => {
     expect(await ok.json()).toEqual({ ok: true, count: 1 });
     expect(await readFile(join(serverDir, "mods", "single.jar"), "utf8")).toBe("single");
 
-    const missing = await call(cookie, "POST", `/servers/${SLUG}/files/mods/copy`, { sourceSlug: SLUG, filename: "gone.jar" });
+    const missing = await call(cookie, "POST", `/servers/${SLUG}/files/mods/copy`, {
+      sourceSlug: SLUG,
+      filename: "gone.jar",
+    });
     expect(missing.status).toBe(404);
     expect(await missing.json()).toEqual({ error: "minecraft.fileNotFound" });
-    const noSource = await call(cookie, "POST", `/servers/${SLUG}/files/mods/copy`, { sourceSlug: "no-such-srv", filename: "a.jar" });
+    const noSource = await call(cookie, "POST", `/servers/${SLUG}/files/mods/copy`, {
+      sourceSlug: "no-such-srv",
+      filename: "a.jar",
+    });
     expect(await noSource.json()).toEqual({ error: "minecraft.serverNotFound" });
   });
 
@@ -205,7 +215,10 @@ describe("minecraft routes error contract", () => {
       expect(res.status).toBe(404);
       expect(await res.json()).toEqual({ error: "minecraft.templateNotFound" });
     }
-    const speedrun = await call(cookie, "POST", "/templates/999999/speedrun", { slug: "route-speedrun", displayName: "S" });
+    const speedrun = await call(cookie, "POST", "/templates/999999/speedrun", {
+      slug: "route-speedrun",
+      displayName: "S",
+    });
     expect(await speedrun.json()).toEqual({ error: "minecraft.templateNotFound" });
 
     const noName = await call(cookie, "POST", "/templates", { name: " ", engine: "vanilla", mcVersion: "1.21.1" });
@@ -213,14 +226,26 @@ describe("minecraft routes error contract", () => {
     expect(await noName.json()).toEqual({ error: "minecraft.templateNameRequired" });
     const noVersion = await call(cookie, "POST", "/templates", { name: "Route Tmpl", engine: "vanilla" });
     expect(await noVersion.json()).toEqual({ error: "minecraft.versionRequired" });
-    const engine = await call(cookie, "POST", "/templates", { name: "Route Tmpl", engine: "forge", mcVersion: "1.21.1" });
+    const engine = await call(cookie, "POST", "/templates", {
+      name: "Route Tmpl",
+      engine: "forge",
+      mcVersion: "1.21.1",
+    });
     expect(await engine.json()).toEqual({ error: "minecraft.unsupportedEngine" });
 
-    const created = await call(cookie, "POST", "/templates", { name: "Route Tmpl", engine: "vanilla", mcVersion: "1.21.1" });
+    const created = await call(cookie, "POST", "/templates", {
+      name: "Route Tmpl",
+      engine: "vanilla",
+      mcVersion: "1.21.1",
+    });
     expect(created.status).toBe(200);
     const template = (await created.json()) as { templateId: number };
     try {
-      const dup = await call(cookie, "POST", "/templates", { name: "Route Tmpl", engine: "vanilla", mcVersion: "1.21.1" });
+      const dup = await call(cookie, "POST", "/templates", {
+        name: "Route Tmpl",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+      });
       expect(dup.status).toBe(409);
       expect(await dup.json()).toEqual({ error: "minecraft.templateNameExists" });
 
@@ -245,7 +270,9 @@ describe("minecraft routes error contract", () => {
     const engine = await call(cookie, "POST", "/import", { ...base, engine: "forge" });
     expect(await engine.json()).toEqual({ error: "minecraft.unsupportedEngine" });
 
-    const inspect = (await (await call(cookie, "POST", "/import/inspect", { serverDir: join(serverDir, "nope") })).json()) as { isValid: boolean; error: string };
+    const inspect = (await (
+      await call(cookie, "POST", "/import/inspect", { serverDir: join(serverDir, "nope") })
+    ).json()) as { isValid: boolean; error: string };
     expect(inspect.isValid).toBe(false);
     expect(inspect.error).toBe("minecraft.directoryNotFound");
   });

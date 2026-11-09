@@ -76,27 +76,45 @@ export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
         mcVersion: t.Optional(t.String()),
       }),
     })
-    .delete("/servers/:slug", ({ params: { slug }, query }) => minecraft.servers.remove(slug, query.deleteDisk === "true"), {
+    .delete(
+      "/servers/:slug",
+      ({ params: { slug }, query }) => minecraft.servers.remove(slug, query.deleteDisk === "true"),
+      {
+        params: slugParams,
+        query: t.Object({ deleteDisk: t.Optional(t.String()) }),
+      },
+    )
+    .post("/servers/:slug/start", ({ params: { slug } }) => minecraft.lifecycle.startServer(slug), {
       params: slugParams,
-      query: t.Object({ deleteDisk: t.Optional(t.String()) }),
     })
-    .post("/servers/:slug/start", ({ params: { slug } }) => minecraft.lifecycle.startServer(slug), { params: slugParams })
     .post("/servers/:slug/stop", ({ params: { slug } }) => minecraft.lifecycle.stopServer(slug), { params: slugParams })
-    .post("/servers/:slug/restart", ({ params: { slug } }) => minecraft.lifecycle.restartServer(slug), { params: slugParams })
+    .post("/servers/:slug/restart", ({ params: { slug } }) => minecraft.lifecycle.restartServer(slug), {
+      params: slugParams,
+    })
     .get("/servers/:slug/status", ({ params: { slug } }) => minecraft.lifecycle.getStatus(slug), { params: slugParams })
     .get(
       "/servers/:slug/console",
-      async ({ params: { slug }, query }) => ({ lines: await minecraft.lifecycle.getConsoleLogs(slug, query.lines ?? 100) }),
+      async ({ params: { slug }, query }) => ({
+        lines: await minecraft.lifecycle.getConsoleLogs(slug, query.lines ?? 100),
+      }),
       { params: slugParams, query: t.Object({ lines: t.Optional(t.Numeric({ minimum: 1, maximum: 10000 })) }) },
     )
-    .post("/servers/:slug/console", ({ params: { slug }, body }) => minecraft.lifecycle.runConsoleCommand(slug, body.command), {
-      params: slugParams,
-      body: t.Object({ command: t.String() }),
-    })
+    .post(
+      "/servers/:slug/console",
+      ({ params: { slug }, body }) => minecraft.lifecycle.runConsoleCommand(slug, body.command),
+      {
+        params: slugParams,
+        body: t.Object({ command: t.String() }),
+      },
+    )
     .get("/servers/:slug/map/status", ({ params: { slug } }) => minecraft.map.status(slug), { params: slugParams })
-    .get("/servers/:slug/map", async ({ params: { slug } }) => mapResponse(await minecraft.map.serve(slug, "index.html")), {
-      params: slugParams,
-    })
+    .get(
+      "/servers/:slug/map",
+      async ({ params: { slug } }) => mapResponse(await minecraft.map.serve(slug, "index.html")),
+      {
+        params: slugParams,
+      },
+    )
     .get(
       "/servers/:slug/map/*",
       async ({ params }) => mapResponse(await minecraft.map.serve(params.slug, (params as WildcardParams)["*"])),
@@ -107,7 +125,9 @@ export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
       params: slugParams,
       body: t.Record(t.String(), t.String()),
     })
-    .get("/servers/:slug/files/:type", ({ params: { slug, type } }) => minecraft.files.list(slug, type), { params: folderParams })
+    .get("/servers/:slug/files/:type", ({ params: { slug, type } }) => minecraft.files.list(slug, type), {
+      params: folderParams,
+    })
     .post(
       "/servers/:slug/files/:type",
       ({ params: { slug, type }, body }) => minecraft.files.uploadMany(slug, type, uploadedFiles(body)),
@@ -124,8 +144,12 @@ export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
       { params: folderParams, body: t.Object({ sourceSlug: t.String(), filename: t.String() }) },
     )
     .get("/servers/:slug/players", ({ params: { slug } }) => minecraft.players.list(slug), { params: slugParams })
-    .post("/servers/:slug/players/:uuid/op", ({ params: { slug, uuid } }) => minecraft.players.op(slug, uuid), { params: playerParams })
-    .post("/servers/:slug/players/:uuid/deop", ({ params: { slug, uuid } }) => minecraft.players.deop(slug, uuid), { params: playerParams })
+    .post("/servers/:slug/players/:uuid/op", ({ params: { slug, uuid } }) => minecraft.players.op(slug, uuid), {
+      params: playerParams,
+    })
+    .post("/servers/:slug/players/:uuid/deop", ({ params: { slug, uuid } }) => minecraft.players.deop(slug, uuid), {
+      params: playerParams,
+    })
     .post(
       "/servers/:slug/players/:uuid/kick",
       ({ params: { slug, uuid }, body }) => minecraft.players.kick(slug, uuid, body.reason),
@@ -139,7 +163,9 @@ export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
     .post("/servers/:slug/players/:uuid/unban", ({ params: { slug, uuid } }) => minecraft.players.unban(slug, uuid), {
       params: playerParams,
     })
-    .get("/servers/:slug/error", ({ params: { slug } }) => minecraft.diagnostics.startupError(slug), { params: slugParams })
+    .get("/servers/:slug/error", ({ params: { slug } }) => minecraft.diagnostics.startupError(slug), {
+      params: slugParams,
+    })
     .get("/templates", () => minecraft.templates.list())
     .post("/templates", ({ body }) => minecraft.templates.create(body), {
       body: t.Object({

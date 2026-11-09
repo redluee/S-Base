@@ -106,9 +106,13 @@ export const workoutRoutes = new Elysia()
         },
         { body: t.Object({ file: t.File() }) },
       )
-      .delete("/photos/:photoId", ({ params: { photoId }, userId }) => workout.measurements.deletePhoto(photoId, userId), {
-        params: t.Object({ photoId: t.Numeric() }),
-      }),
+      .delete(
+        "/photos/:photoId",
+        ({ params: { photoId }, userId }) => workout.measurements.deletePhoto(photoId, userId),
+        {
+          params: t.Object({ photoId: t.Numeric() }),
+        },
+      ),
   )
   .get(
     "/api/uploads/:filename",

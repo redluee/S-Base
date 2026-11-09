@@ -102,20 +102,24 @@ export class MinorStories {
       }
     }
 
-    const row = db.insert(minorStories).values({
-      sprintId: validSprintId,
-      userId,
-      storyTypeCode: data.storyTypeCode?.trim().toUpperCase() || "US",
-      storyNumber: data.storyNumber?.trim() || null,
-      title: data.title.trim(),
-      asA: data.asA?.trim() || null,
-      iWant: data.iWant?.trim() || null,
-      soThat: data.soThat?.trim() || null,
-      learningOutcomes: JSON.stringify(learningOutcomes),
-      status: data.status || "todo",
-      orderIndex,
-      presentationData: data.presentationData ? JSON.stringify(data.presentationData) : null,
-    }).returning().get();
+    const row = db
+      .insert(minorStories)
+      .values({
+        sprintId: validSprintId,
+        userId,
+        storyTypeCode: data.storyTypeCode?.trim().toUpperCase() || "US",
+        storyNumber: data.storyNumber?.trim() || null,
+        title: data.title.trim(),
+        asA: data.asA?.trim() || null,
+        iWant: data.iWant?.trim() || null,
+        soThat: data.soThat?.trim() || null,
+        learningOutcomes: JSON.stringify(learningOutcomes),
+        status: data.status || "todo",
+        orderIndex,
+        presentationData: data.presentationData ? JSON.stringify(data.presentationData) : null,
+      })
+      .returning()
+      .get();
 
     const criteria = [
       ...this.insertCriteria(row.id, "acceptance", data.acceptanceCriteria),
@@ -124,7 +128,10 @@ export class MinorStories {
     const evidence = this.insertEvidence(row.id, data.evidence);
 
     if (row.sprintId) {
-      if (row.status === "done" && this.evaluations.markLearningOutcomesSufficient(row.sprintId, parseLearningOutcomes(row.learningOutcomes))) {
+      if (
+        row.status === "done" &&
+        this.evaluations.markLearningOutcomesSufficient(row.sprintId, parseLearningOutcomes(row.learningOutcomes))
+      ) {
         this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId: row.sprintId });
       }
     }
@@ -145,21 +152,31 @@ export class MinorStories {
       }
     }
 
-    const learningOutcomes = data.learningOutcomes !== undefined ? data.learningOutcomes : parseLearningOutcomes(existing.learningOutcomes);
+    const learningOutcomes =
+      data.learningOutcomes !== undefined ? data.learningOutcomes : parseLearningOutcomes(existing.learningOutcomes);
 
-    db.update(minorStories).set({
-      sprintId: newSprintId,
-      storyTypeCode: data.storyTypeCode !== undefined ? data.storyTypeCode.trim().toUpperCase() : existing.storyTypeCode,
-      storyNumber: data.storyNumber !== undefined ? (data.storyNumber?.trim() || null) : existing.storyNumber,
-      title: data.title?.trim() ?? existing.title,
-      asA: data.asA !== undefined ? (data.asA?.trim() || null) : existing.asA,
-      iWant: data.iWant !== undefined ? (data.iWant?.trim() || null) : existing.iWant,
-      soThat: data.soThat !== undefined ? (data.soThat?.trim() || null) : existing.soThat,
-      learningOutcomes: JSON.stringify(learningOutcomes),
-      status: data.status ?? (existing.status as StoryStatus),
-      orderIndex: data.orderIndex ?? existing.orderIndex,
-      presentationData: data.presentationData !== undefined ? (data.presentationData ? JSON.stringify(data.presentationData) : null) : existing.presentationData,
-    }).where(eq(minorStories.id, storyId)).run();
+    db.update(minorStories)
+      .set({
+        sprintId: newSprintId,
+        storyTypeCode:
+          data.storyTypeCode !== undefined ? data.storyTypeCode.trim().toUpperCase() : existing.storyTypeCode,
+        storyNumber: data.storyNumber !== undefined ? data.storyNumber?.trim() || null : existing.storyNumber,
+        title: data.title?.trim() ?? existing.title,
+        asA: data.asA !== undefined ? data.asA?.trim() || null : existing.asA,
+        iWant: data.iWant !== undefined ? data.iWant?.trim() || null : existing.iWant,
+        soThat: data.soThat !== undefined ? data.soThat?.trim() || null : existing.soThat,
+        learningOutcomes: JSON.stringify(learningOutcomes),
+        status: data.status ?? (existing.status as StoryStatus),
+        orderIndex: data.orderIndex ?? existing.orderIndex,
+        presentationData:
+          data.presentationData !== undefined
+            ? data.presentationData
+              ? JSON.stringify(data.presentationData)
+              : null
+            : existing.presentationData,
+      })
+      .where(eq(minorStories.id, storyId))
+      .run();
 
     if (data.acceptanceCriteria !== undefined || data.qualityCriteria !== undefined) {
       db.delete(minorStoryCriteria).where(eq(minorStoryCriteria.storyId, storyId)).run();
@@ -175,9 +192,15 @@ export class MinorStories {
     const updated = this.requireStory(storyId, userId);
     const { criteria, evidence } = loadStoryChildren([storyId]);
 
-    const becameDone = existing.status !== "done" || existing.sprintId !== updated.sprintId || data.learningOutcomes !== undefined;
+    const becameDone =
+      existing.status !== "done" || existing.sprintId !== updated.sprintId || data.learningOutcomes !== undefined;
     if (updated.sprintId && updated.status === "done" && becameDone) {
-      if (this.evaluations.markLearningOutcomesSufficient(updated.sprintId, parseLearningOutcomes(updated.learningOutcomes))) {
+      if (
+        this.evaluations.markLearningOutcomesSufficient(
+          updated.sprintId,
+          parseLearningOutcomes(updated.learningOutcomes),
+        )
+      ) {
         this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId: updated.sprintId });
       }
     }
@@ -207,23 +230,39 @@ export class MinorStories {
   }
 
   toggleCriterion(criterionId: number, isCompleted: boolean) {
-    orNotFound(db.select().from(minorStoryCriteria).where(eq(minorStoryCriteria.id, criterionId)).get(), "minor.criterionNotFound");
-    return db.update(minorStoryCriteria).set({ isCompleted }).where(eq(minorStoryCriteria.id, criterionId)).returning().get();
+    orNotFound(
+      db.select().from(minorStoryCriteria).where(eq(minorStoryCriteria.id, criterionId)).get(),
+      "minor.criterionNotFound",
+    );
+    return db
+      .update(minorStoryCriteria)
+      .set({ isCompleted })
+      .where(eq(minorStoryCriteria.id, criterionId))
+      .returning()
+      .get();
   }
 
-  private insertCriteria(storyId: number, type: "acceptance" | "quality", items: CriterionInput[] | undefined): CriterionRow[] {
+  private insertCriteria(
+    storyId: number,
+    type: "acceptance" | "quality",
+    items: CriterionInput[] | undefined,
+  ): CriterionRow[] {
     const inserted: CriterionRow[] = [];
     (items ?? []).forEach((crit, index) => {
       if (!crit.text?.trim()) return;
       inserted.push(
-        db.insert(minorStoryCriteria).values({
-          storyId,
-          type,
-          orderIndex: index + 1,
-          indent: crit.indent ? 1 : 0,
-          text: crit.text.trim(),
-          isCompleted: Boolean(crit.isCompleted),
-        }).returning().get(),
+        db
+          .insert(minorStoryCriteria)
+          .values({
+            storyId,
+            type,
+            orderIndex: index + 1,
+            indent: crit.indent ? 1 : 0,
+            text: crit.text.trim(),
+            isCompleted: Boolean(crit.isCompleted),
+          })
+          .returning()
+          .get(),
       );
     });
     return inserted;
@@ -234,12 +273,16 @@ export class MinorStories {
     for (const ev of items ?? []) {
       if (!ev.title?.trim() || !ev.url?.trim()) continue;
       inserted.push(
-        db.insert(minorStoryEvidence).values({
-          storyId,
-          type: ev.type || "link",
-          title: ev.title.trim(),
-          url: ev.url.trim(),
-        }).returning().get(),
+        db
+          .insert(minorStoryEvidence)
+          .values({
+            storyId,
+            type: ev.type || "link",
+            title: ev.title.trim(),
+            url: ev.url.trim(),
+          })
+          .returning()
+          .get(),
       );
     }
     return inserted;
@@ -247,14 +290,22 @@ export class MinorStories {
 
   private requireStory(storyId: number, userId: number) {
     return orNotFound(
-      db.select().from(minorStories).where(and(eq(minorStories.id, storyId), eq(minorStories.userId, userId))).get(),
+      db
+        .select()
+        .from(minorStories)
+        .where(and(eq(minorStories.id, storyId), eq(minorStories.userId, userId)))
+        .get(),
       "minor.storyNotFound",
     );
   }
 
   private requireSprint(sprintId: number, userId: number) {
     return orNotFound(
-      db.select().from(minorSprints).where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId))).get(),
+      db
+        .select()
+        .from(minorSprints)
+        .where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId)))
+        .get(),
       "minor.sprintNotFound",
     );
   }

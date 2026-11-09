@@ -128,7 +128,8 @@ export class MinorTransfer {
 
   private resolveDates(userId: number, data: JsonRecord, fallbackStart: string, fallbackDuration: number) {
     const startDate = data.startDate ? String(data.startDate).trim() : fallbackStart;
-    const durationDays = typeof data.durationDays === "number" && data.durationDays > 0 ? data.durationDays : fallbackDuration;
+    const durationDays =
+      typeof data.durationDays === "number" && data.durationDays > 0 ? data.durationDays : fallbackDuration;
     const calc = this.schedule.calculateSprintDates(userId, startDate, durationDays);
     const endDate = data.endDate ? String(data.endDate).trim() : calc.endDate;
     return {
@@ -137,19 +138,29 @@ export class MinorTransfer {
       endDate,
       showAndGrowDate: data.showAndGrowDate ? String(data.showAndGrowDate).trim() : calc.showAndGrowDate,
       extendedDays: typeof data.extendedDays === "number" ? data.extendedDays : calc.extendedDays,
-      extensionReason: data.extensionReason !== undefined ? (data.extensionReason as string | null) : calc.extensionReason,
+      extensionReason:
+        data.extensionReason !== undefined ? (data.extensionReason as string | null) : calc.extensionReason,
       status: calculateSprintStatus(startDate, endDate),
     };
   }
 
-  private overwriteSprint(userId: number, existing: typeof minorSprints.$inferSelect, data: JsonRecord, name: string, number: string) {
+  private overwriteSprint(
+    userId: number,
+    existing: typeof minorSprints.$inferSelect,
+    data: JsonRecord,
+    name: string,
+    number: string,
+  ) {
     const dates = this.resolveDates(userId, data, existing.startDate, existing.durationDays);
-    db.update(minorSprints).set({
-      sprintNumber: number || existing.sprintNumber,
-      name: name || existing.name,
-      ...dates,
-      updatedAt: sql`CURRENT_TIMESTAMP`,
-    }).where(eq(minorSprints.id, existing.id)).run();
+    db.update(minorSprints)
+      .set({
+        sprintNumber: number || existing.sprintNumber,
+        name: name || existing.name,
+        ...dates,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(eq(minorSprints.id, existing.id))
+      .run();
 
     db.delete(minorStories).where(eq(minorStories.sprintId, existing.id)).run();
     db.delete(minorFeedbackEntries).where(eq(minorFeedbackEntries.sprintId, existing.id)).run();
@@ -158,12 +169,22 @@ export class MinorTransfer {
   private createImportedSprint(userId: number, data: JsonRecord, name: string, number: string): MinorSprint {
     const next = this.sprints.getNextNumber(userId);
     const dates = this.resolveDates(userId, data, formatDate(new Date()), 14);
-    const created = db.insert(minorSprints).values({
-      userId,
-      sprintNumber: number || (data.sprintNumber != null ? String(data.sprintNumber).trim() : next.nextNumber),
-      name: name || (data.name != null ? String(data.name).trim() : (data.sprintNumber ? `Sprint ${data.sprintNumber}` : next.nextName)),
-      ...dates,
-    }).returning().get() as MinorSprint;
+    const created = db
+      .insert(minorSprints)
+      .values({
+        userId,
+        sprintNumber: number || (data.sprintNumber != null ? String(data.sprintNumber).trim() : next.nextNumber),
+        name:
+          name ||
+          (data.name != null
+            ? String(data.name).trim()
+            : data.sprintNumber
+              ? `Sprint ${data.sprintNumber}`
+              : next.nextName),
+        ...dates,
+      })
+      .returning()
+      .get() as MinorSprint;
     this.evaluations.initDefaults(created.id);
     return created;
   }

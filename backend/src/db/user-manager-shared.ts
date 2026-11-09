@@ -15,19 +15,11 @@ export function findUser(identifier: string) {
   const isNumeric = /^\d+$/.test(identifier);
   if (isNumeric) {
     const userIdNum = parseInt(identifier, 10);
-    const userById = db
-      .select()
-      .from(users)
-      .where(eq(users.userId, userIdNum))
-      .get();
+    const userById = db.select().from(users).where(eq(users.userId, userIdNum)).get();
     if (userById) return userById;
   }
 
-  return db
-    .select()
-    .from(users)
-    .where(eq(users.username, identifier))
-    .get();
+  return db.select().from(users).where(eq(users.username, identifier)).get();
 }
 
 export function findModule(targetModule: string) {
@@ -42,7 +34,7 @@ export function findModule(targetModule: string) {
   const mod = allModules.find(
     (m) =>
       m.moduleName.toLowerCase() === targetModule.toLowerCase() ||
-      (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase())
+      (m.moduleAlias && m.moduleAlias.toLowerCase() === targetModule.toLowerCase()),
   );
   return { mod, allModules };
 }
@@ -58,8 +50,7 @@ export function findServer(targetServer: string) {
 
   const srv = allServers.find(
     (s) =>
-      s.slug.toLowerCase() === targetServer.toLowerCase() ||
-      s.displayName.toLowerCase() === targetServer.toLowerCase()
+      s.slug.toLowerCase() === targetServer.toLowerCase() || s.displayName.toLowerCase() === targetServer.toLowerCase(),
   );
   return { server: srv, allServers };
 }

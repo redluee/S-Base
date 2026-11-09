@@ -15,30 +15,44 @@ export interface PeerHelpInput {
 
 export class MinorPeerHelpLog {
   list(userId: number): MinorPeerHelp[] {
-    return db.select().from(minorPeerHelp).where(eq(minorPeerHelp.userId, userId)).orderBy(desc(minorPeerHelp.date), desc(minorPeerHelp.id)).all() as MinorPeerHelp[];
+    return db
+      .select()
+      .from(minorPeerHelp)
+      .where(eq(minorPeerHelp.userId, userId))
+      .orderBy(desc(minorPeerHelp.date), desc(minorPeerHelp.id))
+      .all() as MinorPeerHelp[];
   }
 
   create(userId: number, data: PeerHelpInput) {
     if (!data.peerName?.trim() || !data.description?.trim()) throw new ValidationError("minor.peerHelpFieldsRequired");
-    return db.insert(minorPeerHelp).values({
-      userId,
-      sprintId: data.sprintId ?? null,
-      date: data.date || formatDate(new Date()),
-      peerName: data.peerName.trim(),
-      description: data.description.trim(),
-      links: data.links?.trim() || null,
-    }).returning().get() as MinorPeerHelp;
+    return db
+      .insert(minorPeerHelp)
+      .values({
+        userId,
+        sprintId: data.sprintId ?? null,
+        date: data.date || formatDate(new Date()),
+        peerName: data.peerName.trim(),
+        description: data.description.trim(),
+        links: data.links?.trim() || null,
+      })
+      .returning()
+      .get() as MinorPeerHelp;
   }
 
   update(id: number, userId: number, data: PeerHelpInput) {
     const existing = this.requireOwned(id, userId);
-    return db.update(minorPeerHelp).set({
-      sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
-      date: data.date ?? existing.date,
-      peerName: data.peerName?.trim() ?? existing.peerName,
-      description: data.description?.trim() ?? existing.description,
-      links: data.links !== undefined ? (data.links?.trim() || null) : existing.links,
-    }).where(eq(minorPeerHelp.id, id)).returning().get() as MinorPeerHelp;
+    return db
+      .update(minorPeerHelp)
+      .set({
+        sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
+        date: data.date ?? existing.date,
+        peerName: data.peerName?.trim() ?? existing.peerName,
+        description: data.description?.trim() ?? existing.description,
+        links: data.links !== undefined ? data.links?.trim() || null : existing.links,
+      })
+      .where(eq(minorPeerHelp.id, id))
+      .returning()
+      .get() as MinorPeerHelp;
   }
 
   remove(id: number, userId: number) {
@@ -49,7 +63,11 @@ export class MinorPeerHelpLog {
 
   private requireOwned(id: number, userId: number) {
     return orNotFound(
-      db.select().from(minorPeerHelp).where(and(eq(minorPeerHelp.id, id), eq(minorPeerHelp.userId, userId))).get(),
+      db
+        .select()
+        .from(minorPeerHelp)
+        .where(and(eq(minorPeerHelp.id, id), eq(minorPeerHelp.userId, userId)))
+        .get(),
       "minor.peerHelpNotFound",
     );
   }

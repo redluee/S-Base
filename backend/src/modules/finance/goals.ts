@@ -1,9 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
-import {
-  financeGoals as goals,
-  financeAllocations as allocations,
-} from "../../db/schema/finance";
+import { financeGoals as goals, financeAllocations as allocations } from "../../db/schema/finance";
 import { ConflictError, NotFoundError, ValidationError } from "../../utils/errors";
 import { requireId, requireObject } from "../../utils/validation";
 import type { FinanceAccounts } from "./accounts";
@@ -23,10 +20,7 @@ export class FinanceGoals {
   }
   createGoal(userId: number, input: unknown) {
     const data = goalInput(input);
-    if (
-      db.select().from(goals).where(eq(goals.userId, userId)).all().length >=
-      200
-    )
+    if (db.select().from(goals).where(eq(goals.userId, userId)).all().length >= 200)
       throw new ValidationError("finance.goalCountLimit");
     return db
       .insert(goals)
@@ -44,8 +38,7 @@ export class FinanceGoals {
         .where(eq(allocations.goalId, id))
         .all()
         .reduce((sum, a) => sum + a.amountCents, 0);
-      if (total > data.targetCents)
-        throw new ConflictError("finance.targetLimit");
+      if (total > data.targetCents) throw new ConflictError("finance.targetLimit");
       return tx
         .update(goals)
         .set(data)
@@ -66,19 +59,10 @@ export class FinanceGoals {
     return db.transaction((tx) => {
       const goal = this.goal(userId, id),
         account = this.accounts.account(userId, accountId);
-      if (account.type !== "savings")
-        throw new ValidationError("finance.onlySavings");
-      const accountAllocations = tx
-        .select()
-        .from(allocations)
-        .where(eq(allocations.accountId, accountId))
-        .all();
-      const previous =
-        accountAllocations.find((a) => a.goalId === id)?.amountCents ?? 0;
-      const accountTotal =
-        accountAllocations.reduce((sum, a) => sum + a.amountCents, 0) -
-        previous +
-        amountCents;
+      if (account.type !== "savings") throw new ValidationError("finance.onlySavings");
+      const accountAllocations = tx.select().from(allocations).where(eq(allocations.accountId, accountId)).all();
+      const previous = accountAllocations.find((a) => a.goalId === id)?.amountCents ?? 0;
+      const accountTotal = accountAllocations.reduce((sum, a) => sum + a.amountCents, 0) - previous + amountCents;
       const goalTotal =
         tx
           .select()
@@ -89,23 +73,12 @@ export class FinanceGoals {
         previous +
         amountCents;
       const balance = this.accounts.history(userId, accountId).at(-1)?.balanceCents;
-      if (
-        amountCents > previous &&
-        (account.archived ||
-          balance === undefined ||
-          accountTotal > Math.max(0, balance))
-      )
+      if (amountCents > previous && (account.archived || balance === undefined || accountTotal > Math.max(0, balance)))
         throw new ConflictError("finance.allocationLimit");
-      if (goalTotal > goal.targetCents)
-        throw new ConflictError("finance.goalLimit");
+      if (goalTotal > goal.targetCents) throw new ConflictError("finance.goalLimit");
       if (amountCents === 0) {
         tx.delete(allocations)
-          .where(
-            and(
-              eq(allocations.goalId, id),
-              eq(allocations.accountId, accountId),
-            ),
-          )
+          .where(and(eq(allocations.goalId, id), eq(allocations.accountId, accountId)))
           .run();
       } else {
         tx.insert(allocations)

@@ -26,21 +26,32 @@ export const app = new Elysia()
       sqlite.query("SELECT 1").get();
       return { status: "ok", uptime: Math.round(process.uptime()) };
     } catch {
-      return new Response(JSON.stringify({ status: "error" }), { status: 503, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ status: "error" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   })
   .onError(({ code, error }) => {
     if (error instanceof AppError) return errorResponse(error);
     if (code === "NOT_FOUND") return errorResponse(new NotFoundError());
     if (code === "VALIDATION" || code === "PARSE") return errorResponse(new ValidationError("common.invalidRequest"));
-    console.error(JSON.stringify({ level: "error", code, message: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }));
+    console.error(
+      JSON.stringify({
+        level: "error",
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
+    );
     if (isProduction()) {
       return new Response(JSON.stringify({ error: "Internal Server Error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
-    const message = error && typeof error === "object" && "message" in error ? (error as { message: string }).message : String(error);
+    const message =
+      error && typeof error === "object" && "message" in error ? (error as { message: string }).message : String(error);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

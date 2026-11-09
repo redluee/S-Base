@@ -21,7 +21,10 @@ export async function setupTestDb() {
     for (const file of sqlFiles) {
       try {
         const sqlContent = await Bun.file(join(migrationsDir, file)).text();
-        const statements = sqlContent.split(";").map((s) => s.trim()).filter(Boolean);
+        const statements = sqlContent
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean);
         for (const stmt of statements) {
           try {
             db.run(stmt);
@@ -43,11 +46,15 @@ export async function setupTestDb() {
   const existingAdmin = db.select().from(users).where(eq(users.username, "admin")).get();
   let adminId: number;
   if (!existingAdmin) {
-    const res = db.insert(users).values({
-      username: "admin",
-      pswdHash: adminHash,
-      email: "admin@example.com",
-    }).returning().get();
+    const res = db
+      .insert(users)
+      .values({
+        username: "admin",
+        pswdHash: adminHash,
+        email: "admin@example.com",
+      })
+      .returning()
+      .get();
     adminId = res.userId;
   } else {
     adminId = existingAdmin.userId;
@@ -56,25 +63,46 @@ export async function setupTestDb() {
   const existingTester = db.select().from(users).where(eq(users.username, "tester")).get();
   let testerId: number;
   if (!existingTester) {
-    const res = db.insert(users).values({
-      username: "tester",
-      pswdHash: testerHash,
-      email: "tester@example.com",
-    }).returning().get();
+    const res = db
+      .insert(users)
+      .values({
+        username: "tester",
+        pswdHash: testerHash,
+        email: "tester@example.com",
+      })
+      .returning()
+      .get();
     testerId = res.userId;
   } else {
     testerId = existingTester.userId;
   }
 
-  const moduleNames = ["recipes", "workout", "cashflow", "you", "lyric_quotes", "pulse", "measurements", "wines", "minecraft", "minor", "resume", "finance"];
+  const moduleNames = [
+    "recipes",
+    "workout",
+    "cashflow",
+    "you",
+    "lyric_quotes",
+    "pulse",
+    "measurements",
+    "wines",
+    "minecraft",
+    "minor",
+    "resume",
+    "finance",
+  ];
   for (const name of moduleNames) {
     let existingMod = db.select().from(modules).where(eq(modules.moduleName, name)).get();
     if (!existingMod) {
-      existingMod = db.insert(modules).values({
-        moduleName: name,
-        moduleAlias: name,
-        description: `Module ${name}`,
-      }).returning().get();
+      existingMod = db
+        .insert(modules)
+        .values({
+          moduleName: name,
+          moduleAlias: name,
+          description: `Module ${name}`,
+        })
+        .returning()
+        .get();
     }
     const adminPerms = db.select().from(usermodulepermissions).where(eq(usermodulepermissions.userId, adminId)).all();
     if (!adminPerms.some((p) => p.moduleId === existingMod.moduleId)) {

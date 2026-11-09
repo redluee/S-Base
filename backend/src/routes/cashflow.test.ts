@@ -67,8 +67,17 @@ describe("cashflow routes error contract", () => {
     expect(blank.status).toBe(400);
     expect(await blank.json()).toEqual({ error: "cashflow.clientNameRequired" });
 
-    const client = (await (await call(cookie, "POST", "/api/cashflow/clients", { name: "Route Client", email: null, standardRate: null })).json()) as { id: number };
-    const invoice = { clientId: client.id, projectId: null, invoiceNumber: "2026-901", status: "draft", isKor: true, lines: [{ taskDescription: "Work", totalCost: 10 }] };
+    const client = (await (
+      await call(cookie, "POST", "/api/cashflow/clients", { name: "Route Client", email: null, standardRate: null })
+    ).json()) as { id: number };
+    const invoice = {
+      clientId: client.id,
+      projectId: null,
+      invoiceNumber: "2026-901",
+      status: "draft",
+      isKor: true,
+      lines: [{ taskDescription: "Work", totalCost: 10 }],
+    };
     const created = await call(cookie, "POST", "/api/cashflow/invoices", invoice);
     expect(created.status).toBe(200);
 
@@ -81,7 +90,12 @@ describe("cashflow routes error contract", () => {
     expect(badStatus.status).toBe(400);
     expect(await badStatus.json()).toEqual({ error: "cashflow.invalidStatus" });
 
-    const email = await call(cookie, "POST", `/api/cashflow/invoices/${id}/send-email`, { to: "", subject: "S", message: "M", pdfBase64: "AA" });
+    const email = await call(cookie, "POST", `/api/cashflow/invoices/${id}/send-email`, {
+      to: "",
+      subject: "S",
+      message: "M",
+      pdfBase64: "AA",
+    });
     expect(email.status).toBe(400);
     expect(await email.json()).toEqual({ error: "cashflow.emailRecipientRequired" });
 
@@ -108,29 +122,72 @@ describe("cashflow routes error contract", () => {
   });
 
   it("accepts the payloads the frontend sends, including nulls and a body-less paid patch", async () => {
-    const client = (await (await call(cookie, "POST", "/api/cashflow/clients", {
-      name: "Payload Client", address: null, email: null, kvkNumber: null, standardRate: 80, contractPdfPath: null, contractPdfName: null,
-    })).json()) as { id: number };
-    const project = await call(cookie, "POST", "/api/cashflow/projects", { clientId: client.id, tradeNameId: null, name: "P", description: null, location: null });
+    const client = (await (
+      await call(cookie, "POST", "/api/cashflow/clients", {
+        name: "Payload Client",
+        address: null,
+        email: null,
+        kvkNumber: null,
+        standardRate: 80,
+        contractPdfPath: null,
+        contractPdfName: null,
+      })
+    ).json()) as { id: number };
+    const project = await call(cookie, "POST", "/api/cashflow/projects", {
+      clientId: client.id,
+      tradeNameId: null,
+      name: "P",
+      description: null,
+      location: null,
+    });
     expect(project.status).toBe(200);
 
     const created = await call(cookie, "POST", "/api/cashflow/invoices", {
-      clientId: client.id, projectId: null, tradeNameId: null, invoiceNumber: "2026-902", name: null,
-      dateCreated: null, dateService: null, paymentDueDate: null, datePaid: null, status: "draft", isKor: false,
-      lines: [{ taskDescription: "D", date: null, quantity: 1, unitPrice: 0, totalCost: -5, type: "discount", discountType: "amount", discountValue: 5 }],
+      clientId: client.id,
+      projectId: null,
+      tradeNameId: null,
+      invoiceNumber: "2026-902",
+      name: null,
+      dateCreated: null,
+      dateService: null,
+      paymentDueDate: null,
+      datePaid: null,
+      status: "draft",
+      isKor: false,
+      lines: [
+        {
+          taskDescription: "D",
+          date: null,
+          quantity: 1,
+          unitPrice: 0,
+          totalCost: -5,
+          type: "discount",
+          discountType: "amount",
+          discountValue: 5,
+        },
+      ],
     });
     expect(created.status).toBe(200);
     const id = ((await created.json()) as { id: number }).id;
 
-    const paid = await app.handle(new Request(`http://localhost/api/cashflow/invoices/${id}/paid`, {
-      method: "PATCH",
-      headers: { Cookie: cookie, "Content-Type": "application/json" },
-    }));
+    const paid = await app.handle(
+      new Request(`http://localhost/api/cashflow/invoices/${id}/paid`, {
+        method: "PATCH",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+      }),
+    );
     expect(paid.status).toBe(200);
     expect(((await paid.json()) as { status: string }).status).toBe("paid");
 
     const expense = await call(cookie, "POST", "/api/cashflow/expenses", {
-      description: "E", amount: 12.5, category: "Overig", date: Date.now(), tradeNameId: null, receiptPdfPath: null, receiptPdfName: null, notes: null,
+      description: "E",
+      amount: 12.5,
+      category: "Overig",
+      date: Date.now(),
+      tradeNameId: null,
+      receiptPdfPath: null,
+      receiptPdfName: null,
+      notes: null,
     });
     expect(expense.status).toBe(200);
     expect((await call(cookie, "GET", `/api/cashflow/projects?clientId=${client.id}`)).status).toBe(200);

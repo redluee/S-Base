@@ -32,7 +32,8 @@ export class CashflowExpenses {
       conditions.push(and(gte(effectiveDate, start), lte(effectiveDate, end)) as SQL);
     }
 
-    return db.select(expenseColumns)
+    return db
+      .select(expenseColumns)
       .from(cashflowExpenses)
       .leftJoin(cashflowTradeNames, eq(cashflowExpenses.tradeNameId, cashflowTradeNames.id))
       .where(and(...conditions))
@@ -41,7 +42,8 @@ export class CashflowExpenses {
   }
 
   getById(id: number) {
-    const row = db.select(expenseColumns)
+    const row = db
+      .select(expenseColumns)
       .from(cashflowExpenses)
       .leftJoin(cashflowTradeNames, eq(cashflowExpenses.tradeNameId, cashflowTradeNames.id))
       .where(eq(cashflowExpenses.id, id))
@@ -63,17 +65,21 @@ export class CashflowExpenses {
       throw new ValidationError("cashflow.expenseAmountRequired");
     }
 
-    const inserted = db.insert(cashflowExpenses).values({
-      userId,
-      description,
-      category: data.category?.trim() || "Overig",
-      amount: Number(data.amount),
-      date: data.date ? Number(data.date) : Date.now(),
-      tradeNameId: data.tradeNameId ? Number(data.tradeNameId) : null,
-      receiptPdfPath: trimOrNull(data.receiptPdfPath),
-      receiptPdfName: trimOrNull(data.receiptPdfName),
-      notes: trimOrNull(data.notes),
-    }).returning().get();
+    const inserted = db
+      .insert(cashflowExpenses)
+      .values({
+        userId,
+        description,
+        category: data.category?.trim() || "Overig",
+        amount: Number(data.amount),
+        date: data.date ? Number(data.date) : Date.now(),
+        tradeNameId: data.tradeNameId ? Number(data.tradeNameId) : null,
+        receiptPdfPath: trimOrNull(data.receiptPdfPath),
+        receiptPdfName: trimOrNull(data.receiptPdfName),
+        notes: trimOrNull(data.notes),
+      })
+      .returning()
+      .get();
 
     return this.getById(inserted.id);
   }
@@ -81,16 +87,20 @@ export class CashflowExpenses {
   update(id: number, data: ExpenseInput) {
     const existing = this.findRow(id);
 
-    db.update(cashflowExpenses).set({
-      description: data.description !== undefined ? data.description.trim() : existing.description,
-      category: data.category !== undefined ? (data.category?.trim() || "Overig") : existing.category,
-      amount: data.amount !== undefined ? Number(data.amount) : existing.amount,
-      date: data.date !== undefined ? (data.date ? Number(data.date) : null) : existing.date,
-      tradeNameId: data.tradeNameId !== undefined ? (data.tradeNameId ? Number(data.tradeNameId) : null) : existing.tradeNameId,
-      receiptPdfPath: data.receiptPdfPath !== undefined ? trimOrNull(data.receiptPdfPath) : existing.receiptPdfPath,
-      receiptPdfName: data.receiptPdfName !== undefined ? trimOrNull(data.receiptPdfName) : existing.receiptPdfName,
-      notes: data.notes !== undefined ? trimOrNull(data.notes) : existing.notes,
-    }).where(eq(cashflowExpenses.id, id)).run();
+    db.update(cashflowExpenses)
+      .set({
+        description: data.description !== undefined ? data.description.trim() : existing.description,
+        category: data.category !== undefined ? data.category?.trim() || "Overig" : existing.category,
+        amount: data.amount !== undefined ? Number(data.amount) : existing.amount,
+        date: data.date !== undefined ? (data.date ? Number(data.date) : null) : existing.date,
+        tradeNameId:
+          data.tradeNameId !== undefined ? (data.tradeNameId ? Number(data.tradeNameId) : null) : existing.tradeNameId,
+        receiptPdfPath: data.receiptPdfPath !== undefined ? trimOrNull(data.receiptPdfPath) : existing.receiptPdfPath,
+        receiptPdfName: data.receiptPdfName !== undefined ? trimOrNull(data.receiptPdfName) : existing.receiptPdfName,
+        notes: data.notes !== undefined ? trimOrNull(data.notes) : existing.notes,
+      })
+      .where(eq(cashflowExpenses.id, id))
+      .run();
 
     return this.getById(id);
   }

@@ -47,17 +47,11 @@ export class FinanceImport {
   importBalances(userId: number, input: unknown): FinanceImportResult {
     const data = requireObject(input),
       preview = parseImport(data);
-    if (
-      !Array.isArray(data.selections) ||
-      !data.selections.length ||
-      data.selections.length > preview.sources.length
-    )
+    if (!Array.isArray(data.selections) || !data.selections.length || data.selections.length > preview.sources.length)
       throw new ValidationError("finance.import.selection");
     const selections = data.selections.map((value: unknown) => {
       const selection = requireObject(value);
-      const source = preview.sources.find(
-        (source) => source.sourceKey === selection.sourceKey,
-      );
+      const source = preview.sources.find((source) => source.sourceKey === selection.sourceKey);
       if (
         !source ||
         !Array.isArray(selection.entries) ||
@@ -65,25 +59,18 @@ export class FinanceImport {
         selection.entries.length > source.balances.length
       )
         throw new ValidationError("finance.import.selection");
-      if (
-        (selection.accountId === undefined) ===
-        (selection.newAccount === undefined)
-      )
+      if ((selection.accountId === undefined) === (selection.newAccount === undefined))
         throw new ValidationError("finance.import.selection");
-      if (typeof selection.extendOpening !== "boolean")
-        throw new ValidationError("finance.import.selection");
+      if (typeof selection.extendOpening !== "boolean") throw new ValidationError("finance.import.selection");
       const entries = selection.entries
         .map((value: unknown) => {
           const entry = requireObject(value),
             date = calendarDate(entry.date);
-          const balance = source.balances.find(
-            (balance) => balance.date === date,
-          );
+          const balance = source.balances.find((balance) => balance.date === date);
           if (!balance) throw new ValidationError("finance.import.selection");
           return {
             ...balance,
-            expectedCents:
-              entry.expectedCents === null ? null : cents(entry.expectedCents),
+            expectedCents: entry.expectedCents === null ? null : cents(entry.expectedCents),
           };
         })
         .sort((a, b) => a.date.localeCompare(b.date));
@@ -94,19 +81,16 @@ export class FinanceImport {
         selection.newAccount === undefined
           ? undefined
           : accountInput({
-            ...requireObject(selection.newAccount),
-            bank: source.bank,
-            openingDate: first.date,
-            openingBalanceCents: first.balanceCents,
-          });
+              ...requireObject(selection.newAccount),
+              bank: source.bank,
+              openingDate: first.date,
+              openingBalanceCents: first.balanceCents,
+            });
       return {
         sourceKey: source.sourceKey,
         source,
         entries,
-        accountId:
-          selection.accountId === undefined
-            ? undefined
-            : requireId(selection.accountId),
+        accountId: selection.accountId === undefined ? undefined : requireId(selection.accountId),
         newAccount,
         extendOpening: selection.extendOpening,
       };
@@ -116,8 +100,7 @@ export class FinanceImport {
     );
     if (
       new Set(accountIds).size !== accountIds.length ||
-      new Set(selections.map((selection) => selection.sourceKey)).size !==
-      selections.length
+      new Set(selections.map((selection) => selection.sourceKey)).size !== selections.length
     )
       throw new ValidationError("finance.import.selection");
     return db.transaction((tx) => {
@@ -135,45 +118,46 @@ export class FinanceImport {
           selection.accountId !== undefined
             ? this.accounts.account(userId, selection.accountId)
             : this.accounts.createAccount(userId, selection.newAccount);
-        const identity = importKey(userId, [selection.source.account, preview.format === "camt053" ? "" : selection.source.accountName]);
+        const identity = importKey(userId, [
+          selection.source.account,
+          preview.format === "camt053" ? "" : selection.source.accountName,
+        ]);
         const sourceBinding = this.sourceBinding(userId, selection.source, preview.format === "camt053");
         const targetBinding = tx.select().from(importSources).where(eq(importSources.accountId, account.id)).get();
-        if ((sourceBinding && sourceBinding.accountId !== account.id) || (targetBinding && targetBinding.identity !== identity && targetBinding.accountId !== sourceBinding?.accountId))
+        if (
+          (sourceBinding && sourceBinding.accountId !== account.id) ||
+          (targetBinding && targetBinding.identity !== identity && targetBinding.accountId !== sourceBinding?.accountId)
+        )
           throw new ConflictError("finance.import.mappingConflict");
-        tx.insert(importSources).values({ accountId: account.id, userId, identity, numberKey: accountNumberKey(userId, selection.source.account) }).onConflictDoNothing().run();
+        tx.insert(importSources)
+          .values({
+            accountId: account.id,
+            userId,
+            identity,
+            numberKey: accountNumberKey(userId, selection.source.account),
+          })
+          .onConflictDoNothing()
+          .run();
         if (selection.newAccount) result.createdAccounts++;
         const earliest = selection.entries[0].date;
         if (earliest < account.openingDate) {
-          if (!selection.extendOpening)
-            throw new ConflictError("finance.import.beforeOpening");
+          if (!selection.extendOpening) throw new ConflictError("finance.import.beforeOpening");
           tx.update(accounts)
             .set({ openingDate: earliest })
-            .where(
-              and(eq(accounts.userId, userId), eq(accounts.id, account.id)),
-            )
+            .where(and(eq(accounts.userId, userId), eq(accounts.id, account.id)))
             .run();
         }
         for (const entry of selection.entries) {
           const existing = tx
             .select()
             .from(observations)
-            .where(
-              and(
-                eq(observations.accountId, account.id),
-                eq(observations.date, entry.date),
-              ),
-            )
+            .where(and(eq(observations.accountId, account.id), eq(observations.date, entry.date)))
             .get();
-          const createdOpening =
-            !!selection.newAccount && entry.date === earliest;
-          if (
-            !createdOpening &&
-            (existing?.balanceCents ?? null) !== entry.expectedCents
-          )
+          const createdOpening = !!selection.newAccount && entry.date === earliest;
+          if (!createdOpening && (existing?.balanceCents ?? null) !== entry.expectedCents)
             throw new ConflictError("finance.import.stale");
           if (createdOpening) result.inserted++;
-          else if (existing?.balanceCents === entry.balanceCents)
-            result.unchanged++;
+          else if (existing?.balanceCents === entry.balanceCents) result.unchanged++;
           else {
             tx.insert(observations)
               .values({
@@ -194,21 +178,33 @@ export class FinanceImport {
         const occurrences = new Map<string, number>();
         const incomingFingerprints = new Set<string>();
         for (const entry of selection.source.transactions) {
-          const base = importKey(userId, [entry.date, entry.delta, entry.balanceCents, entry.name, entry.description, entry.counterparty]);
+          const base = importKey(userId, [
+            entry.date,
+            entry.delta,
+            entry.balanceCents,
+            entry.name,
+            entry.description,
+            entry.counterparty,
+          ]);
           const occurrence = occurrences.get(base) ?? 0;
           occurrences.set(base, occurrence + 1);
           if (!selectedDates.has(entry.date)) continue;
           const fingerprint = importKey(userId, [base, occurrence]);
           incomingFingerprints.add(fingerprint);
-          const inserted = tx.insert(transactions).values({
-            accountId: account.id,
-            fingerprint,
-            date: entry.date,
-            amountCents: entry.delta,
-            name: entry.name,
-            description: entry.description,
-            counterpartyKey: entry.counterparty ? accountNumberKey(userId, entry.counterparty) : null,
-          }).onConflictDoNothing().returning({ id: transactions.id }).get();
+          const inserted = tx
+            .insert(transactions)
+            .values({
+              accountId: account.id,
+              fingerprint,
+              date: entry.date,
+              amountCents: entry.delta,
+              name: entry.name,
+              description: entry.description,
+              counterpartyKey: entry.counterparty ? accountNumberKey(userId, entry.counterparty) : null,
+            })
+            .onConflictDoNothing()
+            .returning({ id: transactions.id })
+            .get();
           if (inserted) {
             result.transactionsInserted++;
             insertedIds.add(inserted.id);
@@ -221,18 +217,29 @@ export class FinanceImport {
             result.transactionsRemoved++;
           }
         }
-
       }
       const inactiveRules = insertedIds.size
-        ? tx.select().from(preferences).where(and(eq(preferences.userId, userId), eq(preferences.inactive, true))).all()
+        ? tx
+            .select()
+            .from(preferences)
+            .where(and(eq(preferences.userId, userId), eq(preferences.inactive, true)))
+            .all()
         : [];
       if (inactiveRules.length) {
-        const sourceKeys = new Set(this.transactions.periodTransactions(userId, "1900-01-01", "9999-12-31")
-          .filter((entry) => insertedIds.has(entry.id) && entry.amountCents < 0 && !entry.internalTransfer)
-          .map(subscriptionSourceKey));
-        const groups = new Set(inactiveRules.filter((rule) => sourceKeys.has(rule.sourceKey)).map((rule) => rule.groupKey));
+        const sourceKeys = new Set(
+          this.transactions
+            .periodTransactions(userId, "1900-01-01", "9999-12-31")
+            .filter((entry) => insertedIds.has(entry.id) && entry.amountCents < 0 && !entry.internalTransfer)
+            .map(subscriptionSourceKey),
+        );
+        const groups = new Set(
+          inactiveRules.filter((rule) => sourceKeys.has(rule.sourceKey)).map((rule) => rule.groupKey),
+        );
         for (const groupKey of groups) {
-          tx.update(preferences).set({ inactive: false }).where(and(eq(preferences.userId, userId), eq(preferences.groupKey, groupKey))).run();
+          tx.update(preferences)
+            .set({ inactive: false })
+            .where(and(eq(preferences.userId, userId), eq(preferences.groupKey, groupKey)))
+            .run();
         }
       }
       return result;

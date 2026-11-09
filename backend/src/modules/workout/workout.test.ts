@@ -17,21 +17,21 @@ describe("WorkoutService", () => {
       workoutService.templates.create(adminId, {
         name: "Invalid Template",
         estimatedTime: -10,
-      })
+      }),
     ).toThrow("workout.estimatedTimeNegative");
 
     expect(() =>
       workoutService.templates.create(adminId, {
         name: "Invalid Exercise Sets",
         exercises: [{ exerciseName: "Bench Press", sets: 0, reps: 10 }],
-      })
+      }),
     ).toThrow("workout.exerciseNeedsSet");
 
     expect(() =>
       workoutService.templates.create(adminId, {
         name: "Invalid RPE",
         exercises: [{ exerciseName: "Bench Press", sets: 3, reps: 10, rpe: 15 }],
-      })
+      }),
     ).toThrow("workout.rpeRange");
   });
 
@@ -164,9 +164,7 @@ describe("WorkoutService", () => {
   it("handles perSide toggles properly across session creation and updates", () => {
     const tmpl = workoutService.templates.create(adminId, {
       name: "Per Side Test Template",
-      exercises: [
-        { exerciseName: "Single Leg Press", sets: 3, reps: 10, weight: 60, perSide: 1 },
-      ],
+      exercises: [{ exerciseName: "Single Leg Press", sets: 3, reps: 10, weight: 60, perSide: 1 }],
     })!;
     expect(tmpl.exercises[0].perSide).toBe(1);
 
@@ -193,7 +191,7 @@ describe("WorkoutService", () => {
       workoutService.templates.create(adminId, {
         name: "Non-Assisted Negative Weight",
         exercises: [{ exerciseName: "Pull-Up", category: "Bodyweight", sets: 3, reps: 8, weight: -20 }],
-      })
+      }),
     ).toThrow("workout.weightNegative");
 
     const tmpl = workoutService.templates.create(adminId, {
@@ -214,7 +212,7 @@ describe("WorkoutService", () => {
             sets: [{ setNumber: 1, reps: 8, weight: -20, completed: 1 }],
           },
         ],
-      })
+      }),
     ).toThrow("workout.weightNegative");
 
     const updated = workoutService.sessions.update(session!.sessionId, adminId, {
@@ -291,4 +289,3 @@ describe("WorkoutService", () => {
     expect(progress.sessions[2].sets[0].weight).toBe(5);
   });
 });
-

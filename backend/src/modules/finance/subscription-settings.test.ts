@@ -1,7 +1,15 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import db from "../../db/client";
-import { financeAccounts, financeSubscriptionPreferences, financeTransactions, modules, sessions, usermodulepermissions, users } from "../../db/schema";
+import {
+  financeAccounts,
+  financeSubscriptionPreferences,
+  financeTransactions,
+  modules,
+  sessions,
+  usermodulepermissions,
+  users,
+} from "../../db/schema";
 import { setupTestDb } from "../../test-utils";
 import { app } from "../../index";
 import { FinanceService } from "./index";
@@ -15,28 +23,57 @@ function month(offset: number) {
   return date.toISOString().slice(0, 10);
 }
 function addSubscription(userId: number, name: string, amountCents = -1000, offset = 0) {
-  const account = service.accounts.createAccount(userId, { name: "Sample account", type: "current", openingDate: "2020-01-01", openingBalanceCents: 100000 });
+  const account = service.accounts.createAccount(userId, {
+    name: "Sample account",
+    type: "current",
+    openingDate: "2020-01-01",
+    openingBalanceCents: 100000,
+  });
   for (const date of [month(offset - 1), month(offset)]) {
-    db.insert(financeTransactions).values({ accountId: account.id, fingerprint: `${account.id}-${date}`, date, amountCents, name, description: "Sample payment" }).run();
+    db.insert(financeTransactions)
+      .values({
+        accountId: account.id,
+        fingerprint: `${account.id}-${date}`,
+        date,
+        amountCents,
+        name,
+        description: "Sample payment",
+      })
+      .run();
   }
   return service.subscriptions.list(userId).entries.find((entry) => entry.accountId === account.id)!;
 }
 async function http(userId: number | null, path: string, method: string, body: unknown) {
-  return app.handle(new Request(`http://localhost/api/finance${path}`, {
-    method,
-    headers: { "Content-Type": "application/json", ...(userId ? { Cookie: `session_id=subscription-settings-${userId}` } : {}) },
-    body: JSON.stringify(body),
-  }));
+  return app.handle(
+    new Request(`http://localhost/api/finance${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(userId ? { Cookie: `session_id=subscription-settings-${userId}` } : {}),
+      },
+      body: JSON.stringify(body),
+    }),
+  );
 }
 beforeAll(async () => {
   await setupTestDb();
   const mod = db.select().from(modules).where(eq(modules.moduleName, "finance")).get()!;
   const ids: number[] = [];
-  for (const [index, username] of ["subscription-settings-owner", "subscription-settings-other", "subscription-settings-forbidden"].entries()) {
+  for (const [index, username] of [
+    "subscription-settings-owner",
+    "subscription-settings-other",
+    "subscription-settings-forbidden",
+  ].entries()) {
     const user = db.insert(users).values({ username, pswdHash: "unused" }).returning().get();
     ids.push(user.userId);
     if (index < 2) db.insert(usermodulepermissions).values({ userId: user.userId, moduleId: mod.moduleId }).run();
-    db.insert(sessions).values({ sessionId: `subscription-settings-${user.userId}`, userId: user.userId, expiresAt: "2099-01-01T00:00:00.000Z" }).run();
+    db.insert(sessions)
+      .values({
+        sessionId: `subscription-settings-${user.userId}`,
+        userId: user.userId,
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      })
+      .run();
   }
   [owner, other, forbidden] = ids;
 });
@@ -52,7 +89,11 @@ describe("Subscription corrections", () => {
     const entry = addSubscription(owner, "Sample original");
     const before = db.select().from(financeTransactions).all();
     service.subscriptions.renameSubscription(owner, { id: entry.id, name: "  Sample custom name  " });
-    expect(new FinanceService().subscriptions.list(owner).entries[0]).toMatchObject({ id: entry.id, name: "Sample custom name", totalCents: 2000 });
+    expect(new FinanceService().subscriptions.list(owner).entries[0]).toMatchObject({
+      id: entry.id,
+      name: "Sample custom name",
+      totalCents: 2000,
+    });
     expect(db.select().from(financeTransactions).all()).toEqual(before);
     expect(() => service.subscriptions.renameSubscription(owner, { id: entry.id, name: " " })).toThrow();
     expect(() => service.subscriptions.renameSubscription(owner, { id: entry.id, name: "a".repeat(121) })).toThrow();
@@ -64,7 +105,13 @@ describe("Subscription corrections", () => {
     service.subscriptions.mergeSubscriptions(owner, { id: original.id, targetId: replacement.id });
     const report = new FinanceService().subscriptions.list(owner);
     expect(report.entries).toHaveLength(1);
-    expect(report.entries[0]).toMatchObject({ id: replacement.id, name: "Sample replacement", totalCents: 5600, paymentCount: 4, monthlyCents: 1800 });
+    expect(report.entries[0]).toMatchObject({
+      id: replacement.id,
+      name: "Sample replacement",
+      totalCents: 5600,
+      paymentCount: 4,
+      monthlyCents: 1800,
+    });
     expect(report.entries[0].accountIds.sort()).toEqual([original.accountId, replacement.accountId].sort());
     expect(report.monthlyCents).toBe(1800);
     expect(db.select().from(financeTransactions).all()).toEqual(before);
@@ -81,9 +128,22 @@ describe("Subscription corrections", () => {
     expect(service.subscriptions.list(owner).totalCents).toBe(6000);
     const before = db.select().from(financeTransactions).all();
     service.subscriptions.excludeSubscription(owner, { id: third.id });
-    expect(new FinanceService().subscriptions.list(owner)).toMatchObject({ entries: [], totalCents: 0, monthlyCents: 0 });
+    expect(new FinanceService().subscriptions.list(owner)).toMatchObject({
+      entries: [],
+      totalCents: 0,
+      monthlyCents: 0,
+    });
     expect(db.select().from(financeTransactions).all()).toEqual(before);
-    db.insert(financeTransactions).values({ accountId: first.accountId, fingerprint: "excluded-new-payment", date: month(-2), amountCents: -1000, name: "Sample first", description: "" }).run();
+    db.insert(financeTransactions)
+      .values({
+        accountId: first.accountId,
+        fingerprint: "excluded-new-payment",
+        date: month(-2),
+        amountCents: -1000,
+        name: "Sample first",
+        description: "",
+      })
+      .run();
     expect(service.subscriptions.list(owner).entries).toEqual([]);
     expect(service.transactions.transactionList(owner, {}).total).toBe(7);
   });
@@ -114,8 +174,21 @@ describe("Subscription corrections", () => {
     const importPayment = (date: string, name: string, direction = "Af", description = "Sample payment") => {
       const csv = `Datum;Naam / Omschrijving;Rekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie\n${date.replaceAll("-", "")};${name};DEMO0001;${direction};10,00;${description};100,00`;
       const preview = service.imports.previewImport({ csv, order: "descending" });
-      const existing = service.accounts.data(owner).observations.find((entry) => entry.accountId === first.accountId && entry.date === date);
-      return service.imports.importBalances(owner, { csv, order: "descending", selections: [{ sourceKey: preview.sources[0].sourceKey, accountId: first.accountId, extendOpening: false, entries: [{ date, expectedCents: existing?.balanceCents ?? null }] }] });
+      const existing = service.accounts
+        .data(owner)
+        .observations.find((entry) => entry.accountId === first.accountId && entry.date === date);
+      return service.imports.importBalances(owner, {
+        csv,
+        order: "descending",
+        selections: [
+          {
+            sourceKey: preview.sources[0].sourceKey,
+            accountId: first.accountId,
+            extendOpening: false,
+            entries: [{ date, expectedCents: existing?.balanceCents ?? null }],
+          },
+        ],
+      });
     };
     importPayment(month(-3), "Sample previous");
     service.subscriptions.setSubscriptionInactive(owner, { id: second.id, inactive: true });
@@ -127,9 +200,21 @@ describe("Subscription corrections", () => {
     expect(service.subscriptions.list(owner).entries.find((entry) => entry.id === second.id)!.inactive).toBe(true);
     expect(importPayment(today(), " SAMPLE previous ").transactionsInserted).toBe(1);
     const report = new FinanceService().subscriptions.list(owner);
-    expect(report.entries.find((entry) => entry.id === second.id)).toMatchObject({ inactive: false, active: true, name: "Sample custom", cadence: "irregular" });
+    expect(report.entries.find((entry) => entry.id === second.id)).toMatchObject({
+      inactive: false,
+      active: true,
+      name: "Sample custom",
+      cadence: "irregular",
+    });
     expect(report.monthlyCents).toBeGreaterThan(0);
-    expect(db.select().from(financeSubscriptionPreferences).where(eq(financeSubscriptionPreferences.userId, owner)).all().every((rule) => !rule.inactive)).toBe(true);
+    expect(
+      db
+        .select()
+        .from(financeSubscriptionPreferences)
+        .where(eq(financeSubscriptionPreferences.userId, owner))
+        .all()
+        .every((rule) => !rule.inactive),
+    ).toBe(true);
   });
   it("isolates all mutations to the session owner and enforces module access", async () => {
     const own = addSubscription(owner, "Sample own");
@@ -158,26 +243,64 @@ describe("Subscription corrections", () => {
     const second = addSubscription(owner, "Sample second");
     service.subscriptions.renameSubscription(owner, { id: second.id, name: "Sample custom" });
     expect((await http(owner, "/subscriptions/merge", "POST", { id: first.id, targetId: second.id })).status).toBe(200);
-    db.insert(financeTransactions).values({ accountId: first.accountId, fingerprint: "merged-import-history", date: month(-2), amountCents: -900, name: "Sample first", description: "" }).run();
+    db.insert(financeTransactions)
+      .values({
+        accountId: first.accountId,
+        fingerprint: "merged-import-history",
+        date: month(-2),
+        amountCents: -900,
+        name: "Sample first",
+        description: "",
+      })
+      .run();
     const report = new FinanceService().subscriptions.list(owner);
     expect(report.entries).toHaveLength(1);
-    expect(report.entries[0]).toMatchObject({ id: second.id, name: "Sample custom", paymentCount: 5, totalCents: 4900, monthlyCents: 1000, firstDate: month(-2) });
+    expect(report.entries[0]).toMatchObject({
+      id: second.id,
+      name: "Sample custom",
+      paymentCount: 5,
+      totalCents: 4900,
+      monthlyCents: 1000,
+      firstDate: month(-2),
+    });
   });
   it("returns only subscription payments after renaming and merging, newest first", () => {
     const first = addSubscription(owner, "Sample first", -1000, -2);
     const second = addSubscription(owner, "Sample second", -1800);
     addSubscription(owner, "Sample unrelated");
     addSubscription(other, "Sample first");
-    db.insert(financeTransactions).values([
-      { accountId: first.accountId, fingerprint: "history-income", date: month(0), amountCents: 1000, name: "Sample first", description: "" },
-      { accountId: first.accountId, fingerprint: "history-transfer", date: month(0), amountCents: -1000, name: "Sample first", description: "", transferOverride: true },
-    ]).run();
+    db.insert(financeTransactions)
+      .values([
+        {
+          accountId: first.accountId,
+          fingerprint: "history-income",
+          date: month(0),
+          amountCents: 1000,
+          name: "Sample first",
+          description: "",
+        },
+        {
+          accountId: first.accountId,
+          fingerprint: "history-transfer",
+          date: month(0),
+          amountCents: -1000,
+          name: "Sample first",
+          description: "",
+          transferOverride: true,
+        },
+      ])
+      .run();
     service.subscriptions.mergeSubscriptions(owner, { id: first.id, targetId: second.id });
     service.subscriptions.renameSubscription(owner, { id: second.id, name: "Custom label" });
     const result = service.subscriptions.subscriptionTransactions(owner, second.id);
     expect(result.total).toBe(4);
     expect(result.entries.map((entry) => entry.date)).toEqual([month(0), month(-1), month(-2), month(-3)]);
-    expect(result.entries.map((entry) => entry.name)).toEqual(["Sample second", "Sample second", "Sample first", "Sample first"]);
+    expect(result.entries.map((entry) => entry.name)).toEqual([
+      "Sample second",
+      "Sample second",
+      "Sample first",
+      "Sample first",
+    ]);
     expect(result.entries.reduce((sum, entry) => sum - entry.amountCents, 0)).toBe(5600);
     expect(service.subscriptions.subscriptionTransactions(owner, second.id, { page: 2 }).entries).toEqual([]);
     expect(() => service.subscriptions.subscriptionTransactions(owner, second.id, { page: 0 })).toThrow();
@@ -185,7 +308,16 @@ describe("Subscription corrections", () => {
   it("paginates long subscription histories without omissions", () => {
     const entry = addSubscription(owner, "Sample long history");
     for (let offset = -2; offset >= -54; offset--) {
-      db.insert(financeTransactions).values({ accountId: entry.accountId, fingerprint: `history-${offset}`, date: month(offset), amountCents: -1000, name: " Sample  long history ", description: "" }).run();
+      db.insert(financeTransactions)
+        .values({
+          accountId: entry.accountId,
+          fingerprint: `history-${offset}`,
+          date: month(offset),
+          amountCents: -1000,
+          name: " Sample  long history ",
+          description: "",
+        })
+        .run();
     }
     const first = service.subscriptions.subscriptionTransactions(owner, entry.id);
     const second = service.subscriptions.subscriptionTransactions(owner, entry.id, { page: 2 });
@@ -197,9 +329,12 @@ describe("Subscription corrections", () => {
   it("protects subscription history through session and module permissions", async () => {
     const own = addSubscription(owner, "Sample own");
     const foreign = addSubscription(other, "Sample foreign");
-    const get = (userId: number | null, id: string, query = "") => app.handle(new Request(`http://localhost/api/finance/subscriptions/${id}/transactions${query}`, {
-      headers: userId ? { Cookie: `session_id=subscription-settings-${userId}` } : {},
-    }));
+    const get = (userId: number | null, id: string, query = "") =>
+      app.handle(
+        new Request(`http://localhost/api/finance/subscriptions/${id}/transactions${query}`, {
+          headers: userId ? { Cookie: `session_id=subscription-settings-${userId}` } : {},
+        }),
+      );
     expect((await get(null, own.id)).status).toBe(401);
     expect((await get(forbidden, own.id)).status).toBe(403);
     expect((await get(owner, foreign.id)).status).toBe(404);
@@ -215,16 +350,34 @@ describe("Subscription corrections", () => {
     service.subscriptions.excludeSubscription(owner, { id: own.id });
     service.subscriptions.renameSubscription(other, { id: foreign.id, name: "Sample custom" });
     service.transactions.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
-    expect(db.select().from(financeSubscriptionPreferences).where(eq(financeSubscriptionPreferences.userId, owner)).all()).toEqual([]);
+    expect(
+      db.select().from(financeSubscriptionPreferences).where(eq(financeSubscriptionPreferences.userId, owner)).all(),
+    ).toEqual([]);
     expect(service.subscriptions.list(other).entries[0].name).toBe("Sample custom");
   });
 });
 
-
 describe("Manual subscriptions", () => {
   function payment(userId: number, amountCents = -2400, name = "Sample manual", transferOverride = false) {
-    const account = service.accounts.createAccount(userId, { name: "Sample account", type: "current", openingDate: "2020-01-01", openingBalanceCents: 100000 });
-    return db.insert(financeTransactions).values({ accountId: account.id, fingerprint: `manual-${account.id}`, date: month(0), amountCents, name, description: "Sample description", transferOverride }).returning().get();
+    const account = service.accounts.createAccount(userId, {
+      name: "Sample account",
+      type: "current",
+      openingDate: "2020-01-01",
+      openingBalanceCents: 100000,
+    });
+    return db
+      .insert(financeTransactions)
+      .values({
+        accountId: account.id,
+        fingerprint: `manual-${account.id}`,
+        date: month(0),
+        amountCents,
+        name,
+        description: "Sample description",
+        transferOverride,
+      })
+      .returning()
+      .get();
   }
   it("adds one payment, retains its frequency and includes irregular future imports without duplicates", async () => {
     const transaction = payment(owner);
@@ -232,29 +385,80 @@ describe("Manual subscriptions", () => {
     const response = await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "yearly" });
     expect(response.status).toBe(200);
     expect(new FinanceService().subscriptions.list(owner)).toMatchObject({ monthlyCents: 200, totalCents: 2400 });
-    db.insert(financeTransactions).values({ accountId: transaction.accountId, fingerprint: "manual-extra", date: month(-2), amountCents: -2000, name: "  SAMPLE manual  ", description: "" }).run();
+    db.insert(financeTransactions)
+      .values({
+        accountId: transaction.accountId,
+        fingerprint: "manual-extra",
+        date: month(-2),
+        amountCents: -2000,
+        name: "  SAMPLE manual  ",
+        description: "",
+      })
+      .run();
     service.subscriptions.addSubscription(owner, { transactionId: transaction.id, cadence: "yearly" });
     const report = service.subscriptions.list(owner);
     expect(report.entries).toHaveLength(1);
-    expect(report.entries[0]).toMatchObject({ cadence: "yearly", monthlyCents: 200, totalCents: 4400, paymentCount: 2 });
+    expect(report.entries[0]).toMatchObject({
+      cadence: "yearly",
+      monthlyCents: 200,
+      totalCents: 4400,
+      paymentCount: 2,
+    });
     expect(service.subscriptions.subscriptionTransactions(owner, report.entries[0].id).total).toBe(2);
     service.subscriptions.renameSubscription(owner, { id: report.entries[0].id, name: "Sample renamed" });
     service.subscriptions.excludeSubscription(owner, { id: report.entries[0].id });
     expect(service.subscriptions.list(owner).entries).toEqual([]);
     service.subscriptions.addSubscription(owner, { transactionId: transaction.id, cadence: "quarterly" });
-    expect(service.subscriptions.list(owner).entries[0]).toMatchObject({ name: "Sample renamed", cadence: "quarterly", monthlyCents: 800 });
+    expect(service.subscriptions.list(owner).entries[0]).toMatchObject({
+      name: "Sample renamed",
+      cadence: "quarterly",
+      monthlyCents: 800,
+    });
   });
   it("persists irregular selection, recalculates imports and can switch back to a fixed cadence", async () => {
     const transaction = payment(owner);
-    db.insert(financeTransactions).values([
-      { accountId: transaction.accountId, fingerprint: "irregular-old", date: month(-3), amountCents: -1200, name: " SAMPLE manual ", description: "" },
-      { accountId: transaction.accountId, fingerprint: "irregular-credit", date: month(-1), amountCents: 9000, name: transaction.name, description: "" },
-    ]).run();
-    expect((await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "irregular" })).status).toBe(200);
+    db.insert(financeTransactions)
+      .values([
+        {
+          accountId: transaction.accountId,
+          fingerprint: "irregular-old",
+          date: month(-3),
+          amountCents: -1200,
+          name: " SAMPLE manual ",
+          description: "",
+        },
+        {
+          accountId: transaction.accountId,
+          fingerprint: "irregular-credit",
+          date: month(-1),
+          amountCents: 9000,
+          name: transaction.name,
+          description: "",
+        },
+      ])
+      .run();
+    expect(
+      (await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "irregular" })).status,
+    ).toBe(200);
     let report = new FinanceService().subscriptions.list(owner);
-    expect(report.entries[0]).toMatchObject({ cadence: "irregular", monthlyCents: 900, totalCents: 3600, paymentCount: 2, active: true });
+    expect(report.entries[0]).toMatchObject({
+      cadence: "irregular",
+      monthlyCents: 900,
+      totalCents: 3600,
+      paymentCount: 2,
+      active: true,
+    });
     expect(service.subscriptions.subscriptionTransactions(owner, report.entries[0].id).total).toBe(2);
-    db.insert(financeTransactions).values({ accountId: transaction.accountId, fingerprint: "irregular-new", date: month(-2), amountCents: -800, name: transaction.name, description: "" }).run();
+    db.insert(financeTransactions)
+      .values({
+        accountId: transaction.accountId,
+        fingerprint: "irregular-new",
+        date: month(-2),
+        amountCents: -800,
+        name: transaction.name,
+        description: "",
+      })
+      .run();
     report = service.subscriptions.list(owner);
     expect(report.monthlyCents).toBe(1100);
     service.subscriptions.renameSubscription(owner, { id: report.entries[0].id, name: "Sample irregular" });
@@ -265,7 +469,10 @@ describe("Manual subscriptions", () => {
   it("recalculates merged irregular histories using all payments and the combined month range", () => {
     const first = payment(owner, -1200, "Sample previous");
     const second = payment(owner, -2400, "Sample replacement");
-    db.update(financeTransactions).set({ date: month(-3) }).where(eq(financeTransactions.id, first.id)).run();
+    db.update(financeTransactions)
+      .set({ date: month(-3) })
+      .where(eq(financeTransactions.id, first.id))
+      .run();
     service.subscriptions.addSubscription(owner, { transactionId: first.id, cadence: "irregular" });
     service.subscriptions.addSubscription(owner, { transactionId: second.id, cadence: "irregular" });
     const entries = service.subscriptions.list(owner).entries;
@@ -277,23 +484,42 @@ describe("Manual subscriptions", () => {
   });
   it("rejects foreign payments, income, transfers, unnamed payments, invalid cadence and unauthorized requests", async () => {
     const foreign = payment(other);
-    expect((await http(owner, "/subscriptions", "POST", { transactionId: foreign.id, cadence: "monthly" })).status).toBe(404);
-    for (const transaction of [payment(owner, 1000), payment(owner, -1000, "Sample transfer", true), payment(owner, -1000, " ")]) {
-      expect((await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status).toBe(400);
+    expect(
+      (await http(owner, "/subscriptions", "POST", { transactionId: foreign.id, cadence: "monthly" })).status,
+    ).toBe(404);
+    for (const transaction of [
+      payment(owner, 1000),
+      payment(owner, -1000, "Sample transfer", true),
+      payment(owner, -1000, " "),
+    ]) {
+      expect(
+        (await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status,
+      ).toBe(400);
     }
     const transaction = payment(owner);
-    expect((await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "daily" })).status).toBe(400);
-    expect((await http(null, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status).toBe(401);
-    expect((await http(forbidden, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status).toBe(403);
+    expect(
+      (await http(owner, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "daily" })).status,
+    ).toBe(400);
+    expect(
+      (await http(null, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status,
+    ).toBe(401);
+    expect(
+      (await http(forbidden, "/subscriptions", "POST", { transactionId: transaction.id, cadence: "monthly" })).status,
+    ).toBe(403);
   });
   it("searches eligible payments before pagination and isolates candidate history by owner", () => {
     const eligible = payment(owner);
     payment(owner, 1200);
     payment(owner, -1000, "Sample transfer", true);
     payment(other);
-    const result = service.transactions.transactionList(owner, { subscriptionCandidate: "true", search: "DESCRIPTION" });
+    const result = service.transactions.transactionList(owner, {
+      subscriptionCandidate: "true",
+      search: "DESCRIPTION",
+    });
     expect(result.total).toBe(1);
     expect(result.entries[0].id).toBe(eligible.id);
-    expect(service.transactions.transactionList(owner, { subscriptionCandidate: "true", search: "missing" }).total).toBe(0);
+    expect(
+      service.transactions.transactionList(owner, { subscriptionCandidate: "true", search: "missing" }).total,
+    ).toBe(0);
   });
 });

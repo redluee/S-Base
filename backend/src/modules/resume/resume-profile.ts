@@ -56,7 +56,9 @@ export class ResumeProfiles {
     if (existing) {
       db.update(resumeProfiles).set(values).where(eq(resumeProfiles.userId, userId)).run();
     } else {
-      db.insert(resumeProfiles).values({ userId, ...values }).run();
+      db.insert(resumeProfiles)
+        .values({ userId, ...values })
+        .run();
     }
     return this.get(userId);
   }
@@ -64,7 +66,10 @@ export class ResumeProfiles {
   setPhoto(userId: number, photoPath: string | null): { profile: ResumeProfile; previousPath: string | null } {
     const previousPath = this.get(userId).photoPath;
     this.upsert(userId, {});
-    db.update(resumeProfiles).set({ photoPath, updatedAt: new Date().toISOString() }).where(eq(resumeProfiles.userId, userId)).run();
+    db.update(resumeProfiles)
+      .set({ photoPath, updatedAt: new Date().toISOString() })
+      .where(eq(resumeProfiles.userId, userId))
+      .run();
     return { profile: this.get(userId), previousPath };
   }
 
@@ -72,7 +77,10 @@ export class ResumeProfiles {
     const { profile, previousPath } = this.setPhoto(userId, filename ? `${PHOTO_URL_PREFIX}${filename}` : null);
     if (previousPath?.startsWith(PHOTO_URL_PREFIX)) {
       const previousName = previousPath.slice(PHOTO_URL_PREFIX.length);
-      if (PHOTO_NAME.test(previousName)) await Bun.file(join(UPLOADS_DIR, previousName)).delete().catch(() => {});
+      if (PHOTO_NAME.test(previousName))
+        await Bun.file(join(UPLOADS_DIR, previousName))
+          .delete()
+          .catch(() => {});
     }
     return profile;
   }

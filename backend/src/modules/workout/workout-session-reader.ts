@@ -33,38 +33,44 @@ export class WorkoutSessionReader {
       conditions.push(sql`completed_at IS NOT NULL`);
     }
 
-    const sessions = db.select({
-      sessionId: workoutSessions.sessionId,
-      templateId: workoutSessions.templateId,
-      userId: workoutSessions.userId,
-      startedAt: workoutSessions.startedAt,
-      completedAt: workoutSessions.completedAt,
-      notes: workoutSessions.notes,
-      name: workoutSessions.name,
-      exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`,
-      completedSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id AND session_sets.completed = 1)`,
-      totalSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id)`
-    })
-    .from(workoutSessions)
-    .where(and(...conditions))
-    .orderBy(desc(workoutSessions.startedAt))
-    .all();
+    const sessions = db
+      .select({
+        sessionId: workoutSessions.sessionId,
+        templateId: workoutSessions.templateId,
+        userId: workoutSessions.userId,
+        startedAt: workoutSessions.startedAt,
+        completedAt: workoutSessions.completedAt,
+        notes: workoutSessions.notes,
+        name: workoutSessions.name,
+        exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`,
+        completedSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id AND session_sets.completed = 1)`,
+        totalSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id)`,
+      })
+      .from(workoutSessions)
+      .where(and(...conditions))
+      .orderBy(desc(workoutSessions.startedAt))
+      .all();
 
     if (!q) return sessions;
 
     const normalizedQ = normalizeSearchString(q);
-    return sessions.filter((session) => sessionMatchesQuery(session.startedAt, session.name, session.notes, normalizedQ));
+    return sessions.filter((session) =>
+      sessionMatchesQuery(session.startedAt, session.name, session.notes, normalizedQ),
+    );
   }
 
   get(id: number, userId: number) {
     const session = orNotFound(
-      db.select().from(workoutSessions)
+      db
+        .select()
+        .from(workoutSessions)
         .where(and(eq(workoutSessions.sessionId, id), eq(workoutSessions.userId, userId)))
         .get(),
       "workout.sessionNotFound",
     );
 
-    const exercises = db.select()
+    const exercises = db
+      .select()
       .from(sessionExercises)
       .where(eq(sessionExercises.sessionId, id))
       .orderBy(sessionExercises.sortOrder, sessionExercises.sessionExerciseId)
@@ -72,7 +78,8 @@ export class WorkoutSessionReader {
 
     const templateByName = new Map<string, TemplateDefaults[]>();
     if (session.templateId) {
-      const templateExs = db.select()
+      const templateExs = db
+        .select()
         .from(templateExercises)
         .where(eq(templateExercises.templateId, session.templateId))
         .orderBy(templateExercises.sortOrder, templateExercises.templateExerciseId)
@@ -86,7 +93,8 @@ export class WorkoutSessionReader {
 
     const occurrences = new Map<string, number>();
     const sessionWithSets = exercises.map((ex) => {
-      const sets = db.select()
+      const sets = db
+        .select()
         .from(sessionSets)
         .where(eq(sessionSets.sessionExerciseId, ex.sessionExerciseId))
         .orderBy(sessionSets.setNumber)
@@ -96,7 +104,8 @@ export class WorkoutSessionReader {
       const occurrence = occurrences.get(key) ?? 0;
       occurrences.set(key, occurrence + 1);
       const candidates = templateByName.get(key);
-      const templateEx = candidates?.[occurrence] ?? candidates?.[0] ?? this.templateDefaultsByName(ex.exerciseName, userId);
+      const templateEx =
+        candidates?.[occurrence] ?? candidates?.[0] ?? this.templateDefaultsByName(ex.exerciseName, userId);
 
       return { ...ex, sets, templateExercise: templateExerciseSummary(templateEx) };
     });
@@ -105,21 +114,27 @@ export class WorkoutSessionReader {
   }
 
   private templateDefaultsByName(exerciseName: string, userId: number) {
-    return db.select({
-      defaultReps: templateExercises.defaultReps,
-      defaultWeight: templateExercises.defaultWeight,
-      defaultDistance: templateExercises.defaultDistance,
-      defaultDuration: templateExercises.defaultDuration,
-      defaultRpe: templateExercises.defaultRpe,
-      defaultHeartRate: templateExercises.defaultHeartRate,
-      defaultRestTime: templateExercises.defaultRestTime,
-      equipment: templateExercises.equipment,
-      perSide: templateExercises.perSide,
-      isAssisted: templateExercises.isAssisted,
-    })
+    return db
+      .select({
+        defaultReps: templateExercises.defaultReps,
+        defaultWeight: templateExercises.defaultWeight,
+        defaultDistance: templateExercises.defaultDistance,
+        defaultDuration: templateExercises.defaultDuration,
+        defaultRpe: templateExercises.defaultRpe,
+        defaultHeartRate: templateExercises.defaultHeartRate,
+        defaultRestTime: templateExercises.defaultRestTime,
+        equipment: templateExercises.equipment,
+        perSide: templateExercises.perSide,
+        isAssisted: templateExercises.isAssisted,
+      })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
-      .where(and(sql`LOWER(${templateExercises.exerciseName}) = LOWER(${exerciseName})`, eq(workoutTemplates.userId, userId)))
+      .where(
+        and(
+          sql`LOWER(${templateExercises.exerciseName}) = LOWER(${exerciseName})`,
+          eq(workoutTemplates.userId, userId),
+        ),
+      )
       .limit(1)
       .get();
   }

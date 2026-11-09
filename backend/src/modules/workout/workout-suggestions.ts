@@ -10,46 +10,52 @@ export class WorkoutSuggestions {
     const normalizedQ = normalizeSearchString(q);
     if (!normalizedQ) return [];
 
-    const fromSessions = db.select({
-      sessionExerciseId: sessionExercises.sessionExerciseId,
-      name: sessionExercises.exerciseName,
-      category: sessionExercises.category,
-      equipment: sessionExercises.equipment,
-      perSide: sessionExercises.perSide,
-      isAssisted: sessionExercises.isAssisted,
-      completedAt: workoutSessions.completedAt,
-      startedAt: workoutSessions.startedAt,
-      sessionId: workoutSessions.sessionId,
-    })
+    const fromSessions = db
+      .select({
+        sessionExerciseId: sessionExercises.sessionExerciseId,
+        name: sessionExercises.exerciseName,
+        category: sessionExercises.category,
+        equipment: sessionExercises.equipment,
+        perSide: sessionExercises.perSide,
+        isAssisted: sessionExercises.isAssisted,
+        completedAt: workoutSessions.completedAt,
+        startedAt: workoutSessions.startedAt,
+        sessionId: workoutSessions.sessionId,
+      })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        like(sqlNormalize(sessionExercises.exerciseName), `%${normalizedQ}%`),
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`
-      ))
+      .where(
+        and(
+          like(sqlNormalize(sessionExercises.exerciseName), `%${normalizedQ}%`),
+          eq(workoutSessions.userId, userId),
+          sql`${workoutSessions.completedAt} IS NOT NULL`,
+        ),
+      )
       .orderBy(sql`${workoutSessions.startedAt} DESC`, sql`${workoutSessions.sessionId} DESC`)
       .all();
 
-    const fromTemplates = db.select({
-      name: templateExercises.exerciseName,
-      category: templateExercises.category,
-      defaultSets: templateExercises.defaultSets,
-      defaultReps: templateExercises.defaultReps,
-      defaultWeight: templateExercises.defaultWeight,
-      defaultDistance: templateExercises.defaultDistance,
-      defaultDuration: templateExercises.defaultDuration,
-      defaultRestTime: templateExercises.defaultRestTime,
-      equipment: templateExercises.equipment,
-      perSide: templateExercises.perSide,
-      isAssisted: templateExercises.isAssisted,
-    })
+    const fromTemplates = db
+      .select({
+        name: templateExercises.exerciseName,
+        category: templateExercises.category,
+        defaultSets: templateExercises.defaultSets,
+        defaultReps: templateExercises.defaultReps,
+        defaultWeight: templateExercises.defaultWeight,
+        defaultDistance: templateExercises.defaultDistance,
+        defaultDuration: templateExercises.defaultDuration,
+        defaultRestTime: templateExercises.defaultRestTime,
+        equipment: templateExercises.equipment,
+        perSide: templateExercises.perSide,
+        isAssisted: templateExercises.isAssisted,
+      })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
-      .where(and(
-        like(sqlNormalize(templateExercises.exerciseName), `%${normalizedQ}%`),
-        eq(workoutTemplates.userId, userId)
-      ))
+      .where(
+        and(
+          like(sqlNormalize(templateExercises.exerciseName), `%${normalizedQ}%`),
+          eq(workoutTemplates.userId, userId),
+        ),
+      )
       .all();
 
     const uniqueExercisesMap = new Map<
@@ -81,28 +87,36 @@ export class WorkoutSuggestions {
     for (const r of fromSessions) {
       const key = r.name.trim().toLowerCase();
       if (!uniqueExercisesMap.has(key)) {
-        const sets = db.select({
-          setNumber: sessionSets.setNumber,
-          reps: sessionSets.reps,
-          weight: sessionSets.weight,
-          distance: sessionSets.distance,
-          duration: sessionSets.duration,
-          rpe: sessionSets.rpe,
-          heartRate: sessionSets.heartRate,
-        })
+        const sets = db
+          .select({
+            setNumber: sessionSets.setNumber,
+            reps: sessionSets.reps,
+            weight: sessionSets.weight,
+            distance: sessionSets.distance,
+            duration: sessionSets.duration,
+            rpe: sessionSets.rpe,
+            heartRate: sessionSets.heartRate,
+          })
           .from(sessionSets)
           .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
-          .where(and(
-            eq(sessionExercises.sessionId, r.sessionId),
-            sql`LOWER(TRIM(${sessionExercises.exerciseName})) = LOWER(TRIM(${r.name}))`,
-            eq(sessionSets.completed, 1)
-          ))
+          .where(
+            and(
+              eq(sessionExercises.sessionId, r.sessionId),
+              sql`LOWER(TRIM(${sessionExercises.exerciseName})) = LOWER(TRIM(${r.name}))`,
+              eq(sessionSets.completed, 1),
+            ),
+          )
           .orderBy(sessionSets.setNumber)
           .all();
 
         if (!sets.length) continue;
 
-        const lastSetWithValues = sets.slice().reverse().find(s => s.reps != null || s.weight != null || s.distance != null || s.duration != null) ?? sets[sets.length - 1];
+        const lastSetWithValues =
+          sets
+            .slice()
+            .reverse()
+            .find((s) => s.reps != null || s.weight != null || s.distance != null || s.duration != null) ??
+          sets[sets.length - 1];
         const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
 
         uniqueExercisesMap.set(key, {
@@ -112,10 +126,10 @@ export class WorkoutSuggestions {
           perSide: r.perSide ?? 0,
           isAssisted: r.isAssisted ?? 0,
           defaultSets: sets.length > 0 ? sets.length : 3,
-          defaultReps: lastSetWithValues?.reps ?? (sets[0]?.reps ?? 10),
+          defaultReps: lastSetWithValues?.reps ?? sets[0]?.reps ?? 10,
           defaultWeight: highestCompletedWeight(sets),
-          defaultDistance: lastSetWithValues?.distance ?? (sets[0]?.distance ?? null),
-          defaultDuration: lastSetWithValues?.duration ?? (sets[0]?.duration ?? null),
+          defaultDistance: lastSetWithValues?.distance ?? sets[0]?.distance ?? null,
+          defaultDuration: lastSetWithValues?.duration ?? sets[0]?.duration ?? null,
           defaultRestTime: null,
           lastSets: sets.map((s, idx) => ({
             setNumber: s.setNumber || idx + 1,
@@ -175,21 +189,23 @@ export class WorkoutSuggestions {
       }
     }
 
-    return Array.from(uniqueExercisesMap.values()).slice(0, 10).map((data) => ({
-      type: "exercise" as const,
-      value: data.name,
-      category: data.category,
-      defaultSets: data.defaultSets,
-      defaultReps: data.defaultReps,
-      defaultWeight: data.defaultWeight,
-      defaultDistance: data.defaultDistance,
-      defaultDuration: data.defaultDuration,
-      defaultRestTime: data.defaultRestTime,
-      equipment: data.equipment,
-      perSide: data.perSide,
-      isAssisted: data.isAssisted,
-      lastSets: data.lastSets,
-    }));
+    return Array.from(uniqueExercisesMap.values())
+      .slice(0, 10)
+      .map((data) => ({
+        type: "exercise" as const,
+        value: data.name,
+        category: data.category,
+        defaultSets: data.defaultSets,
+        defaultReps: data.defaultReps,
+        defaultWeight: data.defaultWeight,
+        defaultDistance: data.defaultDistance,
+        defaultDuration: data.defaultDuration,
+        defaultRestTime: data.defaultRestTime,
+        equipment: data.equipment,
+        perSide: data.perSide,
+        isAssisted: data.isAssisted,
+        lastSets: data.lastSets,
+      }));
   }
 
   search(userId: number, q: string) {
@@ -197,41 +213,42 @@ export class WorkoutSuggestions {
 
     const exercises = this.exercises(userId, q).slice(0, 5);
 
-    const templates = db.select({
-      templateId: workoutTemplates.templateId,
-      name: workoutTemplates.name,
-      description: workoutTemplates.description,
-      targetMuscleGroups: workoutTemplates.targetMuscleGroups
-    })
+    const templates = db
+      .select({
+        templateId: workoutTemplates.templateId,
+        name: workoutTemplates.name,
+        description: workoutTemplates.description,
+        targetMuscleGroups: workoutTemplates.targetMuscleGroups,
+      })
       .from(workoutTemplates)
-      .where(and(
-        eq(workoutTemplates.userId, userId),
-        or(
-          like(sqlNormalize(workoutTemplates.name), `%${normalizedQ}%`),
-          like(sqlNormalize(workoutTemplates.description), `%${normalizedQ}%`),
-          like(sqlNormalize(workoutTemplates.targetMuscleGroups), `%${normalizedQ}%`)
-        )
-      ))
+      .where(
+        and(
+          eq(workoutTemplates.userId, userId),
+          or(
+            like(sqlNormalize(workoutTemplates.name), `%${normalizedQ}%`),
+            like(sqlNormalize(workoutTemplates.description), `%${normalizedQ}%`),
+            like(sqlNormalize(workoutTemplates.targetMuscleGroups), `%${normalizedQ}%`),
+          ),
+        ),
+      )
       .limit(5)
       .all();
 
-    const templateSuggestions = templates.map(t => ({
+    const templateSuggestions = templates.map((t) => ({
       type: "template" as const,
       value: t.name,
-      id: t.templateId
+      id: t.templateId,
     }));
 
-    const sessions = db.select({
-      sessionId: workoutSessions.sessionId,
-      name: workoutSessions.name,
-      notes: workoutSessions.notes,
-      startedAt: workoutSessions.startedAt
-    })
+    const sessions = db
+      .select({
+        sessionId: workoutSessions.sessionId,
+        name: workoutSessions.name,
+        notes: workoutSessions.notes,
+        startedAt: workoutSessions.startedAt,
+      })
       .from(workoutSessions)
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`completed_at IS NOT NULL`
-      ))
+      .where(and(eq(workoutSessions.userId, userId), sql`completed_at IS NOT NULL`))
       .orderBy(desc(workoutSessions.startedAt))
       .all();
 
@@ -249,10 +266,6 @@ export class WorkoutSuggestions {
         id: session.sessionId,
       }));
 
-    return [
-      ...exercises,
-      ...templateSuggestions,
-      ...historySuggestions
-    ];
+    return [...exercises, ...templateSuggestions, ...historySuggestions];
   }
 }

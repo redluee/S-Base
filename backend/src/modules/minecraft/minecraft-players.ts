@@ -54,7 +54,13 @@ export class MinecraftPlayers {
       const joinedAt = new Date().toISOString();
       db.update(mc_player_sessions)
         .set({ leftAt: joinedAt })
-        .where(and(eq(mc_player_sessions.serverId, server.serverId), eq(mc_player_sessions.playerUuid, uuid), isNull(mc_player_sessions.leftAt)))
+        .where(
+          and(
+            eq(mc_player_sessions.serverId, server.serverId),
+            eq(mc_player_sessions.playerUuid, uuid),
+            isNull(mc_player_sessions.leftAt),
+          ),
+        )
         .run();
       db.insert(mc_player_sessions).values({ serverId: server.serverId, playerUuid: uuid, joinedAt }).run();
       this.parts.idle.clearEmpty(slug);
@@ -75,12 +81,21 @@ export class MinecraftPlayers {
     const open = db
       .select()
       .from(mc_player_sessions)
-      .where(and(eq(mc_player_sessions.serverId, serverId), eq(mc_player_sessions.playerUuid, stat.playerUuid), isNull(mc_player_sessions.leftAt)))
+      .where(
+        and(
+          eq(mc_player_sessions.serverId, serverId),
+          eq(mc_player_sessions.playerUuid, stat.playerUuid),
+          isNull(mc_player_sessions.leftAt),
+        ),
+      )
       .all();
     const leftAt = new Date().toISOString();
     for (const session of open) {
       db.update(mc_player_sessions).set({ leftAt }).where(eq(mc_player_sessions.sessionId, session.sessionId)).run();
-      const seconds = Math.max(0, Math.floor((new Date(leftAt).getTime() - new Date(session.joinedAt).getTime()) / 1000));
+      const seconds = Math.max(
+        0,
+        Math.floor((new Date(leftAt).getTime() - new Date(session.joinedAt).getTime()) / 1000),
+      );
       db.update(mc_player_stats)
         .set({ lastSeen: leftAt, totalPlaytime: (stat.totalPlaytime || 0) + seconds })
         .where(eq(mc_player_stats.statId, stat.statId))
@@ -110,7 +125,12 @@ export class MinecraftPlayers {
     if (activeUuids.length === 0) return [];
 
     const statsMap = new Map(
-      db.select().from(mc_player_stats).where(eq(mc_player_stats.serverId, server.serverId)).all().map((s) => [s.playerUuid, s]),
+      db
+        .select()
+        .from(mc_player_stats)
+        .where(eq(mc_player_stats.serverId, server.serverId))
+        .all()
+        .map((s) => [s.playerUuid, s]),
     );
 
     const now = Date.now();
@@ -170,7 +190,9 @@ export class MinecraftPlayers {
     try {
       const bannedPath = join(server.serverDir, "banned-players.json");
       const list = await readBanList(bannedPath);
-      const alreadyBanned = list.some((item) => item.name?.toLowerCase() === playerName.toLowerCase() || item.uuid === uuid);
+      const alreadyBanned = list.some(
+        (item) => item.name?.toLowerCase() === playerName.toLowerCase() || item.uuid === uuid,
+      );
       if (!alreadyBanned) {
         list.push({
           uuid,

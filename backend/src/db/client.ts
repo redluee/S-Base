@@ -33,4 +33,3 @@ process.on("SIGTERM", () => {
 
 export { sqlite };
 export default db;
-

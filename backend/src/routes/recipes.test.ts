@@ -61,17 +61,29 @@ describe("recipe routes error contract", () => {
   });
 
   it("keeps the success shapes of create, update and delete", async () => {
-    const created = (await (await call(cookie, "POST", "/api/wines", {
-      brand: "Test", type: "red", variety: "Merlot", vintage: null, rating: null, imageUrl: null,
-    })).json()) as { brand: string; wineId: number };
+    const created = (await (
+      await call(cookie, "POST", "/api/wines", {
+        brand: "Test",
+        type: "red",
+        variety: "Merlot",
+        vintage: null,
+        rating: null,
+        imageUrl: null,
+      })
+    ).json()) as { brand: string; wineId: number };
     expect(created.brand).toBe("Test");
-    const updated = (await (await call(cookie, "PUT", `/api/wines/${created.wineId}`, { notes: "ok" })).json()) as { notes: string };
+    const updated = (await (await call(cookie, "PUT", `/api/wines/${created.wineId}`, { notes: "ok" })).json()) as {
+      notes: string;
+    };
     expect(updated.notes).toBe("ok");
     expect(await (await call(cookie, "DELETE", `/api/wines/${created.wineId}`)).json()).toEqual({ success: true });
   });
 
   it("checks authentication before validating the body", async () => {
-    for (const [method, path] of [["POST", "/api/wines"], ["PATCH", "/api/recipes/abc/rating"]]) {
+    for (const [method, path] of [
+      ["POST", "/api/wines"],
+      ["PATCH", "/api/recipes/abc/rating"],
+    ]) {
       const res = await call("", method, path, { brand: 5 });
       expect(res.status).toBe(401);
       expect(await res.json()).toEqual({ error: "Unauthorized" });

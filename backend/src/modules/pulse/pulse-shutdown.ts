@@ -58,10 +58,12 @@ export class PulseShutdown {
     try {
       const row = db.select().from(systemSettings).where(eq(systemSettings.key, SETTINGS_KEY)).get();
       if (!row) {
-        db.insert(systemSettings).values({
-          key: SETTINGS_KEY,
-          value: JSON.stringify(DEFAULT_CONFIG),
-        }).run();
+        db.insert(systemSettings)
+          .values({
+            key: SETTINGS_KEY,
+            value: JSON.stringify(DEFAULT_CONFIG),
+          })
+          .run();
         return { ...DEFAULT_CONFIG };
       }
       return { ...DEFAULT_CONFIG, ...JSON.parse(row.value) };
@@ -79,9 +81,7 @@ export class PulseShutdown {
         .where(eq(systemSettings.key, SETTINGS_KEY))
         .run();
     } else {
-      db.insert(systemSettings)
-        .values({ key: SETTINGS_KEY, value, updatedAt: new Date().toISOString() })
-        .run();
+      db.insert(systemSettings).values({ key: SETTINGS_KEY, value, updatedAt: new Date().toISOString() }).run();
     }
   }
 

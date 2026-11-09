@@ -16,8 +16,7 @@ export function snapshot(
   for (const observation of observations) {
     if (
       observation.date <= date &&
-      (!latest.has(observation.accountId) ||
-        latest.get(observation.accountId)!.date < observation.date)
+      (!latest.has(observation.accountId) || latest.get(observation.accountId)!.date < observation.date)
     )
       latest.set(observation.accountId, observation);
   }
@@ -47,9 +46,7 @@ function snapshotFromBalances(
     accounts: rows,
     known: known.length,
     expected: rows.length,
-    totalCents: known.length
-      ? known.reduce((sum, a) => sum + a.balanceCents!, 0)
-      : null,
+    totalCents: known.length ? known.reduce((sum, a) => sum + a.balanceCents!, 0) : null,
     savingsCents: !savings.length
       ? 0
       : knownSavings.length
@@ -81,39 +78,23 @@ export function dailyBalanceHistory(
   }
   return history;
 }
-export function compare(
-  start: FinanceSnapshot,
-  end: FinanceSnapshot,
-  savingsOnly = false,
-): FinanceComparison {
+export function compare(start: FinanceSnapshot, end: FinanceSnapshot, savingsOnly = false): FinanceComparison {
   const select = (point: FinanceSnapshot) =>
-    savingsOnly
-      ? point.accounts.filter((a) => a.type === "savings")
-      : point.accounts;
+    savingsOnly ? point.accounts.filter((a) => a.type === "savings") : point.accounts;
   const first = select(start),
     last = select(end);
-  const unavailable = (
-    reason: FinanceComparison["reason"],
-  ): FinanceComparison => ({ changeCents: null, percent: null, reason });
-  if (start.date >= end.date || !first.length || !last.length)
-    return unavailable("insufficient");
-  if (
-    first.length !== last.length ||
-    first.some((a) => !last.some((b) => b.id === a.id))
-  )
-    return unavailable("cohort");
-  if (
-    first.some((a) => a.balanceCents === null) ||
-    last.some((a) => a.balanceCents === null)
-  )
+  const unavailable = (reason: FinanceComparison["reason"]): FinanceComparison => ({
+    changeCents: null,
+    percent: null,
+    reason,
+  });
+  if (start.date >= end.date || !first.length || !last.length) return unavailable("insufficient");
+  if (first.length !== last.length || first.some((a) => !last.some((b) => b.id === a.id))) return unavailable("cohort");
+  if (first.some((a) => a.balanceCents === null) || last.some((a) => a.balanceCents === null))
     return unavailable("coverage");
-  if (
-    first.every((a) => last.find((b) => b.id === a.id)?.lastDate === a.lastDate)
-  )
-    return unavailable("insufficient");
+  if (first.every((a) => last.find((b) => b.id === a.id)?.lastDate === a.lastDate)) return unavailable("insufficient");
   const baseline = first.reduce((sum, a) => sum + a.balanceCents!, 0);
-  const changeCents =
-    last.reduce((sum, a) => sum + a.balanceCents!, 0) - baseline;
+  const changeCents = last.reduce((sum, a) => sum + a.balanceCents!, 0) - baseline;
   return {
     changeCents,
     percent: baseline === 0 ? null : (changeCents / Math.abs(baseline)) * 100,
@@ -139,9 +120,8 @@ export function dashboard(
   const history = dailyBalanceHistory(accounts, observations, startDate, endDate);
   const baselineDate = new Date(`${startDate}T00:00:00Z`);
   baselineDate.setUTCDate(baselineDate.getUTCDate() - 1);
-  const start = period === "all"
-      ? history[0]
-      : snapshot(accounts, observations, baselineDate.toISOString().slice(0, 10)),
+  const start =
+      period === "all" ? history[0] : snapshot(accounts, observations, baselineDate.toISOString().slice(0, 10)),
     end = history[history.length - 1];
   return {
     startDate,

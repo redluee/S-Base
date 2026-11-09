@@ -138,7 +138,8 @@ export class MinecraftImporter {
     const registeredDirs = new Set(registered.map((s) => resolve(s.serverDir)));
     const registeredSlugs = new Set(registered.map((s) => s.slug));
 
-    const unlinked: { serverDir: string; folderName: string; suggestedSlug: string; inspection: ServerInspection }[] = [];
+    const unlinked: { serverDir: string; folderName: string; suggestedSlug: string; inspection: ServerInspection }[] =
+      [];
     for (const entry of await readdir(BASE_DIR)) {
       const fullPath = resolve(join(BASE_DIR, entry));
       if (registeredDirs.has(fullPath)) continue;
@@ -147,11 +148,17 @@ export class MinecraftImporter {
         const inspection = await this.inspect(fullPath);
         if (!inspection.isValid) continue;
 
-        const suggestedSlug = entry.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 32);
+        const suggestedSlug = entry
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, "-")
+          .replace(/-+/g, "-")
+          .slice(0, 32);
         unlinked.push({
           serverDir: fullPath,
           folderName: entry,
-          suggestedSlug: registeredSlugs.has(suggestedSlug) ? `${suggestedSlug}-${Date.now().toString().slice(-4)}` : suggestedSlug,
+          suggestedSlug: registeredSlugs.has(suggestedSlug)
+            ? `${suggestedSlug}-${Date.now().toString().slice(-4)}`
+            : suggestedSlug,
           inspection,
         });
       } catch {}

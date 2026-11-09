@@ -6,7 +6,8 @@ import { parseDateString, exerciseKey, signedWeight, effectiveVolume, activeSeco
 
 export class WorkoutStats {
   summary(userId: number) {
-    const lastSession = db.select()
+    const lastSession = db
+      .select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.userId, userId), sql`${workoutSessions.completedAt} IS NOT NULL`))
       .orderBy(desc(workoutSessions.completedAt))
@@ -22,29 +23,30 @@ export class WorkoutStats {
       daysAgo = Math.floor((date1 - date2) / (1000 * 60 * 60 * 24));
     }
 
-    const workoutCountRes = db.select({
-      count: sql<number>`count(${workoutSessions.sessionId})`
-    })
+    const workoutCountRes = db
+      .select({
+        count: sql<number>`count(${workoutSessions.sessionId})`,
+      })
       .from(workoutSessions)
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`
-      ))
+      .where(and(eq(workoutSessions.userId, userId), sql`${workoutSessions.completedAt} IS NOT NULL`))
       .get();
 
     const totalWorkouts = workoutCountRes?.count ?? 0;
 
-    const volumeRes = db.select({
-      volume: sql<number>`sum(max(coalesce(${sessionSets.weight}, 0), 0) * coalesce(${sessionSets.reps}, 0))`
-    })
+    const volumeRes = db
+      .select({
+        volume: sql<number>`sum(max(coalesce(${sessionSets.weight}, 0), 0) * coalesce(${sessionSets.reps}, 0))`,
+      })
       .from(sessionSets)
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`,
-        eq(sessionSets.completed, 1)
-      ))
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          sql`${workoutSessions.completedAt} IS NOT NULL`,
+          eq(sessionSets.completed, 1),
+        ),
+      )
       .get();
 
     const totalVolume = volumeRes?.volume ?? 0;
@@ -57,62 +59,67 @@ export class WorkoutStats {
   }
 
   sessionPRs(sessionId: number, userId: number, currentDurationSeconds?: number): PersonalRecord[] {
-    const currentSession = db.select()
+    const currentSession = db
+      .select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.sessionId, sessionId), eq(workoutSessions.userId, userId)))
       .get();
     if (!currentSession) return [];
 
-    const currentSets = db.select({
-      exerciseName: sessionExercises.exerciseName,
-      isAssisted: sessionExercises.isAssisted,
-      reps: sessionSets.reps,
-      weight: sessionSets.weight,
-      distance: sessionSets.distance,
-      duration: sessionSets.duration,
-      completed: sessionSets.completed,
-    })
+    const currentSets = db
+      .select({
+        exerciseName: sessionExercises.exerciseName,
+        isAssisted: sessionExercises.isAssisted,
+        reps: sessionSets.reps,
+        weight: sessionSets.weight,
+        distance: sessionSets.distance,
+        duration: sessionSets.duration,
+        completed: sessionSets.completed,
+      })
       .from(sessionSets)
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
-      .where(and(
-        eq(sessionExercises.sessionId, sessionId),
-        eq(sessionSets.completed, 1)
-      ))
+      .where(and(eq(sessionExercises.sessionId, sessionId), eq(sessionSets.completed, 1)))
       .all();
 
-    const previousSessions = db.select({
-      sessionId: workoutSessions.sessionId,
-      startedAt: workoutSessions.startedAt,
-      completedAt: workoutSessions.completedAt,
-      pausedAt: workoutSessions.pausedAt,
-      pausedSeconds: workoutSessions.pausedSeconds,
-    })
+    const previousSessions = db
+      .select({
+        sessionId: workoutSessions.sessionId,
+        startedAt: workoutSessions.startedAt,
+        completedAt: workoutSessions.completedAt,
+        pausedAt: workoutSessions.pausedAt,
+        pausedSeconds: workoutSessions.pausedSeconds,
+      })
       .from(workoutSessions)
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`,
-        ne(workoutSessions.sessionId, sessionId)
-      ))
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          sql`${workoutSessions.completedAt} IS NOT NULL`,
+          ne(workoutSessions.sessionId, sessionId),
+        ),
+      )
       .all();
 
-    const previousSets = db.select({
-      exerciseName: sessionExercises.exerciseName,
-      isAssisted: sessionExercises.isAssisted,
-      sessionId: sessionExercises.sessionId,
-      reps: sessionSets.reps,
-      weight: sessionSets.weight,
-      distance: sessionSets.distance,
-      duration: sessionSets.duration,
-    })
+    const previousSets = db
+      .select({
+        exerciseName: sessionExercises.exerciseName,
+        isAssisted: sessionExercises.isAssisted,
+        sessionId: sessionExercises.sessionId,
+        reps: sessionSets.reps,
+        weight: sessionSets.weight,
+        distance: sessionSets.distance,
+        duration: sessionSets.duration,
+      })
       .from(sessionSets)
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`,
-        ne(workoutSessions.sessionId, sessionId),
-        eq(sessionSets.completed, 1)
-      ))
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          sql`${workoutSessions.completedAt} IS NOT NULL`,
+          ne(workoutSessions.sessionId, sessionId),
+          eq(sessionSets.completed, 1),
+        ),
+      )
       .all();
 
     const prs: PersonalRecord[] = [];
@@ -150,15 +157,22 @@ export class WorkoutStats {
         const assisted = cWeighted.every((s) => s.isAssisted) && pWeighted.every((s) => s.isAssisted);
         if (assisted) {
           if (cMaxWeight > pMaxWeight) {
-            prs.push({ type: "weight", exerciseName, prevValue: Math.abs(pMaxWeight), newValue: Math.abs(cMaxWeight), unit: "kg", assisted: true });
+            prs.push({
+              type: "weight",
+              exerciseName,
+              prevValue: Math.abs(pMaxWeight),
+              newValue: Math.abs(cMaxWeight),
+              unit: "kg",
+              assisted: true,
+            });
           }
         } else if (cMaxWeight !== 0 && cMaxWeight > pMaxWeight) {
           prs.push({ type: "weight", exerciseName, prevValue: pMaxWeight, newValue: cMaxWeight, unit: "kg" });
         }
       }
 
-      const cMaxReps = maxOf(cSets.map(s => s.reps ?? 0));
-      const pMaxReps = maxOf(pSets.map(s => s.reps ?? 0));
+      const cMaxReps = maxOf(cSets.map((s) => s.reps ?? 0));
+      const pMaxReps = maxOf(pSets.map((s) => s.reps ?? 0));
       if (pMaxReps > 0 && cMaxReps > pMaxReps) {
         prs.push({ type: "reps", exerciseName, prevValue: pMaxReps, newValue: cMaxReps, unit: "reps" });
       }
@@ -175,14 +189,14 @@ export class WorkoutStats {
         prs.push({ type: "volume", exerciseName, prevValue: pMaxVolume, newValue: cVolume, unit: "kg" });
       }
 
-      const cMaxDistance = maxOf(cSets.map(s => s.distance ?? 0));
-      const pMaxDistance = maxOf(pSets.map(s => s.distance ?? 0));
+      const cMaxDistance = maxOf(cSets.map((s) => s.distance ?? 0));
+      const pMaxDistance = maxOf(pSets.map((s) => s.distance ?? 0));
       if (pMaxDistance > 0 && cMaxDistance > pMaxDistance) {
         prs.push({ type: "distance", exerciseName, prevValue: pMaxDistance, newValue: cMaxDistance, unit: "km" });
       }
 
-      const cMaxDuration = maxOf(cSets.map(s => s.duration ?? 0));
-      const pMaxDuration = maxOf(pSets.map(s => s.duration ?? 0));
+      const cMaxDuration = maxOf(cSets.map((s) => s.duration ?? 0));
+      const pMaxDuration = maxOf(pSets.map((s) => s.duration ?? 0));
       if (pMaxDuration > 0 && cMaxDuration > pMaxDuration) {
         prs.push({ type: "duration", exerciseName, prevValue: pMaxDuration, newValue: cMaxDuration, unit: "sec" });
       }
@@ -196,12 +210,16 @@ export class WorkoutStats {
       prs.push({ type: "session_volume", prevValue: pMaxSessionVolume, newValue: cSessionVolume, unit: "kg" });
     }
 
-    const cSessionDuration = currentDurationSeconds !== undefined
-      ? currentDurationSeconds
-      : activeSeconds(currentSession, Date.now());
-    const pMaxSessionDuration = maxOf(previousSessions.map(s => activeSeconds(s, 0)));
+    const cSessionDuration =
+      currentDurationSeconds !== undefined ? currentDurationSeconds : activeSeconds(currentSession, Date.now());
+    const pMaxSessionDuration = maxOf(previousSessions.map((s) => activeSeconds(s, 0)));
     if (pMaxSessionDuration > 0 && cSessionDuration > pMaxSessionDuration) {
-      prs.push({ type: "session_duration", prevValue: Math.round(pMaxSessionDuration), newValue: Math.round(cSessionDuration), unit: "sec" });
+      prs.push({
+        type: "session_duration",
+        prevValue: Math.round(pMaxSessionDuration),
+        newValue: Math.round(cSessionDuration),
+        unit: "sec",
+      });
     }
 
     const cSessionExerciseCount = currentByExercise.size;
@@ -210,9 +228,14 @@ export class WorkoutStats {
       if (!pExercisesBySession.has(s.sessionId)) pExercisesBySession.set(s.sessionId, new Set());
       pExercisesBySession.get(s.sessionId)!.add(exerciseKey(s.exerciseName));
     }
-    const pMaxSessionExercisesCount = maxOf(Array.from(pExercisesBySession.values()).map(set => set.size));
+    const pMaxSessionExercisesCount = maxOf(Array.from(pExercisesBySession.values()).map((set) => set.size));
     if (pMaxSessionExercisesCount > 0 && cSessionExerciseCount > pMaxSessionExercisesCount) {
-      prs.push({ type: "session_exercises", prevValue: pMaxSessionExercisesCount, newValue: cSessionExerciseCount, unit: "exercises" });
+      prs.push({
+        type: "session_exercises",
+        prevValue: pMaxSessionExercisesCount,
+        newValue: cSessionExerciseCount,
+        unit: "exercises",
+      });
     }
 
     return prs;

@@ -32,7 +32,8 @@ export class MinorService {
   createSprint: MinorSprints["create"] = (userId, data) => this.sprints.create(userId, data);
   createStory: MinorStories["create"] = (userId, sprintId, data) => this.stories.create(userId, sprintId, data);
   addFeedback: MinorFeedback["add"] = (sprintId, data) => this.feedback.add(sprintId, data);
-  saveSelfEvaluations: MinorEvaluations["saveSelfEvaluations"] = (sprintId, userId, items) => this.evaluations.saveSelfEvaluations(sprintId, userId, items);
+  saveSelfEvaluations: MinorEvaluations["saveSelfEvaluations"] = (sprintId, userId, items) =>
+    this.evaluations.saveSelfEvaluations(sprintId, userId, items);
   listPeerHelp: MinorPeerHelpLog["list"] = (userId) => this.peerHelp.list(userId);
   createPeerHelp: MinorPeerHelpLog["create"] = (userId, data) => this.peerHelp.create(userId, data);
   listVacations: MinorSchedule["listVacations"] = (userId) => this.schedule.listVacations(userId);

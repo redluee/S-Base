@@ -55,12 +55,23 @@ describe("resume routes error contract", () => {
   });
 
   it("maps business rule violations to 400 with resume keys", async () => {
-    const bad = await call(cookie, "POST", "/api/resume/experiences", { company: "A", jobTitle: "B", ...period, startMonth: 13 });
+    const bad = await call(cookie, "POST", "/api/resume/experiences", {
+      company: "A",
+      jobTitle: "B",
+      ...period,
+      startMonth: 13,
+    });
     expect(bad.status).toBe(400);
     expect(await bad.json()).toEqual({ error: "resume.invalidStartMonth" });
 
     const nullPeriod = await call(cookie, "POST", "/api/resume/educations", {
-      institution: "A", degree: "B", startMonth: null, startYear: null, endMonth: null, endYear: null, isCurrent: false,
+      institution: "A",
+      degree: "B",
+      startMonth: null,
+      startYear: null,
+      endMonth: null,
+      endYear: null,
+      isCurrent: false,
     });
     expect(nullPeriod.status).toBe(400);
     expect(await nullPeriod.json()).toEqual({ error: "resume.invalidStartMonth" });
@@ -75,8 +86,12 @@ describe("resume routes error contract", () => {
   });
 
   it("rejects bad item kinds and disallowed uploads", async () => {
-    const created = (await (await call(cookie, "POST", "/api/resume/resumes", { name: "CV", selectAll: true })).json()) as { id: number };
-    const kind = await call(cookie, "PUT", `/api/resume/resumes/${created.id}/items`, { items: [{ kind: "x", refId: 1 }] });
+    const created = (await (
+      await call(cookie, "POST", "/api/resume/resumes", { name: "CV", selectAll: true })
+    ).json()) as { id: number };
+    const kind = await call(cookie, "PUT", `/api/resume/resumes/${created.id}/items`, {
+      items: [{ kind: "x", refId: 1 }],
+    });
     expect(kind.status).toBe(400);
     expect(await kind.json()).toEqual({ error: "resume.invalidItemKind" });
     await call(cookie, "DELETE", `/api/resume/resumes/${created.id}`);
@@ -84,7 +99,11 @@ describe("resume routes error contract", () => {
     const form = new FormData();
     form.append("file", new File(["x"], "doc.txt"));
     const upload = await app.handle(
-      new Request("http://localhost/api/resume/profile/photo", { method: "POST", headers: { Cookie: cookie }, body: form }),
+      new Request("http://localhost/api/resume/profile/photo", {
+        method: "POST",
+        headers: { Cookie: cookie },
+        body: form,
+      }),
     );
     expect(upload.status).toBe(400);
     expect(((await upload.json()) as { error: string }).error).toBe("upload.typeNotAllowed");
@@ -117,7 +136,15 @@ describe("resume routes error contract", () => {
     expect(((await profile.json()) as { fullName: string }).fullName).toBe("Jane Doe");
 
     const exp = await call(cookie, "POST", "/api/resume/experiences", {
-      company: "Acme", jobTitle: "Dev", place: "", description: "", startMonth: 1, startYear: 2022, endMonth: null, endYear: null, isCurrent: true,
+      company: "Acme",
+      jobTitle: "Dev",
+      place: "",
+      description: "",
+      startMonth: 1,
+      startYear: 2022,
+      endMonth: null,
+      endYear: null,
+      isCurrent: true,
     });
     expect(exp.status).toBe(200);
     const created = (await exp.json()) as { id: number; isCurrent: boolean };

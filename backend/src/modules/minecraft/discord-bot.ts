@@ -1,10 +1,4 @@
-import {
-  ActivityType,
-  Client,
-  Events,
-  GatewayIntentBits,
-  SlashCommandBuilder,
-} from "discord.js";
+import { ActivityType, Client, Events, GatewayIntentBits, SlashCommandBuilder } from "discord.js";
 import type { MinecraftService } from "./index";
 import { emojiCache } from "./discord-net";
 import { createDiscordCommands } from "./discord-commands";

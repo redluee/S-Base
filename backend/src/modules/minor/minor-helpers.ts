@@ -1,6 +1,4 @@
-import type {
-  MinorDefaultQualityCriterion,
-} from "../../types/shared";
+import type { MinorDefaultQualityCriterion } from "../../types/shared";
 
 export const DEFAULT_STORY_TYPES: Array<{
   code: string;
@@ -92,7 +90,7 @@ export function calculateSprintStatus(
   startDate: string,
   endDate: string,
   today: string = formatDate(new Date()),
-  currentStatus?: "planned" | "active" | "completed"
+  currentStatus?: "planned" | "active" | "completed",
 ): "planned" | "active" | "completed" {
   if (startDate > today) return "planned";
   if (endDate < today) return "completed";

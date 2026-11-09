@@ -4,7 +4,9 @@ import { dashboard } from "./calculations";
 import { inferredBalances, type AccountTransfer } from "./inferred-balances";
 
 const data: FinanceData = {
-  accounts: [{ id: 1, name: "Sample payment", bank: null, type: "current", openingDate: "2025-01-01", archived: false }],
+  accounts: [
+    { id: 1, name: "Sample payment", bank: null, type: "current", openingDate: "2025-01-01", archived: false },
+  ],
   observations: [
     { id: 1, accountId: 1, date: "2025-01-01", balanceCents: 10000 },
     { id: 2, accountId: 1, date: "2025-01-02", balanceCents: 14000 },
@@ -12,10 +14,21 @@ const data: FinanceData = {
     { id: 4, accountId: 1, date: "2025-03-01", balanceCents: 12000 },
     { id: 5, accountId: 1, date: "2025-04-01", balanceCents: 15000 },
   ],
-  monthlyBudgetCents: null, goals: [], allocations: [], today: "2025-12-31",
+  monthlyBudgetCents: null,
+  goals: [],
+  allocations: [],
+  today: "2025-12-31",
 };
-const transfer = (date: string, amountCents: number, counterpartyIdentity = "sample-closed-account"): AccountTransfer => ({
-  date, amountCents, counterpartyIdentity, accountId: 1, savings: true,
+const transfer = (
+  date: string,
+  amountCents: number,
+  counterpartyIdentity = "sample-closed-account",
+): AccountTransfer => ({
+  date,
+  amountCents,
+  counterpartyIdentity,
+  accountId: 1,
+  savings: true,
 });
 
 describe("Balances of missing own accounts", () => {
@@ -30,12 +43,23 @@ describe("Balances of missing own accounts", () => {
   });
 
   it("handles multiple accounts, deposits, later closures and period changes", () => {
-    const transfers = [transfer("2025-01-02", 4000), transfer("2025-03-01", -3000, "sample-second-account"), transfer("2025-04-01", 3000, "sample-second-account")];
+    const transfers = [
+      transfer("2025-01-02", 4000),
+      transfer("2025-03-01", -3000, "sample-second-account"),
+      transfer("2025-04-01", 3000, "sample-second-account"),
+    ];
     const calculated = inferredBalances(data, transfers);
     const all = dashboard(calculated.accounts, calculated.observations, "all", "2025-12-31");
-    for (const [period, end] of [["year", "2025-06-30"], ["month", "2025-01-31"], ["month", "2025-03-31"], ["month", "2025-04-30"]] as const) {
+    for (const [period, end] of [
+      ["year", "2025-06-30"],
+      ["month", "2025-01-31"],
+      ["month", "2025-03-31"],
+      ["month", "2025-04-30"],
+    ] as const) {
       const filtered = dashboard(calculated.accounts, calculated.observations, period, end);
-      expect(filtered.history).toEqual(all.history.filter((point) => point.date >= filtered.startDate && point.date <= filtered.endDate));
+      expect(filtered.history).toEqual(
+        all.history.filter((point) => point.date >= filtered.startDate && point.date <= filtered.endDate),
+      );
     }
     for (const date of ["2025-03-01", "2025-04-01"]) {
       expect(all.history.find((point) => point.date === date)?.totalCents).toBe(15000);
@@ -48,7 +72,11 @@ describe("Balances of missing own accounts", () => {
     const calculated = inferredBalances(data, [transfer("2025-03-01", -3000)]);
     const report = dashboard(calculated.accounts, calculated.observations, "all", "2025-12-31");
     expect(report.end.savingsCents).toBe(3000);
-    expect(report.history.every((point) => point.accounts.filter((account) => account.inferred).every((account) => account.balanceCents! >= 0))).toBe(true);
+    expect(
+      report.history.every((point) =>
+        point.accounts.filter((account) => account.inferred).every((account) => account.balanceCents! >= 0),
+      ),
+    ).toBe(true);
     expect(calculated.accounts.find((account) => account.inferred)?.name).not.toContain("sample-closed-account");
   });
 
@@ -57,7 +85,9 @@ describe("Balances of missing own accounts", () => {
     const forward = inferredBalances(data, transfers);
     const reverse = inferredBalances(data, [...transfers].reverse());
     expect(forward).toEqual(reverse);
-    expect(forward.observations.filter((entry) => entry.accountId < 0).every((entry) => entry.balanceCents === 0)).toBe(true);
+    expect(forward.observations.filter((entry) => entry.accountId < 0).every((entry) => entry.balanceCents === 0)).toBe(
+      true,
+    );
     const extended = inferredBalances(data, [...transfers, transfer("2025-04-01", 500, "another-account")]);
     expect(extended.accounts.some((account) => account.id === forward.accounts.at(-1)!.id)).toBe(true);
   });
@@ -66,7 +96,8 @@ describe("Balances of missing own accounts", () => {
     const imported: FinanceData = {
       ...data,
       accounts: [...data.accounts, { ...data.accounts[0], id: 2, type: "savings" }],
-      observations: [...data.observations,
+      observations: [
+        ...data.observations,
         { id: 6, accountId: 2, date: "2025-01-01", balanceCents: 4000 },
         { id: 7, accountId: 2, date: "2025-01-02", balanceCents: 0 },
       ],

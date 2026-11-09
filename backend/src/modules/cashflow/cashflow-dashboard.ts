@@ -1,6 +1,12 @@
 import { and, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 import db from "../../db/client";
-import { cashflowClients, cashflowExpenses, cashflowInvoiceLines, cashflowInvoices, cashflowProjects } from "../../db/schema";
+import {
+  cashflowClients,
+  cashflowExpenses,
+  cashflowInvoiceLines,
+  cashflowInvoices,
+  cashflowProjects,
+} from "../../db/schema";
 
 export class CashflowDashboard {
   getStats(userId: number, targetYear?: number) {
@@ -11,33 +17,33 @@ export class CashflowDashboard {
     if (targetYear) {
       const startOfYear = new Date(targetYear, 0, 1).getTime();
       const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999).getTime();
-      dateFilter = and(
-        gte(effectivePaidDate, startOfYear),
-        lte(effectivePaidDate, endOfYear)
-      );
+      dateFilter = and(gte(effectivePaidDate, startOfYear), lte(effectivePaidDate, endOfYear));
     } else {
       const d = new Date();
       const startOf12MonthsAgo = new Date(d.getFullYear(), d.getMonth() - 11, 1).getTime();
       dateFilter = gte(effectivePaidDate, startOf12MonthsAgo);
     }
 
-    const monthlyIncome = db.select({
-      month: monthCol,
-      paid: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-      open: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-      draft: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-      expected: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') OR (${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL) THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-      total: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-    })
+    const monthlyIncome = db
+      .select({
+        month: monthCol,
+        paid: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+        open: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+        draft: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+        expected: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') OR (${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL) THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+        total: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+      })
       .from(cashflowInvoiceLines)
       .innerJoin(cashflowInvoices, eq(cashflowInvoiceLines.invoiceId, cashflowInvoices.id))
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
       .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
-      .where(and(
-        eq(cashflowClients.userId, userId),
-        sql`(${cashflowInvoices.status} != 'draft' OR ${cashflowInvoices.dateCreated} IS NOT NULL OR ${cashflowInvoices.dateService} IS NOT NULL)`,
-        dateFilter
-      ))
+      .where(
+        and(
+          eq(cashflowClients.userId, userId),
+          sql`(${cashflowInvoices.status} != 'draft' OR ${cashflowInvoices.dateCreated} IS NOT NULL OR ${cashflowInvoices.dateService} IS NOT NULL)`,
+          dateFilter,
+        ),
+      )
       .groupBy(monthCol)
       .orderBy(monthCol)
       .all();
@@ -50,19 +56,17 @@ export class CashflowDashboard {
       END
     `;
 
-    const statusTotals = db.select({
-      status: computedStatusSql,
-      count: sql<number>`COUNT(DISTINCT ${cashflowInvoices.id})`,
-      total: sql<number>`COALESCE(SUM(${cashflowInvoiceLines.totalCost}), 0)`,
-    })
+    const statusTotals = db
+      .select({
+        status: computedStatusSql,
+        count: sql<number>`COUNT(DISTINCT ${cashflowInvoices.id})`,
+        total: sql<number>`COALESCE(SUM(${cashflowInvoiceLines.totalCost}), 0)`,
+      })
       .from(cashflowInvoices)
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
       .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
       .leftJoin(cashflowInvoiceLines, eq(cashflowInvoiceLines.invoiceId, cashflowInvoices.id))
-      .where(and(
-        eq(cashflowClients.userId, userId),
-        dateFilter
-      ))
+      .where(and(eq(cashflowClients.userId, userId), dateFilter))
       .groupBy(computedStatusSql)
       .all();
 
@@ -73,40 +77,33 @@ export class CashflowDashboard {
     if (targetYear) {
       const startOfYear = new Date(targetYear, 0, 1).getTime();
       const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999).getTime();
-      expenseDateFilter = and(
-        gte(effectiveExpenseDate, startOfYear),
-        lte(effectiveExpenseDate, endOfYear)
-      );
+      expenseDateFilter = and(gte(effectiveExpenseDate, startOfYear), lte(effectiveExpenseDate, endOfYear));
     } else {
       const d = new Date();
       const startOf12MonthsAgo = new Date(d.getFullYear(), d.getMonth() - 11, 1).getTime();
       expenseDateFilter = gte(effectiveExpenseDate, startOf12MonthsAgo);
     }
 
-    const monthlyExpenses = db.select({
-      month: expenseMonthCol,
-      total: sql<number>`COALESCE(SUM(${cashflowExpenses.amount}), 0)`,
-      count: sql<number>`COUNT(${cashflowExpenses.id})`,
-    })
+    const monthlyExpenses = db
+      .select({
+        month: expenseMonthCol,
+        total: sql<number>`COALESCE(SUM(${cashflowExpenses.amount}), 0)`,
+        count: sql<number>`COUNT(${cashflowExpenses.id})`,
+      })
       .from(cashflowExpenses)
-      .where(and(
-        eq(cashflowExpenses.userId, userId),
-        expenseDateFilter
-      ))
+      .where(and(eq(cashflowExpenses.userId, userId), expenseDateFilter))
       .groupBy(expenseMonthCol)
       .orderBy(expenseMonthCol)
       .all();
 
-    const expensesByCategory = db.select({
-      category: sql<string>`COALESCE(${cashflowExpenses.category}, 'Overig')`,
-      total: sql<number>`COALESCE(SUM(${cashflowExpenses.amount}), 0)`,
-      count: sql<number>`COUNT(${cashflowExpenses.id})`,
-    })
+    const expensesByCategory = db
+      .select({
+        category: sql<string>`COALESCE(${cashflowExpenses.category}, 'Overig')`,
+        total: sql<number>`COALESCE(SUM(${cashflowExpenses.amount}), 0)`,
+        count: sql<number>`COUNT(${cashflowExpenses.id})`,
+      })
       .from(cashflowExpenses)
-      .where(and(
-        eq(cashflowExpenses.userId, userId),
-        expenseDateFilter
-      ))
+      .where(and(eq(cashflowExpenses.userId, userId), expenseDateFilter))
       .groupBy(sql`COALESCE(${cashflowExpenses.category}, 'Overig')`)
       .orderBy(desc(sql`SUM(${cashflowExpenses.amount})`))
       .all();
@@ -135,7 +132,9 @@ export class CashflowDashboard {
         SELECT CAST(strftime('%s', c.created_at) AS INTEGER) * 1000 as val FROM cashflow_clients c WHERE c.user_id = ${userId}
       )
     `);
-    const firstRecordYear = earliestRow[0]?.earliest_year ? Number(earliestRow[0].earliest_year) : new Date().getFullYear();
+    const firstRecordYear = earliestRow[0]?.earliest_year
+      ? Number(earliestRow[0].earliest_year)
+      : new Date().getFullYear();
 
     return {
       monthlyIncome,

@@ -34,12 +34,8 @@ describe("MinorTransfer", () => {
         { text: "Password hashed with argon2", isCompleted: true, indent: 0 },
         { text: "Session cookie set with 7-day expiry", isCompleted: true, indent: 1 },
       ],
-      qualityCriteria: [
-        { text: "Definition of Done fulfilled", isCompleted: true, indent: 0 },
-      ],
-      evidence: [
-        { type: "github", title: "Auth PR", url: "https://github.com/example/pr/1" },
-      ],
+      qualityCriteria: [{ text: "Definition of Done fulfilled", isCompleted: true, indent: 0 }],
+      evidence: [{ type: "github", title: "Auth PR", url: "https://github.com/example/pr/1" }],
       presentationData: {
         layout: "split",
         summary: "Secure auth flow implemented",
@@ -69,11 +65,15 @@ describe("MinorTransfer", () => {
       whatChange: "Plan earlier for tests",
     });
 
-    const importUser = db.insert(users).values({
-      username: `iso_import_${Date.now()}`,
-      pswdHash: "hash",
-      email: `iso_import_${Date.now()}@test.com`,
-    }).returning().get();
+    const importUser = db
+      .insert(users)
+      .values({
+        username: `iso_import_${Date.now()}`,
+        pswdHash: "hash",
+        email: `iso_import_${Date.now()}@test.com`,
+      })
+      .returning()
+      .get();
     const importUserId = importUser.userId;
 
     // 1. Export

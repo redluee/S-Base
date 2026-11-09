@@ -15,27 +15,41 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export class MinorSchedule {
   listVacations(userId: number): MinorVacation[] {
-    return db.select().from(minorVacations).where(eq(minorVacations.userId, userId)).orderBy(asc(minorVacations.startDate)).all();
+    return db
+      .select()
+      .from(minorVacations)
+      .where(eq(minorVacations.userId, userId))
+      .orderBy(asc(minorVacations.startDate))
+      .all();
   }
 
   createVacation(userId: number, data: { name: string; startDate: string; endDate: string }) {
     if (!data.name.trim()) throw new ValidationError("minor.vacationNameRequired");
     if (!data.startDate || !data.endDate) throw new ValidationError("minor.vacationDatesRequired");
-    return db.insert(minorVacations).values({
-      userId,
-      name: data.name.trim(),
-      startDate: data.startDate,
-      endDate: data.endDate,
-    }).returning().get();
+    return db
+      .insert(minorVacations)
+      .values({
+        userId,
+        name: data.name.trim(),
+        startDate: data.startDate,
+        endDate: data.endDate,
+      })
+      .returning()
+      .get();
   }
 
   updateVacation(id: number, userId: number, data: VacationInput) {
     const existing = this.requireVacation(id, userId);
-    return db.update(minorVacations).set({
-      name: data.name?.trim() ?? existing.name,
-      startDate: data.startDate ?? existing.startDate,
-      endDate: data.endDate ?? existing.endDate,
-    }).where(eq(minorVacations.id, id)).returning().get();
+    return db
+      .update(minorVacations)
+      .set({
+        name: data.name?.trim() ?? existing.name,
+        startDate: data.startDate ?? existing.startDate,
+        endDate: data.endDate ?? existing.endDate,
+      })
+      .where(eq(minorVacations.id, id))
+      .returning()
+      .get();
   }
 
   removeVacation(id: number, userId: number) {
@@ -112,7 +126,11 @@ export class MinorSchedule {
 
   private requireVacation(id: number, userId: number) {
     return orNotFound(
-      db.select().from(minorVacations).where(and(eq(minorVacations.id, id), eq(minorVacations.userId, userId))).get(),
+      db
+        .select()
+        .from(minorVacations)
+        .where(and(eq(minorVacations.id, id), eq(minorVacations.userId, userId)))
+        .get(),
       "minor.vacationNotFound",
     );
   }

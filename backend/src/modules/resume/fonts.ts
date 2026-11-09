@@ -29,7 +29,10 @@ export function googleFamilyOf(value: string): string | null {
 }
 
 function slugify(family: string) {
-  return family.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return family
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function fileUrl(name: string) {
@@ -72,7 +75,10 @@ export async function ensureGoogleFont(family: string): Promise<ResumeGoogleFont
   if (!regular || !bold) throw new NotFoundError("resume.fontNotAvailable");
 
   await mkdir(FONTS_DIR, { recursive: true });
-  for (const [face, path] of [[regular, regularPath], [bold, boldPath]] as const) {
+  for (const [face, path] of [
+    [regular, regularPath],
+    [bold, boldPath],
+  ] as const) {
     const fontRes = await fetch(face.url);
     if (!fontRes.ok) throw new NotFoundError("resume.fontDownloadFailed");
     await Bun.write(path, await fontRes.arrayBuffer());

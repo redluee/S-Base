@@ -19,11 +19,13 @@ beforeEach(async () => {
 function history(weights: number[], owner = userId, completed = true) {
   const session = workout.sessions.create(owner, undefined, true)!;
   workout.sessions.update(session.sessionId, owner, {
-    exercises: [{
-      exerciseName,
-      sortOrder: 0,
-      sets: weights.map((weight, i) => ({ setNumber: i + 1, weight, reps: 8, completed: 1 })),
-    }],
+    exercises: [
+      {
+        exerciseName,
+        sortOrder: 0,
+        sets: weights.map((weight, i) => ({ setNumber: i + 1, weight, reps: 8, completed: 1 })),
+      },
+    ],
   });
   if (completed) workout.sessions.complete(session.sessionId, owner);
   return session;
@@ -52,10 +54,16 @@ describe("workout system defaults", () => {
   it("ignores uncompleted sets and falls back to the template without history", () => {
     const past = history([35]);
     workout.sessions.update(past.sessionId, userId, {
-      exercises: [{ exerciseName, sortOrder: 0, sets: [
-        { setNumber: 1, reps: 8, weight: 35, completed: 1 },
-        { setNumber: 2, reps: 8, weight: 500, completed: 0 },
-      ] }],
+      exercises: [
+        {
+          exerciseName,
+          sortOrder: 0,
+          sets: [
+            { setNumber: 1, reps: 8, weight: 35, completed: 1 },
+            { setNumber: 2, reps: 8, weight: 500, completed: 0 },
+          ],
+        },
+      ],
     });
     expect(start().exercises[0].sets.map((set) => set.weight)).toEqual([35, 35, 35]);
     exerciseName += " new";
@@ -80,7 +88,10 @@ describe("workout system defaults", () => {
       sets: ex.sets.map((set, i) => ({ ...set, editedFields: i === 0 ? "weight" : "" })),
     }));
     workout.sessions.update(session.sessionId, userId, { exercises });
-    expect(workout.sessions.get(session.sessionId, userId)!.exercises[0].sets.map((set) => set.editedFields))
-      .toEqual(["weight", "", ""]);
+    expect(workout.sessions.get(session.sessionId, userId)!.exercises[0].sets.map((set) => set.editedFields)).toEqual([
+      "weight",
+      "",
+      "",
+    ]);
   });
 });

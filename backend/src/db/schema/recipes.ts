@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, primaryKey, } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const recipes = sqliteTable("recipes", {
@@ -19,7 +19,9 @@ export const ingredients = sqliteTable("ingredients", {
 
 export const recipeSteps = sqliteTable("recipe_steps", {
   stepId: integer("step_id").primaryKey({ autoIncrement: true }),
-  recipeId: integer("recipe_id").notNull().references(() => recipes.recipeId, { onDelete: "cascade" }),
+  recipeId: integer("recipe_id")
+    .notNull()
+    .references(() => recipes.recipeId, { onDelete: "cascade" }),
   stepNumber: integer("step_number").notNull(),
   description: text("description").notNull(),
 });
@@ -27,8 +29,12 @@ export const recipeSteps = sqliteTable("recipe_steps", {
 export const recipeIngredients = sqliteTable(
   "recipe_ingredients",
   {
-    recipeId: integer("recipe_id").notNull().references(() => recipes.recipeId, { onDelete: "cascade" }),
-    ingredientId: integer("ingredient_id").notNull().references(() => ingredients.ingredientId, { onDelete: "cascade" }),
+    recipeId: integer("recipe_id")
+      .notNull()
+      .references(() => recipes.recipeId, { onDelete: "cascade" }),
+    ingredientId: integer("ingredient_id")
+      .notNull()
+      .references(() => ingredients.ingredientId, { onDelete: "cascade" }),
     quantity: real("quantity").notNull(),
     unit: text("unit"),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -38,4 +44,3 @@ export const recipeIngredients = sqliteTable(
     pk: primaryKey({ columns: [table.recipeId, table.ingredientId] }),
   }),
 );
-

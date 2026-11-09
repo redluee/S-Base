@@ -24,12 +24,18 @@ describe("Minecraft importer", () => {
   it("inspects and imports existing server folders", async () => {
     const existingDir = join(testDir, "my-existing-server");
     await mkdir(existingDir, { recursive: true });
-    await writeFile(join(existingDir, "server.properties"), "server-name=My Cool SMP\nmotd=Welcome to SMP\ndifficulty=hard\ngamemode=survival\nlevel-name=world\n");
+    await writeFile(
+      join(existingDir, "server.properties"),
+      "server-name=My Cool SMP\nmotd=Welcome to SMP\ndifficulty=hard\ngamemode=survival\nlevel-name=world\n",
+    );
     await writeFile(join(existingDir, "eula.txt"), "eula=false\n");
     await writeFile(join(existingDir, "fabric-server-launch.jar"), "dummy jar");
     await mkdir(join(existingDir, "world"), { recursive: true });
     await mkdir(join(existingDir, "logs"), { recursive: true });
-    await writeFile(join(existingDir, "logs", "latest.log"), "[10:00:00] [Server thread/INFO]: Starting minecraft server version 1.21.1\n");
+    await writeFile(
+      join(existingDir, "logs", "latest.log"),
+      "[10:00:00] [Server thread/INFO]: Starting minecraft server version 1.21.1\n",
+    );
 
     // Inspect
     const inspection = await minecraft.importer.inspect(existingDir);

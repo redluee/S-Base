@@ -19,29 +19,40 @@ export class CashflowClients {
   create(userId: number, data: ClientInput) {
     const name = data.name?.trim();
     if (!name) throw new ValidationError("cashflow.clientNameRequired");
-    return db.insert(cashflowClients).values({
-      userId,
-      name,
-      address: trimOrNull(data.address),
-      email: trimOrNull(data.email),
-      kvkNumber: trimOrNull(data.kvkNumber),
-      standardRate: data.standardRate ?? null,
-      contractPdfPath: trimOrNull(data.contractPdfPath),
-      contractPdfName: trimOrNull(data.contractPdfName),
-    }).returning().get();
+    return db
+      .insert(cashflowClients)
+      .values({
+        userId,
+        name,
+        address: trimOrNull(data.address),
+        email: trimOrNull(data.email),
+        kvkNumber: trimOrNull(data.kvkNumber),
+        standardRate: data.standardRate ?? null,
+        contractPdfPath: trimOrNull(data.contractPdfPath),
+        contractPdfName: trimOrNull(data.contractPdfName),
+      })
+      .returning()
+      .get();
   }
 
   update(id: number, data: ClientInput) {
     const existing = this.getById(id);
-    return db.update(cashflowClients).set({
-      name: data.name?.trim() ?? existing.name,
-      address: data.address !== undefined ? trimOrNull(data.address) : existing.address,
-      email: data.email !== undefined ? trimOrNull(data.email) : existing.email,
-      kvkNumber: data.kvkNumber !== undefined ? trimOrNull(data.kvkNumber) : existing.kvkNumber,
-      standardRate: data.standardRate !== undefined ? data.standardRate : existing.standardRate,
-      contractPdfPath: data.contractPdfPath !== undefined ? trimOrNull(data.contractPdfPath) : existing.contractPdfPath,
-      contractPdfName: data.contractPdfName !== undefined ? trimOrNull(data.contractPdfName) : existing.contractPdfName,
-    }).where(eq(cashflowClients.id, id)).returning().get();
+    return db
+      .update(cashflowClients)
+      .set({
+        name: data.name?.trim() ?? existing.name,
+        address: data.address !== undefined ? trimOrNull(data.address) : existing.address,
+        email: data.email !== undefined ? trimOrNull(data.email) : existing.email,
+        kvkNumber: data.kvkNumber !== undefined ? trimOrNull(data.kvkNumber) : existing.kvkNumber,
+        standardRate: data.standardRate !== undefined ? data.standardRate : existing.standardRate,
+        contractPdfPath:
+          data.contractPdfPath !== undefined ? trimOrNull(data.contractPdfPath) : existing.contractPdfPath,
+        contractPdfName:
+          data.contractPdfName !== undefined ? trimOrNull(data.contractPdfName) : existing.contractPdfName,
+      })
+      .where(eq(cashflowClients.id, id))
+      .returning()
+      .get();
   }
 
   remove(id: number) {

@@ -29,8 +29,14 @@ describe("parseDnfLine dnf5", () => {
   });
   test("installing, cleanup, verifying", () => {
     expect(run(["Running transaction"]).phase).toBe("installing");
-    expect(run(["[ 5/80] Upgrading foo-2.0-1.fc44.x86_64   100% | 1.0 MiB/s"])).toEqual({ phase: "installing", progress: { current: 5, total: 80 } });
-    expect(run(["[60/80] Removing foo-1.0-1.fc44.x86_64   100%"])).toEqual({ phase: "cleanup", progress: { current: 60, total: 80 } });
+    expect(run(["[ 5/80] Upgrading foo-2.0-1.fc44.x86_64   100% | 1.0 MiB/s"])).toEqual({
+      phase: "installing",
+      progress: { current: 5, total: 80 },
+    });
+    expect(run(["[60/80] Removing foo-1.0-1.fc44.x86_64   100%"])).toEqual({
+      phase: "cleanup",
+      progress: { current: 60, total: 80 },
+    });
     expect(run(["[ 1/80] Verify package files   100%"]).phase).toBe("verifying");
   });
   test("complete and nothing", () => {
@@ -44,11 +50,23 @@ describe("parseDnfLine dnf4", () => {
     expect(run(["Last metadata expiration check: 0:10:00 ago on Mon."]).phase).toBe("repositories");
     expect(run(["Dependencies resolved."]).phase).toBe("resolving");
     expect(run(["Downloading Packages:"]).phase).toBe("downloading");
-    expect(run(["(3/40): foo-1.2.x86_64.rpm   2.0 MB/s | 1 MB  00:00"])).toEqual({ phase: "downloading", progress: { current: 3, total: 40 } });
+    expect(run(["(3/40): foo-1.2.x86_64.rpm   2.0 MB/s | 1 MB  00:00"])).toEqual({
+      phase: "downloading",
+      progress: { current: 3, total: 40 },
+    });
     expect(run(["Running transaction"]).phase).toBe("installing");
-    expect(run(["  Upgrading        : foo-2.0.x86_64     5/80"])).toEqual({ phase: "installing", progress: { current: 5, total: 80 } });
-    expect(run(["  Cleanup          : foo-1.0.x86_64    12/80"])).toEqual({ phase: "cleanup", progress: { current: 12, total: 80 } });
-    expect(run(["  Verifying        : foo-2.0.x86_64    20/80"])).toEqual({ phase: "verifying", progress: { current: 20, total: 80 } });
+    expect(run(["  Upgrading        : foo-2.0.x86_64     5/80"])).toEqual({
+      phase: "installing",
+      progress: { current: 5, total: 80 },
+    });
+    expect(run(["  Cleanup          : foo-1.0.x86_64    12/80"])).toEqual({
+      phase: "cleanup",
+      progress: { current: 12, total: 80 },
+    });
+    expect(run(["  Verifying        : foo-2.0.x86_64    20/80"])).toEqual({
+      phase: "verifying",
+      progress: { current: 20, total: 80 },
+    });
     expect(run(["Complete!"]).phase).toBe("complete");
     expect(run(["Nothing to do."]).phase).toBe("nothing");
   });
@@ -86,7 +104,12 @@ async function waitDone(svc: PulseSystemUpdate) {
 describe("PulseSystemUpdate", () => {
   test("success lifecycle", async () => {
     const svc = new PulseSystemUpdate(() =>
-      fakeProcess("Updating and loading repositories:\nDownloading Packages:\n(1/2): a.rpm\nRunning transaction\n  Upgrading : a 1/2\nComplete!\n", "", 0, 10),
+      fakeProcess(
+        "Updating and loading repositories:\nDownloading Packages:\n(1/2): a.rpm\nRunning transaction\n  Upgrading : a 1/2\nComplete!\n",
+        "",
+        0,
+        10,
+      ),
     );
     expect(svc.getState().status).toBe("idle");
     const s = svc.start();

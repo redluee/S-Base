@@ -4,7 +4,9 @@ import { users } from "./auth";
 
 export const minorVacations = sqliteTable("minor_vacations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   name: text("name").notNull(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
@@ -13,7 +15,9 @@ export const minorVacations = sqliteTable("minor_vacations", {
 
 export const minorStoryTypes = sqliteTable("minor_story_types", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   code: text("code").notNull(),
   name: text("name").notNull(),
   description: text("description"),
@@ -25,7 +29,9 @@ export const minorStoryTypes = sqliteTable("minor_story_types", {
 
 export const minorSprints = sqliteTable("minor_sprints", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   sprintNumber: text("sprint_number").notNull(),
   name: text("name").notNull(),
   startDate: text("start_date").notNull(),
@@ -42,7 +48,9 @@ export const minorSprints = sqliteTable("minor_sprints", {
 export const minorStories = sqliteTable("minor_stories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   sprintId: integer("sprint_id").references(() => minorSprints.id, { onDelete: "set null" }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   storyTypeCode: text("story_type_code").notNull().default("US"),
   storyNumber: text("story_number"),
   title: text("title").notNull(),
@@ -58,7 +66,9 @@ export const minorStories = sqliteTable("minor_stories", {
 
 export const minorStoryCriteria = sqliteTable("minor_story_criteria", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  storyId: integer("story_id").notNull().references(() => minorStories.id, { onDelete: "cascade" }),
+  storyId: integer("story_id")
+    .notNull()
+    .references(() => minorStories.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // acceptance | quality
   orderIndex: integer("order_index").notNull().default(1),
   indent: integer("indent").notNull().default(0),
@@ -68,7 +78,9 @@ export const minorStoryCriteria = sqliteTable("minor_story_criteria", {
 
 export const minorStoryEvidence = sqliteTable("minor_story_evidence", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  storyId: integer("story_id").notNull().references(() => minorStories.id, { onDelete: "cascade" }),
+  storyId: integer("story_id")
+    .notNull()
+    .references(() => minorStories.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // link | github | document | app
   title: text("title").notNull(),
   url: text("url").notNull(),
@@ -77,7 +89,9 @@ export const minorStoryEvidence = sqliteTable("minor_story_evidence", {
 
 export const minorSelfEvaluations = sqliteTable("minor_self_evaluations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  sprintId: integer("sprint_id").notNull().references(() => minorSprints.id, { onDelete: "cascade" }),
+  sprintId: integer("sprint_id")
+    .notNull()
+    .references(() => minorSprints.id, { onDelete: "cascade" }),
   learningOutcome: integer("learning_outcome").notNull(), // 1, 2, 3, 4, 5
   level: text("level").notNull().default("-"), // V | NV | -
   argumentation: text("argumentation"),
@@ -86,7 +100,9 @@ export const minorSelfEvaluations = sqliteTable("minor_self_evaluations", {
 
 export const minorTeacherAssessments = sqliteTable("minor_teacher_assessments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  sprintId: integer("sprint_id").notNull().references(() => minorSprints.id, { onDelete: "cascade" }),
+  sprintId: integer("sprint_id")
+    .notNull()
+    .references(() => minorSprints.id, { onDelete: "cascade" }),
   learningOutcome: integer("learning_outcome").notNull(), // 1, 2, 3, 4, 5
   assessment: text("assessment").notNull().default("-"), // V | O | -
   notes: text("notes"),
@@ -95,7 +111,9 @@ export const minorTeacherAssessments = sqliteTable("minor_teacher_assessments", 
 
 export const minorFeedbackEntries = sqliteTable("minor_feedback_entries", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  sprintId: integer("sprint_id").notNull().references(() => minorSprints.id, { onDelete: "cascade" }),
+  sprintId: integer("sprint_id")
+    .notNull()
+    .references(() => minorSprints.id, { onDelete: "cascade" }),
   date: text("date").notNull(),
   fromWhom: text("from_whom").notNull(),
   feedback: text("feedback").notNull(),
@@ -106,7 +124,9 @@ export const minorFeedbackEntries = sqliteTable("minor_feedback_entries", {
 
 export const minorReflections = sqliteTable("minor_reflections", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  sprintId: integer("sprint_id").notNull().references(() => minorSprints.id, { onDelete: "cascade" }),
+  sprintId: integer("sprint_id")
+    .notNull()
+    .references(() => minorSprints.id, { onDelete: "cascade" }),
   date: text("date").notNull(),
   whatLearned: text("what_learned"),
   whatRetained: text("what_retained"),
@@ -116,14 +136,18 @@ export const minorReflections = sqliteTable("minor_reflections", {
 });
 
 export const minorSettings = sqliteTable("minor_settings", {
-  userId: integer("user_id").primaryKey().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.userId, { onDelete: "cascade" }),
   portfolioUrl: text("portfolio_url"),
   lastName: text("last_name"),
 });
 
 export const minorPeerHelp = sqliteTable("minor_peer_help", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   sprintId: integer("sprint_id").references(() => minorSprints.id, { onDelete: "set null" }),
   date: text("date").notNull(),
   peerName: text("peer_name").notNull(),

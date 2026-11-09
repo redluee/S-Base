@@ -59,11 +59,14 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
       body: t.Object({ transactionId: t.Number(), cadence: t.String() }),
     })
     .get("/subscriptions", ({ userId }) => finance.subscriptions.list(userId))
-    .get("/subscriptions/:id/transactions", ({ userId, params, query }) =>
-      finance.subscriptions.subscriptionTransactions(userId, params.id, query), {
-      params: keyParams,
-      query: pageQuery,
-    })
+    .get(
+      "/subscriptions/:id/transactions",
+      ({ userId, params, query }) => finance.subscriptions.subscriptionTransactions(userId, params.id, query),
+      {
+        params: keyParams,
+        query: pageQuery,
+      },
+    )
     .put("/subscriptions/name", ({ userId, body }) => finance.subscriptions.renameSubscription(userId, body), {
       body: t.Object({ ...subscriptionId, name: t.String() }),
     })

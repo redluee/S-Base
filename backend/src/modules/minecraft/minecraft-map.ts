@@ -66,7 +66,8 @@ export class MinecraftMap {
     const cleanSubpath = (subpath || "").replace(/^\/+/, "") || "index.html";
 
     let targetFile = resolve(resolvedWebDir, cleanSubpath);
-    if (targetFile !== resolvedWebDir && !targetFile.startsWith(resolvedWebDir + sep)) throw new ValidationError("minecraft.invalidPath");
+    if (targetFile !== resolvedWebDir && !targetFile.startsWith(resolvedWebDir + sep))
+      throw new ValidationError("minecraft.invalidPath");
 
     try {
       if ((await stat(targetFile)).isDirectory()) targetFile = join(targetFile, "index.html");
@@ -74,7 +75,9 @@ export class MinecraftMap {
       const isGzip = targetFile.endsWith(".gz");
       let contentType = "application/octet-stream";
       if (isGzip) {
-        contentType = targetFile.endsWith(".pl3xmap.gz") ? "application/octet-stream" : "application/json; charset=utf-8";
+        contentType = targetFile.endsWith(".pl3xmap.gz")
+          ? "application/octet-stream"
+          : "application/json; charset=utf-8";
       } else {
         const ext = targetFile.slice(targetFile.lastIndexOf(".")).toLowerCase();
         contentType = MIME_TYPES[ext] || "application/octet-stream";

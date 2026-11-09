@@ -10,20 +10,21 @@ export class CashflowProjects {
     const conditions: SQL[] = [eq(cashflowClients.userId, userId)];
     if (clientId) conditions.push(eq(cashflowProjects.clientId, clientId));
 
-    return db.select({
-      id: cashflowProjects.id,
-      name: cashflowProjects.name,
-      description: cashflowProjects.description,
-      location: cashflowProjects.location,
-      createdAt: cashflowProjects.createdAt,
-      clientId: cashflowClients.id,
-      clientName: cashflowClients.name,
-      clientEmail: cashflowClients.email,
-      tradeNameId: cashflowTradeNames.id,
-      tradeNameDisplay: cashflowTradeNames.displayName,
-      invoiceCount: sql<number>`(SELECT COUNT(*) FROM cashflow_invoices WHERE project_id = ${cashflowProjects.id})`,
-      totalBilled: sql<number>`(SELECT COALESCE(SUM(il.total_cost), 0) FROM cashflow_invoice_lines il INNER JOIN cashflow_invoices i ON il.invoice_id = i.id WHERE i.project_id = ${cashflowProjects.id} AND i.status = 'paid')`,
-    })
+    return db
+      .select({
+        id: cashflowProjects.id,
+        name: cashflowProjects.name,
+        description: cashflowProjects.description,
+        location: cashflowProjects.location,
+        createdAt: cashflowProjects.createdAt,
+        clientId: cashflowClients.id,
+        clientName: cashflowClients.name,
+        clientEmail: cashflowClients.email,
+        tradeNameId: cashflowTradeNames.id,
+        tradeNameDisplay: cashflowTradeNames.displayName,
+        invoiceCount: sql<number>`(SELECT COUNT(*) FROM cashflow_invoices WHERE project_id = ${cashflowProjects.id})`,
+        totalBilled: sql<number>`(SELECT COALESCE(SUM(il.total_cost), 0) FROM cashflow_invoice_lines il INNER JOIN cashflow_invoices i ON il.invoice_id = i.id WHERE i.project_id = ${cashflowProjects.id} AND i.status = 'paid')`,
+      })
       .from(cashflowProjects)
       .innerJoin(cashflowClients, eq(cashflowProjects.clientId, cashflowClients.id))
       .leftJoin(cashflowTradeNames, eq(cashflowProjects.tradeNameId, cashflowTradeNames.id))
@@ -33,24 +34,25 @@ export class CashflowProjects {
   }
 
   getById(id: number) {
-    const row = db.select({
-      id: cashflowProjects.id,
-      name: cashflowProjects.name,
-      description: cashflowProjects.description,
-      location: cashflowProjects.location,
-      createdAt: cashflowProjects.createdAt,
-      clientId: cashflowClients.id,
-      clientName: cashflowClients.name,
-      clientAddress: cashflowClients.address,
-      clientEmail: cashflowClients.email,
-      clientKvk: cashflowClients.kvkNumber,
-      standardRate: cashflowClients.standardRate,
-      tradeNameId: cashflowTradeNames.id,
-      tradeNameDisplay: cashflowTradeNames.displayName,
-      tradeNameAddress: cashflowTradeNames.address,
-      tradeNameIban: cashflowTradeNames.iban,
-      tradeNameKvk: cashflowTradeNames.kvkNumber,
-    })
+    const row = db
+      .select({
+        id: cashflowProjects.id,
+        name: cashflowProjects.name,
+        description: cashflowProjects.description,
+        location: cashflowProjects.location,
+        createdAt: cashflowProjects.createdAt,
+        clientId: cashflowClients.id,
+        clientName: cashflowClients.name,
+        clientAddress: cashflowClients.address,
+        clientEmail: cashflowClients.email,
+        clientKvk: cashflowClients.kvkNumber,
+        standardRate: cashflowClients.standardRate,
+        tradeNameId: cashflowTradeNames.id,
+        tradeNameDisplay: cashflowTradeNames.displayName,
+        tradeNameAddress: cashflowTradeNames.address,
+        tradeNameIban: cashflowTradeNames.iban,
+        tradeNameKvk: cashflowTradeNames.kvkNumber,
+      })
       .from(cashflowProjects)
       .innerJoin(cashflowClients, eq(cashflowProjects.clientId, cashflowClients.id))
       .leftJoin(cashflowTradeNames, eq(cashflowProjects.tradeNameId, cashflowTradeNames.id))
@@ -70,24 +72,33 @@ export class CashflowProjects {
     const name = data.name?.trim();
     if (!name) throw new ValidationError("cashflow.projectNameRequired");
     if (data.clientId === undefined) throw new ValidationError("cashflow.clientRequired");
-    return db.insert(cashflowProjects).values({
-      clientId: data.clientId,
-      tradeNameId: data.tradeNameId ?? null,
-      name,
-      description: trimOrNull(data.description),
-      location: trimOrNull(data.location),
-    }).returning().get();
+    return db
+      .insert(cashflowProjects)
+      .values({
+        clientId: data.clientId,
+        tradeNameId: data.tradeNameId ?? null,
+        name,
+        description: trimOrNull(data.description),
+        location: trimOrNull(data.location),
+      })
+      .returning()
+      .get();
   }
 
   update(id: number, data: ProjectInput) {
     const existing = this.findRow(id);
-    return db.update(cashflowProjects).set({
-      clientId: data.clientId ?? existing.clientId,
-      tradeNameId: data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId,
-      name: data.name?.trim() ?? existing.name,
-      description: data.description !== undefined ? trimOrNull(data.description) : existing.description,
-      location: data.location !== undefined ? trimOrNull(data.location) : existing.location,
-    }).where(eq(cashflowProjects.id, id)).returning().get();
+    return db
+      .update(cashflowProjects)
+      .set({
+        clientId: data.clientId ?? existing.clientId,
+        tradeNameId: data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId,
+        name: data.name?.trim() ?? existing.name,
+        description: data.description !== undefined ? trimOrNull(data.description) : existing.description,
+        location: data.location !== undefined ? trimOrNull(data.location) : existing.location,
+      })
+      .where(eq(cashflowProjects.id, id))
+      .returning()
+      .get();
   }
 
   remove(id: number, deleteInvoices = false) {

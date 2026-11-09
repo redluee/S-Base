@@ -144,12 +144,20 @@ describe("AuthService", () => {
     db.update(users).set({ lastLoginAt: recentTime }).where(eq(users.userId, adminId)).run();
     authService.logLastLogin(adminId, false);
 
-    const userAfterUnforced = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    const userAfterUnforced = db
+      .select({ lastLoginAt: users.lastLoginAt })
+      .from(users)
+      .where(eq(users.userId, adminId))
+      .get();
     expect(userAfterUnforced?.lastLoginAt).toBe(recentTime);
 
     // With force = true, lastLoginAt is updated immediately
     authService.logLastLogin(adminId, true);
-    const userAfterForced = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    const userAfterForced = db
+      .select({ lastLoginAt: users.lastLoginAt })
+      .from(users)
+      .where(eq(users.userId, adminId))
+      .get();
     expect(userAfterForced?.lastLoginAt).not.toBe(recentTime);
     expect(new Date(userAfterForced!.lastLoginAt!).getTime()).toBeGreaterThan(new Date(recentTime).getTime());
 
@@ -157,7 +165,11 @@ describe("AuthService", () => {
     const oldTime = new Date(Date.now() - 15 * 60 * 1000).toISOString(); // 15 minutes ago
     db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, adminId)).run();
     authService.logLastLogin(adminId, false);
-    const userAfterOld = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
+    const userAfterOld = db
+      .select({ lastLoginAt: users.lastLoginAt })
+      .from(users)
+      .where(eq(users.userId, adminId))
+      .get();
     expect(userAfterOld?.lastLoginAt).not.toBe(oldTime);
   });
 
@@ -174,7 +186,11 @@ describe("AuthService", () => {
     const impersonated = authService.impersonateUser(adminId, testerId);
     if (!impersonated.ok) throw new Error("impersonation failed");
     authService.validateSession(impersonated.newSessionId);
-    const afterImpersonation = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, testerId)).get();
+    const afterImpersonation = db
+      .select({ lastLoginAt: users.lastLoginAt })
+      .from(users)
+      .where(eq(users.userId, testerId))
+      .get();
     expect(afterImpersonation?.lastLoginAt).toBe(oldTime);
   });
 });

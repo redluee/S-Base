@@ -31,14 +31,12 @@ export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS
   // If _migrations is completely empty, check if this is an existing database (e.g. users table exists)
   // Register the known legacy baseline, then apply newer additive migrations normally
   if (appliedSet.size === 0) {
-    const userTableExists = sqlite
-      .query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-      .get();
+    const userTableExists = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
 
     if (userTableExists) {
       console.log("Existing database detected without migration tracking. Recording current migrations as applied...");
       const insertStmt = sqlite.prepare("INSERT INTO _migrations (name) VALUES (?)");
-      const legacyFiles = sqlFiles.filter(file => file <= LEGACY_BASELINE_END);
+      const legacyFiles = sqlFiles.filter((file) => file <= LEGACY_BASELINE_END);
       for (const file of legacyFiles) {
         insertStmt.run(file);
         appliedSet.add(file);

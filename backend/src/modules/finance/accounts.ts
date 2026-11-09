@@ -25,13 +25,9 @@ export class FinanceAccounts {
   }
   data(userId: number): FinanceData {
     return {
-      monthlyBudgetCents: db.select().from(settings).where(eq(settings.userId, userId)).get()?.monthlyBudgetCents ?? null,
-      accounts: db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.userId, userId))
-        .orderBy(asc(accounts.id))
-        .all(),
+      monthlyBudgetCents:
+        db.select().from(settings).where(eq(settings.userId, userId)).get()?.monthlyBudgetCents ?? null,
+      accounts: db.select().from(accounts).where(eq(accounts.userId, userId)).orderBy(asc(accounts.id)).all(),
       observations: db
         .select({
           id: observations.id,
@@ -44,12 +40,7 @@ export class FinanceAccounts {
         .where(eq(accounts.userId, userId))
         .orderBy(asc(observations.date))
         .all(),
-      goals: db
-        .select()
-        .from(goals)
-        .where(eq(goals.userId, userId))
-        .orderBy(asc(goals.id))
-        .all(),
+      goals: db.select().from(goals).where(eq(goals.userId, userId)).orderBy(asc(goals.id)).all(),
       allocations: db
         .select({
           goalId: allocations.goalId,
@@ -66,20 +57,12 @@ export class FinanceAccounts {
   }
   history(userId: number, id: number) {
     this.account(userId, id);
-    return db
-      .select()
-      .from(observations)
-      .where(eq(observations.accountId, id))
-      .orderBy(asc(observations.date))
-      .all();
+    return db.select().from(observations).where(eq(observations.accountId, id)).orderBy(asc(observations.date)).all();
   }
   createAccount(userId: number, input: unknown) {
     const { openingBalanceCents, ...data } = accountInput(input);
     return db.transaction((tx) => {
-      if (
-        tx.select().from(accounts).where(eq(accounts.userId, userId)).all()
-          .length >= 200
-      )
+      if (tx.select().from(accounts).where(eq(accounts.userId, userId)).all().length >= 200)
         throw new ValidationError("finance.accountLimit");
       const account = tx
         .insert(accounts)
@@ -112,19 +95,10 @@ export class FinanceAccounts {
       )
         throw new ConflictError("finance.releaseFirst");
       if (data.openingDate !== account.openingDate) {
-        if (
-          history.some(
-            (o) => o.date !== account.openingDate && o.date <= data.openingDate,
-          )
-        )
+        if (history.some((o) => o.date !== account.openingDate && o.date <= data.openingDate))
           throw new ConflictError("finance.openingConflict");
         tx.delete(observations)
-          .where(
-            and(
-              eq(observations.accountId, id),
-              eq(observations.date, account.openingDate),
-            ),
-          )
+          .where(and(eq(observations.accountId, id), eq(observations.date, account.openingDate)))
           .run();
       }
       tx.insert(observations)
@@ -161,8 +135,7 @@ export class FinanceAccounts {
   archiveAccount(userId: number, id: number, input: unknown) {
     this.account(userId, id);
     const { archived } = requireObject(input);
-    if (typeof archived !== "boolean")
-      throw new ValidationError("finance.invalidArchive");
+    if (typeof archived !== "boolean") throw new ValidationError("finance.invalidArchive");
     return db
       .update(accounts)
       .set({ archived })
@@ -173,19 +146,14 @@ export class FinanceAccounts {
   setBalances(userId: number, input: unknown) {
     const data = requireObject(input),
       date = calendarDate(data.date);
-    if (
-      !Array.isArray(data.entries) ||
-      data.entries.length < 1 ||
-      data.entries.length > 200
-    )
+    if (!Array.isArray(data.entries) || data.entries.length < 1 || data.entries.length > 200)
       throw new ValidationError("finance.chooseBalance");
     const entries = data.entries.map((value: unknown) => {
       const entry = requireObject(value);
       return {
         accountId: requireId(entry.accountId),
         balanceCents: cents(entry.balanceCents),
-        expectedCents:
-          entry.expectedCents === null ? null : cents(entry.expectedCents),
+        expectedCents: entry.expectedCents === null ? null : cents(entry.expectedCents),
       };
     });
     if (new Set(entries.map((e) => e.accountId)).size !== entries.length)
@@ -193,20 +161,13 @@ export class FinanceAccounts {
     return db.transaction((tx) => {
       for (const entry of entries) {
         const account = this.account(userId, entry.accountId);
-        if (date < account.openingDate)
-          throw new ValidationError("finance.beforeOpening");
+        if (date < account.openingDate) throw new ValidationError("finance.beforeOpening");
         const existing = tx
           .select()
           .from(observations)
-          .where(
-            and(
-              eq(observations.accountId, account.id),
-              eq(observations.date, date),
-            ),
-          )
+          .where(and(eq(observations.accountId, account.id), eq(observations.date, date)))
           .get();
-        if ((existing?.balanceCents ?? null) !== entry.expectedCents)
-          throw new ConflictError("finance.staleBalance");
+        if ((existing?.balanceCents ?? null) !== entry.expectedCents) throw new ConflictError("finance.staleBalance");
         tx.insert(observations)
           .values({
             accountId: account.id,

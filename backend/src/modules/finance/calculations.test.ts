@@ -5,15 +5,21 @@ import { dashboard } from "./calculations";
 const accounts: FinanceAccount[] = [
   { id: 1, name: "Sample account", bank: null, type: "current", openingDate: "2020-01-01", archived: false },
 ];
-const balance = (date: string, balanceCents: number): FinanceObservation => ({ id: 1, accountId: 1, date, balanceCents });
+const balance = (date: string, balanceCents: number): FinanceObservation => ({
+  id: 1,
+  accountId: 1,
+  date,
+  balanceCents,
+});
 
 describe("Inclusive calendar period balance changes", () => {
   it("includes the first day's change while keeping chart dates inside the month", () => {
-    const report = dashboard(accounts, [
-      balance("2025-04-30", 10000),
-      balance("2025-05-01", 11500),
-      balance("2025-05-15", 12000),
-    ], "month", "2025-05-15");
+    const report = dashboard(
+      accounts,
+      [balance("2025-04-30", 10000), balance("2025-05-01", 11500), balance("2025-05-15", 12000)],
+      "month",
+      "2025-05-15",
+    );
 
     expect(report.startDate).toBe("2025-05-01");
     expect(report.start.date).toBe("2025-04-30");
@@ -35,15 +41,23 @@ describe("Inclusive calendar period balance changes", () => {
   });
 
   it("uses February 29 as the March baseline in a leap year", () => {
-    const report = dashboard(accounts, [
-      balance("2024-02-28", 10000), balance("2024-02-29", 12000), balance("2024-03-01", 13000),
-    ], "month", "2024-03-01");
+    const report = dashboard(
+      accounts,
+      [balance("2024-02-28", 10000), balance("2024-02-29", 12000), balance("2024-03-01", 13000)],
+      "month",
+      "2024-03-01",
+    );
     expect(report.start.date).toBe("2024-02-29");
     expect(report.comparison.changeCents).toBe(1000);
   });
 
   it("reports missing coverage instead of using the first day's closing balance as a baseline", () => {
-    const report = dashboard(accounts, [balance("2025-05-01", 11500), balance("2025-05-15", 12000)], "month", "2025-05-15");
+    const report = dashboard(
+      accounts,
+      [balance("2025-05-01", 11500), balance("2025-05-15", 12000)],
+      "month",
+      "2025-05-15",
+    );
     expect(report.comparison.changeCents).toBeNull();
     expect(report.comparison.reason).toBe("coverage");
   });
@@ -67,8 +81,9 @@ describe("Inclusive calendar period balance changes", () => {
     const year = dashboard(cohort, observations, "year", "2025-06-30");
     const month = dashboard(cohort, observations, "month", "2025-05-31");
     for (const report of [year, month]) {
-      expect(report.history).toEqual(all.history.filter((point) =>
-        point.date >= report.startDate && point.date <= report.endDate));
+      expect(report.history).toEqual(
+        all.history.filter((point) => point.date >= report.startDate && point.date <= report.endDate),
+      );
       for (const point of report.history) {
         expect(point.totalCents).toBe(point.accounts.reduce((sum, account) => sum + account.balanceCents!, 0));
       }

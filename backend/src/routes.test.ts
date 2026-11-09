@@ -76,11 +76,15 @@ describe("Elysia API Routes", () => {
     expect(winesRes.status).toBe(200);
 
     // Test /api/workouts/templates
-    const workoutRes = await app.handle(new Request("http://localhost/api/workouts/templates", { headers: { Cookie: cookie } }));
+    const workoutRes = await app.handle(
+      new Request("http://localhost/api/workouts/templates", { headers: { Cookie: cookie } }),
+    );
     expect(workoutRes.status).toBe(200);
 
     // Test /api/cashflow/clients
-    const cashflowRes = await app.handle(new Request("http://localhost/api/cashflow/clients", { headers: { Cookie: cookie } }));
+    const cashflowRes = await app.handle(
+      new Request("http://localhost/api/cashflow/clients", { headers: { Cookie: cookie } }),
+    );
     expect(cashflowRes.status).toBe(200);
 
     // Test /api/pulse/users
@@ -94,31 +98,37 @@ describe("Elysia API Routes", () => {
     await mkdir(join(srvDir, "mods"), { recursive: true });
     const { default: db } = await import("./db/client");
     const { mc_servers } = await import("./db/schema");
-    db.insert(mc_servers).values({
-      slug: "route-test-srv",
-      displayName: "Route Test Server",
-      engine: "fabric",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "route-test-srv",
+        displayName: "Route Test Server",
+        engine: "fabric",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     const formData = new FormData();
     formData.append("files", new File([new TextEncoder().encode("mod-a")], "mod-a.jar"));
     formData.append("files", new File([new TextEncoder().encode("mod-b")], "mod-b.jar"));
 
-    const uploadRes = await app.handle(new Request("http://localhost/api/minecraft/servers/route-test-srv/files/mods", {
-      method: "POST",
-      headers: { Cookie: cookie },
-      body: formData,
-    }));
+    const uploadRes = await app.handle(
+      new Request("http://localhost/api/minecraft/servers/route-test-srv/files/mods", {
+        method: "POST",
+        headers: { Cookie: cookie },
+        body: formData,
+      }),
+    );
     expect(uploadRes.status).toBe(200);
     const uploadJson = (await uploadRes.json()) as { ok: boolean; count: number };
     expect(uploadJson.ok).toBe(true);
     expect(uploadJson.count).toBe(2);
 
-    const listRes = await app.handle(new Request("http://localhost/api/minecraft/servers/route-test-srv/files/mods", {
-      headers: { Cookie: cookie },
-    }));
+    const listRes = await app.handle(
+      new Request("http://localhost/api/minecraft/servers/route-test-srv/files/mods", {
+        headers: { Cookie: cookie },
+      }),
+    );
     expect(listRes.status).toBe(200);
     const listJson = (await listRes.json()) as unknown[];
     expect(listJson.length).toBe(2);
@@ -167,76 +177,98 @@ describe("Elysia API Routes", () => {
     const adminMatch = adminCookieHeader.match(/session_id=([^;]+)/);
     const restoredAdminCookie = `session_id=${adminMatch ? adminMatch[1] : ""}`;
 
-    const finalMeRes = await app.handle(new Request("http://localhost/api/auth/me", { headers: { Cookie: restoredAdminCookie } }));
+    const finalMeRes = await app.handle(
+      new Request("http://localhost/api/auth/me", { headers: { Cookie: restoredAdminCookie } }),
+    );
     const finalMeJson = (await finalMeRes.json()) as { user: { username: string; isImpersonated: boolean } };
     expect(finalMeJson.user.username).toBe("admin");
     expect(finalMeJson.user.isImpersonated).toBe(false);
 
     // Test Server-specific monitor access
     // Give tester only "minecraft:monitor" and grant access only to "route-test-srv"
-    const { modules: modulesTable, usermodulepermissions: permsTable, mc_servers: srvTable } = await import("./db/schema");
+    const {
+      modules: modulesTable,
+      usermodulepermissions: permsTable,
+      mc_servers: srvTable,
+    } = await import("./db/schema");
     const fullMcMod = db.select().from(modulesTable).where(eq(modulesTable.moduleName, "minecraft")).get();
     if (fullMcMod) {
-      db.delete(permsTable).where(and(eq(permsTable.userId, testerId), eq(permsTable.moduleId, fullMcMod.moduleId))).run();
+      db.delete(permsTable)
+        .where(and(eq(permsTable.userId, testerId), eq(permsTable.moduleId, fullMcMod.moduleId)))
+        .run();
     }
     const monitorMod = db.select().from(modulesTable).where(eq(modulesTable.moduleName, "minecraft:monitor")).get();
     if (monitorMod) {
       db.insert(permsTable).values({ userId: testerId, moduleId: monitorMod.moduleId }).run();
     }
 
-    db.insert(srvTable).values({
-      slug: "other-private-srv",
-      displayName: "Private Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: "/tmp/other-srv",
-    }).run();
+    db.insert(srvTable)
+      .values({
+        slug: "other-private-srv",
+        displayName: "Private Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: "/tmp/other-srv",
+      })
+      .run();
 
     // Admin updates tester's server permissions to only allow route-test-srv
-    const setServersRes = await app.handle(new Request(`http://localhost/api/pulse/users/${testerId}/servers`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Cookie: restoredAdminCookie },
-      body: JSON.stringify({ servers: ["route-test-srv"] }),
-    }));
+    const setServersRes = await app.handle(
+      new Request(`http://localhost/api/pulse/users/${testerId}/servers`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Cookie: restoredAdminCookie },
+        body: JSON.stringify({ servers: ["route-test-srv"] }),
+      }),
+    );
     expect(setServersRes.status).toBe(200);
 
     // Login as tester
-    const testerLoginRes = await app.handle(new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "tester", password: "tester" }),
-    }));
+    const testerLoginRes = await app.handle(
+      new Request("http://localhost/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "tester", password: "tester" }),
+      }),
+    );
     expect(testerLoginRes.status).toBe(200);
     const testerCookieHeader = testerLoginRes.headers.get("set-cookie") || "";
     const testerMatch = testerCookieHeader.match(/session_id=([^;]+)/);
     const testerCookie = `session_id=${testerMatch ? testerMatch[1] : ""}`;
 
     // Tester lists servers -> only route-test-srv should be returned
-    const testerServersRes = await app.handle(new Request("http://localhost/api/minecraft/servers", {
-      headers: { Cookie: testerCookie },
-    }));
+    const testerServersRes = await app.handle(
+      new Request("http://localhost/api/minecraft/servers", {
+        headers: { Cookie: testerCookie },
+      }),
+    );
     expect(testerServersRes.status).toBe(200);
     const testerServers = (await testerServersRes.json()) as Array<{ slug: string }>;
     expect(testerServers.length).toBe(1);
     expect(testerServers[0].slug).toBe("route-test-srv");
 
     // Tester accesses allowed server
-    const allowedSrvRes = await app.handle(new Request("http://localhost/api/minecraft/servers/route-test-srv", {
-      headers: { Cookie: testerCookie },
-    }));
+    const allowedSrvRes = await app.handle(
+      new Request("http://localhost/api/minecraft/servers/route-test-srv", {
+        headers: { Cookie: testerCookie },
+      }),
+    );
     expect(allowedSrvRes.status).toBe(200);
 
     // Tester accesses unauthorized server -> 403 Forbidden
-    const unauthSrvRes = await app.handle(new Request("http://localhost/api/minecraft/servers/other-private-srv", {
-      headers: { Cookie: testerCookie },
-    }));
+    const unauthSrvRes = await app.handle(
+      new Request("http://localhost/api/minecraft/servers/other-private-srv", {
+        headers: { Cookie: testerCookie },
+      }),
+    );
     expect(unauthSrvRes.status).toBe(403);
 
     // Tester attempts admin action (e.g. stop server) -> 403 Forbidden
-    const unauthStopRes = await app.handle(new Request("http://localhost/api/minecraft/servers/route-test-srv/stop", {
-      method: "POST",
-      headers: { Cookie: testerCookie },
-    }));
+    const unauthStopRes = await app.handle(
+      new Request("http://localhost/api/minecraft/servers/route-test-srv/stop", {
+        method: "POST",
+        headers: { Cookie: testerCookie },
+      }),
+    );
     expect(unauthStopRes.status).toBe(403);
   });
 });

@@ -4,7 +4,15 @@ export type RecipeStatus = (typeof RECIPE_STATUSES)[number];
 export const WINE_TYPES = ["red", "white", "rose", "sparkling", "dessert"] as const;
 export type WineType = (typeof WINE_TYPES)[number];
 
-export const PURCHASE_LOCATIONS = ["supermarket", "wine_shop", "winery", "online", "restaurant", "gift", "other"] as const;
+export const PURCHASE_LOCATIONS = [
+  "supermarket",
+  "wine_shop",
+  "winery",
+  "online",
+  "restaurant",
+  "gift",
+  "other",
+] as const;
 export type PurchaseLocation = (typeof PURCHASE_LOCATIONS)[number];
 
 export function isRecipeStatus(value: unknown): value is RecipeStatus {

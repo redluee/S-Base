@@ -18,16 +18,25 @@ export class FinanceBudget {
   setMonthlyBudget(userId: number, input: unknown) {
     const value = requireObject(input).monthlyBudgetCents;
     const monthlyBudgetCents = value === null ? null : cents(value, 0);
-    db.insert(financeSettings).values({ userId, monthlyBudgetCents })
-      .onConflictDoUpdate({ target: financeSettings.userId, set: { monthlyBudgetCents } }).run();
+    db.insert(financeSettings)
+      .values({ userId, monthlyBudgetCents })
+      .onConflictDoUpdate({ target: financeSettings.userId, set: { monthlyBudgetCents } })
+      .run();
     return { monthlyBudgetCents };
   }
   private budgetEntries(userId: number, endDate: string) {
-    const subscriptionSources = new Set(this.subscriptions.list(userId, endDate).entries
-      .filter((entry) => entry.active).flatMap((entry) => entry.sourceKeys));
-    return this.transactions.periodTransactions(userId, `${endDate.slice(0, 7)}-01`, endDate)
-      .filter((entry) => entry.amountCents < 0 && !entry.internalTransfer
-        && !subscriptionSources.has(subscriptionSourceKey(entry)));
+    const subscriptionSources = new Set(
+      this.subscriptions
+        .list(userId, endDate)
+        .entries.filter((entry) => entry.active)
+        .flatMap((entry) => entry.sourceKeys),
+    );
+    return this.transactions
+      .periodTransactions(userId, `${endDate.slice(0, 7)}-01`, endDate)
+      .filter(
+        (entry) =>
+          entry.amountCents < 0 && !entry.internalTransfer && !subscriptionSources.has(subscriptionSourceKey(entry)),
+      );
   }
   budgetTransactions(userId: number, input: Record<string, unknown>) {
     const endDate = calendarDate(input.date ?? today());
@@ -38,25 +47,29 @@ export class FinanceBudget {
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
   dashboard(userId: number, period: unknown = "month", date: unknown = today()) {
-    if (period !== "month" && period !== "year" && period !== "all")
-      throw new ValidationError("finance.invalidPeriod");
+    if (period !== "month" && period !== "year" && period !== "all") throw new ValidationError("finance.invalidPeriod");
     const data = this.accounts.data(userId);
     const { monthlyBudgetCents } = data;
     const endDate = calendarDate(date);
     const { accounts, observations } = this.transactions.dashboardBalances(userId, data);
     const report = dashboard(accounts, observations, period, endDate);
     const activity = this.transactions.activity(userId, report.startDate, report.endDate);
-    const budgetSpendingCents = monthlyBudgetCents === null ? 0
-      : this.budgetEntries(userId, report.endDate).reduce((sum, entry) => sum - entry.amountCents, 0);
+    const budgetSpendingCents =
+      monthlyBudgetCents === null
+        ? 0
+        : this.budgetEntries(userId, report.endDate).reduce((sum, entry) => sum - entry.amountCents, 0);
     return {
       ...report,
       activity,
-      budget: monthlyBudgetCents === null ? null : {
-        month: report.endDate.slice(0, 7),
-        limitCents: monthlyBudgetCents,
-        spendingCents: budgetSpendingCents,
-        remainingCents: monthlyBudgetCents - budgetSpendingCents,
-      },
+      budget:
+        monthlyBudgetCents === null
+          ? null
+          : {
+              month: report.endDate.slice(0, 7),
+              limitCents: monthlyBudgetCents,
+              spendingCents: budgetSpendingCents,
+              remainingCents: monthlyBudgetCents - budgetSpendingCents,
+            },
     };
   }
 }

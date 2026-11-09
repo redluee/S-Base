@@ -9,8 +9,19 @@ import type { MeasurementSaveInput, MeasurementUpdateInput } from "./workout-sch
 import { invalidRequest, requireId, requireObject } from "./workout-validation";
 
 const MEASUREMENT_FIELDS = [
-  "height", "weight", "bodyFat", "skeletalMuscle", "fatMass", "waist",
-  "chest", "hips", "biceps", "thighs", "shoulders", "neck", "calves",
+  "height",
+  "weight",
+  "bodyFat",
+  "skeletalMuscle",
+  "fatMass",
+  "waist",
+  "chest",
+  "hips",
+  "biceps",
+  "thighs",
+  "shoulders",
+  "neck",
+  "calves",
 ] as const;
 
 const uploadsDir = join(import.meta.dir, "../../../uploads");
@@ -36,7 +47,9 @@ function validateMeasurementFields(input: Record<string, unknown>) {
 }
 
 function referencedElsewhere(filePath: string, excludePhotoIds: number[]) {
-  const rows = db.select({ photoId: measurementPhotos.photoId }).from(measurementPhotos)
+  const rows = db
+    .select({ photoId: measurementPhotos.photoId })
+    .from(measurementPhotos)
     .where(eq(measurementPhotos.filePath, filePath))
     .all();
   return rows.some((r) => !excludePhotoIds.includes(r.photoId));
@@ -54,15 +67,16 @@ async function removeUploadedFile(filePath: string) {
 
 export class WorkoutMeasurements {
   list(userId: number) {
-    const rows = db.select({
-      measurement: measurements,
-      photo: measurementPhotos,
-    })
-    .from(measurements)
-    .leftJoin(measurementPhotos, eq(measurements.measurementId, measurementPhotos.measurementId))
-    .where(eq(measurements.userId, userId))
-    .orderBy(desc(measurements.date), desc(measurements.createdAt))
-    .all();
+    const rows = db
+      .select({
+        measurement: measurements,
+        photo: measurementPhotos,
+      })
+      .from(measurements)
+      .leftJoin(measurementPhotos, eq(measurements.measurementId, measurementPhotos.measurementId))
+      .where(eq(measurements.userId, userId))
+      .orderBy(desc(measurements.date), desc(measurements.createdAt))
+      .all();
 
     const result: (typeof measurements.$inferSelect & { photos: (typeof measurementPhotos.$inferSelect)[] })[] = [];
     const map = new Map<number, (typeof result)[number]>();
@@ -79,12 +93,15 @@ export class WorkoutMeasurements {
   }
 
   getLatest(userId: number) {
-    return db.select()
-      .from(measurements)
-      .where(eq(measurements.userId, userId))
-      .orderBy(desc(measurements.date), desc(measurements.createdAt))
-      .limit(1)
-      .get() ?? null;
+    return (
+      db
+        .select()
+        .from(measurements)
+        .where(eq(measurements.userId, userId))
+        .orderBy(desc(measurements.date), desc(measurements.createdAt))
+        .limit(1)
+        .get() ?? null
+    );
   }
 
   getById(measurementId: number) {
@@ -97,7 +114,8 @@ export class WorkoutMeasurements {
   }
 
   isForeignPhoto(userId: number, filename: string) {
-    const rows = db.select({ userId: measurements.userId })
+    const rows = db
+      .select({ userId: measurements.userId })
       .from(measurementPhotos)
       .innerJoin(measurements, eq(measurementPhotos.measurementId, measurements.measurementId))
       .where(sql`${measurementPhotos.filePath} LIKE ${"%/" + filename}`)
@@ -109,7 +127,8 @@ export class WorkoutMeasurements {
     const input = requireObject(data);
     requireMeasurementDate(input.date);
     validateMeasurementFields(input);
-    const existing = db.select()
+    const existing = db
+      .select()
       .from(measurements)
       .where(and(eq(measurements.userId, userId), eq(measurements.date, data.date)))
       .get();
@@ -125,7 +144,8 @@ export class WorkoutMeasurements {
 
     const values: Record<string, unknown> = { userId, date: data.date };
     for (const field of MEASUREMENT_FIELDS) values[field] = data[field] ?? null;
-    const inserted = db.insert(measurements)
+    const inserted = db
+      .insert(measurements)
       .values(values as typeof measurements.$inferInsert)
       .returning()
       .get();
@@ -142,7 +162,9 @@ export class WorkoutMeasurements {
 
     const targetDate = data.date ?? existing.date;
     if (targetDate !== existing.date) {
-      const collision = db.select({ measurementId: measurements.measurementId }).from(measurements)
+      const collision = db
+        .select({ measurementId: measurements.measurementId })
+        .from(measurements)
         .where(and(eq(measurements.userId, userId), eq(measurements.date, targetDate)))
         .get();
       if (collision) {
@@ -165,7 +187,9 @@ export class WorkoutMeasurements {
     const measurementId = requireId(measurementIdRaw);
     if (!MEASUREMENT_PHOTO_PATTERN.test(filePath)) throw new ValidationError("workout.invalidPhotoPath");
     this.requireOwned(measurementId, userId);
-    const inUse = db.select({ id: measurementPhotos.photoId }).from(measurementPhotos)
+    const inUse = db
+      .select({ id: measurementPhotos.photoId })
+      .from(measurementPhotos)
       .where(eq(measurementPhotos.filePath, filePath))
       .get();
     if (inUse) throw new ValidationError("workout.photoInUse");
@@ -176,10 +200,11 @@ export class WorkoutMeasurements {
   async deletePhoto(photoIdRaw: unknown, userId: number) {
     const photoId = requireId(photoIdRaw);
     const photo = orNotFound(
-      db.select({
-        photoId: measurementPhotos.photoId,
-        filePath: measurementPhotos.filePath,
-      })
+      db
+        .select({
+          photoId: measurementPhotos.photoId,
+          filePath: measurementPhotos.filePath,
+        })
         .from(measurementPhotos)
         .innerJoin(measurements, eq(measurementPhotos.measurementId, measurements.measurementId))
         .where(and(eq(measurementPhotos.photoId, photoId), eq(measurements.userId, userId)))
@@ -208,7 +233,9 @@ export class WorkoutMeasurements {
 
   private requireOwned(measurementId: number, userId: number) {
     return orNotFound(
-      db.select().from(measurements)
+      db
+        .select()
+        .from(measurements)
         .where(and(eq(measurements.measurementId, measurementId), eq(measurements.userId, userId)))
         .get(),
       "workout.measurementNotFound",

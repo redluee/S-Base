@@ -26,16 +26,18 @@ describe("Minecraft properties and files", () => {
     await mkdir(join(srvDir, "mods"), { recursive: true });
     await mkdir(join(srvDir, "logs"), { recursive: true });
 
-    db.insert(mc_servers).values({
-      slug: "test-server-files",
-      displayName: "Files Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-server-files",
+        displayName: "Files Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     // Write properties
-    await minecraft.properties.write("test-server-files", { "online-mode": "false", "gamemode": "survival" }, srvDir);
+    await minecraft.properties.write("test-server-files", { "online-mode": "false", gamemode: "survival" }, srvDir);
     const props = await minecraft.properties.read("test-server-files");
     expect(props["online-mode"]).toBe("false");
     expect(props["gamemode"]).toBe("survival");
@@ -43,7 +45,7 @@ describe("Minecraft properties and files", () => {
     // File operations
     const dummyBuffer = new TextEncoder().encode("dummy mod content").buffer;
     await minecraft.files.upload("test-server-files", "mods", "test-mod.jar", dummyBuffer);
-    
+
     const files = await minecraft.files.list("test-server-files", "mods");
     expect(files.length).toBe(1);
     expect(files[0].name).toBe("test-mod.jar");
@@ -56,13 +58,19 @@ describe("Minecraft properties and files", () => {
     expect(filesAfter.length).toBe(0);
 
     // Startup error parsing
-    await writeFile(join(srvDir, "logs", "latest.log"), "[12:00:00] [Server thread/ERROR]: Failed to start server\n[12:00:01] [Server thread/FATAL]: Crash");
+    await writeFile(
+      join(srvDir, "logs", "latest.log"),
+      "[12:00:00] [Server thread/ERROR]: Failed to start server\n[12:00:01] [Server thread/FATAL]: Crash",
+    );
     const errorReport = await minecraft.diagnostics.startupError("test-server-files");
     expect(errorReport.lines.length).toBeGreaterThan(0);
-    expect(errorReport.lines.some(l => l.includes("ERROR"))).toBe(true);
+    expect(errorReport.lines.some((l) => l.includes("ERROR"))).toBe(true);
 
     // Clean shutdown logs should not be reported as startup error
-    await writeFile(join(srvDir, "logs", "latest.log"), "[20:07:45] [Server thread/INFO]: Stopping the server\n[20:07:45] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved");
+    await writeFile(
+      join(srvDir, "logs", "latest.log"),
+      "[20:07:45] [Server thread/INFO]: Stopping the server\n[20:07:45] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved",
+    );
     const cleanReport = await minecraft.diagnostics.startupError("test-server-files");
     expect(cleanReport.lines.length).toBe(0);
 
@@ -74,13 +82,15 @@ describe("Minecraft properties and files", () => {
     const srvDir = join(testDir, "test-server-live-props");
     await mkdir(srvDir, { recursive: true });
 
-    db.insert(mc_servers).values({
-      slug: "test-server-live-props",
-      displayName: "Live Props Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-server-live-props",
+        displayName: "Live Props Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     const commandsSent: string[] = [];
     spyOn(minecraft.lifecycle, "sendCommand").mockImplementation(async (_slug: string, cmd: string) => {
@@ -89,24 +99,32 @@ describe("Minecraft properties and files", () => {
 
     // When stopped (isRunning is false)
     const isRunning = spyOn(minecraft.lifecycle, "isRunning").mockImplementation(() => false);
-    await minecraft.properties.write("test-server-live-props", {
-      difficulty: "hard",
-      gamemode: "creative",
-      "white-list": "true",
-      "player-idle-timeout": "10",
-      "do-fire-tick": "false",
-    }, srvDir);
+    await minecraft.properties.write(
+      "test-server-live-props",
+      {
+        difficulty: "hard",
+        gamemode: "creative",
+        "white-list": "true",
+        "player-idle-timeout": "10",
+        "do-fire-tick": "false",
+      },
+      srvDir,
+    );
     expect(commandsSent.length).toBe(0);
 
     // When running (isRunning is true)
     isRunning.mockImplementation(() => true);
-    await minecraft.properties.write("test-server-live-props", {
-      difficulty: "hard",
-      gamemode: "creative",
-      "white-list": "true",
-      "player-idle-timeout": "10",
-      "do-fire-tick": "false",
-    }, srvDir);
+    await minecraft.properties.write(
+      "test-server-live-props",
+      {
+        difficulty: "hard",
+        gamemode: "creative",
+        "white-list": "true",
+        "player-idle-timeout": "10",
+        "do-fire-tick": "false",
+      },
+      srvDir,
+    );
 
     expect(commandsSent).toContain("difficulty hard");
     expect(commandsSent).toContain("defaultgamemode creative");
@@ -123,13 +141,15 @@ describe("Minecraft properties and files", () => {
     const srvDir = join(testDir, "test-server-datapacks");
     await mkdir(srvDir, { recursive: true });
 
-    db.insert(mc_servers).values({
-      slug: "test-server-datapacks",
-      displayName: "Datapack Test Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-server-datapacks",
+        displayName: "Datapack Test Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     const commandsSent: string[] = [];
     spyOn(minecraft.lifecycle, "sendCommand").mockImplementation(async (_slug: string, cmd: string) => {
@@ -159,7 +179,7 @@ describe("Minecraft properties and files", () => {
 
     // Running server delete sends reload
     await minecraft.files.remove("test-server-datapacks", "datapacks", "second-datapack.zip");
-    expect(commandsSent.filter(c => c === "reload").length).toBe(2);
+    expect(commandsSent.filter((c) => c === "reload").length).toBe(2);
 
     const listedAfter = await minecraft.files.list("test-server-datapacks", "datapacks");
     expect(listedAfter.length).toBe(1);
@@ -186,17 +206,19 @@ describe("Minecraft properties and files", () => {
     await writeFile(join(srvDir, "world", "region", "r.0.0.mca"), chunkMcaContent);
     await writeFile(join(srvDir, "datapacks", "legacy-pack.zip"), "LEGACY_DATAPACK_ZIP_CONTENT");
 
-    db.insert(mc_servers).values({
-      slug: "test-legacy-server",
-      displayName: "Legacy Production Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-legacy-server",
+        displayName: "Legacy Production Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     // Listing files triggers safe migration
     const files = await minecraft.files.list("test-legacy-server", "datapacks");
-    expect(files.some(f => f.name === "legacy-pack.zip")).toBe(true);
+    expect(files.some((f) => f.name === "legacy-pack.zip")).toBe(true);
 
     // Verify file is now present in world/datapacks
     const migratedContent = await readFile(join(srvDir, "world", "datapacks", "legacy-pack.zip"), "utf-8");

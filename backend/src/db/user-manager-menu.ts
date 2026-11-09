@@ -3,7 +3,14 @@ import { stdin as input, stdout as output } from "process";
 import db from "./client";
 import { modules } from "./schema";
 import { listUsers, createUser, deleteUser, changePassword, renameUser, setEmail } from "./user-manager-users";
-import { listPermissions, grantPermission, revokePermission, listServerPermissions, grantServerPermission, revokeServerPermission } from "./user-manager-permissions";
+import {
+  listPermissions,
+  grantPermission,
+  revokePermission,
+  listServerPermissions,
+  grantServerPermission,
+  revokeServerPermission,
+} from "./user-manager-permissions";
 
 export async function interactiveMenu() {
   const rl = readline.createInterface({ input, output });
@@ -65,7 +72,7 @@ export async function interactiveMenu() {
             });
             const modInput = (
               await rl.question(
-                "\nSelecteer module-toegang (komma-gescheiden nummers/namen, 'alle' [standaard], of 'geen'): "
+                "\nSelecteer module-toegang (komma-gescheiden nummers/namen, 'alle' [standaard], of 'geen'): ",
               )
             ).trim();
 
@@ -123,7 +130,9 @@ export async function interactiveMenu() {
             console.log("Geen gebruiker opgegeven. Actie geannuleerd.");
             break;
           }
-          const confirm = (await rl.question(`Weet u zeker dat u gebruiker '${identifier}' wilt verwijderen? (j/N): `)).trim().toLowerCase();
+          const confirm = (await rl.question(`Weet u zeker dat u gebruiker '${identifier}' wilt verwijderen? (j/N): `))
+            .trim()
+            .toLowerCase();
           if (confirm === "j" || confirm === "ja" || confirm === "y" || confirm === "yes") {
             await deleteUser(identifier);
           } else {

@@ -4,7 +4,9 @@ import { users } from "./auth";
 
 export const cashflowTradeNames = sqliteTable("cashflow_trade_names", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   displayName: text("display_name").notNull(),
   address: text("address"),
   iban: text("iban"),
@@ -15,7 +17,9 @@ export const cashflowTradeNames = sqliteTable("cashflow_trade_names", {
 
 export const cashflowClients = sqliteTable("cashflow_clients", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   name: text("name").notNull(),
   address: text("address"),
   email: text("email"),
@@ -28,7 +32,9 @@ export const cashflowClients = sqliteTable("cashflow_clients", {
 
 export const cashflowProjects = sqliteTable("cashflow_projects", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  clientId: integer("client_id").notNull().references(() => cashflowClients.id, { onDelete: "cascade" }),
+  clientId: integer("client_id")
+    .notNull()
+    .references(() => cashflowClients.id, { onDelete: "cascade" }),
   tradeNameId: integer("trade_name_id").references(() => cashflowTradeNames.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
@@ -38,7 +44,9 @@ export const cashflowProjects = sqliteTable("cashflow_projects", {
 
 export const cashflowInvoices = sqliteTable("cashflow_invoices", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  clientId: integer("client_id").notNull().references(() => cashflowClients.id, { onDelete: "cascade" }),
+  clientId: integer("client_id")
+    .notNull()
+    .references(() => cashflowClients.id, { onDelete: "cascade" }),
   projectId: integer("project_id").references(() => cashflowProjects.id, { onDelete: "set null" }),
   tradeNameId: integer("trade_name_id").references(() => cashflowTradeNames.id, { onDelete: "set null" }),
   invoiceNumber: text("invoice_number").notNull(),
@@ -54,7 +62,9 @@ export const cashflowInvoices = sqliteTable("cashflow_invoices", {
 
 export const cashflowInvoiceLines = sqliteTable("cashflow_invoice_lines", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  invoiceId: integer("invoice_id").notNull().references(() => cashflowInvoices.id, { onDelete: "cascade" }),
+  invoiceId: integer("invoice_id")
+    .notNull()
+    .references(() => cashflowInvoices.id, { onDelete: "cascade" }),
   date: integer("date"),
   taskDescription: text("task_description").notNull(),
   quantity: real("quantity").notNull().default(1),
@@ -67,7 +77,9 @@ export const cashflowInvoiceLines = sqliteTable("cashflow_invoice_lines", {
 
 export const cashflowExpenses = sqliteTable("cashflow_expenses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   description: text("description").notNull(),
   category: text("category"),
   amount: real("amount").notNull(),

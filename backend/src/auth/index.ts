@@ -3,8 +3,12 @@ import db from "../db/client";
 import { users, sessions, usermodulepermissions, modules } from "../db/schema";
 
 export class AuthService {
-  async verifyCredentials(username: string, password: string): Promise<
-    { ok: true; userId: number; email: string | null } | { ok: false; reason: "not_found" | "wrong_password" | "invalid_input" | "account_paused" }
+  async verifyCredentials(
+    username: string,
+    password: string,
+  ): Promise<
+    | { ok: true; userId: number; email: string | null }
+    | { ok: false; reason: "not_found" | "wrong_password" | "invalid_input" | "account_paused" }
   > {
     if (!username || !password) return { ok: false, reason: "invalid_input" };
 
@@ -50,19 +54,25 @@ export class AuthService {
     const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 604800000).toISOString();
 
-    db.insert(sessions).values({
-      sessionId,
-      userId,
-      impersonatorUserId: impersonatorUserId ?? null,
-      expiresAt,
-    }).run();
+    db.insert(sessions)
+      .values({
+        sessionId,
+        userId,
+        impersonatorUserId: impersonatorUserId ?? null,
+        expiresAt,
+      })
+      .run();
     return sessionId;
   }
 
   verifySession(sessionId: string): boolean {
-    const result = db.select().from(sessions)
+    const result = db
+      .select()
+      .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.userId))
-      .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`), eq(users.isPaused, 0)))
+      .where(
+        and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`), eq(users.isPaused, 0)),
+      )
       .get();
     return !!result;
   }
@@ -75,13 +85,14 @@ export class AuthService {
     impersonatorUserId?: number | null;
     impersonatedBy?: string | null;
   } | null {
-    const session = db.select({
-      userId: users.userId,
-      username: users.username,
-      email: users.email,
-      isPaused: users.isPaused,
-      impersonatorUserId: sessions.impersonatorUserId,
-    })
+    const session = db
+      .select({
+        userId: users.userId,
+        username: users.username,
+        email: users.email,
+        isPaused: users.isPaused,
+        impersonatorUserId: sessions.impersonatorUserId,
+      })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.userId))
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
@@ -92,7 +103,8 @@ export class AuthService {
 
     let impersonatedBy: string | null = null;
     if (session.impersonatorUserId) {
-      const admin = db.select({ username: users.username, isPaused: users.isPaused })
+      const admin = db
+        .select({ username: users.username, isPaused: users.isPaused })
         .from(users)
         .where(eq(users.userId, session.impersonatorUserId))
         .get();
@@ -111,16 +123,22 @@ export class AuthService {
     };
   }
 
-  impersonateUser(adminUserId: number, targetUserId: number): {
-    ok: true;
-    targetUser: { id: number; username: string; email: string | null };
-    newSessionId: string;
-  } | { ok: false; reason: string } {
+  impersonateUser(
+    adminUserId: number,
+    targetUserId: number,
+  ):
+    | {
+        ok: true;
+        targetUser: { id: number; username: string; email: string | null };
+        newSessionId: string;
+      }
+    | { ok: false; reason: string } {
     if (!this.moduleAccessCheck(adminUserId, "pulse")) {
       return { ok: false, reason: "forbidden" };
     }
 
-    const target = db.select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
+    const target = db
+      .select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
       .from(users)
       .where(eq(users.userId, targetUserId))
       .get();
@@ -145,17 +163,20 @@ export class AuthService {
     };
   }
 
-  stopImpersonation(sessionId: string): {
-    ok: true;
-    adminUserId: number;
-    adminUsername: string;
-    newSessionId: string;
-  } | { ok: false; reason: string } {
-    const session = db.select({
-      sessionId: sessions.sessionId,
-      userId: sessions.userId,
-      impersonatorUserId: sessions.impersonatorUserId,
-    })
+  stopImpersonation(sessionId: string):
+    | {
+        ok: true;
+        adminUserId: number;
+        adminUsername: string;
+        newSessionId: string;
+      }
+    | { ok: false; reason: string } {
+    const session = db
+      .select({
+        sessionId: sessions.sessionId,
+        userId: sessions.userId,
+        impersonatorUserId: sessions.impersonatorUserId,
+      })
       .from(sessions)
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
       .get();
@@ -164,7 +185,8 @@ export class AuthService {
       return { ok: false, reason: "not_impersonating" };
     }
 
-    const admin = db.select({ userId: users.userId, username: users.username, isPaused: users.isPaused })
+    const admin = db
+      .select({ userId: users.userId, username: users.username, isPaused: users.isPaused })
       .from(users)
       .where(eq(users.userId, session.impersonatorUserId))
       .get();
@@ -185,7 +207,8 @@ export class AuthService {
   }
 
   getUsernameFromSession(sessionId: string): string | null {
-    const result = db.select({ username: users.username, isPaused: users.isPaused })
+    const result = db
+      .select({ username: users.username, isPaused: users.isPaused })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.userId))
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
@@ -195,18 +218,18 @@ export class AuthService {
   }
 
   moduleAccessCheck(userId: number, moduleName: string): boolean {
-    const result = db.select({ hasAccess: sql`1` }).from(usermodulepermissions)
+    const result = db
+      .select({ hasAccess: sql`1` })
+      .from(usermodulepermissions)
       .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
-      .where(and(
-        eq(usermodulepermissions.userId, userId),
-        eq(modules.moduleName, moduleName),
-      ))
+      .where(and(eq(usermodulepermissions.userId, userId), eq(modules.moduleName, moduleName)))
       .get();
     return !!result;
   }
 
   getUserModules(userId: number): string[] {
-    const userPerms = db.select({ moduleName: modules.moduleName })
+    const userPerms = db
+      .select({ moduleName: modules.moduleName })
       .from(usermodulepermissions)
       .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
       .where(eq(usermodulepermissions.userId, userId))
@@ -215,7 +238,8 @@ export class AuthService {
   }
 
   getUserIdFromSession(sessionId: string): number | null {
-    const result = db.select({ userId: sessions.userId, isPaused: users.isPaused })
+    const result = db
+      .select({ userId: sessions.userId, isPaused: users.isPaused })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.userId))
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
@@ -229,7 +253,8 @@ export class AuthService {
   }
 
   findUserByEmail(email: string): { userId: number; username: string; email: string | null; isPaused: number } | null {
-    const user = db.select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
+    const user = db
+      .select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
       .from(users)
       .where(sql`lower(${users.email}) = lower(${email.trim()})`)
       .get();

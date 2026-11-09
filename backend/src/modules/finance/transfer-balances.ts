@@ -26,8 +26,9 @@ export function transferBalances(
   for (const account of accounts) {
     const changes = byAccount.get(account.id);
     if (!changes) continue;
-    const actual = new Map(observations.filter((entry) => entry.accountId === account.id)
-      .map((entry) => [entry.date, entry.balanceCents]));
+    const actual = new Map(
+      observations.filter((entry) => entry.accountId === account.id).map((entry) => [entry.date, entry.balanceCents]),
+    );
     const dates = [...new Set([...actual.keys(), ...changes.keys()])].sort();
     let balance: number | null = null;
     for (const date of dates) {

@@ -32,7 +32,11 @@ describe("public snapshot", () => {
   });
 
   function seedPublishedSprint(number: string) {
-    const sprint = minor.createSprint(adminId, { sprintNumber: number, name: `Snapshot ${number}`, startDate: "2031-03-03" });
+    const sprint = minor.createSprint(adminId, {
+      sprintNumber: number,
+      name: `Snapshot ${number}`,
+      startDate: "2031-03-03",
+    });
     minor.createStory(adminId, sprint.id, {
       storyTypeCode: "US",
       storyNumber: `US ${number}.1`,
@@ -44,9 +48,21 @@ describe("public snapshot", () => {
       evidence: [{ type: "document", title: "Doc", url: `/api/uploads/${ASSET}` }],
       presentationData: { enabled: true, notes: "presenter only", images: [{ url: `/api/uploads/${ASSET}` }] },
     } as Parameters<typeof minor.createStory>[2]);
-    minor.addFeedback(sprint.id, { date: "2031-03-05", fromWhom: SECRET_NAME, feedback: "Nice", action: "Continue" } as Parameters<typeof minor.addFeedback>[1]);
-    minor.createPeerHelp(adminId, { sprintId: sprint.id, date: "2031-03-06", peerName: SECRET_NAME, description: "Explained git" });
-    minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "Shown in story" }]);
+    minor.addFeedback(sprint.id, {
+      date: "2031-03-05",
+      fromWhom: SECRET_NAME,
+      feedback: "Nice",
+      action: "Continue",
+    } as Parameters<typeof minor.addFeedback>[1]);
+    minor.createPeerHelp(adminId, {
+      sprintId: sprint.id,
+      date: "2031-03-06",
+      peerName: SECRET_NAME,
+      description: "Explained git",
+    });
+    minor.saveSelfEvaluations(sprint.id, adminId, [
+      { learningOutcome: 1, level: "V", argumentation: "Shown in story" },
+    ]);
     return sprint;
   }
 
@@ -67,9 +83,7 @@ describe("public snapshot", () => {
     expect(sprintJson).toContain(`/minor/${ASSET}`);
     expect(sprint.stories[0].acceptanceCriteria[0]).toEqual({ text: "Works", isCompleted: true, indent: 0 });
     expect(sprint.teacherAssessments.every((t) => t.assessment === "-")).toBe(true);
-    expect(snapshot.assets).toEqual([
-      { path: `public/minor/${ASSET}`, sha256: expect.any(String), size: 11 },
-    ]);
+    expect(snapshot.assets).toEqual([{ path: `public/minor/${ASSET}`, sha256: expect.any(String), size: 11 }]);
   });
 
   it("excludes sprints without a saved self-evaluation", () => {
@@ -107,7 +121,9 @@ describe("public snapshot", () => {
     expect(body.version).toBe(1);
 
     const badAsset = await app.handle(
-      new Request("http://localhost/api/minor/public/assets/..%2Fsbase.db", { headers: { Authorization: "Bearer test-token" } }),
+      new Request("http://localhost/api/minor/public/assets/..%2Fsbase.db", {
+        headers: { Authorization: "Bearer test-token" },
+      }),
     );
     expect(badAsset.status).toBe(404);
   });

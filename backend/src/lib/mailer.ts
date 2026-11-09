@@ -12,7 +12,9 @@ function getTransporter(): Transporter {
   const pass = process.env.SMTP_PASS;
 
   if (!host || !port || !user || !pass) {
-    throw new Error("SMTP is niet geconfigureerd. Stel SMTP_HOST, SMTP_PORT, SMTP_USER en SMTP_PASS in via de backend .env.");
+    throw new Error(
+      "SMTP is niet geconfigureerd. Stel SMTP_HOST, SMTP_PORT, SMTP_USER en SMTP_PASS in via de backend .env.",
+    );
   }
 
   cachedTransporter = nodemailer.createTransport({
@@ -26,10 +28,7 @@ function getTransporter(): Transporter {
 }
 
 function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 const URL_OR_DOMAIN_PATTERN = /(https?:\/\/[^\s<]+)|(\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b)/g;

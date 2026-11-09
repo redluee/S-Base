@@ -26,14 +26,16 @@ describe("Database Migration Runner", () => {
     await runMigrations(memDb);
 
     // Simulate creating a user and revoking cashflow permission
-    const user = memDb.query<{ user_id: number }, []>(
-      "INSERT INTO users (username, pswd_hash) VALUES ('tester', 'hash') RETURNING user_id"
-    ).get();
+    const user = memDb
+      .query<{ user_id: number }, []>(
+        "INSERT INTO users (username, pswd_hash) VALUES ('tester', 'hash') RETURNING user_id",
+      )
+      .get();
 
     // Verify cashflow module exists
-    const cashflowMod = memDb.query<{ module_id: number }, []>(
-      "SELECT module_id FROM modules WHERE module_name = 'cashflow'"
-    ).get();
+    const cashflowMod = memDb
+      .query<{ module_id: number }, []>("SELECT module_id FROM modules WHERE module_name = 'cashflow'")
+      .get();
     expect(cashflowMod).toBeDefined();
 
     // Ensure no permissions exist for tester
@@ -55,7 +57,9 @@ describe("Database Migration Runner", () => {
 
     // Setup dummy legacy db with users table
     memDb.run("CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT);");
-    memDb.run("CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT);");
+    memDb.run(
+      "CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT);",
+    );
     memDb.run("INSERT INTO users (username) VALUES ('admin');");
 
     const result = await runMigrations(memDb);

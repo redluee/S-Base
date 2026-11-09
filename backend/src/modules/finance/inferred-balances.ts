@@ -13,9 +13,13 @@ export interface AccountTransfer {
 
 export function inferredBalances(data: FinanceData, transfers: AccountTransfer[]) {
   const accounts: FinanceBalanceAccount[] = [...data.accounts];
-  const observations = transferBalances(data.accounts, data.observations, transfers
-    .filter((entry) => entry.counterpartyAccountId !== undefined)
-    .map((entry) => ({ ...entry, counterpartyAccountId: entry.counterpartyAccountId! })));
+  const observations = transferBalances(
+    data.accounts,
+    data.observations,
+    transfers
+      .filter((entry) => entry.counterpartyAccountId !== undefined)
+      .map((entry) => ({ ...entry, counterpartyAccountId: entry.counterpartyAccountId! })),
+  );
   const openingDate = data.accounts.map((account) => account.openingDate).sort()[0];
   if (!openingDate) return { accounts, observations };
   const groups = new Map<string, { savings: boolean; changes: Map<string, number> }>();
@@ -32,14 +36,20 @@ export function inferredBalances(data: FinanceData, transfers: AccountTransfer[]
   for (const [identity, group] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
     const id = -Number.parseInt(createHash("sha256").update(identity).digest("hex").slice(0, 12), 16) - 1;
     const changes = [...group.changes].sort(([a], [b]) => a.localeCompare(b));
-    let net = 0, minimum = 0;
+    let net = 0,
+      minimum = 0;
     for (const [, delta] of changes) {
       net += delta;
       minimum = Math.min(minimum, net);
     }
     accounts.push({
-      id, name: String(accounts.filter((account) => account.inferred).length + 1), bank: null,
-      type: group.savings ? "savings" : "untracked", openingDate, archived: false, inferred: true,
+      id,
+      name: String(accounts.filter((account) => account.inferred).length + 1),
+      bank: null,
+      type: group.savings ? "savings" : "untracked",
+      openingDate,
+      archived: false,
+      inferred: true,
     });
     let balance = -minimum;
     const daily = new Map<string, FinanceObservation>();

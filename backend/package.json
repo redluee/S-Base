@@ -13,7 +13,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit -p tsconfig.check.json",
-    "lint": "biome lint src"
+    "lint": "biome check src"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.2.0",

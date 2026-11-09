@@ -50,20 +50,24 @@ describe("PulseUsers", () => {
   it("updates user minecraft server monitor permissions", async () => {
     const { default: db } = await import("../../db/client");
     const { mc_servers } = await import("../../db/schema");
-    db.insert(mc_servers).values({
-      slug: "srv-alpha",
-      displayName: "Server Alpha",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: "/tmp/srv-alpha",
-    }).run();
-    db.insert(mc_servers).values({
-      slug: "srv-beta",
-      displayName: "Server Beta",
-      engine: "fabric",
-      mcVersion: "1.21.1",
-      serverDir: "/tmp/srv-beta",
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "srv-alpha",
+        displayName: "Server Alpha",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: "/tmp/srv-alpha",
+      })
+      .run();
+    db.insert(mc_servers)
+      .values({
+        slug: "srv-beta",
+        displayName: "Server Beta",
+        engine: "fabric",
+        mcVersion: "1.21.1",
+        serverDir: "/tmp/srv-beta",
+      })
+      .run();
 
     const updated = pulse.updateServerPermissions(testerId, ["srv-alpha"]);
     expect(updated?.mcServers).toContain("srv-alpha");

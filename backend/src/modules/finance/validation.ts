@@ -11,29 +11,16 @@ export function today() {
   }).format(new Date());
 }
 export function calendarDate(value: unknown, allowFuture = false): string {
-  if (
-    typeof value !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-    value < "1900-01-01"
-  )
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value < "1900-01-01")
     throw new ValidationError("finance.invalidDate");
   const parsed = new Date(`${value}T12:00:00Z`);
-  if (
-    Number.isNaN(parsed.getTime()) ||
-    parsed.toISOString().slice(0, 10) !== value
-  )
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value)
     throw new ValidationError("finance.invalidDate");
-  if (!allowFuture && value > today())
-    throw new ValidationError("finance.futureDate");
+  if (!allowFuture && value > today()) throw new ValidationError("finance.futureDate");
   return value;
 }
 export function cents(value: unknown, minimum = -MAX_CENTS): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < minimum ||
-    value > MAX_CENTS
-  )
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > MAX_CENTS)
     throw new ValidationError("finance.invalidMoney");
   return value;
 }
@@ -45,8 +32,7 @@ export function text(value: unknown, optional = false): string | null {
 }
 export function accountInput(input: unknown) {
   const data = requireObject(input);
-  if (data.type !== "current" && data.type !== "savings")
-    throw new ValidationError("finance.invalidType");
+  if (data.type !== "current" && data.type !== "savings") throw new ValidationError("finance.invalidType");
   return {
     name: text(data.name)!,
     bank: text(data.bank, true),
@@ -60,9 +46,6 @@ export function goalInput(input: unknown) {
   return {
     name: text(data.name)!,
     targetCents: cents(data.targetCents, 1),
-    targetDate:
-      data.targetDate == null || data.targetDate === ""
-        ? null
-        : calendarDate(data.targetDate, true),
+    targetDate: data.targetDate == null || data.targetDate === "" ? null : calendarDate(data.targetDate, true),
   };
 }

@@ -22,7 +22,10 @@ export function validateEngine(engine: string): Engine {
 }
 
 export function sanitizeCommand(cmd: string): string {
-  return cmd.replace(/[\r\n;`$&|<>]/g, "").trim().slice(0, 512);
+  return cmd
+    .replace(/[\r\n;`$&|<>]/g, "")
+    .trim()
+    .slice(0, 512);
 }
 
 export function validateFilename(filename: string): void {

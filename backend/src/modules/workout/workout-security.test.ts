@@ -16,7 +16,9 @@ const createdFiles: string[] = [];
 async function uploadFile(cookie: string, path: string, name: string, content = "data") {
   const form = new FormData();
   form.append("file", new File([content], name, { type: "application/octet-stream" }));
-  return app.handle(new Request(`http://localhost${path}`, { method: "POST", headers: { Cookie: cookie }, body: form }));
+  return app.handle(
+    new Request(`http://localhost${path}`, { method: "POST", headers: { Cookie: cookie }, body: form }),
+  );
 }
 
 async function placeFile(name: string, content = "x") {
@@ -44,15 +46,24 @@ describe("workout security and integrity", () => {
   it("SEC-01: rejects session updates that reference another user's exercise", () => {
     const victim = workout.sessions.create(testerId, undefined, true)!;
     const victimSession = workout.sessions.update(victim.sessionId, testerId, {
-      exercises: [{ exerciseName: "Victim Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, weight: 100, completed: 1 }] }],
+      exercises: [
+        { exerciseName: "Victim Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, weight: 100, completed: 1 }] },
+      ],
     })!;
     const victimExercise = victimSession.exercises[0];
 
     const attacker = workout.sessions.create(adminId, undefined, true)!;
     expect(() =>
       workout.sessions.update(attacker.sessionId, adminId, {
-        exercises: [{ sessionExerciseId: victimExercise.sessionExerciseId, exerciseName: "Hacked", sortOrder: 0, sets: [{ setNumber: 1, reps: 1, weight: 1 }] }],
-      })
+        exercises: [
+          {
+            sessionExerciseId: victimExercise.sessionExerciseId,
+            exerciseName: "Hacked",
+            sortOrder: 0,
+            sets: [{ setNumber: 1, reps: 1, weight: 1 }],
+          },
+        ],
+      }),
     ).toThrow("workout.exerciseNotInSession");
 
     const after = workout.sessions.get(victim.sessionId, testerId)!;
@@ -69,17 +80,21 @@ describe("workout security and integrity", () => {
     expect(() =>
       workout.sessions.update(b.sessionId, adminId, {
         exercises: [{ sessionExerciseId: aWith.exercises[0].sessionExerciseId, exerciseName: "Moved", sortOrder: 0 }],
-      })
+      }),
     ).toThrow("workout.exerciseNotInSession");
     expect(workout.sessions.get(a.sessionId, adminId)!.exercises[0].exerciseName).toBe("A Lift");
   });
 
   it("DATA-05: read endpoints do not delete stale empty sessions", () => {
-    const stale = db.insert(workoutSessions).values({
-      userId: adminId,
-      name: "Stale",
-      startedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    }).returning().get();
+    const stale = db
+      .insert(workoutSessions)
+      .values({
+        userId: adminId,
+        name: "Stale",
+        startedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+      })
+      .returning()
+      .get();
 
     workout.sessions.list(adminId);
     workout.sessions.list(adminId, "active");
@@ -96,13 +111,21 @@ describe("workout security and integrity", () => {
     })!;
 
     const bad: Record<string, unknown> = { exerciseName: "Second", sets: 3, reps: 10 };
-    Object.defineProperty(bad, "perSide", { get() { throw new Error("boom"); }, enumerable: true });
+    Object.defineProperty(bad, "perSide", {
+      get() {
+        throw new Error("boom");
+      },
+      enumerable: true,
+    });
 
     expect(() =>
       workout.templates.update(template.templateId, adminId, {
         name: "Renamed",
-        exercises: [{ exerciseName: "First", sets: 3, reps: 10 }, { ...bad, exerciseName: "Second", perSide: undefined, defaultRestTime: Symbol("x") as unknown as number }],
-      })
+        exercises: [
+          { exerciseName: "First", sets: 3, reps: 10 },
+          { ...bad, exerciseName: "Second", perSide: undefined, defaultRestTime: Symbol("x") as unknown as number },
+        ],
+      }),
     ).toThrow();
 
     const after = workout.templates.get(template.templateId, adminId)!;
@@ -144,11 +167,15 @@ describe("workout security and integrity", () => {
       expect([method, path, JSON.stringify(body), res.status]).toEqual([method, path, JSON.stringify(body), 400]);
     }
 
-    const tpl = await (await call(cookie, "POST", "/api/workouts/templates", { name: "Valid" })).json() as { templateId: number };
+    const tpl = (await (await call(cookie, "POST", "/api/workouts/templates", { name: "Valid" })).json()) as {
+      templateId: number;
+    };
     const putNull = await call(cookie, "PUT", `/api/workouts/templates/${tpl.templateId}`, { name: null });
     expect(putNull.status).toBe(400);
 
-    const sess = await (await call(cookie, "POST", "/api/workouts/sessions", { force: true })).json() as { sessionId: number };
+    const sess = (await (await call(cookie, "POST", "/api/workouts/sessions", { force: true })).json()) as {
+      sessionId: number;
+    };
     const badBodies = [
       { exercises: [{ exerciseName: null, sortOrder: 0 }] },
       { exercises: [{ exerciseName: "a", sortOrder: 0, sets: [{ setNumber: null }] }] },
@@ -161,14 +188,18 @@ describe("workout security and integrity", () => {
       const res = await call(cookie, "PATCH", `/api/workouts/sessions/${sess.sessionId}`, body);
       expect([JSON.stringify(body), res.status]).toEqual([JSON.stringify(body), 400]);
     }
-    const badComplete = await call(cookie, "PATCH", `/api/workouts/sessions/${sess.sessionId}/complete`, { completedAt: "garbage" });
+    const badComplete = await call(cookie, "PATCH", `/api/workouts/sessions/${sess.sessionId}/complete`, {
+      completedAt: "garbage",
+    });
     expect(badComplete.status).toBe(400);
 
-    const nullBody = await app.handle(new Request("http://localhost/api/workouts/templates", {
-      method: "POST",
-      headers: { Cookie: cookie, "Content-Type": "application/json" },
-      body: "null",
-    }));
+    const nullBody = await app.handle(
+      new Request("http://localhost/api/workouts/templates", {
+        method: "POST",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: "null",
+      }),
+    );
     expect(nullBody.status).toBe(400);
 
     await call(cookie, "DELETE", `/api/workouts/templates/${tpl.templateId}`);
@@ -176,19 +207,37 @@ describe("workout security and integrity", () => {
   });
 
   it("DATA-08: caps template sets and exercise counts", async () => {
-    expect(() => workout.templates.create(adminId, { name: "Huge", exercises: [{ exerciseName: "Squat", sets: 100000, reps: 5 }] }))
-      .toThrow("workout.tooManySets");
-    expect(workout.templates.create(adminId, { name: "Max", exercises: [{ exerciseName: "Squat", sets: 50, reps: 5 }] })!.exercises[0].defaultSets).toBe(50);
+    expect(() =>
+      workout.templates.create(adminId, {
+        name: "Huge",
+        exercises: [{ exerciseName: "Squat", sets: 100000, reps: 5 }],
+      }),
+    ).toThrow("workout.tooManySets");
+    expect(
+      workout.templates.create(adminId, { name: "Max", exercises: [{ exerciseName: "Squat", sets: 50, reps: 5 }] })!
+        .exercises[0].defaultSets,
+    ).toBe(50);
     const many = Array.from({ length: 101 }, (_, i) => ({ exerciseName: `Ex ${i}`, sets: 1, reps: 5 }));
-    expect(() => workout.templates.create(adminId, { name: "Many", exercises: many })).toThrow("workout.tooManyTemplateExercises");
+    expect(() => workout.templates.create(adminId, { name: "Many", exercises: many })).toThrow(
+      "workout.tooManyTemplateExercises",
+    );
 
-    const existing = workout.templates.create(adminId, { name: "Edit", exercises: [{ exerciseName: "Row", sets: 3, reps: 5 }] })!;
-    expect(() => workout.templates.update(existing.templateId, adminId, { exercises: [{ exerciseName: "Row", sets: 51, reps: 5 }] }))
-      .toThrow("workout.tooManySets");
+    const existing = workout.templates.create(adminId, {
+      name: "Edit",
+      exercises: [{ exerciseName: "Row", sets: 3, reps: 5 }],
+    })!;
+    expect(() =>
+      workout.templates.update(existing.templateId, adminId, {
+        exercises: [{ exerciseName: "Row", sets: 51, reps: 5 }],
+      }),
+    ).toThrow("workout.tooManySets");
     expect(workout.templates.get(existing.templateId, adminId)!.exercises[0].defaultSets).toBe(3);
 
     const cookie = await login("admin");
-    const res = await call(cookie, "POST", "/api/workouts/templates", { name: "Huge", exercises: [{ exerciseName: "Squat", sets: 100000, reps: 5 }] });
+    const res = await call(cookie, "POST", "/api/workouts/templates", {
+      name: "Huge",
+      exercises: [{ exerciseName: "Squat", sets: 100000, reps: 5 }],
+    });
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: "workout.tooManySets", exerciseName: "Squat", max: 50 });
   });
@@ -196,15 +245,26 @@ describe("workout security and integrity", () => {
   it("DATA-08: caps sets per session exercise and exercises per session", async () => {
     const s = workout.sessions.create(adminId, undefined, true)!;
     const sets = (n: number) => Array.from({ length: n }, (_, i) => ({ setNumber: i + 1, reps: 5 }));
-    expect(() => workout.sessions.update(s.sessionId, adminId, { exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: sets(51) }] }))
-      .toThrow("workout.tooManySets");
-    expect(workout.sessions.update(s.sessionId, adminId, { exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: sets(50) }] })!.exercises[0].sets.length).toBe(50);
+    expect(() =>
+      workout.sessions.update(s.sessionId, adminId, {
+        exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: sets(51) }],
+      }),
+    ).toThrow("workout.tooManySets");
+    expect(
+      workout.sessions.update(s.sessionId, adminId, {
+        exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: sets(50) }],
+      })!.exercises[0].sets.length,
+    ).toBe(50);
     const many = Array.from({ length: 101 }, (_, i) => ({ exerciseName: `Ex ${i}`, sortOrder: i }));
-    expect(() => workout.sessions.update(s.sessionId, adminId, { exercises: many })).toThrow("workout.tooManySessionExercises");
+    expect(() => workout.sessions.update(s.sessionId, adminId, { exercises: many })).toThrow(
+      "workout.tooManySessionExercises",
+    );
     expect(workout.sessions.get(s.sessionId, adminId)!.exercises.length).toBe(1);
 
     const cookie = await login("admin");
-    const res = await call(cookie, "PATCH", `/api/workouts/sessions/${s.sessionId}`, { exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: sets(1000) }] });
+    const res = await call(cookie, "PATCH", `/api/workouts/sessions/${s.sessionId}`, {
+      exercises: [{ exerciseName: "Squat", sortOrder: 0, sets: sets(1000) }],
+    });
     expect(res.status).toBe(400);
   });
 
@@ -214,8 +274,15 @@ describe("workout security and integrity", () => {
     const ids = workout.templates.list(adminId).map((t) => t.templateId);
     const before = workout.templates.list(adminId).map((t) => t.templateId);
 
-    expect(() => workout.templates.reorder(adminId, ids.map(() => a.templateId))).toThrow("workout.templateOrderInvalid");
-    expect(() => workout.templates.reorder(adminId, "nope" as unknown as number[])).toThrow("workout.templateOrderInvalid");
+    expect(() =>
+      workout.templates.reorder(
+        adminId,
+        ids.map(() => a.templateId),
+      ),
+    ).toThrow("workout.templateOrderInvalid");
+    expect(() => workout.templates.reorder(adminId, "nope" as unknown as number[])).toThrow(
+      "workout.templateOrderInvalid",
+    );
     expect(workout.templates.list(adminId).map((t) => t.templateId)).toEqual(before);
 
     const reversed = [...ids].reverse();
@@ -224,7 +291,10 @@ describe("workout security and integrity", () => {
     const patchable = db as unknown as { transaction: (fn: unknown) => unknown };
     const original = patchable.transaction;
     let usedTransaction = false;
-    patchable.transaction = (fn) => { usedTransaction = true; return original.call(db, fn); };
+    patchable.transaction = (fn) => {
+      usedTransaction = true;
+      return original.call(db, fn);
+    };
     try {
       workout.templates.reorder(adminId, ids);
     } finally {
@@ -238,13 +308,19 @@ describe("workout security and integrity", () => {
   it("SEC-01 over HTTP: cross-user exercise update returns 400 and leaves data intact", async () => {
     const adminCookie = await login("admin");
     const testerCookie = await login("tester");
-    const victim = await (await call(testerCookie, "POST", "/api/workouts/sessions", { force: true })).json() as { sessionId: number };
-    const withEx = await (await call(testerCookie, "PATCH", `/api/workouts/sessions/${victim.sessionId}`, {
-      exercises: [{ exerciseName: "Mine", sortOrder: 0, sets: [{ setNumber: 1, reps: 3, completed: 1 }] }],
-    })).json() as { exercises: { sessionExerciseId: number }[] };
+    const victim = (await (await call(testerCookie, "POST", "/api/workouts/sessions", { force: true })).json()) as {
+      sessionId: number;
+    };
+    const withEx = (await (
+      await call(testerCookie, "PATCH", `/api/workouts/sessions/${victim.sessionId}`, {
+        exercises: [{ exerciseName: "Mine", sortOrder: 0, sets: [{ setNumber: 1, reps: 3, completed: 1 }] }],
+      })
+    ).json()) as { exercises: { sessionExerciseId: number }[] };
     const exId = withEx.exercises[0].sessionExerciseId;
 
-    const mine = await (await call(adminCookie, "POST", "/api/workouts/sessions", { force: true })).json() as { sessionId: number };
+    const mine = (await (await call(adminCookie, "POST", "/api/workouts/sessions", { force: true })).json()) as {
+      sessionId: number;
+    };
     const res = await call(adminCookie, "PATCH", `/api/workouts/sessions/${mine.sessionId}`, {
       exercises: [{ sessionExerciseId: exId, exerciseName: "Stolen", sortOrder: 0, sets: [] }],
     });
@@ -271,7 +347,9 @@ describe("measurement photo and upload security", () => {
     const victimEntry = measurements.save(testerId, { date: "2026-03-01", weight: 70 })!;
     const name = `measurement_${crypto.randomUUID()}.jpg`;
     await placeFile(name);
-    expect(() => measurements.addPhoto(victimEntry.measurementId, adminId, `/api/uploads/${name}`)).toThrow("workout.measurementNotFound");
+    expect(() => measurements.addPhoto(victimEntry.measurementId, adminId, `/api/uploads/${name}`)).toThrow(
+      "workout.measurementNotFound",
+    );
     expect(measurements.getById(victimEntry.measurementId)!.photos.length).toBe(0);
   });
 
@@ -301,7 +379,9 @@ describe("measurement photo and upload security", () => {
     measurements.addPhoto(victimEntry.measurementId, testerId, `/api/uploads/${name}`);
 
     const mine = measurements.save(adminId, { date: "2026-03-04", weight: 70 })!;
-    expect(() => measurements.addPhoto(mine.measurementId, adminId, `/api/uploads/${name}`)).toThrow("workout.photoInUse");
+    expect(() => measurements.addPhoto(mine.measurementId, adminId, `/api/uploads/${name}`)).toThrow(
+      "workout.photoInUse",
+    );
 
     await measurements.remove(mine.measurementId, adminId);
     expect(existsSync(join(uploadsDir, name))).toBe(true);
@@ -311,7 +391,11 @@ describe("measurement photo and upload security", () => {
     const entry = measurements.save(adminId, { date: "2026-03-05", weight: 70 })!;
     const outside = join(uploadsDir, "..", `outside-${crypto.randomUUID()}.txt`);
     await writeFile(outside, "keep");
-    db.run(sql.raw(`INSERT INTO measurement_photos (measurement_id, file_path) VALUES (${entry.measurementId}, '/api/uploads/../${outside.split("/").pop()}')`));
+    db.run(
+      sql.raw(
+        `INSERT INTO measurement_photos (measurement_id, file_path) VALUES (${entry.measurementId}, '/api/uploads/../${outside.split("/").pop()}')`,
+      ),
+    );
     await measurements.remove(entry.measurementId, adminId);
     expect(existsSync(outside)).toBe(true);
     await unlink(outside);
@@ -325,7 +409,7 @@ describe("measurement photo and upload security", () => {
     }
     const ok = await uploadFile(cookie, "/api/measurements/upload", "Photo.JPG");
     expect(ok.status).toBe(200);
-    const { filePath } = await ok.json() as { filePath: string };
+    const { filePath } = (await ok.json()) as { filePath: string };
     expect(filePath).toMatch(/^\/api\/uploads\/measurement_[0-9a-f-]{36}\.jpg$/);
     createdFiles.push(filePath.split("/").pop()!);
 
@@ -340,10 +424,25 @@ describe("measurement photo and upload security", () => {
   it("SEC-03: minor and cashflow accept evidence attachments while wines and measurements stay image-only", async () => {
     const cookie = await login("admin");
     for (const path of ["/api/minor/upload", "/api/cashflow/upload"]) {
-      for (const name of ["evidence.zip", "demo.mp4", "clip.MOV", "talk.webm", "audio.mp3", "voice.m4a", "notes.odt", "sheet.ods", "deck.odp", "letter.rtf", "export.json", "pic.avif", "scan.bmp", "report.pdf"]) {
+      for (const name of [
+        "evidence.zip",
+        "demo.mp4",
+        "clip.MOV",
+        "talk.webm",
+        "audio.mp3",
+        "voice.m4a",
+        "notes.odt",
+        "sheet.ods",
+        "deck.odp",
+        "letter.rtf",
+        "export.json",
+        "pic.avif",
+        "scan.bmp",
+        "report.pdf",
+      ]) {
         const res = await uploadFile(cookie, path, name);
         expect([path, name, res.status]).toEqual([path, name, 200]);
-        const { filePath } = await res.json() as { filePath: string };
+        const { filePath } = (await res.json()) as { filePath: string };
         createdFiles.push(filePath.split("/").pop()!);
       }
       for (const bad of ["x.svg", "x.html", "x.js", "x.exe"]) {
@@ -355,7 +454,7 @@ describe("measurement photo and upload security", () => {
       for (const name of ["pic.avif", "scan.bmp"]) {
         const res = await uploadFile(cookie, path, name);
         expect([path, name, res.status]).toEqual([path, name, 200]);
-        const { filename, filePath } = await res.json() as { filename?: string; filePath?: string };
+        const { filename, filePath } = (await res.json()) as { filename?: string; filePath?: string };
         createdFiles.push((filePath ?? filename ?? "").split("/").pop() ?? "");
       }
       for (const bad of ["evidence.zip", "demo.mp4", "report.pdf", "export.json"]) {
@@ -365,7 +464,7 @@ describe("measurement photo and upload security", () => {
     }
 
     const zip = await uploadFile(cookie, "/api/minor/upload", "evidence.zip");
-    const { filePath } = await zip.json() as { filePath: string };
+    const { filePath } = (await zip.json()) as { filePath: string };
     createdFiles.push(filePath.split("/").pop()!);
     const served = await call(cookie, "GET", filePath);
     expect(served.status).toBe(200);
@@ -373,7 +472,7 @@ describe("measurement photo and upload security", () => {
     expect(served.headers.get("content-disposition")).toBe("attachment");
 
     const avif = await uploadFile(cookie, "/api/minor/upload", "slide.avif");
-    const avifPath = (await avif.json() as { filePath: string }).filePath;
+    const avifPath = ((await avif.json()) as { filePath: string }).filePath;
     createdFiles.push(avifPath.split("/").pop()!);
     const avifServed = await call(cookie, "GET", avifPath);
     expect(avifServed.headers.get("content-type")).toBe("image/avif");
@@ -383,7 +482,7 @@ describe("measurement photo and upload security", () => {
   it("SEC-04: a cashflow upload cannot be attached to a measurement", async () => {
     const cookie = await login("admin");
     const res = await uploadFile(cookie, "/api/cashflow/upload", "invoice.jpg");
-    const { filePath } = await res.json() as { filePath: string };
+    const { filePath } = (await res.json()) as { filePath: string };
     const name = filePath.split("/").pop()!;
     createdFiles.push(name);
     expect(name).not.toStartWith("measurement_");
@@ -434,9 +533,13 @@ describe("measurement photo and upload security", () => {
     const victimEntry = measurements.save(testerId, { date: "2026-03-07", weight: 70 })!;
     const name = `measurement_${crypto.randomUUID()}.jpg`;
     await placeFile(name);
-    const res = await call(adminCookie, "POST", `/api/measurements/${victimEntry.measurementId}/photos`, { filePath: `/api/uploads/${name}` });
+    const res = await call(adminCookie, "POST", `/api/measurements/${victimEntry.measurementId}/photos`, {
+      filePath: `/api/uploads/${name}`,
+    });
     expect(res.status).toBe(404);
-    const bad = await call(adminCookie, "POST", `/api/measurements/${victimEntry.measurementId}/photos`, { filePath: "../../sbase.db" });
+    const bad = await call(adminCookie, "POST", `/api/measurements/${victimEntry.measurementId}/photos`, {
+      filePath: "../../sbase.db",
+    });
     expect(bad.status).toBe(400);
   });
 });

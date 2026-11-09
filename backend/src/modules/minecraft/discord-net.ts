@@ -115,7 +115,10 @@ export function pingTcpPort(host: string, port: number, timeoutMs = 500): Promis
 }
 
 export async function getPlayerAvatarEmoji(client: Client, playerName: string): Promise<string> {
-  const sanitized = playerName.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 28);
+  const sanitized = playerName
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .slice(0, 28);
   const emojiName = `mc_${sanitized || "player"}`;
 
   if (emojiCache.has(emojiName)) {

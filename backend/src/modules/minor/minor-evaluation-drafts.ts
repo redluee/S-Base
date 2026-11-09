@@ -45,21 +45,34 @@ export class MinorEvaluationDrafts {
 
       const argumentation = lines.join("\n");
 
-      const existing = db.select().from(minorSelfEvaluations).where(and(eq(minorSelfEvaluations.sprintId, sprintId), eq(minorSelfEvaluations.learningOutcome, lu))).get();
+      const existing = db
+        .select()
+        .from(minorSelfEvaluations)
+        .where(and(eq(minorSelfEvaluations.sprintId, sprintId), eq(minorSelfEvaluations.learningOutcome, lu)))
+        .get();
       if (existing) {
-        const updated = db.update(minorSelfEvaluations).set({
-          level: defaultLevel,
-          argumentation,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
-        }).where(eq(minorSelfEvaluations.id, existing.id)).returning().get();
+        const updated = db
+          .update(minorSelfEvaluations)
+          .set({
+            level: defaultLevel,
+            argumentation,
+            updatedAt: sql`CURRENT_TIMESTAMP`,
+          })
+          .where(eq(minorSelfEvaluations.id, existing.id))
+          .returning()
+          .get();
         result.push(updated as MinorSelfEvaluation);
       } else {
-        const created = db.insert(minorSelfEvaluations).values({
-          sprintId,
-          learningOutcome: lu,
-          level: defaultLevel,
-          argumentation,
-        }).returning().get();
+        const created = db
+          .insert(minorSelfEvaluations)
+          .values({
+            sprintId,
+            learningOutcome: lu,
+            level: defaultLevel,
+            argumentation,
+          })
+          .returning()
+          .get();
         result.push(created as MinorSelfEvaluation);
       }
     }

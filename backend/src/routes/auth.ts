@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { getClientIp, loginLimiter, verifyInternalSecret } from "../security";
-import { auth, } from "../context";
+import { auth } from "../context";
 
 export const authRoutes = new Elysia()
   // --- Auth routes ---
@@ -39,7 +39,7 @@ export const authRoutes = new Elysia()
           {
             status: 403,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       }
       const status = result.reason === "invalid_input" ? 400 : 401;
@@ -95,7 +95,7 @@ export const authRoutes = new Elysia()
         {
           status: 403,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -104,14 +104,19 @@ export const authRoutes = new Elysia()
     const isSecure = process.env.NODE_ENV === "production";
     const cookieValue = `session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${isSecure ? "; Secure" : ""}`;
     const userModules = auth.getUserModules(user.userId);
-    const role = (userModules.includes("pulse") || user.username === "admin") ? "admin" : "user";
-    return new Response(JSON.stringify({ user: { id: user.userId, username: user.username, email: user.email, role, modules: userModules } }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Set-Cookie": cookieValue,
+    const role = userModules.includes("pulse") || user.username === "admin" ? "admin" : "user";
+    return new Response(
+      JSON.stringify({
+        user: { id: user.userId, username: user.username, email: user.email, role, modules: userModules },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": cookieValue,
+        },
       },
-    });
+    );
   })
 
   .get("/api/auth/logout", ({ cookie: { session_id }, request }) => {
@@ -147,7 +152,7 @@ export const authRoutes = new Elysia()
       });
     }
     const userModules = auth.getUserModules(user.userId);
-    const role = (userModules.includes("pulse") || user.username === "admin") ? "admin" : "user";
+    const role = userModules.includes("pulse") || user.username === "admin" ? "admin" : "user";
     return {
       user: {
         id: user.userId,
@@ -185,7 +190,14 @@ export const authRoutes = new Elysia()
     }
 
     const isSecure = process.env.NODE_ENV === "production";
-    session_id?.set({ value: res.newSessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
+    session_id?.set({
+      value: res.newSessionId,
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 86400,
+      secure: isSecure,
+    });
     const cookieValue = `session_id=${res.newSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
 
     return new Response(
@@ -203,6 +215,6 @@ export const authRoutes = new Elysia()
           "Content-Type": "application/json",
           "Set-Cookie": cookieValue,
         },
-      }
+      },
     );
   });

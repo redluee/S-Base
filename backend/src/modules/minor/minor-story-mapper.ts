@@ -78,7 +78,17 @@ export function toStory(row: StoryRow, criteria: CriterionRow[], evidence: Evide
 export function loadStoryChildren(storyIds: number[]): { criteria: CriterionRow[]; evidence: EvidenceRow[] } {
   if (storyIds.length === 0) return { criteria: [], evidence: [] };
   return {
-    criteria: db.select().from(minorStoryCriteria).where(inArray(minorStoryCriteria.storyId, storyIds)).orderBy(asc(minorStoryCriteria.orderIndex)).all(),
-    evidence: db.select().from(minorStoryEvidence).where(inArray(minorStoryEvidence.storyId, storyIds)).orderBy(asc(minorStoryEvidence.id)).all(),
+    criteria: db
+      .select()
+      .from(minorStoryCriteria)
+      .where(inArray(minorStoryCriteria.storyId, storyIds))
+      .orderBy(asc(minorStoryCriteria.orderIndex))
+      .all(),
+    evidence: db
+      .select()
+      .from(minorStoryEvidence)
+      .where(inArray(minorStoryEvidence.storyId, storyIds))
+      .orderBy(asc(minorStoryEvidence.id))
+      .all(),
   };
 }

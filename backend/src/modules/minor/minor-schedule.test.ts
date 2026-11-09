@@ -75,9 +75,7 @@ describe("MinorSchedule", () => {
     // Update custom story type
     const updatedCustom = minor.storyTypes.update(custom.id, adminId, {
       name: "Technical Story",
-      defaultQualityCriteria: [
-        { text: "CI pipeline slaagt zonder warnings", indent: 0 },
-      ],
+      defaultQualityCriteria: [{ text: "CI pipeline slaagt zonder warnings", indent: 0 }],
     });
     expect(updatedCustom?.name).toBe("Technical Story");
     expect(updatedCustom?.defaultQualityCriteria?.length).toBe(1);
@@ -86,9 +84,7 @@ describe("MinorSchedule", () => {
     // Update default story type (e.g. US)
     const updatedUs = minor.storyTypes.update(us!.id, adminId, {
       name: "Functionele User Story",
-      defaultQualityCriteria: [
-        { text: "Aangepast US kwaliteitscriterium 1", indent: 0 },
-      ],
+      defaultQualityCriteria: [{ text: "Aangepast US kwaliteitscriterium 1", indent: 0 }],
     });
     expect(updatedUs?.name).toBe("Functionele User Story");
     expect(updatedUs?.defaultQualityCriteria?.length).toBe(1);

@@ -95,11 +95,15 @@ describe("MinorDashboard", () => {
 
   it("handles dashboard official passes and prognosis for finished sprints regardless of reflection", () => {
     // Use an isolated user so existing test sprints don't affect stats
-    const isolatedUser = db.insert(users).values({
-      username: `iso_user_${Date.now()}`,
-      pswdHash: "hash",
-      email: `iso_${Date.now()}@test.com`,
-    }).returning().get();
+    const isolatedUser = db
+      .insert(users)
+      .values({
+        username: `iso_user_${Date.now()}`,
+        pswdHash: "hash",
+        email: `iso_${Date.now()}@test.com`,
+      })
+      .returning()
+      .get();
     const isoId = isolatedUser.userId;
 
     // Sprint 1 is completed / past end date
@@ -143,11 +147,15 @@ describe("MinorDashboard", () => {
   });
 
   it("preserves Sprint 1 teacher assessments as official passes when creating Sprint 2 with stories", () => {
-    const user = db.insert(users).values({
-      username: `iso_sprint2_${Date.now()}`,
-      pswdHash: "hash",
-      email: `iso_s2_${Date.now()}@test.com`,
-    }).returning().get();
+    const user = db
+      .insert(users)
+      .values({
+        username: `iso_sprint2_${Date.now()}`,
+        pswdHash: "hash",
+        email: `iso_s2_${Date.now()}@test.com`,
+      })
+      .returning()
+      .get();
     const userId = user.userId;
 
     // Sprint 1 completed with teacher feedback awarding LU 1, 2, 4, 5
@@ -174,7 +182,8 @@ describe("MinorDashboard", () => {
     expect(stats.officialPasses[5]).toBe(1);
 
     // Now create Sprint 2 with a story covering LU 1 (dates in the present/future so it is active)
-    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const activeStart = new Date();
     activeStart.setDate(activeStart.getDate() - 7);
     const activeEnd = new Date();

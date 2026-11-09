@@ -49,8 +49,18 @@ export interface PublicSnapshotSprint {
   status: "planned" | "active" | "completed";
   stories: PublicSnapshotStory[];
   selfEvaluations: Array<{ learningOutcome: number; level: "V" | "NV" | "-"; argumentation: string | null }>;
-  teacherAssessments: Array<{ learningOutcome: number; assessment: "V" | "O" | "-"; notes: string | null; evaluatedAt: string | null }>;
-  reflection: { date: string; whatLearned: string | null; whatRetained: string | null; whatChange: string | null } | null;
+  teacherAssessments: Array<{
+    learningOutcome: number;
+    assessment: "V" | "O" | "-";
+    notes: string | null;
+    evaluatedAt: string | null;
+  }>;
+  reflection: {
+    date: string;
+    whatLearned: string | null;
+    whatRetained: string | null;
+    whatChange: string | null;
+  } | null;
   feedback: Array<{ date: string; feedback: string; action: string }>;
 }
 
@@ -117,7 +127,11 @@ export function resolvePublishUserId(): number | null {
   return row?.userId ?? null;
 }
 
-export function buildPublicSnapshot(minor: MinorService, userId: number, uploadsDir: string = defaultUploadsDir): PublicSnapshot {
+export function buildPublicSnapshot(
+  minor: MinorService,
+  userId: number,
+  uploadsDir: string = defaultUploadsDir,
+): PublicSnapshot {
   const found = new Set<string>();
 
   const sprintRows = minor
@@ -203,7 +217,7 @@ export function buildPublicSnapshot(minor: MinorService, userId: number, uploads
     .filter((p) => p.sprintId === null || publishedNumbers.has(p.sprintId))
     .map((p) => ({
       date: p.date,
-      sprintNumber: p.sprintId === null ? null : publishedNumbers.get(p.sprintId) ?? null,
+      sprintNumber: p.sprintId === null ? null : (publishedNumbers.get(p.sprintId) ?? null),
       description: rewriteUploadUrls(p.description, found),
       links: p.links ? rewriteUploadUrls(p.links, found) : null,
     }))

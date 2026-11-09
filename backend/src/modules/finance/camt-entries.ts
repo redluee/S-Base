@@ -8,10 +8,12 @@ function details(node: XmlNode, delta: number, bookingDate: string, entry: XmlNo
   const name = related && (value(related, party, "Nm") || value(related, party, "Pty", "Nm"));
   const counterparty = related && value(related, `${party}Acct`, "Id", "IBAN");
   const remittance = optional(node, "RmtInf");
-  const texts = remittance ? [
-    ...children(remittance, "Ustrd").map((item) => item.text.trim()),
-    ...children(remittance, "Strd").map((item) => value(item, "CdtrRefInf", "Ref")),
-  ] : [];
+  const texts = remittance
+    ? [
+        ...children(remittance, "Ustrd").map((item) => item.text.trim()),
+        ...children(remittance, "Strd").map((item) => value(item, "CdtrRefInf", "Ref")),
+      ]
+    : [];
   const reference = value(node, "Refs", "EndToEndId");
   return {
     date: bookingDate,
@@ -19,12 +21,16 @@ function details(node: XmlNode, delta: number, bookingDate: string, entry: XmlNo
     balanceCents: null,
     name: name || "",
     counterparty: (counterparty || "").replace(/\s/g, "").toUpperCase(),
-    description: [...new Set([
-      ...texts,
-      reference === "NOTPROVIDED" ? "" : reference,
-      value(node, "AddtlTxInf"),
-      value(entry, "AddtlNtryInf"),
-    ].filter(Boolean))].join(" · "),
+    description: [
+      ...new Set(
+        [
+          ...texts,
+          reference === "NOTPROVIDED" ? "" : reference,
+          value(node, "AddtlTxInf"),
+          value(entry, "AddtlNtryInf"),
+        ].filter(Boolean),
+      ),
+    ].join(" · "),
   };
 }
 
@@ -46,7 +52,8 @@ export function parseEntry(entry: XmlNode) {
   const direction = value(entry, "CdtDbtInd");
   const delta = amount(required(entry, "Amt")) * sign(direction);
   const detailNodes = children(entry, "NtryDtls").flatMap((node) => children(node, "TxDtls"));
-  if (!detailNodes.length) return { date: bookingDate, delta, transactions: [details(entry, delta, bookingDate, entry)] };
+  if (!detailNodes.length)
+    return { date: bookingDate, delta, transactions: [details(entry, delta, bookingDate, entry)] };
   const transactions = detailNodes.map((node) => {
     const unsigned = detailAmount(node);
     const detailDirection = value(node, "CdtDbtInd") || direction;

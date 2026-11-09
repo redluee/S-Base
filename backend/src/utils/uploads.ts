@@ -20,9 +20,16 @@ const INLINE_TYPES: Record<string, string> = {
 };
 
 export const UPLOAD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.[A-Za-z0-9]{1,5}$/;
-export const MEASUREMENT_PHOTO_PATTERN = new RegExp(`^/api/uploads/(measurement_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(?:${IMAGE_EXTENSIONS.join("|")}))$`, "i");
+export const MEASUREMENT_PHOTO_PATTERN = new RegExp(
+  `^/api/uploads/(measurement_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(?:${IMAGE_EXTENSIONS.join("|")}))$`,
+  "i",
+);
 
-export function resolveUploadExtension(file: { name?: string; size?: number } | null | undefined, allowed: string[], maxBytes = 25 * 1024 * 1024): string {
+export function resolveUploadExtension(
+  file: { name?: string; size?: number } | null | undefined,
+  allowed: string[],
+  maxBytes = 25 * 1024 * 1024,
+): string {
   if (!file || typeof file !== "object" || !("arrayBuffer" in file) || typeof file.arrayBuffer !== "function") {
     throw new ValidationError("upload.noFile");
   }

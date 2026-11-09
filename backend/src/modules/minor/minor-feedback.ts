@@ -25,32 +25,46 @@ export class MinorFeedback {
   constructor(private readonly notifier: PublishNotifier) {}
 
   list(sprintId: number): MinorFeedbackEntry[] {
-    return db.select().from(minorFeedbackEntries).where(eq(minorFeedbackEntries.sprintId, sprintId)).orderBy(asc(minorFeedbackEntries.orderIndex), asc(minorFeedbackEntries.id)).all() as MinorFeedbackEntry[];
+    return db
+      .select()
+      .from(minorFeedbackEntries)
+      .where(eq(minorFeedbackEntries.sprintId, sprintId))
+      .orderBy(asc(minorFeedbackEntries.orderIndex), asc(minorFeedbackEntries.id))
+      .all() as MinorFeedbackEntry[];
   }
 
   add(sprintId: number, data: FeedbackInput) {
     if (!data.fromWhom?.trim() || !data.feedback?.trim() || !data.action?.trim()) {
       throw new ValidationError("minor.feedbackFieldsRequired");
     }
-    return db.insert(minorFeedbackEntries).values({
-      sprintId,
-      date: data.date || formatDate(new Date()),
-      fromWhom: data.fromWhom.trim(),
-      feedback: data.feedback.trim(),
-      action: data.action.trim(),
-      orderIndex: data.orderIndex ?? 0,
-    }).returning().get() as MinorFeedbackEntry;
+    return db
+      .insert(minorFeedbackEntries)
+      .values({
+        sprintId,
+        date: data.date || formatDate(new Date()),
+        fromWhom: data.fromWhom.trim(),
+        feedback: data.feedback.trim(),
+        action: data.action.trim(),
+        orderIndex: data.orderIndex ?? 0,
+      })
+      .returning()
+      .get() as MinorFeedbackEntry;
   }
 
   update(id: number, data: FeedbackInput) {
     const existing = this.requireEntry(id);
-    return db.update(minorFeedbackEntries).set({
-      date: data.date ?? existing.date,
-      fromWhom: data.fromWhom?.trim() ?? existing.fromWhom,
-      feedback: data.feedback?.trim() ?? existing.feedback,
-      action: data.action?.trim() ?? existing.action,
-      orderIndex: data.orderIndex ?? existing.orderIndex,
-    }).where(eq(minorFeedbackEntries.id, id)).returning().get() as MinorFeedbackEntry;
+    return db
+      .update(minorFeedbackEntries)
+      .set({
+        date: data.date ?? existing.date,
+        fromWhom: data.fromWhom?.trim() ?? existing.fromWhom,
+        feedback: data.feedback?.trim() ?? existing.feedback,
+        action: data.action?.trim() ?? existing.action,
+        orderIndex: data.orderIndex ?? existing.orderIndex,
+      })
+      .where(eq(minorFeedbackEntries.id, id))
+      .returning()
+      .get() as MinorFeedbackEntry;
   }
 
   remove(id: number) {
@@ -60,12 +74,20 @@ export class MinorFeedback {
   }
 
   getReflection(sprintId: number): MinorReflection | null {
-    return db.select().from(minorReflections).where(eq(minorReflections.sprintId, sprintId)).get() as MinorReflection | null;
+    return db
+      .select()
+      .from(minorReflections)
+      .where(eq(minorReflections.sprintId, sprintId))
+      .get() as MinorReflection | null;
   }
 
   saveReflection(sprintId: number, data: ReflectionInput): MinorReflection {
     const saved = this.upsertReflection(sprintId, data);
-    const sprint = db.select({ userId: minorSprints.userId }).from(minorSprints).where(eq(minorSprints.id, sprintId)).get();
+    const sprint = db
+      .select({ userId: minorSprints.userId })
+      .from(minorSprints)
+      .where(eq(minorSprints.id, sprintId))
+      .get();
     if (sprint) this.notifier.notify(sprint.userId, { event: "self_evaluations_saved", sprintId });
     return saved;
   }
@@ -73,24 +95,36 @@ export class MinorFeedback {
   private upsertReflection(sprintId: number, data: ReflectionInput): MinorReflection {
     const existing = db.select().from(minorReflections).where(eq(minorReflections.sprintId, sprintId)).get();
     if (existing) {
-      return db.update(minorReflections).set({
-        date: data.date ?? existing.date,
-        whatLearned: data.whatLearned !== undefined ? data.whatLearned : existing.whatLearned,
-        whatRetained: data.whatRetained !== undefined ? data.whatRetained : existing.whatRetained,
-        whatChange: data.whatChange !== undefined ? data.whatChange : existing.whatChange,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      }).where(eq(minorReflections.id, existing.id)).returning().get() as MinorReflection;
+      return db
+        .update(minorReflections)
+        .set({
+          date: data.date ?? existing.date,
+          whatLearned: data.whatLearned !== undefined ? data.whatLearned : existing.whatLearned,
+          whatRetained: data.whatRetained !== undefined ? data.whatRetained : existing.whatRetained,
+          whatChange: data.whatChange !== undefined ? data.whatChange : existing.whatChange,
+          updatedAt: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(eq(minorReflections.id, existing.id))
+        .returning()
+        .get() as MinorReflection;
     }
-    return db.insert(minorReflections).values({
-      sprintId,
-      date: data.date || formatDate(new Date()),
-      whatLearned: data.whatLearned || "",
-      whatRetained: data.whatRetained || "",
-      whatChange: data.whatChange || "",
-    }).returning().get() as MinorReflection;
+    return db
+      .insert(minorReflections)
+      .values({
+        sprintId,
+        date: data.date || formatDate(new Date()),
+        whatLearned: data.whatLearned || "",
+        whatRetained: data.whatRetained || "",
+        whatChange: data.whatChange || "",
+      })
+      .returning()
+      .get() as MinorReflection;
   }
 
   private requireEntry(id: number) {
-    return orNotFound(db.select().from(minorFeedbackEntries).where(eq(minorFeedbackEntries.id, id)).get(), "minor.feedbackNotFound");
+    return orNotFound(
+      db.select().from(minorFeedbackEntries).where(eq(minorFeedbackEntries.id, id)).get(),
+      "minor.feedbackNotFound",
+    );
   }
 }

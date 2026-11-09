@@ -53,7 +53,9 @@ export class MinecraftIdle {
       if (since === undefined) {
         this.markEmpty(slug, now);
       } else if (now - since >= maxIdleMs) {
-        console.log(`[Minecraft] Server "${slug}" auto-stopping: no players online for ${this.autoShutdownMinutes} minutes.`);
+        console.log(
+          `[Minecraft] Server "${slug}" auto-stopping: no players online for ${this.autoShutdownMinutes} minutes.`,
+        );
         this.clearEmpty(slug);
         await this.parts.lifecycle.stopServer(slug);
       }

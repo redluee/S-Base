@@ -72,7 +72,9 @@ export function xmlDocument(content: string) {
   };
   parser.on("text", append);
   parser.on("cdata", append);
-  parser.on("closetag", () => { stack.pop(); });
+  parser.on("closetag", () => {
+    stack.pop();
+  });
   try {
     parser.write(content.replace(/^\uFEFF/, "").trim()).close();
   } catch (error) {
@@ -86,7 +88,11 @@ export function date(node: XmlNode): string {
   const raw = value(node, "Dt") || value(node, "DtTm");
   if (!/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(raw)) invalid("date");
   if (raw.length > 10 && Number.isNaN(Date.parse(raw))) invalid("date");
-  try { return calendarDate(raw.slice(0, 10)); } catch { return invalid("date"); }
+  try {
+    return calendarDate(raw.slice(0, 10));
+  } catch {
+    return invalid("date");
+  }
 }
 
 export function amount(node: XmlNode): number {
@@ -94,8 +100,11 @@ export function amount(node: XmlNode): number {
   const raw = node.text.trim();
   if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) invalid("amount");
   const [whole, decimals = ""] = raw.split(".");
-  try { return cents(Number(whole) * 100 + Number(decimals.padEnd(2, "0")), 0); }
-  catch { return invalid("amount"); }
+  try {
+    return cents(Number(whole) * 100 + Number(decimals.padEnd(2, "0")), 0);
+  } catch {
+    return invalid("amount");
+  }
 }
 
 export function sign(direction: string): number {

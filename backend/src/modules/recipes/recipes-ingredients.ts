@@ -51,7 +51,9 @@ export class RecipeIngredients {
   replaceSteps(recipeId: number, steps: StepInput[]) {
     db.delete(recipeSteps).where(eq(recipeSteps.recipeId, recipeId)).run();
     steps.forEach((step, i) => {
-      db.insert(recipeSteps).values({ recipeId, stepNumber: i + 1, description: step.description }).run();
+      db.insert(recipeSteps)
+        .values({ recipeId, stepNumber: i + 1, description: step.description })
+        .run();
     });
   }
 

@@ -30,7 +30,11 @@ export const getClientIp = (request: Request): string => {
 export class RateLimiter {
   private hits = new Map<string, { count: number; resetAt: number }>();
 
-  constructor(private max: number, private windowMs: number, private now: () => number = Date.now) {}
+  constructor(
+    private max: number,
+    private windowMs: number,
+    private now: () => number = Date.now,
+  ) {}
 
   check(key: string): { allowed: boolean; retryAfter: number } {
     const now = this.now();

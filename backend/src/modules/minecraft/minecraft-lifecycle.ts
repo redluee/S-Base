@@ -84,14 +84,20 @@ export class MinecraftLifecycle {
       .where(and(eq(mc_player_sessions.serverId, serverId), isNull(mc_player_sessions.leftAt)))
       .all();
     for (const session of open) {
-      db.update(mc_player_sessions).set({ leftAt: now }).where(eq(mc_player_sessions.sessionId, session.sessionId)).run();
+      db.update(mc_player_sessions)
+        .set({ leftAt: now })
+        .where(eq(mc_player_sessions.sessionId, session.sessionId))
+        .run();
       const stat = db
         .select()
         .from(mc_player_stats)
         .where(and(eq(mc_player_stats.serverId, serverId), eq(mc_player_stats.playerUuid, session.playerUuid)))
         .get();
       if (stat) {
-        const seconds = Math.max(0, Math.floor((new Date(now).getTime() - new Date(session.joinedAt).getTime()) / 1000));
+        const seconds = Math.max(
+          0,
+          Math.floor((new Date(now).getTime() - new Date(session.joinedAt).getTime()) / 1000),
+        );
         db.update(mc_player_stats)
           .set({ lastSeen: now, totalPlaytime: (stat.totalPlaytime || 0) + seconds })
           .where(eq(mc_player_stats.statId, stat.statId))

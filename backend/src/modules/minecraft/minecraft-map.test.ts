@@ -40,13 +40,15 @@ describe("Minecraft map", () => {
     const gzipBuf = Bun.gzipSync(Buffer.from(JSON.stringify({ 0: "minecraft:stone" })));
     await writeFile(join(tilesDir, "blocks.gz"), gzipBuf);
 
-    db.insert(mc_servers).values({
-      slug: "test-pl3xmap-server",
-      displayName: "Pl3xMap Test Server",
-      engine: "fabric",
-      mcVersion: "26.2",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-pl3xmap-server",
+        displayName: "Pl3xMap Test Server",
+        engine: "fabric",
+        mcVersion: "26.2",
+        serverDir: srvDir,
+      })
+      .run();
 
     // Check map status
     const status = await minecraft.map.status("test-pl3xmap-server");

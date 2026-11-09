@@ -59,7 +59,14 @@ export const pulseRoutes = new Elysia().group("/api/pulse", (app) =>
         }
 
         const isSecure = process.env.NODE_ENV === "production";
-        session_id?.set({ value: res.newSessionId, httpOnly: true, sameSite: "lax", path: "/", maxAge: 86400, secure: isSecure });
+        session_id?.set({
+          value: res.newSessionId,
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 86400,
+          secure: isSecure,
+        });
         const cookieValue = `session_id=${res.newSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
 
         return new Response(

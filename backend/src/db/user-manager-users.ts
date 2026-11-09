@@ -5,7 +5,10 @@ import { handleError, findUser } from "./user-manager-shared";
 
 export async function listUsers() {
   try {
-    const allUsers = db.select({ userId: users.userId, username: users.username, email: users.email }).from(users).all();
+    const allUsers = db
+      .select({ userId: users.userId, username: users.username, email: users.email })
+      .from(users)
+      .all();
     console.log("\nGebruikers in database:");
     if (allUsers.length === 0) {
       console.log("  (Geen gebruikers gevonden)");
@@ -19,18 +22,9 @@ export async function listUsers() {
   }
 }
 
-export async function createUser(
-  username: string,
-  passwordPlain: string,
-  email?: string,
-  moduleSelection?: string[]
-) {
+export async function createUser(username: string, passwordPlain: string, email?: string, moduleSelection?: string[]) {
   try {
-    const existingUser = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    const existingUser = db.select().from(users).where(eq(users.username, username)).get();
 
     if (existingUser) {
       handleError(`Fout: Gebruiker met de naam '${username}' bestaat al.`);
@@ -38,11 +32,7 @@ export async function createUser(
     }
 
     if (email) {
-      const existingEmail = db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .get();
+      const existingEmail = db.select().from(users).where(eq(users.email, email)).get();
 
       if (existingEmail) {
         handleError(`Fout: Gebruiker met e-mailadres '${email}' bestaat al.`);
@@ -70,9 +60,7 @@ export async function createUser(
     }
 
     const userId = result.insertedId;
-    console.log(
-      `Gebruiker '${username}'${email ? ` (${email})` : ""} succesvol aangemaakt met ID: ${userId}`
-    );
+    console.log(`Gebruiker '${username}'${email ? ` (${email})` : ""} succesvol aangemaakt met ID: ${userId}`);
 
     const allModules = db.select().from(modules).all();
 
@@ -91,7 +79,7 @@ export async function createUser(
                 sel.toLowerCase() === m.moduleName.toLowerCase() ||
                 (m.moduleAlias && sel.toLowerCase() === m.moduleAlias.toLowerCase()) ||
                 sel === idStr ||
-                sel === indexStr
+                sel === indexStr,
             );
           });
         }
@@ -103,12 +91,10 @@ export async function createUser(
             targetModules.map((m) => ({
               userId,
               moduleId: m.moduleId,
-            }))
+            })),
           )
           .run();
-        console.log(
-          `Rechten voor modules (${targetModules.map((m) => m.moduleName).join(", ")}) toegekend.`
-        );
+        console.log(`Rechten voor modules (${targetModules.map((m) => m.moduleName).join(", ")}) toegekend.`);
       } else {
         console.log("Geen module-rechten toegekend.");
       }
@@ -131,7 +117,7 @@ export async function deleteUser(identifier: string) {
     db.delete(users).where(eq(users.userId, user.userId)).run();
 
     console.log(
-      `Gebruiker '${user.username}' (ID: ${user.userId}) en al diens permissies/sessies zijn succesvol verwijderd.`
+      `Gebruiker '${user.username}' (ID: ${user.userId}) en al diens permissies/sessies zijn succesvol verwijderd.`,
     );
   } catch (error) {
     handleError(`Er is een fout opgetreden bij het verwijderen van de gebruiker: ${error}`);
@@ -151,10 +137,7 @@ export async function changePassword(identifier: string, passwordPlain: string) 
       algorithm: "argon2id",
     });
 
-    db.update(users)
-      .set({ pswdHash: passwordHash })
-      .where(eq(users.userId, user.userId))
-      .run();
+    db.update(users).set({ pswdHash: passwordHash }).where(eq(users.userId, user.userId)).run();
 
     console.log(`Wachtwoord voor gebruiker '${user.username}' (ID: ${user.userId}) is succesvol gewijzigd.`);
   } catch (error) {
@@ -176,11 +159,7 @@ export async function renameUser(identifier: string, newUsername: string) {
       return;
     }
 
-    const existingNewUser = db
-      .select()
-      .from(users)
-      .where(eq(users.username, newUsername))
-      .get();
+    const existingNewUser = db.select().from(users).where(eq(users.username, newUsername)).get();
 
     if (existingNewUser && existingNewUser.userId !== user.userId) {
       handleError(`Fout: Een gebruiker met de naam '${newUsername}' bestaat al.`);
@@ -189,13 +168,10 @@ export async function renameUser(identifier: string, newUsername: string) {
 
     const oldName = user.username;
 
-    db.update(users)
-      .set({ username: newUsername })
-      .where(eq(users.userId, user.userId))
-      .run();
+    db.update(users).set({ username: newUsername }).where(eq(users.userId, user.userId)).run();
 
     console.log(
-      `Gebruiker '${oldName}' (ID: ${user.userId}) is succesvol hernoemd naar '${newUsername}'. Alle gekoppelde gegevens en permissies blijven behouden.`
+      `Gebruiker '${oldName}' (ID: ${user.userId}) is succesvol hernoemd naar '${newUsername}'. Alle gekoppelde gegevens en permissies blijven behouden.`,
     );
   } catch (error) {
     handleError(`Er is een fout opgetreden bij het hernoemen van de gebruiker: ${error}`);
@@ -214,11 +190,7 @@ export async function setEmail(identifier: string, email: string) {
     const trimmedEmail = email ? email.trim() : "";
 
     if (trimmedEmail) {
-      const existingEmail = db
-        .select()
-        .from(users)
-        .where(eq(users.email, trimmedEmail))
-        .get();
+      const existingEmail = db.select().from(users).where(eq(users.email, trimmedEmail)).get();
 
       if (existingEmail && existingEmail.userId !== user.userId) {
         handleError(`Fout: Een gebruiker met e-mailadres '${trimmedEmail}' bestaat al.`);
@@ -232,7 +204,7 @@ export async function setEmail(identifier: string, email: string) {
       .run();
 
     console.log(
-      `E-mailadres voor gebruiker '${user.username}' (ID: ${user.userId}) is succesvol gewijzigd naar '${trimmedEmail || "(geen)"}'.`
+      `E-mailadres voor gebruiker '${user.username}' (ID: ${user.userId}) is succesvol gewijzigd naar '${trimmedEmail || "(geen)"}'.`,
     );
   } catch (error) {
     handleError(`Er is een fout opgetreden bij het instellen van het e-mailadres: ${error}`);

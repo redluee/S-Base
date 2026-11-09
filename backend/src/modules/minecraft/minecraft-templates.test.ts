@@ -76,7 +76,7 @@ describe("Minecraft templates", () => {
 
     // Check files were copied over
     const srvMods = await minecraft.files.list("tmpl-speedrun-test", "mods");
-    expect(srvMods.some(m => m.name === "fabric-api.jar")).toBe(true);
+    expect(srvMods.some((m) => m.name === "fabric-api.jar")).toBe(true);
 
     // Clean up
     await minecraft.templates.remove(templateId);
@@ -87,13 +87,15 @@ describe("Minecraft templates", () => {
     await mkdir(join(srvDir, "custom_world"), { recursive: true });
     await writeFile(join(srvDir, "server.properties"), "level-name=custom_world\nmotd=Custom Level\n");
 
-    db.insert(mc_servers).values({
-      slug: "test-custom-level-name",
-      displayName: "Custom Level Name Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-custom-level-name",
+        displayName: "Custom Level Name Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     const packBuffer = new TextEncoder().encode("custom level pack content").buffer;
     await minecraft.files.upload("test-custom-level-name", "datapacks", "custom-level.zip", packBuffer);
@@ -104,19 +106,23 @@ describe("Minecraft templates", () => {
     expect(targetContent).toBe("custom level pack content");
 
     // Save as template
-    const tmpl = await minecraft.templates.saveFromServer("test-custom-level-name", "Custom Level Template", "Saved template");
+    const tmpl = await minecraft.templates.saveFromServer(
+      "test-custom-level-name",
+      "Custom Level Template",
+      "Saved template",
+    );
     expect(tmpl).not.toBeNull();
     const templateId = tmpl!.templateId;
 
     const tmplDatapacks = await minecraft.templates.listFiles(templateId, "datapacks");
-    expect(tmplDatapacks.some(f => f.name === "custom-level.zip")).toBe(true);
+    expect(tmplDatapacks.some((f) => f.name === "custom-level.zip")).toBe(true);
 
     // Speedrun from template
     const newSrv = await minecraft.templates.speedrun(templateId, "tmpl-speedrun-dp", "Speedrun Datapack Server");
     expect(newSrv).not.toBeNull();
 
     const speedrunPacks = await minecraft.files.list("tmpl-speedrun-dp", "datapacks");
-    expect(speedrunPacks.some(f => f.name === "custom-level.zip")).toBe(true);
+    expect(speedrunPacks.some((f) => f.name === "custom-level.zip")).toBe(true);
 
     // Clean up
     await minecraft.templates.remove(templateId);

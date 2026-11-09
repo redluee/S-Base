@@ -12,7 +12,9 @@ export function parseJson<T>(value: string, fallback: T): T {
 }
 
 export function str(value: unknown, max = 500) {
-  return String(value ?? "").trim().slice(0, max);
+  return String(value ?? "")
+    .trim()
+    .slice(0, max);
 }
 
 function cleanStrings(value: unknown): string[] {
@@ -24,7 +26,9 @@ export function cleanSections(value: Array<Partial<ResumeSection>> | undefined):
   if (!Array.isArray(value)) return [];
   return value.slice(0, RESUME_SECTIONS_MAX).map((s) => ({
     id: String(s?.id ?? "").trim() || crypto.randomUUID(),
-    title: String(s?.title ?? "").trim().slice(0, 60),
+    title: String(s?.title ?? "")
+      .trim()
+      .slice(0, 60),
     items: cleanStrings(s?.items),
   }));
 }
@@ -71,7 +75,13 @@ export function periodValues(data: PeriodInput) {
 
 export function mergePeriod(
   data: PeriodInput,
-  existing: { startMonth: number; startYear: number; endMonth: number | null; endYear: number | null; isCurrent: boolean },
+  existing: {
+    startMonth: number;
+    startYear: number;
+    endMonth: number | null;
+    endYear: number | null;
+    isCurrent: boolean;
+  },
 ) {
   return periodValues({
     startMonth: data.startMonth ?? existing.startMonth,
@@ -82,7 +92,13 @@ export function mergePeriod(
   });
 }
 
-export function periodSortKey(p: { startYear: number; startMonth: number; endYear: number | null; endMonth: number | null; isCurrent: boolean }) {
+export function periodSortKey(p: {
+  startYear: number;
+  startMonth: number;
+  endYear: number | null;
+  endMonth: number | null;
+  isCurrent: boolean;
+}) {
   const end = p.isCurrent ? 9999 * 12 + 12 : (p.endYear ?? 0) * 12 + (p.endMonth ?? 0);
   return (p.startYear * 12 + p.startMonth) * 1_000_000 + end;
 }

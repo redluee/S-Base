@@ -26,26 +26,34 @@ describe("Minecraft players", () => {
     await mkdir(srvDir, { recursive: true });
 
     // Insert mock server
-    db.insert(mc_servers).values({
-      slug: "test-server-stats",
-      displayName: "Test Stats Server",
-      engine: "vanilla",
-      mcVersion: "1.21.1",
-      serverDir: srvDir,
-    }).run();
+    db.insert(mc_servers)
+      .values({
+        slug: "test-server-stats",
+        displayName: "Test Stats Server",
+        engine: "vanilla",
+        mcVersion: "1.21.1",
+        serverDir: srvDir,
+      })
+      .run();
 
     const playerUuid = "12345678-1234-1234-1234-123456789abc";
     const playerName = "Steve";
 
     // Player joins (with realistic log prefix)
-    minecraft.players.parseEvent("test-server-stats", `[20:14:59] [User Authenticator #1/INFO]: UUID of player ${playerName} is ${playerUuid}`);
+    minecraft.players.parseEvent(
+      "test-server-stats",
+      `[20:14:59] [User Authenticator #1/INFO]: UUID of player ${playerName} is ${playerUuid}`,
+    );
     const playersJoined = await minecraft.players.list("test-server-stats");
     expect(playersJoined.online.length).toBe(1);
     expect(playersJoined.online[0].playerUuid).toBe(playerUuid);
     expect(playersJoined.online[0].playerName).toBe(playerName);
 
     // Redundant join without leave does not duplicate online list
-    minecraft.players.parseEvent("test-server-stats", `[20:15:00] [User Authenticator #1/INFO]: UUID of player ${playerName} is ${playerUuid}`);
+    minecraft.players.parseEvent(
+      "test-server-stats",
+      `[20:15:00] [User Authenticator #1/INFO]: UUID of player ${playerName} is ${playerUuid}`,
+    );
     const playersJoinedAgain = await minecraft.players.list("test-server-stats");
     expect(playersJoinedAgain.online.length).toBe(1);
     expect(playersJoinedAgain.online[0].playerName).toBe(playerName);

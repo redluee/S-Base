@@ -24,8 +24,9 @@ function coveredLearningOutcomes(sprintId: number): Set<number> {
 }
 
 function pickActiveSprint(sprints: MinorSprint[], today: string): MinorSprint | null {
-  const current = sprints.find((s) => s.status === "active" && s.startDate <= today && s.endDate >= today)
-    ?? sprints.find((s) => s.startDate <= today && s.endDate >= today);
+  const current =
+    sprints.find((s) => s.status === "active" && s.startDate <= today && s.endDate >= today) ??
+    sprints.find((s) => s.startDate <= today && s.endDate >= today);
   if (current) return current;
 
   const upcoming = sprints.filter((s) => s.startDate > today);
@@ -60,7 +61,11 @@ export class MinorDashboard {
     const sprintIds = sprints.map((s) => s.id);
 
     if (sprintIds.length > 0) {
-      const allAssessments = db.select().from(minorTeacherAssessments).where(inArray(minorTeacherAssessments.sprintId, sprintIds)).all();
+      const allAssessments = db
+        .select()
+        .from(minorTeacherAssessments)
+        .where(inArray(minorTeacherAssessments.sprintId, sprintIds))
+        .all();
 
       for (const s of sprints) {
         const isFinished = s.status === "completed" || s.endDate < today;

@@ -20,7 +20,10 @@ describe("MinorEvaluations", () => {
       learningOutcomes: [1, 3],
     });
 
-    const levels = () => Object.fromEntries(minor.sprints.getById(sprint.id, adminId)!.selfEvaluations.map((e) => [e.learningOutcome, e.level]));
+    const levels = () =>
+      Object.fromEntries(
+        minor.sprints.getById(sprint.id, adminId)!.selfEvaluations.map((e) => [e.learningOutcome, e.level]),
+      );
     expect(levels()[1]).toBe("-");
 
     minor.stories.update(story.id, adminId, { status: "done" });
@@ -43,9 +46,7 @@ describe("MinorEvaluations", () => {
       title: "Realized Story",
       learningOutcomes: [1, 2],
       status: "done",
-      evidence: [
-        { type: "github", title: "PR #10", url: "https://github.com/example/pr/10" },
-      ],
+      evidence: [{ type: "github", title: "PR #10", url: "https://github.com/example/pr/10" }],
     });
 
     const full = minor.sprints.getById(sprint.id, adminId);

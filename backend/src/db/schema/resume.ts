@@ -4,7 +4,10 @@ import { users } from "./auth";
 
 export const resumeProfiles = sqliteTable("resume_profiles", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().unique().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.userId, { onDelete: "cascade" }),
   fullName: text("full_name").notNull().default(""),
   headline: text("headline").notNull().default(""),
   photoPath: text("photo_path"),
@@ -24,7 +27,9 @@ export const resumeProfiles = sqliteTable("resume_profiles", {
 
 export const resumeExperiences = sqliteTable("resume_experiences", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   company: text("company").notNull(),
   place: text("place").notNull().default(""),
   jobTitle: text("job_title").notNull(),
@@ -40,7 +45,9 @@ export const resumeExperiences = sqliteTable("resume_experiences", {
 
 export const resumeEducations = sqliteTable("resume_educations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   institution: text("institution").notNull(),
   place: text("place").notNull().default(""),
   degree: text("degree").notNull(),
@@ -56,7 +63,9 @@ export const resumeEducations = sqliteTable("resume_educations", {
 
 export const resumes = sqliteTable("resumes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   name: text("name").notNull(),
   titleFont: text("title_font").notNull().default("carlito"),
   textFont: text("text_font").notNull().default("carlito"),
@@ -71,7 +80,9 @@ export const resumes = sqliteTable("resumes", {
 
 export const resumeItems = sqliteTable("resume_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  resumeId: integer("resume_id").notNull().references(() => resumes.id, { onDelete: "cascade" }),
+  resumeId: integer("resume_id")
+    .notNull()
+    .references(() => resumes.id, { onDelete: "cascade" }),
   kind: text("kind").notNull(),
   refId: integer("ref_id").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),

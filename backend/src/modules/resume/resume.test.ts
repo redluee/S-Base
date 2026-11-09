@@ -63,7 +63,9 @@ describe("ResumeService", () => {
   it("validates experience dates", () => {
     expect(() => svc.library.createExperience(adminId, exp({ startMonth: 13 }))).toThrow(ValidationError);
     expect(() => svc.library.createExperience(adminId, exp({ endYear: 2020 }))).toThrow(ValidationError);
-    expect(() => svc.library.createExperience(adminId, exp({ endMonth: null, endYear: null }))).toThrow(ValidationError);
+    expect(() => svc.library.createExperience(adminId, exp({ endMonth: null, endYear: null }))).toThrow(
+      ValidationError,
+    );
     expect(() => svc.library.createExperience(adminId, exp({ company: "" }))).toThrow(ValidationError);
     const cur = svc.library.createExperience(adminId, exp({ isCurrent: true, endMonth: 3, endYear: 2030 }));
     expect(cur.isCurrent).toBe(true);
@@ -72,15 +74,38 @@ describe("ResumeService", () => {
   });
 
   it("sorts by start date, newest first", () => {
-    const a = svc.library.createExperience(adminId, exp({ jobTitle: "Old", startMonth: 1, startYear: 2019, endYear: 2025 }));
-    const b = svc.library.createExperience(adminId, exp({ jobTitle: "New", startMonth: 6, startYear: 2023, endYear: 2024 }));
-    const c = svc.library.createExperience(adminId, exp({ jobTitle: "Mid", startMonth: 3, startYear: 2021, isCurrent: true }));
+    const a = svc.library.createExperience(
+      adminId,
+      exp({ jobTitle: "Old", startMonth: 1, startYear: 2019, endYear: 2025 }),
+    );
+    const b = svc.library.createExperience(
+      adminId,
+      exp({ jobTitle: "New", startMonth: 6, startYear: 2023, endYear: 2024 }),
+    );
+    const c = svc.library.createExperience(
+      adminId,
+      exp({ jobTitle: "Mid", startMonth: 3, startYear: 2021, isCurrent: true }),
+    );
     expect(svc.library.listExperiences(adminId).map((e) => e.id)).toEqual([b.id, c.id, a.id]);
   });
 
   it("selects all items newest start first when creating a resume", () => {
-    const old = svc.library.createEducation(adminId, { institution: "A", degree: "Old", startMonth: 9, startYear: 2010, endMonth: 6, endYear: 2014 });
-    const recent = svc.library.createEducation(adminId, { institution: "B", degree: "Recent", startMonth: 9, startYear: 2018, endMonth: 6, endYear: 2020 });
+    const old = svc.library.createEducation(adminId, {
+      institution: "A",
+      degree: "Old",
+      startMonth: 9,
+      startYear: 2010,
+      endMonth: 6,
+      endYear: 2014,
+    });
+    const recent = svc.library.createEducation(adminId, {
+      institution: "B",
+      degree: "Recent",
+      startMonth: 9,
+      startYear: 2018,
+      endMonth: 6,
+      endYear: 2020,
+    });
     const r = svc.resumes.create(adminId, { name: "CV", selectAll: true });
     expect(svc.resumes.getFull(r.id, adminId).selected.map((s) => s.refId)).toEqual([recent.id, old.id]);
   });
@@ -110,12 +135,28 @@ describe("ResumeService", () => {
     expect(key(() => svc.library.createExperience(adminId, exp({ startMonth: 13 })))).toBe("resume.invalidStartMonth");
     expect(key(() => svc.library.createExperience(adminId, exp({ startYear: 1900 })))).toBe("resume.invalidStartYear");
     expect(key(() => svc.library.createExperience(adminId, exp({ endMonth: 0 })))).toBe("resume.invalidEndMonth");
-    expect(key(() => svc.library.createExperience(adminId, exp({ endMonth: null, endYear: null })))).toBe("resume.invalidEndMonth");
+    expect(key(() => svc.library.createExperience(adminId, exp({ endMonth: null, endYear: null })))).toBe(
+      "resume.invalidEndMonth",
+    );
     expect(key(() => svc.library.createExperience(adminId, exp({ endYear: 2020 })))).toBe("resume.endBeforeStart");
-    expect(key(() => svc.library.createExperience(adminId, exp({ company: "" })))).toBe("resume.companyAndJobTitleRequired");
-    expect(key(() => svc.library.createEducation(adminId, { institution: "", degree: "x", startMonth: 1, startYear: 2020, isCurrent: true }))).toBe("resume.institutionAndDegreeRequired");
+    expect(key(() => svc.library.createExperience(adminId, exp({ company: "" })))).toBe(
+      "resume.companyAndJobTitleRequired",
+    );
+    expect(
+      key(() =>
+        svc.library.createEducation(adminId, {
+          institution: "",
+          degree: "x",
+          startMonth: 1,
+          startYear: 2020,
+          isCurrent: true,
+        }),
+      ),
+    ).toBe("resume.institutionAndDegreeRequired");
     expect(key(() => svc.resumes.create(adminId, { name: "" }))).toBe("resume.nameRequired");
-    expect(key(() => svc.resumes.create(adminId, { name: "x", accentColor: "blue" }))).toBe("resume.invalidAccentColor");
+    expect(key(() => svc.resumes.create(adminId, { name: "x", accentColor: "blue" }))).toBe(
+      "resume.invalidAccentColor",
+    );
     expect(key(() => svc.resumes.create(adminId, { name: "x", titleFont: "comic-sans" }))).toBe("resume.invalidFont");
     expect(key(() => svc.resumes.create(adminId, { name: "x", leftWidthPct: 72 }))).toBe("resume.invalidColumnWidth");
     expect(key(() => svc.resumes.create(adminId, { name: "x", textScalePct: 150 }))).toBe("resume.invalidFontSize");
@@ -128,20 +169,33 @@ describe("ResumeService", () => {
     const e = svc.library.createExperience(adminId, exp());
     const r = svc.resumes.create(adminId, { name: "CV" });
     expect(() => svc.resumes.setItems(r.id, adminId, [{ kind: "other", refId: e.id }])).toThrow(ValidationError);
-    expect(() => svc.resumes.setItems(r.id, adminId, [{ kind: "experience", refId: e.id }, { kind: "experience", refId: e.id }])).toThrow(ConflictError);
+    expect(() =>
+      svc.resumes.setItems(r.id, adminId, [
+        { kind: "experience", refId: e.id },
+        { kind: "experience", refId: e.id },
+      ]),
+    ).toThrow(ConflictError);
   });
 
   it("rejects items owned by another user", () => {
     const foreign = svc.library.createExperience(testerId, exp());
     const r = svc.resumes.create(adminId, { name: "CV" });
-    expect(() => svc.resumes.setItems(r.id, adminId, [{ kind: "experience", refId: foreign.id }])).toThrow(NotFoundError);
+    expect(() => svc.resumes.setItems(r.id, adminId, [{ kind: "experience", refId: foreign.id }])).toThrow(
+      NotFoundError,
+    );
   });
 
   it("builds a resume with selected items, order and description override", () => {
     const e1 = svc.library.createExperience(adminId, exp({ jobTitle: "One", description: "orig" }));
     const e2 = svc.library.createExperience(adminId, exp({ jobTitle: "Two" }));
     svc.library.createExperience(adminId, exp({ jobTitle: "Unselected" }));
-    const edu = svc.library.createEducation(adminId, { institution: "School", degree: "BSc", startMonth: 9, startYear: 2020, isCurrent: true });
+    const edu = svc.library.createEducation(adminId, {
+      institution: "School",
+      degree: "BSc",
+      startMonth: 9,
+      startYear: 2020,
+      isCurrent: true,
+    });
     const r = svc.resumes.create(adminId, { name: "CV" });
     svc.resumes.setItems(r.id, adminId, [
       { kind: "experience", refId: e2.id },

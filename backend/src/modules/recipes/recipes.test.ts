@@ -19,14 +19,14 @@ describe("RecipeCatalog", () => {
       recipeService.create({
         name: "Invalid Cooking Time",
         cookingTime: -10,
-      })
+      }),
     ).toThrow(new ValidationError("recipes.cookingTimeNegative"));
 
     expect(() =>
       recipeService.create({
         name: "Invalid Ingredient Quantity",
         ingredients: [{ name: "Zout", quantity: 0 }],
-      })
+      }),
     ).toThrow(new ValidationError("recipes.ingredientQuantityPositive"));
   });
 
@@ -41,10 +41,7 @@ describe("RecipeCatalog", () => {
         { name: "Spaghetti", quantity: 200, unit: "g" },
         { name: "Pancetta", quantity: 100, unit: "g" },
       ],
-      steps: [
-        { description: "Kook de spaghetti." },
-        { description: "Bak de pancetta knapperig." },
-      ],
+      steps: [{ description: "Kook de spaghetti." }, { description: "Bak de pancetta knapperig." }],
     });
 
     expect(created.name).toBe("Pasta Carbonara");

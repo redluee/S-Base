@@ -36,7 +36,12 @@ export const sprintUpdateBody = t.Object({
 export const importBody = t.Record(t.String(), t.Unknown());
 
 const criterion = t.Object(
-  { id: t.Optional(t.Number()), text: t.String(), isCompleted: t.Optional(t.Boolean()), indent: t.Optional(t.Number()) },
+  {
+    id: t.Optional(t.Number()),
+    text: t.String(),
+    isCompleted: t.Optional(t.Boolean()),
+    indent: t.Optional(t.Number()),
+  },
   open,
 );
 
@@ -50,7 +55,9 @@ const link = t.Object({ url: t.String(), title: t.Optional(t.String()), name: t.
 const presentationData = t.Object(
   {
     enabled: t.Optional(t.Boolean()),
-    layout: t.Optional(t.Union([t.Literal("auto"), t.Literal("split"), t.Literal("media"), t.Literal("bullets"), t.Literal("demo")])),
+    layout: t.Optional(
+      t.Union([t.Literal("auto"), t.Literal("split"), t.Literal("media"), t.Literal("bullets"), t.Literal("demo")]),
+    ),
     bullets: t.Optional(t.Array(t.String())),
     listStyle: t.Optional(t.Union([t.Literal("bullets"), t.Literal("steps")])),
     summary: t.Optional(t.String()),

@@ -23,11 +23,7 @@ export const AIKAR_FLAGS: readonly string[] = [
   "-Daikars.new.flags=true",
 ];
 
-export const ZGC_FLAGS: readonly string[] = [
-  "-XX:+UseZGC",
-  "-XX:+ZGenerational",
-  "-XX:+AlwaysPreTouch",
-];
+export const ZGC_FLAGS: readonly string[] = ["-XX:+UseZGC", "-XX:+ZGenerational", "-XX:+AlwaysPreTouch"];
 
 export const DEFAULT_GC_FLAGS = AIKAR_FLAGS;
 
@@ -43,7 +39,10 @@ export function parseJavaArgs(rawArgs?: string | null): string[] {
       }
     } catch {}
   }
-  return trimmed.split(/\s+/).map((x) => x.trim()).filter(Boolean);
+  return trimmed
+    .split(/\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 export function formatJavaLaunchCommand(engine: string, serverDir: string, rawJavaArgs?: string | null): string {

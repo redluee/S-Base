@@ -1,11 +1,29 @@
-import { amount, children, date, invalid, optional, required, sign, value, xmlDocument, type XmlNode } from "./camt-xml";
+import {
+  amount,
+  children,
+  date,
+  invalid,
+  optional,
+  required,
+  sign,
+  value,
+  xmlDocument,
+  type XmlNode,
+} from "./camt-xml";
 import { parseEntry } from "./camt-entries";
 import { calendarDate, cents } from "./validation";
 import type { ImportSource, ParsedImport } from "./import-model";
 
 const BANKS: Record<string, string> = {
-  INGB: "ING", ABNA: "ABN AMRO", RABO: "Rabobank", ASNB: "ASN Bank",
-  SNSB: "SNS", RBRB: "RegioBank", TRIO: "Triodos Bank", KNAB: "Knab", BUNQ: "bunq",
+  INGB: "ING",
+  ABNA: "ABN AMRO",
+  RABO: "Rabobank",
+  ASNB: "ASN Bank",
+  SNSB: "SNS",
+  RBRB: "RegioBank",
+  TRIO: "Triodos Bank",
+  KNAB: "Knab",
+  BUNQ: "bunq",
 };
 
 function pagination(node: XmlNode, name: string) {
@@ -18,7 +36,8 @@ function balance(statement: XmlNode, code: string, mandatory = false) {
   if (matches.length > 1 || (mandatory && !matches.length)) invalid("xmlBalance");
   if (!matches.length) return undefined;
   const node = matches[0];
-  if (value(node, "Tp", "SubTp", "Cd") === "INTM" || value(node, "Tp", "SubTp", "Prtry") === "INTM") invalid("xmlPages");
+  if (value(node, "Tp", "SubTp", "Cd") === "INTM" || value(node, "Tp", "SubTp", "Prtry") === "INTM")
+    invalid("xmlPages");
   return { date: date(required(node, "Dt")), cents: amount(required(node, "Amt")) * sign(value(node, "CdtDbtInd")) };
 }
 
@@ -33,11 +52,13 @@ function parseStatement(statement: XmlNode) {
   const bank = BANKS[bic.slice(0, 4)] ?? (/^NL/.test(iban) ? BANKS[iban.slice(4, 8)] : undefined) ?? null;
   const closing = balance(statement, "CLBD", true)!;
   const opening = balance(statement, "OPBD");
-  const entries = children(statement, "Ntry").map(parseEntry).sort((a, b) => a.date.localeCompare(b.date));
+  const entries = children(statement, "Ntry")
+    .map(parseEntry)
+    .sort((a, b) => a.date.localeCompare(b.date));
   if (entries.length && !opening) invalid("xmlBalance");
   const from = value(statement, "FrToDt", "FrDtTm");
   const to = value(statement, "FrToDt", "ToDtTm");
-  const firstDate = from ? periodDate(from) : entries[0]?.date ?? closing.date;
+  const firstDate = from ? periodDate(from) : (entries[0]?.date ?? closing.date);
   if (firstDate > closing.date || (to && periodDate(to) !== closing.date)) invalid("xmlBalance");
   if (opening && opening.date > firstDate) invalid("xmlBalance");
   if (entries.some((entry) => entry.date < firstDate || entry.date > closing.date)) invalid("xmlBalance");
@@ -62,7 +83,7 @@ function parseStatement(statement: XmlNode) {
     account: iban,
     accountName: value(account, "Nm"),
     bank,
-    suggestedType: value(account, "Tp", "Cd") === "SVGS" ? "savings" as const : undefined,
+    suggestedType: value(account, "Tp", "Cd") === "SVGS" ? ("savings" as const) : undefined,
     firstDate,
     lastDate: closing.date,
     opening,
@@ -75,7 +96,11 @@ function parseStatement(statement: XmlNode) {
 
 function periodDate(raw: string) {
   if (!/^\d{4}-\d{2}-\d{2}T/.test(raw) || Number.isNaN(Date.parse(raw))) invalid("date");
-  try { return calendarDate(raw.slice(0, 10)); } catch { return invalid("date"); }
+  try {
+    return calendarDate(raw.slice(0, 10));
+  } catch {
+    return invalid("date");
+  }
 }
 
 export function parseCamt053(content: string): ParsedImport {
@@ -85,7 +110,8 @@ export function parseCamt053(content: string): ParsedImport {
   pagination(required(message, "GrpHdr"), "MsgPgntn");
   const statements = children(message, "Stmt");
   if (!statements.length) invalid("empty");
-  if (statements.length > 5000 || statements.reduce((count, node) => count + children(node, "Ntry").length, 0) > 20000) invalid("size");
+  if (statements.length > 5000 || statements.reduce((count, node) => count + children(node, "Ntry").length, 0) > 20000)
+    invalid("size");
   const grouped = new Map<string, ReturnType<typeof parseStatement>[]>();
   for (const statement of statements) {
     const parsed = parseStatement(statement);
@@ -97,9 +123,14 @@ export function parseCamt053(content: string): ParsedImport {
   const sources: ImportSource[] = [...grouped.values()].map((group, index) => {
     group.sort((a, b) => a.firstDate.localeCompare(b.firstDate));
     for (let i = 1; i < group.length; i++) {
-      const previous = group[i - 1], current = group[i];
+      const previous = group[i - 1],
+        current = group[i];
       if (current.firstDate <= previous.lastDate) invalid("xmlOverlap");
-      if (current.opening && current.opening.date <= previous.lastDate && current.opening.cents !== previous.closing.cents)
+      if (
+        current.opening &&
+        current.opening.date <= previous.lastDate &&
+        current.opening.cents !== previous.closing.cents
+      )
         invalid("continuity");
     }
     const first = group[0];
@@ -119,7 +150,10 @@ export function parseCamt053(content: string): ParsedImport {
       rowCount: group.reduce((sum, statement) => sum + statement.rowCount, 0),
     };
   });
-  if (sources.reduce((sum, source) => sum + source.balances.length, 0) > 5000 || sources.reduce((sum, source) => sum + source.transactions.length, 0) > 20000)
+  if (
+    sources.reduce((sum, source) => sum + source.balances.length, 0) > 5000 ||
+    sources.reduce((sum, source) => sum + source.transactions.length, 0) > 20000
+  )
     invalid("size");
   return { format: "camt053", sources, rowCount: sources.reduce((sum, source) => sum + source.rowCount, 0) };
 }

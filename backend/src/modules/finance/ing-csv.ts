@@ -1,10 +1,7 @@
 import { ValidationError } from "../../utils/errors";
 import { requireObject } from "../../utils/validation";
 import { calendarDate, cents } from "./validation";
-import type {
-  FinanceImportPreview,
-  FinanceImportOrder,
-} from "../../types/finance";
+import type { FinanceImportPreview, FinanceImportOrder } from "../../types/finance";
 
 export const ING_MAX_BYTES = 2 * 1024 * 1024;
 const MAX_ROWS = 20000;
@@ -37,8 +34,7 @@ function invalid(key: string): never {
 }
 
 function csvRows(content: string): string[][] {
-  if (!content || new TextEncoder().encode(content).length > ING_MAX_BYTES)
-    invalid("size");
+  if (!content || new TextEncoder().encode(content).length > ING_MAX_BYTES) invalid("size");
   const text = content.replace(/^\uFEFF/, "").replace(/^sep=[;,]\r?\n/i, "");
   const firstLine = text.split(/\r?\n/, 1)[0];
   const delimiter = firstLine.includes(";") ? ";" : ",";
@@ -89,15 +85,9 @@ function amount(value: string, nonnegative = false, allowDot = false): number {
   let normalized = value.trim().replace(/\u2212/g, "-");
   if (allowDot && /^-?(?:\d+|\d{1,3}(?:,\d{3})+)\.\d{2}$/.test(normalized))
     normalized = normalized.replace(/,/g, "").replace(/\.(\d{2})$/, ",$1");
-  if (!/^-?(?:\d+|\d{1,3}(?:\.\d{3})+),\d{2}$/.test(normalized))
-    invalid("amount");
-  const [whole, decimals] = normalized
-    .replace(/^-/, "")
-    .replace(/\./g, "")
-    .split(",");
-  const result =
-    (Number(whole) * 100 + Number(decimals)) *
-    (normalized.startsWith("-") ? -1 : 1);
+  if (!/^-?(?:\d+|\d{1,3}(?:\.\d{3})+),\d{2}$/.test(normalized)) invalid("amount");
+  const [whole, decimals] = normalized.replace(/^-/, "").replace(/\./g, "").split(",");
+  const result = (Number(whole) * 100 + Number(decimals)) * (normalized.startsWith("-") ? -1 : 1);
   try {
     return cents(result, nonnegative ? 0 : undefined);
   } catch {
@@ -118,14 +108,9 @@ function date(value: string): string {
   }
 }
 
-export function parseIngFile(
-  content: unknown,
-  orderInput: unknown,
-  anchorsInput?: unknown,
-) {
+export function parseIngFile(content: unknown, orderInput: unknown, anchorsInput?: unknown) {
   if (typeof content !== "string") invalid("malformed");
-  if (orderInput !== "descending" && orderInput !== "ascending")
-    invalid("order");
+  if (orderInput !== "descending" && orderInput !== "ascending") invalid("order");
   const order: FinanceImportOrder = orderInput;
   const anchors = anchorsInput === undefined ? {} : requireObject(anchorsInput);
   if (Object.keys(anchors).some((key) => !/^[1-9]\d{0,2}$/.test(key))) invalid("selection");
@@ -140,7 +125,7 @@ export function parseIngFile(
     description: string;
     counterparty: string;
   };
-  const grouped = new Map<string, { account: string; savings: boolean; accountName: string; entries: Row[]; }>();
+  const grouped = new Map<string, { account: string; savings: boolean; accountName: string; entries: Row[] }>();
   let headers: string[] = [];
   let english = false;
   let rowCount = 0;
@@ -159,8 +144,7 @@ export function parseIngFile(
     if (!headers.length) invalid("columns");
     if (row.length !== headers.length) invalid("malformed");
     const field = (name: string) => row[headers.indexOf(name)] ?? "";
-    if (headers.includes("valuta") && field("valuta").trim().toUpperCase() !== "EUR")
-      invalid("currency");
+    if (headers.includes("valuta") && field("valuta").trim().toUpperCase() !== "EUR") invalid("currency");
     const account = field("rekening").replace(/\s/g, "").toUpperCase();
     if (!/^[A-Z0-9-]{4,40}$/.test(account)) invalid("account");
     const rawDirection = field("af bij").trim().toLowerCase();
@@ -181,7 +165,9 @@ export function parseIngFile(
       counterparty: field("tegenrekening").replace(/\s/g, "").toUpperCase(),
       date: date(field("datum")),
       balanceCents: balance ? amount(balance, false, english) : null,
-      delta: amount(field(headers.includes("bedrag (eur)") ? "bedrag (eur)" : "bedrag"), true, english) * (direction === "af" ? -1 : 1),
+      delta:
+        amount(field(headers.includes("bedrag (eur)") ? "bedrag (eur)" : "bedrag"), true, english) *
+        (direction === "af" ? -1 : 1),
     });
     grouped.set(key, group);
     if (++rowCount > MAX_ROWS) invalid("size");
@@ -190,8 +176,11 @@ export function parseIngFile(
   if (grouped.size > 200) invalid("size");
   const sources = [...grouped.values()].map(({ account, accountName, savings, entries }, index) => {
     for (let i = 1; i < entries.length; i++) {
-      if ((order === "descending" && entries[i].date > entries[i - 1].date) ||
-        (order === "ascending" && entries[i].date < entries[i - 1].date)) invalid("order");
+      if (
+        (order === "descending" && entries[i].date > entries[i - 1].date) ||
+        (order === "ascending" && entries[i].date < entries[i - 1].date)
+      )
+        invalid("order");
     }
     const chronological = order === "ascending" ? entries : [...entries].reverse();
     const reconstructedRowCount = entries.filter((entry) => entry.balanceCents === null).length;
@@ -220,9 +209,7 @@ export function parseIngFile(
       transactions: chronological,
       sourceKey: String(index + 1),
       label: `…${account.slice(-4)}${sharedNumber ? ` · ${index + 1}` : ""}`,
-      ...(savings
-        ? { suggestedType: "savings" as const }
-        : {}),
+      ...(savings ? { suggestedType: "savings" as const } : {}),
       rowCount: entries.length,
       reconstructedRowCount,
       balances: [...daily]
@@ -230,8 +217,7 @@ export function parseIngFile(
         .map(([date, balanceCents]) => ({ date, balanceCents })),
     };
   });
-  if (sources.reduce((sum, source) => sum + source.balances.length, 0) > 5000)
-    invalid("size");
+  if (sources.reduce((sum, source) => sum + source.balances.length, 0) > 5000) invalid("size");
   return { sources, rowCount };
 }
 

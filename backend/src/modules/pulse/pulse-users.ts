@@ -115,11 +115,7 @@ export class PulseUsers {
     if (existingEmail) throw new ConflictError("pulse.emailExists");
 
     const pswdHash = await Bun.password.hash(password, { algorithm: "argon2id" });
-    const created = db
-      .insert(users)
-      .values({ username, email, pswdHash })
-      .returning({ userId: users.userId })
-      .get();
+    const created = db.insert(users).values({ username, email, pswdHash }).returning({ userId: users.userId }).get();
     if (!created) throw new NotFoundError("pulse.userNotFound");
     return this.getUser(created.userId);
   }
@@ -133,10 +129,7 @@ export class PulseUsers {
 
   updateEmail(userId: number, email: string | null): PulseUser {
     const trimmedEmail = email ? email.trim().toLowerCase() : null;
-    db.update(users)
-      .set({ email: trimmedEmail })
-      .where(eq(users.userId, userId))
-      .run();
+    db.update(users).set({ email: trimmedEmail }).where(eq(users.userId, userId)).run();
 
     return this.getUser(userId);
   }
@@ -152,9 +145,7 @@ export class PulseUsers {
 
   updateModules(userId: number, moduleNames: string[]): PulseUser {
     this.getUser(userId);
-    db.delete(usermodulepermissions)
-      .where(eq(usermodulepermissions.userId, userId))
-      .run();
+    db.delete(usermodulepermissions).where(eq(usermodulepermissions.userId, userId)).run();
 
     if (moduleNames.length > 0) {
       const targetModules = db
@@ -164,9 +155,7 @@ export class PulseUsers {
         .all();
 
       for (const m of targetModules) {
-        db.insert(usermodulepermissions)
-          .values({ userId, moduleId: m.moduleId })
-          .run();
+        db.insert(usermodulepermissions).values({ userId, moduleId: m.moduleId }).run();
       }
     }
 
@@ -175,9 +164,7 @@ export class PulseUsers {
 
   updateServerPermissions(userId: number, serverSlugs: string[]): PulseUser {
     this.getUser(userId);
-    db.delete(mc_server_permissions)
-      .where(eq(mc_server_permissions.userId, userId))
-      .run();
+    db.delete(mc_server_permissions).where(eq(mc_server_permissions.userId, userId)).run();
 
     if (serverSlugs.length > 0) {
       const targetServers = db
@@ -187,9 +174,7 @@ export class PulseUsers {
         .all();
 
       for (const s of targetServers) {
-        db.insert(mc_server_permissions)
-          .values({ userId, serverId: s.serverId })
-          .run();
+        db.insert(mc_server_permissions).values({ userId, serverId: s.serverId }).run();
       }
     }
 

@@ -32,9 +32,7 @@ describe("MinorStories", () => {
         { text: "Sprintnummer wordt automatisch berekend", isCompleted: true, indent: 0 },
         { text: "Gebruiker kan sprintnummer overschrijven", isCompleted: false, indent: 1 },
       ],
-      qualityCriteria: [
-        { text: "TypeScript types kloppen 100%", isCompleted: true, indent: 0 },
-      ],
+      qualityCriteria: [{ text: "TypeScript types kloppen 100%", isCompleted: true, indent: 0 }],
       evidence: [
         { type: "github", title: "PR #1", url: "https://github.com/example/pr/1" },
         { type: "document", title: "Design Doc", url: "/api/uploads/doc1.pdf" },

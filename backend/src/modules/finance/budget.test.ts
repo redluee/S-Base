@@ -1,7 +1,13 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import db from "../../db/client";
-import { financeAccounts, financeSettings, financeSubscriptionPreferences, financeTransactions, users } from "../../db/schema";
+import {
+  financeAccounts,
+  financeSettings,
+  financeSubscriptionPreferences,
+  financeTransactions,
+  users,
+} from "../../db/schema";
 import { setupTestDb } from "../../test-utils";
 import { FinanceService } from "./index";
 
@@ -9,16 +15,33 @@ const service = new FinanceService();
 let owner: number, other: number, accountId: number;
 
 function payment(name: string, date: string, amountCents = -1000, transferOverride = false, targetAccount = accountId) {
-  return db.insert(financeTransactions).values({
-    accountId: targetAccount, fingerprint: `${name}-${date}-${targetAccount}`,
-    name, date, amountCents, description: "", transferOverride,
-  }).returning().get();
+  return db
+    .insert(financeTransactions)
+    .values({
+      accountId: targetAccount,
+      fingerprint: `${name}-${date}-${targetAccount}`,
+      name,
+      date,
+      amountCents,
+      description: "",
+      transferOverride,
+    })
+    .returning()
+    .get();
 }
 
 beforeAll(async () => {
   await setupTestDb();
-  owner = db.insert(users).values({ username: "budget-subscriptions-owner", pswdHash: "unused" }).returning().get().userId;
-  other = db.insert(users).values({ username: "budget-subscriptions-other", pswdHash: "unused" }).returning().get().userId;
+  owner = db
+    .insert(users)
+    .values({ username: "budget-subscriptions-owner", pswdHash: "unused" })
+    .returning()
+    .get().userId;
+  other = db
+    .insert(users)
+    .values({ username: "budget-subscriptions-other", pswdHash: "unused" })
+    .returning()
+    .get().userId;
 });
 
 beforeEach(() => {
@@ -27,7 +50,12 @@ beforeEach(() => {
     db.delete(financeSettings).where(eq(financeSettings.userId, userId)).run();
     db.delete(financeAccounts).where(eq(financeAccounts.userId, userId)).run();
   }
-  accountId = service.accounts.createAccount(owner, { name: "Sample account", type: "current", openingDate: "2024-01-01", openingBalanceCents: 100000 }).id;
+  accountId = service.accounts.createAccount(owner, {
+    name: "Sample account",
+    type: "current",
+    openingDate: "2024-01-01",
+    openingBalanceCents: 100000,
+  }).id;
   service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: 5000 });
 });
 
@@ -54,14 +82,18 @@ describe("Monthly budget excluding subscriptions", () => {
     payment("Sample income", "2025-02-02", 3000);
     for (const period of ["month", "year", "all"]) {
       expect(service.budget.dashboard(owner, period, "2025-02-02").budget).toEqual({
-        month: "2025-02", limitCents: 5000, spendingCents: 700, remainingCents: 4300,
+        month: "2025-02",
+        limitCents: 5000,
+        spendingCents: 700,
+        remainingCents: 4300,
       });
     }
     const details = service.budget.budgetTransactions(owner, { date: "2025-02-02" });
     expect(details.total).toBe(1);
     expect(details.entries.map((entry) => entry.id)).toEqual([shop.id]);
-    expect(details.entries.reduce((sum, entry) => sum - entry.amountCents, 0))
-      .toBe(service.budget.dashboard(owner, "all", "2025-02-02").budget!.spendingCents);
+    expect(details.entries.reduce((sum, entry) => sum - entry.amountCents, 0)).toBe(
+      service.budget.dashboard(owner, "all", "2025-02-02").budget!.spendingCents,
+    );
     expect(service.budget.budgetTransactions(other, { date: "2025-02-02" }).total).toBe(0);
     expect(service.budget.dashboard(owner, "month", "2025-02-02").activity.spendingCents).toBe(2200);
     expect(service.budget.dashboard(owner, "month", "2025-03-01").budget?.remainingCents).toBe(5000);

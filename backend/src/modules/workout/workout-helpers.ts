@@ -38,7 +38,10 @@ export function effectiveVolume(weight: number | null | undefined, reps: number 
   return Math.max(0, weight ?? 0) * (reps ?? 0);
 }
 
-export function activeSeconds(session: { startedAt: string; completedAt: string | null; pausedAt: string | null; pausedSeconds: number }, nowMs: number): number {
+export function activeSeconds(
+  session: { startedAt: string; completedAt: string | null; pausedAt: string | null; pausedSeconds: number },
+  nowMs: number,
+): number {
   const startMs = parseDateString(session.startedAt).getTime();
   if (session.completedAt) {
     return Math.max(0, (parseDateString(session.completedAt).getTime() - startMs) / 1000);
@@ -54,7 +57,12 @@ export function formatDutchDate(date: Date, options: Intl.DateTimeFormatOptions)
   return date.toLocaleDateString("nl-NL", options);
 }
 
-export function sessionMatchesQuery(startedAt: string, name: string | null, notes: string | null, normalizedQ: string): boolean {
+export function sessionMatchesQuery(
+  startedAt: string,
+  name: string | null,
+  notes: string | null,
+  normalizedQ: string,
+): boolean {
   const date = parseDateString(startedAt);
   const dayRaw = String(date.getDate());
   const monthRaw = String(date.getMonth() + 1);

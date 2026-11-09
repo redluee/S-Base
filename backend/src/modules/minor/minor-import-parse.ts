@@ -59,7 +59,7 @@ function parseEvidence(raw: unknown): EvidenceInput[] {
   return result;
 }
 
-export function parseStory(raw: unknown, index: number): StoryInput & { title: string } | null {
+export function parseStory(raw: unknown, index: number): (StoryInput & { title: string }) | null {
   if (!isRecord(raw)) return null;
   const title = text(raw.title ?? raw.name);
   if (!title) return null;
@@ -114,7 +114,10 @@ export function parseSelfEvaluations(raw: unknown) {
   if (!Array.isArray(raw)) return [];
   const levels = ["V", "NV", "-"] as const;
   return raw
-    .filter((e): e is JsonRecord & { learningOutcome: number } => isRecord(e) && typeof e.learningOutcome === "number" && e.learningOutcome >= 1 && e.learningOutcome <= 5)
+    .filter(
+      (e): e is JsonRecord & { learningOutcome: number } =>
+        isRecord(e) && typeof e.learningOutcome === "number" && e.learningOutcome >= 1 && e.learningOutcome <= 5,
+    )
     .map((e) => ({
       learningOutcome: e.learningOutcome,
       level: levels.find((l) => l === e.level) ?? "-",
@@ -126,7 +129,10 @@ export function parseTeacherAssessments(raw: unknown) {
   if (!Array.isArray(raw)) return [];
   const values = ["V", "O", "-"] as const;
   return raw
-    .filter((a): a is JsonRecord & { learningOutcome: number } => isRecord(a) && typeof a.learningOutcome === "number" && a.learningOutcome >= 1 && a.learningOutcome <= 5)
+    .filter(
+      (a): a is JsonRecord & { learningOutcome: number } =>
+        isRecord(a) && typeof a.learningOutcome === "number" && a.learningOutcome >= 1 && a.learningOutcome <= 5,
+    )
     .map((a) => ({
       learningOutcome: a.learningOutcome,
       assessment: values.find((v) => v === a.assessment) ?? "-",

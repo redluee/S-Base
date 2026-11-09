@@ -15,16 +15,16 @@ describe("RecipeWines", () => {
   });
 
   it("validates mandatory fields and enum values when creating a wine", () => {
-    expect(() =>
-      wineService.create(adminId, { brand: "", type: "red", variety: "Merlot" })
-    ).toThrow(new ValidationError("recipes.wineBrandRequired"));
+    expect(() => wineService.create(adminId, { brand: "", type: "red", variety: "Merlot" })).toThrow(
+      new ValidationError("recipes.wineBrandRequired"),
+    );
+
+    expect(() => wineService.create(adminId, { brand: "Bordeaux", type: "invalid_type", variety: "Merlot" })).toThrow(
+      new ValidationError("recipes.invalidWineType"),
+    );
 
     expect(() =>
-      wineService.create(adminId, { brand: "Bordeaux", type: "invalid_type", variety: "Merlot" })
-    ).toThrow(new ValidationError("recipes.invalidWineType"));
-
-    expect(() =>
-      wineService.create(adminId, { brand: "Bordeaux", type: "red", variety: "", purchaseLocation: "supermarket" })
+      wineService.create(adminId, { brand: "Bordeaux", type: "red", variety: "", purchaseLocation: "supermarket" }),
     ).toThrow(new ValidationError("recipes.wineVarietyRequired"));
 
     expect(() =>
@@ -33,7 +33,7 @@ describe("RecipeWines", () => {
         type: "red",
         variety: "Merlot",
         purchaseLocation: "invalid_loc",
-      })
+      }),
     ).toThrow(new ValidationError("recipes.invalidPurchaseLocation"));
   });
 

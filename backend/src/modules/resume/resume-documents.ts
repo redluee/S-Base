@@ -1,10 +1,23 @@
 import { and, asc, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { resumeItems, resumes } from "../../db/schema";
-import type { Resume, ResumeEducation, ResumeEntry, ResumeExperience, ResumeFull, ResumeItemInput } from "../../types/shared";
+import type {
+  Resume,
+  ResumeEducation,
+  ResumeEntry,
+  ResumeExperience,
+  ResumeFull,
+  ResumeItemInput,
+} from "../../types/shared";
 import { ConflictError, NotFoundError, orNotFound, ValidationError } from "../../utils/errors";
 import { str } from "./resume-clean";
-import { DEFAULT_RESUME_SETTINGS, HEX_COLOR, type ItemInput, type ResumeInput, type ResumeSettings } from "./resume-constants";
+import {
+  DEFAULT_RESUME_SETTINGS,
+  HEX_COLOR,
+  type ItemInput,
+  type ResumeInput,
+  type ResumeSettings,
+} from "./resume-constants";
 import { isValidFontValue } from "./fonts";
 import type { ResumeLibrary } from "./resume-library";
 import type { ResumeProfiles } from "./resume-profile";
@@ -22,14 +35,22 @@ export class ResumeDocuments {
   ) {}
 
   list(userId: number): Resume[] {
-    return db.select().from(resumes).where(eq(resumes.userId, userId)).all()
+    return db
+      .select()
+      .from(resumes)
+      .where(eq(resumes.userId, userId))
+      .all()
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .map(({ userId: _u, ...rest }) => rest);
   }
 
   private getOwned(id: number, userId: number) {
     return orNotFound(
-      db.select().from(resumes).where(and(eq(resumes.id, id), eq(resumes.userId, userId))).get(),
+      db
+        .select()
+        .from(resumes)
+        .where(and(eq(resumes.id, id), eq(resumes.userId, userId)))
+        .get(),
       "resume.notFound",
     );
   }
@@ -55,7 +76,11 @@ export class ResumeDocuments {
 
   create(userId: number, data: ResumeInput): Resume {
     const values = this.settings(data, DEFAULT_RESUME_SETTINGS);
-    const row = db.insert(resumes).values({ userId, ...values }).returning().get();
+    const row = db
+      .insert(resumes)
+      .values({ userId, ...values })
+      .returning()
+      .get();
     if (data.selectAll) {
       this.setItems(row.id, userId, [
         ...this.library.listExperiences(userId).map((e) => ({ kind: "experience", refId: e.id })),
@@ -69,7 +94,12 @@ export class ResumeDocuments {
   update(id: number, userId: number, data: ResumeInput): Resume {
     const existing = this.getOwned(id, userId);
     const values = this.settings(data, existing);
-    const row = db.update(resumes).set({ ...values, updatedAt: new Date().toISOString() }).where(eq(resumes.id, id)).returning().get();
+    const row = db
+      .update(resumes)
+      .set({ ...values, updatedAt: new Date().toISOString() })
+      .where(eq(resumes.id, id))
+      .returning()
+      .get();
     const { userId: _u, ...rest } = row;
     return rest;
   }
@@ -82,25 +112,31 @@ export class ResumeDocuments {
 
   duplicate(id: number, userId: number): Resume {
     const existing = this.getOwned(id, userId);
-    const copy = db.insert(resumes).values({
-      userId,
-      name: `${existing.name} (kopie)`.slice(0, 100),
-      titleFont: existing.titleFont,
-      textFont: existing.textFont,
-      accentColor: existing.accentColor,
-      leftWidthPct: existing.leftWidthPct,
-      swapColumns: existing.swapColumns,
-      titleScalePct: existing.titleScalePct,
-      textScalePct: existing.textScalePct,
-    }).returning().get();
+    const copy = db
+      .insert(resumes)
+      .values({
+        userId,
+        name: `${existing.name} (kopie)`.slice(0, 100),
+        titleFont: existing.titleFont,
+        textFont: existing.textFont,
+        accentColor: existing.accentColor,
+        leftWidthPct: existing.leftWidthPct,
+        swapColumns: existing.swapColumns,
+        titleScalePct: existing.titleScalePct,
+        textScalePct: existing.textScalePct,
+      })
+      .returning()
+      .get();
     for (const item of db.select().from(resumeItems).where(eq(resumeItems.resumeId, id)).all()) {
-      db.insert(resumeItems).values({
-        resumeId: copy.id,
-        kind: item.kind,
-        refId: item.refId,
-        sortOrder: item.sortOrder,
-        descriptionOverride: item.descriptionOverride,
-      }).run();
+      db.insert(resumeItems)
+        .values({
+          resumeId: copy.id,
+          kind: item.kind,
+          refId: item.refId,
+          sortOrder: item.sortOrder,
+          descriptionOverride: item.descriptionOverride,
+        })
+        .run();
     }
     const { userId: _u, ...rest } = copy;
     return rest;
@@ -122,20 +158,27 @@ export class ResumeDocuments {
     db.delete(resumeItems).where(eq(resumeItems.resumeId, id)).run();
     items.forEach((item, index) => {
       const override = typeof item.descriptionOverride === "string" ? str(item.descriptionOverride, 2000) : null;
-      db.insert(resumeItems).values({
-        resumeId: id,
-        kind: item.kind,
-        refId: item.refId,
-        sortOrder: index,
-        descriptionOverride: override,
-      }).run();
+      db.insert(resumeItems)
+        .values({
+          resumeId: id,
+          kind: item.kind,
+          refId: item.refId,
+          sortOrder: index,
+          descriptionOverride: override,
+        })
+        .run();
     });
     db.update(resumes).set({ updatedAt: new Date().toISOString() }).where(eq(resumes.id, id)).run();
     return this.getSelected(id);
   }
 
   private getSelected(id: number): ResumeItemInput[] {
-    return db.select().from(resumeItems).where(eq(resumeItems.resumeId, id)).orderBy(asc(resumeItems.sortOrder)).all()
+    return db
+      .select()
+      .from(resumeItems)
+      .where(eq(resumeItems.resumeId, id))
+      .orderBy(asc(resumeItems.sortOrder))
+      .all()
       .map((i) => ({ kind: i.kind as Kind, refId: i.refId, descriptionOverride: i.descriptionOverride }));
   }
 

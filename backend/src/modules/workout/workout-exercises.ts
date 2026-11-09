@@ -6,26 +6,25 @@ import { exerciseKey } from "./workout-helpers";
 
 export class WorkoutExercises {
   list(userId: number) {
-    const fromTemplates = db.select({
-      name: templateExercises.exerciseName,
-      equipment: templateExercises.equipment,
-      category: templateExercises.category,
-    })
+    const fromTemplates = db
+      .select({
+        name: templateExercises.exerciseName,
+        equipment: templateExercises.equipment,
+        category: templateExercises.category,
+      })
       .from(templateExercises)
       .innerJoin(workoutTemplates, eq(templateExercises.templateId, workoutTemplates.templateId))
       .where(eq(workoutTemplates.userId, userId))
       .all();
-    const fromSessions = db.select({
-      name: sessionExercises.exerciseName,
-      equipment: sessionExercises.equipment,
-      category: sessionExercises.category,
-    })
+    const fromSessions = db
+      .select({
+        name: sessionExercises.exerciseName,
+        equipment: sessionExercises.equipment,
+        category: sessionExercises.category,
+      })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`
-      ))
+      .where(and(eq(workoutSessions.userId, userId), sql`${workoutSessions.completedAt} IS NOT NULL`))
       .all();
 
     const map = new Map<string, { eqSet: Set<string>; catSet: Set<string> }>();
@@ -45,7 +44,13 @@ export class WorkoutExercises {
       }
     }
 
-    const list: { name: string; equipment: string | null; equipments: string[]; category: string | null; categories: string[] }[] = [];
+    const list: {
+      name: string;
+      equipment: string | null;
+      equipments: string[];
+      category: string | null;
+      categories: string[];
+    }[] = [];
     for (const [name, { eqSet, catSet }] of map.entries()) {
       const eqArray = Array.from(eqSet).sort();
       const catArray = Array.from(catSet).sort();
@@ -63,14 +68,17 @@ export class WorkoutExercises {
 
   progress(userId: number, name: string, equipment?: string) {
     const trimmedName = name.trim();
-    const availableEqRows = db.select({ equipment: sessionExercises.equipment })
+    const availableEqRows = db
+      .select({ equipment: sessionExercises.equipment })
       .from(sessionExercises)
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
-      .where(and(
-        sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${trimmedName})`,
-        eq(workoutSessions.userId, userId),
-        sql`${workoutSessions.completedAt} IS NOT NULL`
-      ))
+      .where(
+        and(
+          sql`LOWER(${sessionExercises.exerciseName}) = LOWER(${trimmedName})`,
+          eq(workoutSessions.userId, userId),
+          sql`${workoutSessions.completedAt} IS NOT NULL`,
+        ),
+      )
       .all();
 
     const availableEquipmentsSet = new Set<string>();
@@ -88,38 +96,54 @@ export class WorkoutExercises {
     ];
     if (equipment && equipment !== "all" && equipment !== "null" && equipment !== "undefined") {
       if (equipment === "none") {
-        conditions.push(sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '' OR ${sessionExercises.equipment} = 'none')`);
+        conditions.push(
+          sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '' OR ${sessionExercises.equipment} = 'none')`,
+        );
       } else {
         conditions.push(eq(sessionExercises.equipment, equipment));
       }
     }
 
-    const rows = db.select({
-      sessionId: workoutSessions.sessionId,
-      startedAt: workoutSessions.startedAt,
-      exerciseName: sessionExercises.exerciseName,
-      category: sessionExercises.category,
-      equipment: sessionExercises.equipment,
-      setNumber: sessionSets.setNumber,
-      reps: sessionSets.reps,
-      weight: sessionSets.weight,
-      distance: sessionSets.distance,
-      duration: sessionSets.duration,
-      rpe: sessionSets.rpe,
-      heartRate: sessionSets.heartRate,
-      completed: sessionSets.completed,
-    })
+    const rows = db
+      .select({
+        sessionId: workoutSessions.sessionId,
+        startedAt: workoutSessions.startedAt,
+        exerciseName: sessionExercises.exerciseName,
+        category: sessionExercises.category,
+        equipment: sessionExercises.equipment,
+        setNumber: sessionSets.setNumber,
+        reps: sessionSets.reps,
+        weight: sessionSets.weight,
+        distance: sessionSets.distance,
+        duration: sessionSets.duration,
+        rpe: sessionSets.rpe,
+        heartRate: sessionSets.heartRate,
+        completed: sessionSets.completed,
+      })
       .from(sessionSets)
       .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
       .innerJoin(workoutSessions, eq(sessionExercises.sessionId, workoutSessions.sessionId))
       .where(and(...conditions))
-      .orderBy(sql`${workoutSessions.startedAt} ASC`, sql`${workoutSessions.sessionId} ASC`, sessionExercises.sortOrder, sessionSets.setNumber)
+      .orderBy(
+        sql`${workoutSessions.startedAt} ASC`,
+        sql`${workoutSessions.sessionId} ASC`,
+        sessionExercises.sortOrder,
+        sessionSets.setNumber,
+      )
       .all();
 
-    const sessionsMap = new Map<number, { sessionId: number; startedAt: string; equipment: string | null; sets: typeof rows }>();
+    const sessionsMap = new Map<
+      number,
+      { sessionId: number; startedAt: string; equipment: string | null; sets: typeof rows }
+    >();
     for (const row of rows) {
       if (!sessionsMap.has(row.sessionId)) {
-        sessionsMap.set(row.sessionId, { sessionId: row.sessionId, startedAt: row.startedAt, equipment: row.equipment ?? null, sets: [] });
+        sessionsMap.set(row.sessionId, {
+          sessionId: row.sessionId,
+          startedAt: row.startedAt,
+          equipment: row.equipment ?? null,
+          sets: [],
+        });
       }
       sessionsMap.get(row.sessionId)!.sets.push(row);
     }
@@ -147,7 +171,8 @@ export class WorkoutExercises {
     const sameExercise = exerciseKey(sName) === exerciseKey(tName);
 
     db.transaction((tx) => {
-      const userTemplateIds = tx.select({ templateId: workoutTemplates.templateId })
+      const userTemplateIds = tx
+        .select({ templateId: workoutTemplates.templateId })
         .from(workoutTemplates)
         .where(eq(workoutTemplates.userId, userId))
         .all()
@@ -158,33 +183,56 @@ export class WorkoutExercises {
         const sources = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(sName));
         const targets = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(tName));
         for (const row of sources) {
-          tx.update(templateExercises).set({ exerciseName: tName }).where(eq(templateExercises.templateExerciseId, row.templateExerciseId)).run();
+          tx.update(templateExercises)
+            .set({ exerciseName: tName })
+            .where(eq(templateExercises.templateExerciseId, row.templateExerciseId))
+            .run();
         }
         if (!sameExercise && sources.length === 1 && targets.length === 1) {
-          tx.delete(templateExercises).where(eq(templateExercises.templateExerciseId, sources[0].templateExerciseId)).run();
+          tx.delete(templateExercises)
+            .where(eq(templateExercises.templateExerciseId, sources[0].templateExerciseId))
+            .run();
         }
       }
 
-      const userSessionIds = tx.select({ sessionId: workoutSessions.sessionId })
+      const userSessionIds = tx
+        .select({ sessionId: workoutSessions.sessionId })
         .from(workoutSessions)
         .where(eq(workoutSessions.userId, userId))
         .all()
         .map((r) => r.sessionId);
 
       for (const sid of userSessionIds) {
-        const rows = tx.select().from(sessionExercises).where(eq(sessionExercises.sessionId, sid)).orderBy(sessionExercises.sessionExerciseId).all();
+        const rows = tx
+          .select()
+          .from(sessionExercises)
+          .where(eq(sessionExercises.sessionId, sid))
+          .orderBy(sessionExercises.sessionExerciseId)
+          .all();
         const sources = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(sName));
         const targets = rows.filter((r) => exerciseKey(r.exerciseName) === exerciseKey(tName));
         for (const row of sources) {
-          tx.update(sessionExercises).set({ exerciseName: tName }).where(eq(sessionExercises.sessionExerciseId, row.sessionExerciseId)).run();
+          tx.update(sessionExercises)
+            .set({ exerciseName: tName })
+            .where(eq(sessionExercises.sessionExerciseId, row.sessionExerciseId))
+            .run();
         }
         if (sameExercise || sources.length !== 1 || targets.length !== 1) continue;
 
         const source = sources[0];
         const target = targets[0];
-        const targetSets = tx.select().from(sessionSets).where(eq(sessionSets.sessionExerciseId, target.sessionExerciseId)).all();
+        const targetSets = tx
+          .select()
+          .from(sessionSets)
+          .where(eq(sessionSets.sessionExerciseId, target.sessionExerciseId))
+          .all();
         const offset = targetSets.length > 0 ? Math.max(...targetSets.map((x) => x.setNumber)) : 0;
-        const sourceSets = tx.select().from(sessionSets).where(eq(sessionSets.sessionExerciseId, source.sessionExerciseId)).orderBy(sessionSets.setNumber).all();
+        const sourceSets = tx
+          .select()
+          .from(sessionSets)
+          .where(eq(sessionSets.sessionExerciseId, source.sessionExerciseId))
+          .orderBy(sessionSets.setNumber)
+          .all();
         sourceSets.forEach((setItem, j) => {
           tx.update(sessionSets)
             .set({ sessionExerciseId: target.sessionExerciseId, setNumber: offset + j + 1 })

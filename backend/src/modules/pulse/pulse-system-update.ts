@@ -54,7 +54,8 @@ export function splitOutputLines(text: string): string[] {
     .filter((l) => l.trim().length > 0);
 }
 
-const INSTALL_VERBS = /^(Upgrading|Installing|Reinstalling|Downgrading|Obsoleting|Running scriptlet|Preparing|Prepare transaction|Replacing|Updating)\b/i;
+const INSTALL_VERBS =
+  /^(Upgrading|Installing|Reinstalling|Downgrading|Obsoleting|Running scriptlet|Preparing|Prepare transaction|Replacing|Updating)\b/i;
 const CLEANUP_VERBS = /^(Cleanup|Cleaning|Erasing|Removing|Remove)\b/i;
 const VERIFY_VERBS = /^(Verifying|Verify package files)\b/i;
 
@@ -76,7 +77,11 @@ export function parseDnfLine(rawLine: string, prev: ParseResult): ParseResult {
   if (/^Complete!/i.test(line)) return { phase: "complete", progress: prev.progress };
   if (/^Nothing to do/i.test(line)) return { phase: "nothing", progress: null };
 
-  if (/^Updating and loading repositories/i.test(line) || /^Last metadata expiration check/i.test(line) || /^Repositories loaded/i.test(line)) {
+  if (
+    /^Updating and loading repositories/i.test(line) ||
+    /^Last metadata expiration check/i.test(line) ||
+    /^Repositories loaded/i.test(line)
+  ) {
     return { phase: "repositories", progress: null };
   }
 
@@ -149,7 +154,11 @@ export class PulseSystemUpdate {
   }
 
   getState(): SystemUpdateState {
-    return { ...this.state, progress: this.state.progress ? { ...this.state.progress } : null, log: [...this.state.log] };
+    return {
+      ...this.state,
+      progress: this.state.progress ? { ...this.state.progress } : null,
+      log: [...this.state.log],
+    };
   }
 
   start(): SystemUpdateState {
@@ -214,7 +223,11 @@ export class PulseSystemUpdate {
     const sawNothing = () => this.state.phase === "nothing";
     let exitCode = -1;
     try {
-      const [code] = await Promise.all([proc.exited, this.consume(proc.stdout, false), this.consume(proc.stderr, true)]);
+      const [code] = await Promise.all([
+        proc.exited,
+        this.consume(proc.stdout, false),
+        this.consume(proc.stderr, true),
+      ]);
       exitCode = code;
     } catch (err) {
       this.stderrLines.push(err instanceof Error ? err.message : String(err));

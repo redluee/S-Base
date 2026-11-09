@@ -27,27 +27,37 @@ export const mc_templates = sqliteTable("mc_templates", {
 
 export const mc_template_files = sqliteTable("mc_template_files", {
   fileId: integer("fileId").primaryKey({ autoIncrement: true }),
-  templateId: integer("templateId").notNull().references(() => mc_templates.templateId, { onDelete: "cascade" }),
+  templateId: integer("templateId")
+    .notNull()
+    .references(() => mc_templates.templateId, { onDelete: "cascade" }),
   fileType: text("fileType").notNull(),
   filename: text("filename").notNull(),
   sha256: text("sha256"),
 });
 
-export const mc_player_stats = sqliteTable("mc_player_stats", {
-  statId: integer("statId").primaryKey({ autoIncrement: true }),
-  serverId: integer("serverId").notNull().references(() => mc_servers.serverId, { onDelete: "cascade" }),
-  playerUuid: text("playerUuid").notNull(),
-  playerName: text("playerName").notNull(),
-  firstSeen: text("firstSeen").default(sql`CURRENT_TIMESTAMP`),
-  lastSeen: text("lastSeen"),
-  totalPlaytime: integer("totalPlaytime").default(0),
-}, (t) => ({
-  unq: unique().on(t.serverId, t.playerUuid),
-}));
+export const mc_player_stats = sqliteTable(
+  "mc_player_stats",
+  {
+    statId: integer("statId").primaryKey({ autoIncrement: true }),
+    serverId: integer("serverId")
+      .notNull()
+      .references(() => mc_servers.serverId, { onDelete: "cascade" }),
+    playerUuid: text("playerUuid").notNull(),
+    playerName: text("playerName").notNull(),
+    firstSeen: text("firstSeen").default(sql`CURRENT_TIMESTAMP`),
+    lastSeen: text("lastSeen"),
+    totalPlaytime: integer("totalPlaytime").default(0),
+  },
+  (t) => ({
+    unq: unique().on(t.serverId, t.playerUuid),
+  }),
+);
 
 export const mc_player_sessions = sqliteTable("mc_player_sessions", {
   sessionId: integer("sessionId").primaryKey({ autoIncrement: true }),
-  serverId: integer("serverId").notNull().references(() => mc_servers.serverId, { onDelete: "cascade" }),
+  serverId: integer("serverId")
+    .notNull()
+    .references(() => mc_servers.serverId, { onDelete: "cascade" }),
   playerUuid: text("playerUuid").notNull(),
   joinedAt: text("joinedAt").notNull(),
   leftAt: text("leftAt"),
@@ -56,8 +66,12 @@ export const mc_player_sessions = sqliteTable("mc_player_sessions", {
 export const mc_server_permissions = sqliteTable(
   "mc_server_permissions",
   {
-    userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
-    serverId: integer("server_id").notNull().references(() => mc_servers.serverId, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.userId, { onDelete: "cascade" }),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => mc_servers.serverId, { onDelete: "cascade" }),
     grantedAt: text("granted_at").default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => ({
@@ -66,4 +80,3 @@ export const mc_server_permissions = sqliteTable(
     serverIdx: index("idx_mc_server_server_permissions").on(table.serverId),
   }),
 );
-

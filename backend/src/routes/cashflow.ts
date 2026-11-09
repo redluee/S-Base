@@ -102,20 +102,28 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
       params: idParams,
       body: t.Object({ clientId: t.Optional(t.Number()), name: t.Optional(t.String()), ...projectFields }),
     })
-    .delete("/projects/:id", ({ params: { id }, query }) => cashflow.projects.remove(id, query.deleteInvoices === "true"), {
-      params: idParams,
-      query: t.Object({ deleteInvoices: t.Optional(t.String()) }),
-    })
+    .delete(
+      "/projects/:id",
+      ({ params: { id }, query }) => cashflow.projects.remove(id, query.deleteInvoices === "true"),
+      {
+        params: idParams,
+        query: t.Object({ deleteInvoices: t.Optional(t.String()) }),
+      },
+    )
     .get("/invoices/next-number", ({ userId }) => ({
       invoiceNumber: cashflow.invoices.generateNumber(userId, new Date().getFullYear()),
     }))
-    .get("/invoices", ({ userId, query }) => cashflow.invoices.list(userId, query.status, query.projectId, query.clientId), {
-      query: t.Object({
-        status: t.Optional(t.String()),
-        projectId: t.Optional(t.Numeric()),
-        clientId: t.Optional(t.Numeric()),
-      }),
-    })
+    .get(
+      "/invoices",
+      ({ userId, query }) => cashflow.invoices.list(userId, query.status, query.projectId, query.clientId),
+      {
+        query: t.Object({
+          status: t.Optional(t.String()),
+          projectId: t.Optional(t.Numeric()),
+          clientId: t.Optional(t.Numeric()),
+        }),
+      },
+    )
     .post("/invoices", ({ userId, body }) => cashflow.invoiceWrites.create(userId, body), {
       body: t.Object({
         invoiceNumber: t.String(),
@@ -133,14 +141,10 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
       }),
     })
     .delete("/invoices/:id", ({ params: { id } }) => cashflow.invoices.remove(id), { params: idParams })
-    .patch(
-      "/invoices/:id/paid",
-      ({ params: { id }, body }) => cashflow.invoices.markAsPaid(id, body?.datePaid),
-      {
-        params: idParams,
-        body: t.Optional(t.Object({ datePaid: optionalNumber })),
-      },
-    )
+    .patch("/invoices/:id/paid", ({ params: { id }, body }) => cashflow.invoices.markAsPaid(id, body?.datePaid), {
+      params: idParams,
+      body: t.Optional(t.Object({ datePaid: optionalNumber })),
+    })
     .post("/invoices/:id/send-email", ({ params: { id }, body }) => cashflow.invoiceEmail.send(id, body), {
       params: idParams,
       body: t.Object({

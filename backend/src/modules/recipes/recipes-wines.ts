@@ -99,7 +99,8 @@ export class RecipeWines {
         variety: data.variety !== undefined ? data.variety.trim() : existing.variety,
         vintage: data.vintage !== undefined ? data.vintage || null : existing.vintage,
         countryRegion: data.countryRegion !== undefined ? trimOrNull(data.countryRegion) : existing.countryRegion,
-        purchaseLocation: data.purchaseLocation !== undefined ? trimOrNull(data.purchaseLocation) : existing.purchaseLocation,
+        purchaseLocation:
+          data.purchaseLocation !== undefined ? trimOrNull(data.purchaseLocation) : existing.purchaseLocation,
         rating: data.rating !== undefined ? data.rating : existing.rating,
         notes: data.notes !== undefined ? trimOrNull(data.notes) : existing.notes,
         imageUrl: data.imageUrl !== undefined ? data.imageUrl : existing.imageUrl,

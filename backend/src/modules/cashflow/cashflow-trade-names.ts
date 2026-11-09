@@ -19,25 +19,34 @@ export class CashflowTradeNames {
   create(userId: number, data: TradeNameInput) {
     const displayName = data.displayName?.trim();
     if (!displayName) throw new ValidationError("cashflow.displayNameRequired");
-    return db.insert(cashflowTradeNames).values({
-      userId,
-      displayName,
-      address: trimOrNull(data.address),
-      iban: trimOrNull(data.iban),
-      kvkNumber: trimOrNull(data.kvkNumber),
-      vatNumber: trimOrNull(data.vatNumber),
-    }).returning().get();
+    return db
+      .insert(cashflowTradeNames)
+      .values({
+        userId,
+        displayName,
+        address: trimOrNull(data.address),
+        iban: trimOrNull(data.iban),
+        kvkNumber: trimOrNull(data.kvkNumber),
+        vatNumber: trimOrNull(data.vatNumber),
+      })
+      .returning()
+      .get();
   }
 
   update(id: number, data: TradeNameInput) {
     const existing = this.getById(id);
-    return db.update(cashflowTradeNames).set({
-      displayName: data.displayName?.trim() ?? existing.displayName,
-      address: data.address !== undefined ? trimOrNull(data.address) : existing.address,
-      iban: data.iban !== undefined ? trimOrNull(data.iban) : existing.iban,
-      kvkNumber: data.kvkNumber !== undefined ? trimOrNull(data.kvkNumber) : existing.kvkNumber,
-      vatNumber: data.vatNumber !== undefined ? trimOrNull(data.vatNumber) : existing.vatNumber,
-    }).where(eq(cashflowTradeNames.id, id)).returning().get();
+    return db
+      .update(cashflowTradeNames)
+      .set({
+        displayName: data.displayName?.trim() ?? existing.displayName,
+        address: data.address !== undefined ? trimOrNull(data.address) : existing.address,
+        iban: data.iban !== undefined ? trimOrNull(data.iban) : existing.iban,
+        kvkNumber: data.kvkNumber !== undefined ? trimOrNull(data.kvkNumber) : existing.kvkNumber,
+        vatNumber: data.vatNumber !== undefined ? trimOrNull(data.vatNumber) : existing.vatNumber,
+      })
+      .where(eq(cashflowTradeNames.id, id))
+      .returning()
+      .get();
   }
 
   remove(id: number) {

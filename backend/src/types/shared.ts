@@ -121,7 +121,16 @@ export interface FullWorkoutSession extends WorkoutSession {
 }
 
 export interface PersonalRecord {
-  type: 'weight' | 'reps' | 'sets' | 'volume' | 'distance' | 'duration' | 'session_volume' | 'session_duration' | 'session_exercises';
+  type:
+    | "weight"
+    | "reps"
+    | "sets"
+    | "volume"
+    | "distance"
+    | "duration"
+    | "session_volume"
+    | "session_duration"
+    | "session_exercises";
   exerciseName?: string;
   prevValue: number;
   newValue: number;
@@ -324,8 +333,18 @@ export interface MinorSprintExportData {
   stories: MinorSprintExportStory[];
   feedback?: Array<{ date: string; fromWhom: string; feedback: string; action: string; orderIndex?: number }>;
   selfEvaluations?: Array<{ learningOutcome: number; level: "V" | "NV" | "-"; argumentation?: string | null }>;
-  teacherAssessments?: Array<{ learningOutcome: number; assessment: "V" | "O" | "-"; notes?: string | null; evaluatedAt?: string | null }>;
-  reflection?: { date: string; whatLearned?: string | null; whatRetained?: string | null; whatChange?: string | null } | null;
+  teacherAssessments?: Array<{
+    learningOutcome: number;
+    assessment: "V" | "O" | "-";
+    notes?: string | null;
+    evaluatedAt?: string | null;
+  }>;
+  reflection?: {
+    date: string;
+    whatLearned?: string | null;
+    whatRetained?: string | null;
+    whatChange?: string | null;
+  } | null;
 }
 
 export interface MinorSettings {
@@ -359,7 +378,6 @@ export interface MinorDashboardStats {
   } | null;
   recentPeerHelp: MinorPeerHelp[];
 }
-
 
 export interface ResumeLink {
   label: string;

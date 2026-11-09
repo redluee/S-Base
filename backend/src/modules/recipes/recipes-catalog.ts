@@ -166,7 +166,8 @@ export class RecipeCatalog {
   }
 
   private assertValid(data: RecipeInput) {
-    if (data.cookingTime !== undefined && data.cookingTime < 0) throw new ValidationError("recipes.cookingTimeNegative");
+    if (data.cookingTime !== undefined && data.cookingTime < 0)
+      throw new ValidationError("recipes.cookingTimeNegative");
     this.ingredients.assertValid(data.ingredients);
   }
 

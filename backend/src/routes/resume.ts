@@ -44,9 +44,7 @@ const profileBody = t.Object({
   birthDate: optString,
   drivingLicense: optString,
   links: t.Optional(t.Array(t.Object({ label: optString, url: optString }))),
-  sections: t.Optional(
-    t.Array(t.Object({ id: optString, title: optString, items: t.Optional(t.Array(t.String())) })),
-  ),
+  sections: t.Optional(t.Array(t.Object({ id: optString, title: optString, items: t.Optional(t.Array(t.String())) }))),
 });
 
 const itemsBody = t.Object({
@@ -129,7 +127,9 @@ export const resumeRoutes = new Elysia().group("/api/resume", (app) =>
         const path = resolveFontFile(name);
         const file = path ? Bun.file(path) : null;
         if (!file || !(await file.exists())) throw new NotFoundError("resume.fontNotFound");
-        return new Response(file, { headers: { "Content-Type": "font/ttf", "Cache-Control": "private, max-age=86400" } });
+        return new Response(file, {
+          headers: { "Content-Type": "font/ttf", "Cache-Control": "private, max-age=86400" },
+        });
       },
       { params: t.Object({ name: t.String() }) },
     ),

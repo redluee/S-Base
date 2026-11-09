@@ -96,7 +96,11 @@ describe("WorkoutService measurements", () => {
     expect(measurements.getById(entry.measurementId)!.photos.length).toBe(0);
 
     for (const ext of ["avif", "bmp", "HEIC"]) {
-      const withPhoto = measurements.addPhoto(entry.measurementId, adminId, `/api/uploads/measurement_${crypto.randomUUID()}.${ext}`);
+      const withPhoto = measurements.addPhoto(
+        entry.measurementId,
+        adminId,
+        `/api/uploads/measurement_${crypto.randomUUID()}.${ext}`,
+      );
       expect(withPhoto).not.toBeNull();
     }
     expect(measurements.getById(entry.measurementId)!.photos.length).toBe(3);
@@ -109,12 +113,18 @@ describe("WorkoutService measurements", () => {
     const legacyName = `${crypto.randomUUID()}.jpg`;
     const legacyPath = join(uploadsDir, legacyName);
     await writeFile(legacyPath, "legacy");
-    const row = db.insert(measurementPhotos).values({ measurementId: entry.measurementId, filePath: `/api/uploads/${legacyName}` }).returning().get();
+    const row = db
+      .insert(measurementPhotos)
+      .values({ measurementId: entry.measurementId, filePath: `/api/uploads/${legacyName}` })
+      .returning()
+      .get();
 
     expect(measurements.isForeignPhoto(adminId, legacyName)).toBe(false);
     expect(measurements.isForeignPhoto(adminId + 1000, legacyName)).toBe(true);
     expect(measurements.isForeignPhoto(adminId, `${crypto.randomUUID()}.jpg`)).toBe(false);
-    expect(measurements.getById(entry.measurementId)!.photos.map((p) => p.filePath)).toEqual([`/api/uploads/${legacyName}`]);
+    expect(measurements.getById(entry.measurementId)!.photos.map((p) => p.filePath)).toEqual([
+      `/api/uploads/${legacyName}`,
+    ]);
 
     expect(await measurements.deletePhoto(row.photoId, adminId)).toEqual({ success: true });
     expect(existsSync(legacyPath)).toBe(false);
@@ -142,12 +152,14 @@ describe("WorkoutService measurements", () => {
     it("rejects moving onto a date that already has a measurement", async () => {
       const a = measurements.save(adminId, { date: "2026-03-01", weight: 80 })!;
       const b = measurements.save(adminId, { date: "2026-03-02", weight: 81 })!;
-      expect(() => measurements.update(adminId, a.measurementId, { date: "2026-03-02" })).toThrow("workout.measurementDateExists");
+      expect(() => measurements.update(adminId, a.measurementId, { date: "2026-03-02" })).toThrow(
+        "workout.measurementDateExists",
+      );
 
       const cookie = await login("admin");
       const res = await call(cookie, "PUT", `/api/measurements/${a.measurementId}`, { date: "2026-03-02" });
       expect(res.status).toBe(409);
-      expect((await res.json() as { existingMeasurementId: number }).existingMeasurementId).toBe(b.measurementId);
+      expect(((await res.json()) as { existingMeasurementId: number }).existingMeasurementId).toBe(b.measurementId);
       expect(measurements.list(adminId).length).toBe(2);
     });
 
@@ -175,7 +187,9 @@ describe("WorkoutService measurements", () => {
 
     it("does not let another user edit a measurement", () => {
       const m = measurements.save(adminId, { date: "2026-03-01", weight: 80 })!;
-      expect(() => measurements.update(adminId + 100, m.measurementId, { weight: 1 })).toThrow("workout.measurementNotFound");
+      expect(() => measurements.update(adminId + 100, m.measurementId, { weight: 1 })).toThrow(
+        "workout.measurementNotFound",
+      );
     });
   });
 });

@@ -79,7 +79,7 @@ describe("http hardening", () => {
           method: "POST",
           headers: { "Content-Type": "application/json", "cf-connecting-ip": "9.9.9.9" },
           body: JSON.stringify({ username: "nobody", password: "bad" }),
-        })
+        }),
       );
       last = res.status;
     }

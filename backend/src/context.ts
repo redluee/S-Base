@@ -26,7 +26,9 @@ export const auth = new AuthService();
 if (isProduction()) {
   const weak = await auth.findDefaultCredentialUsers();
   if (weak.length > 0) {
-    console.warn(`Default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`);
+    console.warn(
+      `Default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`,
+    );
   }
 }
 export const recipes = new RecipesService();
@@ -82,7 +84,7 @@ export const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
   if (!auth.moduleAccessCheck(userId, "minecraft")) {
     return new Response(JSON.stringify({ error: "minecraft.fullAccessRequired" }), {
       status: 403,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
   }
 };

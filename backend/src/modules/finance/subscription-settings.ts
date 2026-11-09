@@ -1,7 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { financeSubscriptionPreferences as preferences } from "../../db/schema/finance";
-import type { FinanceSubscription, FinanceSubscriptionCadence, FinanceSubscriptions, FinanceTransactionPage } from "../../types/finance";
+import type {
+  FinanceSubscription,
+  FinanceSubscriptionCadence,
+  FinanceSubscriptions,
+  FinanceTransactionPage,
+} from "../../types/finance";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { requireId, requireObject } from "../../utils/validation";
 import type { FinanceTransactions } from "./transactions";
@@ -12,12 +17,17 @@ export class FinanceSubscriptionService {
   constructor(private readonly transactions: FinanceTransactions) {}
   list(userId: number, end = today()): FinanceSubscriptions {
     const rules = db.select().from(preferences).where(eq(preferences.userId, userId)).all();
-    const overrides = new Map(rules.filter((rule) => rule.irregular || rule.cadence !== null).map((rule) => [rule.sourceKey, rule.irregular ? "irregular" as const : rule.cadence!]));
+    const overrides = new Map(
+      rules
+        .filter((rule) => rule.irregular || rule.cadence !== null)
+        .map((rule) => [rule.sourceKey, rule.irregular ? ("irregular" as const) : rule.cadence!]),
+    );
     const transactions = this.transactions.periodTransactions(userId, "1900-01-01", end);
     const report = detectSubscriptions(transactions, end, overrides);
     const lastImportedDates = new Map<number, string>();
     for (const entry of transactions) {
-      if (entry.date > (lastImportedDates.get(entry.accountId) ?? "")) lastImportedDates.set(entry.accountId, entry.date);
+      if (entry.date > (lastImportedDates.get(entry.accountId) ?? ""))
+        lastImportedDates.set(entry.accountId, entry.date);
     }
     const bySource = new Map(rules.map((rule) => [rule.sourceKey, rule]));
     const groups = new Map<string, FinanceSubscription[]>();
@@ -35,13 +45,19 @@ export class FinanceSubscriptionService {
       const totalCents = group.reduce((sum, entry) => sum + entry.totalCents, 0);
       const firstDate = group.map((entry) => entry.firstDate).sort()[0];
       const accountIds = [...new Set(group.flatMap((entry) => entry.accountIds))];
-      const lastImportedDate = accountIds.map((accountId) => lastImportedDates.get(accountId)!).sort().at(-1)!;
+      const lastImportedDate = accountIds
+        .map((accountId) => lastImportedDates.get(accountId)!)
+        .sort()
+        .at(-1)!;
       const inactive = rules.some((rule) => rule.groupKey === id && rule.inactive);
       return {
         ...latest,
         inactive,
         active: !inactive && latest.active,
-        monthlyCents: latest.cadence === "irregular" ? monthlyAverage(totalCents, firstDate, lastImportedDate) : latest.monthlyCents,
+        monthlyCents:
+          latest.cadence === "irregular"
+            ? monthlyAverage(totalCents, firstDate, lastImportedDate)
+            : latest.monthlyCents,
         id,
         sourceKeys: group.flatMap((entry) => entry.sourceKeys),
         accountIds,
@@ -50,7 +66,9 @@ export class FinanceSubscriptionService {
         firstDate,
       };
     });
-    entries.sort((a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name));
+    entries.sort(
+      (a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name),
+    );
     return {
       ...report,
       entries,
@@ -61,18 +79,33 @@ export class FinanceSubscriptionService {
   addSubscription(userId: number, input: unknown) {
     const body = requireObject(input);
     const transactionId = requireId(body.transactionId);
-    const cadences: FinanceSubscriptionCadence[] = ["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly", "irregular"];
+    const cadences: FinanceSubscriptionCadence[] = [
+      "weekly",
+      "fortnightly",
+      "fourWeekly",
+      "monthly",
+      "quarterly",
+      "yearly",
+      "irregular",
+    ];
     if (!cadences.includes(body.cadence as FinanceSubscriptionCadence))
       throw new ValidationError("finance.subscriptions.invalidSelection");
-    const entry = this.transactions.periodTransactions(userId, "1900-01-01", today()).find((entry) => entry.id === transactionId);
+    const entry = this.transactions
+      .periodTransactions(userId, "1900-01-01", today())
+      .find((entry) => entry.id === transactionId);
     if (!entry) throw new NotFoundError("finance.transactionNotFound");
     if (entry.amountCents >= 0 || entry.internalTransfer || !entry.name.trim())
       throw new ValidationError("finance.subscriptions.invalidTransaction");
     const sourceKey = subscriptionSourceKey(entry);
     const irregular = body.cadence === "irregular";
-    const cadence = irregular ? null : body.cadence as Exclude<FinanceSubscriptionCadence, "irregular">;
-    db.insert(preferences).values({ userId, sourceKey, groupKey: sourceKey, cadence, irregular, excluded: false })
-      .onConflictDoUpdate({ target: [preferences.userId, preferences.sourceKey], set: { cadence, irregular, excluded: false } }).run();
+    const cadence = irregular ? null : (body.cadence as Exclude<FinanceSubscriptionCadence, "irregular">);
+    db.insert(preferences)
+      .values({ userId, sourceKey, groupKey: sourceKey, cadence, irregular, excluded: false })
+      .onConflictDoUpdate({
+        target: [preferences.userId, preferences.sourceKey],
+        set: { cadence, irregular, excluded: false },
+      })
+      .run();
     return { success: true };
   }
   subscriptionTransactions(userId: number, id: unknown, input: Record<string, unknown> = {}): FinanceTransactionPage {
@@ -81,7 +114,8 @@ export class FinanceSubscriptionService {
     if (!Number.isInteger(page) || page < 1 || page > 100000)
       throw new ValidationError("finance.transactions.invalidFilter");
     const sources = new Set(subscription.sourceKeys);
-    const entries = this.transactions.periodTransactions(userId, "1900-01-01", today())
+    const entries = this.transactions
+      .periodTransactions(userId, "1900-01-01", today())
       .filter((entry) => entry.amountCents < 0 && !entry.internalTransfer && sources.has(subscriptionSourceKey(entry)));
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
@@ -92,14 +126,29 @@ export class FinanceSubscriptionService {
     if (!entry) throw new NotFoundError("finance.subscriptionNotFound");
     return entry;
   }
-  private saveSubscription(userId: number, entries: FinanceSubscription[], groupKey: string, name: string, excluded: boolean) {
+  private saveSubscription(
+    userId: number,
+    entries: FinanceSubscription[],
+    groupKey: string,
+    name: string,
+    excluded: boolean,
+  ) {
     const groupKeys = new Set(entries.map((entry) => entry.id));
-    const existing = db.select().from(preferences).where(eq(preferences.userId, userId)).all()
+    const existing = db
+      .select()
+      .from(preferences)
+      .where(eq(preferences.userId, userId))
+      .all()
       .filter((rule) => groupKeys.has(rule.groupKey));
-    const sourceKeys = new Set([...entries.flatMap((entry) => entry.sourceKeys), ...existing.map((rule) => rule.sourceKey)]);
+    const sourceKeys = new Set([
+      ...entries.flatMap((entry) => entry.sourceKeys),
+      ...existing.map((rule) => rule.sourceKey),
+    ]);
     for (const sourceKey of sourceKeys) {
-      db.insert(preferences).values({ userId, sourceKey, groupKey, name, excluded })
-        .onConflictDoUpdate({ target: [preferences.userId, preferences.sourceKey], set: { groupKey, name, excluded } }).run();
+      db.insert(preferences)
+        .values({ userId, sourceKey, groupKey, name, excluded })
+        .onConflictDoUpdate({ target: [preferences.userId, preferences.sourceKey], set: { groupKey, name, excluded } })
+        .run();
     }
     return { success: true };
   }
@@ -134,7 +183,10 @@ export class FinanceSubscriptionService {
     return db.transaction(() => {
       const entry = this.subscription(userId, body.id);
       this.saveSubscription(userId, [entry], entry.id, entry.name, false);
-      db.update(preferences).set({ inactive }).where(and(eq(preferences.userId, userId), eq(preferences.groupKey, entry.id))).run();
+      db.update(preferences)
+        .set({ inactive })
+        .where(and(eq(preferences.userId, userId), eq(preferences.groupKey, entry.id)))
+        .run();
       return { success: true };
     });
   }

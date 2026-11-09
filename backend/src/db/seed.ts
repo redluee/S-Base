@@ -11,7 +11,7 @@ import {
   sessionExercises,
   sessionSets,
   measurements,
-  wines
+  wines,
 } from "./schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -25,11 +25,15 @@ async function getOrCreateModule(name: string, alias: string, description: strin
   if (existing) {
     return existing;
   }
-  return db.insert(modules).values({
-    moduleName: name,
-    moduleAlias: alias,
-    description,
-  }).returning().get();
+  return db
+    .insert(modules)
+    .values({
+      moduleName: name,
+      moduleAlias: alias,
+      description,
+    })
+    .returning()
+    .get();
 }
 
 async function seed() {
@@ -42,11 +46,23 @@ async function seed() {
     db.delete(modules).where(eq(modules.moduleId, oldMeasurements.moduleId)).run();
   }
 
-  const recipesMod = await getOrCreateModule("recipes", "Smaak Tracker", "Module voor het beheren van recepten en wijnen");
-  const workoutMod = await getOrCreateModule("workout", "Workout Studio", "Module voor het beheren van workouts, trainingssessies en lichaamsmetingen");
+  const recipesMod = await getOrCreateModule(
+    "recipes",
+    "Smaak Tracker",
+    "Module voor het beheren van recepten en wijnen",
+  );
+  const workoutMod = await getOrCreateModule(
+    "workout",
+    "Workout Studio",
+    "Module voor het beheren van workouts, trainingssessies en lichaamsmetingen",
+  );
   const cashflowMod = await getOrCreateModule("cashflow", "Cashflow", "Module voor facturatie en financieel beheer");
   const youMod = await getOrCreateModule("you", "Voor Jou", "Toegang tot stevenheijn.nl/you");
-  const lyricQuotesMod = await getOrCreateModule("lyric_quotes", "Lyric Quotes", "Toegang tot stevenheijn.nl/lyric_quotes");
+  const lyricQuotesMod = await getOrCreateModule(
+    "lyric_quotes",
+    "Lyric Quotes",
+    "Toegang tot stevenheijn.nl/lyric_quotes",
+  );
 
   const allDbModules = [recipesMod, workoutMod, cashflowMod, youMod, lyricQuotesMod];
 
@@ -81,21 +97,27 @@ async function seed() {
     }
 
     const passwordHash = await Bun.password.hash(username, { algorithm: "argon2id" });
-    const insertedUser = db.insert(users).values({
-      username,
-      pswdHash: passwordHash,
-      email: `${username}@example.com`,
-    }).returning().get();
+    const insertedUser = db
+      .insert(users)
+      .values({
+        username,
+        pswdHash: passwordHash,
+        email: `${username}@example.com`,
+      })
+      .returning()
+      .get();
 
     userMap.set(username, insertedUser);
     console.log(`Created user '${username}' (id=${insertedUser.userId})`);
 
     // Grant all module permissions
     for (const mod of allDbModules) {
-      db.insert(usermodulepermissions).values({
-        userId: insertedUser.userId,
-        moduleId: mod.moduleId,
-      }).run();
+      db.insert(usermodulepermissions)
+        .values({
+          userId: insertedUser.userId,
+          moduleId: mod.moduleId,
+        })
+        .run();
     }
     console.log(`Granted all module permissions to user '${username}'.`);
   }
@@ -115,8 +137,8 @@ async function seed() {
         "Grill de kip 6-7 minuten per kant tot hij gaar is.",
         "Snijd de tomaten in blokjes en hak de knoflook en ui fijn.",
         "Meng de tomaten, knoflook, ui en een scheutje olijfolie tot een salsa.",
-        "Serveer de gegrilde kip met de verse salsa."
-      ]
+        "Serveer de gegrilde kip met de verse salsa.",
+      ],
     },
     {
       name: "Klassieke Pasta Bolognese",
@@ -131,8 +153,8 @@ async function seed() {
         "Fruit de ui en knoflook in een grote pan met olijfolie.",
         "Voeg het rundergehakt toe en bak dit rul.",
         "Voeg de tomatensaus en Italiaanse kruiden toe en laat 15 minuten sudderen op laag vuur.",
-        "Meng de saus met de gekookte pasta en serveer met geraspte Parmezaanse kaas."
-      ]
+        "Meng de saus met de gekookte pasta en serveer met geraspte Parmezaanse kaas.",
+      ],
     },
     {
       name: "Vegetarische Curry met Kikkererwten",
@@ -147,8 +169,8 @@ async function seed() {
         "Fruit de ui in kokosolie en voeg currypasta toe.",
         "Voeg de groenten toe en bak 5 minuten mee.",
         "Schenk de kokosmelk in de pan en voeg de uitgelekte kikkererwten toe.",
-        "Laat het geheel 10 minuten zachtjes koken en serveer met de rijst."
-      ]
+        "Laat het geheel 10 minuten zachtjes koken en serveer met de rijst.",
+      ],
     },
     {
       name: "Gegrilde Zalm met Broccoli",
@@ -161,8 +183,8 @@ async function seed() {
         "Marineer de zalmfilet in sojasaus and een beetje sesamolie.",
         "Snijd de broccoli in roosjes en stoom of kook deze beetgaar.",
         "Verhit een pan en bak de zalm 3-4 minuten aan elke kant.",
-        "Garneer met sesamzaadjes and serveer direct met de broccoli."
-      ]
+        "Garneer met sesamzaadjes and serveer direct met de broccoli.",
+      ],
     },
     {
       name: "Shakshuka",
@@ -177,9 +199,9 @@ async function seed() {
         "Schenk de tomatenblokjes in de pan en laat 10 minuten pruttelen.",
         "Maak kuiltjes in de saus en breek hier de eieren in.",
         "Leg een deksel op de pan en laat de eieren in ca. 6 minuten stollen.",
-        "Garneer met verse peterselie en serveer met brood."
-      ]
-    }
+        "Garneer met verse peterselie en serveer met brood.",
+      ],
+    },
   ];
 
   for (const r of recipeData) {
@@ -188,21 +210,27 @@ async function seed() {
       db.delete(recipes).where(eq(recipes.recipeId, existingRecipe.recipeId)).run();
     }
 
-    const insertedRecipe = db.insert(recipes).values({
-      name: r.name,
-      cookingTime: r.cookingTime,
-      kitchen: r.kitchen,
-      status: r.status,
-      description: r.description,
-      rating: r.rating
-    }).returning().get();
+    const insertedRecipe = db
+      .insert(recipes)
+      .values({
+        name: r.name,
+        cookingTime: r.cookingTime,
+        kitchen: r.kitchen,
+        status: r.status,
+        description: r.description,
+        rating: r.rating,
+      })
+      .returning()
+      .get();
 
     for (let i = 0; i < r.steps.length; i++) {
-      db.insert(recipeSteps).values({
-        recipeId: insertedRecipe.recipeId,
-        stepNumber: i + 1,
-        description: r.steps[i]
-      }).run();
+      db.insert(recipeSteps)
+        .values({
+          recipeId: insertedRecipe.recipeId,
+          stepNumber: i + 1,
+          description: r.steps[i],
+        })
+        .run();
     }
   }
   console.log("Seeded 5 global recipes.");
@@ -219,10 +247,34 @@ async function seed() {
         targetMuscleGroups: "Borst, Triceps, Schouders",
         estimatedTime: 60,
         exercises: [
-          { exerciseName: "Bench Press", sortOrder: 0, category: "Free Weights", defaultSets: 4, defaultReps: 10, defaultWeight: 60.0, equipment: "barbell" },
-          { exerciseName: "Dumbbell Shoulder Press", sortOrder: 1, category: "Free Weights", defaultSets: 3, defaultReps: 10, defaultWeight: 16.0, equipment: "dumbbell" },
-          { exerciseName: "Tricep Pushdown", sortOrder: 2, category: "Free Weights", defaultSets: 3, defaultReps: 12, defaultWeight: 20.0, equipment: "cable" }
-        ]
+          {
+            exerciseName: "Bench Press",
+            sortOrder: 0,
+            category: "Free Weights",
+            defaultSets: 4,
+            defaultReps: 10,
+            defaultWeight: 60.0,
+            equipment: "barbell",
+          },
+          {
+            exerciseName: "Dumbbell Shoulder Press",
+            sortOrder: 1,
+            category: "Free Weights",
+            defaultSets: 3,
+            defaultReps: 10,
+            defaultWeight: 16.0,
+            equipment: "dumbbell",
+          },
+          {
+            exerciseName: "Tricep Pushdown",
+            sortOrder: 2,
+            category: "Free Weights",
+            defaultSets: 3,
+            defaultReps: 12,
+            defaultWeight: 20.0,
+            equipment: "cable",
+          },
+        ],
       },
       {
         name: "Rug en Biceps",
@@ -230,10 +282,34 @@ async function seed() {
         targetMuscleGroups: "Rug, Biceps",
         estimatedTime: 50,
         exercises: [
-          { exerciseName: "Pull-Up", sortOrder: 0, category: "Bodyweight", defaultSets: 3, defaultReps: 8, defaultWeight: 0.0, equipment: "none" },
-          { exerciseName: "Barbell Row", sortOrder: 1, category: "Free Weights", defaultSets: 3, defaultReps: 10, defaultWeight: 50.0, equipment: "barbell" },
-          { exerciseName: "Dumbbell Bicep Curl", sortOrder: 2, category: "Free Weights", defaultSets: 3, defaultReps: 12, defaultWeight: 12.0, equipment: "dumbbell" }
-        ]
+          {
+            exerciseName: "Pull-Up",
+            sortOrder: 0,
+            category: "Bodyweight",
+            defaultSets: 3,
+            defaultReps: 8,
+            defaultWeight: 0.0,
+            equipment: "none",
+          },
+          {
+            exerciseName: "Barbell Row",
+            sortOrder: 1,
+            category: "Free Weights",
+            defaultSets: 3,
+            defaultReps: 10,
+            defaultWeight: 50.0,
+            equipment: "barbell",
+          },
+          {
+            exerciseName: "Dumbbell Bicep Curl",
+            sortOrder: 2,
+            category: "Free Weights",
+            defaultSets: 3,
+            defaultReps: 12,
+            defaultWeight: 12.0,
+            equipment: "dumbbell",
+          },
+        ],
       },
       {
         name: "Benen & Core",
@@ -241,37 +317,68 @@ async function seed() {
         targetMuscleGroups: "Benen, Core",
         estimatedTime: 45,
         exercises: [
-          { exerciseName: "Barbell Back Squat", sortOrder: 0, category: "Free Weights", defaultSets: 4, defaultReps: 8, defaultWeight: 80.0, equipment: "barbell" },
-          { exerciseName: "Bulgarian Split Squat", sortOrder: 1, category: "Free Weights", defaultSets: 3, defaultReps: 8, defaultWeight: 14.0, equipment: "dumbbell" },
-          { exerciseName: "Plank", sortOrder: 2, category: "Bodyweight", defaultSets: 3, defaultReps: 1, defaultWeight: 0.0, defaultDuration: 60, equipment: "none" }
-        ]
-      }
+          {
+            exerciseName: "Barbell Back Squat",
+            sortOrder: 0,
+            category: "Free Weights",
+            defaultSets: 4,
+            defaultReps: 8,
+            defaultWeight: 80.0,
+            equipment: "barbell",
+          },
+          {
+            exerciseName: "Bulgarian Split Squat",
+            sortOrder: 1,
+            category: "Free Weights",
+            defaultSets: 3,
+            defaultReps: 8,
+            defaultWeight: 14.0,
+            equipment: "dumbbell",
+          },
+          {
+            exerciseName: "Plank",
+            sortOrder: 2,
+            category: "Bodyweight",
+            defaultSets: 3,
+            defaultReps: 1,
+            defaultWeight: 0.0,
+            defaultDuration: 60,
+            equipment: "none",
+          },
+        ],
+      },
     ];
 
     const templateIds: number[] = [];
     for (const t of templates) {
-      const insertedTemplate = db.insert(workoutTemplates).values({
-        userId: user.userId,
-        name: t.name,
-        description: t.description,
-        targetMuscleGroups: t.targetMuscleGroups,
-        estimatedTime: t.estimatedTime
-      }).returning().get();
+      const insertedTemplate = db
+        .insert(workoutTemplates)
+        .values({
+          userId: user.userId,
+          name: t.name,
+          description: t.description,
+          targetMuscleGroups: t.targetMuscleGroups,
+          estimatedTime: t.estimatedTime,
+        })
+        .returning()
+        .get();
 
       templateIds.push(insertedTemplate.templateId);
 
       for (const ex of t.exercises) {
-        db.insert(templateExercises).values({
-          templateId: insertedTemplate.templateId,
-          exerciseName: ex.exerciseName,
-          sortOrder: ex.sortOrder,
-          category: ex.category,
-          defaultSets: ex.defaultSets,
-          defaultReps: ex.defaultReps,
-          defaultWeight: ex.defaultWeight,
-          defaultDuration: ex.defaultDuration ?? null,
-          equipment: ex.equipment
-        }).run();
+        db.insert(templateExercises)
+          .values({
+            templateId: insertedTemplate.templateId,
+            exerciseName: ex.exerciseName,
+            sortOrder: ex.sortOrder,
+            category: ex.category,
+            defaultSets: ex.defaultSets,
+            defaultReps: ex.defaultReps,
+            defaultWeight: ex.defaultWeight,
+            defaultDuration: ex.defaultDuration ?? null,
+            equipment: ex.equipment,
+          })
+          .run();
       }
     }
     console.log(`  Seeded 3 workout templates for ${username}.`);
@@ -286,33 +393,43 @@ async function seed() {
         const startedAt = `2026-08-0${day} 10:00:00`;
         const completedAt = `2026-08-0${day} 11:00:00`;
 
-        const insertedSession = db.insert(workoutSessions).values({
-          templateId,
-          userId: user.userId,
-          startedAt,
-          completedAt,
-          notes: `Geweldige training! Alle sets succesvol afgerond voor ${template.name} (Sessie ${k + 1}).`,
-          name: `${template.name} Sessie ${k + 1}`
-        }).returning().get();
+        const insertedSession = db
+          .insert(workoutSessions)
+          .values({
+            templateId,
+            userId: user.userId,
+            startedAt,
+            completedAt,
+            notes: `Geweldige training! Alle sets succesvol afgerond voor ${template.name} (Sessie ${k + 1}).`,
+            name: `${template.name} Sessie ${k + 1}`,
+          })
+          .returning()
+          .get();
 
         for (const ex of template.exercises) {
-          const insertedEx = db.insert(sessionExercises).values({
-            sessionId: insertedSession.sessionId,
-            exerciseName: ex.exerciseName,
-            sortOrder: ex.sortOrder,
-            category: ex.category,
-            equipment: ex.equipment
-          }).returning().get();
+          const insertedEx = db
+            .insert(sessionExercises)
+            .values({
+              sessionId: insertedSession.sessionId,
+              exerciseName: ex.exerciseName,
+              sortOrder: ex.sortOrder,
+              category: ex.category,
+              equipment: ex.equipment,
+            })
+            .returning()
+            .get();
 
           for (let s = 1; s <= ex.defaultSets; s++) {
-            db.insert(sessionSets).values({
-              sessionExerciseId: insertedEx.sessionExerciseId,
-              setNumber: s,
-              reps: ex.defaultReps,
-              weight: ex.defaultWeight,
-              duration: ex.defaultDuration ?? null,
-              completed: 1
-            }).run();
+            db.insert(sessionSets)
+              .values({
+                sessionExerciseId: insertedEx.sessionExerciseId,
+                setNumber: s,
+                reps: ex.defaultReps,
+                weight: ex.defaultWeight,
+                duration: ex.defaultDuration ?? null,
+                completed: 1,
+              })
+              .run();
           }
         }
         sessionCount++;
@@ -324,43 +441,92 @@ async function seed() {
     const measurementLogs = [
       { date: "2026-08-01", height: 180.0, weight: 80.0, bodyFat: 15.0, skeletalMuscle: 38.0, fatMass: 12.0 },
       { date: "2026-08-03", height: 180.0, weight: 79.5, bodyFat: 14.8, skeletalMuscle: 38.2, fatMass: 11.8 },
-      { date: "2026-08-05", height: 180.0, weight: 79.0, bodyFat: 14.5, skeletalMuscle: 38.5, fatMass: 11.5 }
+      { date: "2026-08-05", height: 180.0, weight: 79.0, bodyFat: 14.5, skeletalMuscle: 38.5, fatMass: 11.5 },
     ];
 
     for (const log of measurementLogs) {
-      db.insert(measurements).values({
-        userId: user.userId,
-        date: log.date,
-        height: log.height,
-        weight: log.weight,
-        bodyFat: log.bodyFat,
-        skeletalMuscle: log.skeletalMuscle,
-        fatMass: log.fatMass
-      }).run();
+      db.insert(measurements)
+        .values({
+          userId: user.userId,
+          date: log.date,
+          height: log.height,
+          weight: log.weight,
+          bodyFat: log.bodyFat,
+          skeletalMuscle: log.skeletalMuscle,
+          fatMass: log.fatMass,
+        })
+        .run();
     }
     console.log(`  Seeded 3 body measurement logs for ${username}.`);
 
     // --- 5 Wines ---
     const wineData = [
-      { brand: "Château Margaux", type: "Rood", variety: "Cabernet Sauvignon", vintage: 2015, countryRegion: "Frankrijk, Bordeaux", purchaseLocation: "Wijnwinkel Amsterdam", rating: 9, notes: "Heerlijke volle smaak, perfect bij rood vlees." },
-      { brand: "Cloudy Bay", type: "Wit", variety: "Sauvignon Blanc", vintage: 2021, countryRegion: "Nieuw-Zeeland, Marlborough", purchaseLocation: "Online Wijnshop", rating: 8, notes: "Fris, fruitig met tonen van passievrucht." },
-      { brand: "Moët & Chandon", type: "Mousserend", variety: "Chardonnay blend", vintage: 2018, countryRegion: "Frankrijk, Champagne", purchaseLocation: "Slijterij Utrecht", rating: 10, notes: "Klassieke champagne, fijne bubbel." },
-      { brand: "Penfolds Bin 389", type: "Rood", variety: "Cabernet Shiraz", vintage: 2019, countryRegion: "Australië", purchaseLocation: "Lokale Slijter", rating: 9, notes: "Stevige en kruidige smaak met houtrijping." },
-      { brand: "Ruinart Rosé", type: "Rosé", variety: "Pinot Noir blend", vintage: 2020, countryRegion: "Frankrijk, Champagne", purchaseLocation: "Luchthaven Schiphol", rating: 9, notes: "Zeer verfijnde rosé met rood fruit aroma's." }
+      {
+        brand: "Château Margaux",
+        type: "Rood",
+        variety: "Cabernet Sauvignon",
+        vintage: 2015,
+        countryRegion: "Frankrijk, Bordeaux",
+        purchaseLocation: "Wijnwinkel Amsterdam",
+        rating: 9,
+        notes: "Heerlijke volle smaak, perfect bij rood vlees.",
+      },
+      {
+        brand: "Cloudy Bay",
+        type: "Wit",
+        variety: "Sauvignon Blanc",
+        vintage: 2021,
+        countryRegion: "Nieuw-Zeeland, Marlborough",
+        purchaseLocation: "Online Wijnshop",
+        rating: 8,
+        notes: "Fris, fruitig met tonen van passievrucht.",
+      },
+      {
+        brand: "Moët & Chandon",
+        type: "Mousserend",
+        variety: "Chardonnay blend",
+        vintage: 2018,
+        countryRegion: "Frankrijk, Champagne",
+        purchaseLocation: "Slijterij Utrecht",
+        rating: 10,
+        notes: "Klassieke champagne, fijne bubbel.",
+      },
+      {
+        brand: "Penfolds Bin 389",
+        type: "Rood",
+        variety: "Cabernet Shiraz",
+        vintage: 2019,
+        countryRegion: "Australië",
+        purchaseLocation: "Lokale Slijter",
+        rating: 9,
+        notes: "Stevige en kruidige smaak met houtrijping.",
+      },
+      {
+        brand: "Ruinart Rosé",
+        type: "Rosé",
+        variety: "Pinot Noir blend",
+        vintage: 2020,
+        countryRegion: "Frankrijk, Champagne",
+        purchaseLocation: "Luchthaven Schiphol",
+        rating: 9,
+        notes: "Zeer verfijnde rosé met rood fruit aroma's.",
+      },
     ];
 
     for (const w of wineData) {
-      db.insert(wines).values({
-        userId: user.userId,
-        brand: w.brand,
-        type: w.type,
-        variety: w.variety,
-        vintage: w.vintage,
-        countryRegion: w.countryRegion,
-        purchaseLocation: w.purchaseLocation,
-        rating: w.rating,
-        notes: w.notes
-      }).run();
+      db.insert(wines)
+        .values({
+          userId: user.userId,
+          brand: w.brand,
+          type: w.type,
+          variety: w.variety,
+          vintage: w.vintage,
+          countryRegion: w.countryRegion,
+          purchaseLocation: w.purchaseLocation,
+          rating: w.rating,
+          notes: w.notes,
+        })
+        .run();
     }
     console.log(`  Seeded 5 wines for ${username}.`);
   }

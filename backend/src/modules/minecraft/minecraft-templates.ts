@@ -7,7 +7,14 @@ import { ConflictError, orNotFound } from "../../utils/errors";
 import { listDirectory, validateUploads } from "./minecraft-files";
 import type { MinecraftParts } from "./minecraft-parts";
 import { TEMPLATES_DIR } from "./paths";
-import { FOLDER_TYPES, requireText, validateEngine, validateFilename, validateFolderType, validateSlug } from "./validation";
+import {
+  FOLDER_TYPES,
+  requireText,
+  validateEngine,
+  validateFilename,
+  validateFolderType,
+  validateSlug,
+} from "./validation";
 
 export interface CustomTemplateInput {
   name: string;
@@ -135,7 +142,13 @@ export class MinecraftTemplates {
     const existing = db
       .select()
       .from(mc_template_files)
-      .where(and(eq(mc_template_files.templateId, id), eq(mc_template_files.fileType, folder), eq(mc_template_files.filename, filename)))
+      .where(
+        and(
+          eq(mc_template_files.templateId, id),
+          eq(mc_template_files.fileType, folder),
+          eq(mc_template_files.filename, filename),
+        ),
+      )
       .get();
     if (!existing) {
       db.insert(mc_template_files).values({ templateId: id, fileType: folder, filename }).run();
@@ -158,7 +171,13 @@ export class MinecraftTemplates {
     this.get(id);
     await unlink(join(TEMPLATES_DIR, id.toString(), folder, filename)).catch(() => {});
     db.delete(mc_template_files)
-      .where(and(eq(mc_template_files.templateId, id), eq(mc_template_files.fileType, folder), eq(mc_template_files.filename, filename)))
+      .where(
+        and(
+          eq(mc_template_files.templateId, id),
+          eq(mc_template_files.fileType, folder),
+          eq(mc_template_files.filename, filename),
+        ),
+      )
       .run();
     return { ok: true };
   }

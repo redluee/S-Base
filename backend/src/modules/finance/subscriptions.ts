@@ -3,7 +3,13 @@ import { createHash } from "node:crypto";
 
 const day = 86_400_000;
 const timestamp = (date: string) => Date.parse(`${date}T00:00:00Z`);
-const cadences: { cadence: FinanceSubscriptionCadence; days: number; tolerance: number; perYear: number; minimum: number }[] = [
+const cadences: {
+  cadence: FinanceSubscriptionCadence;
+  days: number;
+  tolerance: number;
+  perYear: number;
+  minimum: number;
+}[] = [
   { cadence: "weekly", days: 7, tolerance: 2, perYear: 52, minimum: 3 },
   { cadence: "fortnightly", days: 14, tolerance: 3, perYear: 26, minimum: 3 },
   { cadence: "fourWeekly", days: 28, tolerance: 2, perYear: 13, minimum: 4 },
@@ -13,7 +19,9 @@ const cadences: { cadence: FinanceSubscriptionCadence; days: number; tolerance: 
 ];
 
 export function subscriptionSourceKey(entry: Pick<FinanceTransaction, "accountId" | "name">) {
-  return createHash("sha256").update(JSON.stringify([entry.accountId, entry.name.trim().replace(/\s+/g, " ").toLowerCase()])).digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify([entry.accountId, entry.name.trim().replace(/\s+/g, " ").toLowerCase()]))
+    .digest("hex");
 }
 
 export function monthlyAverage(totalCents: number, firstDate: string, lastDate: string) {
@@ -21,7 +29,11 @@ export function monthlyAverage(totalCents: number, firstDate: string, lastDate: 
   return Math.round(totalCents / Math.max(1, monthIndex(lastDate) - monthIndex(firstDate) + 1));
 }
 
-export function detectSubscriptions(transactions: FinanceTransaction[], asOf: string, overrides: ReadonlyMap<string, FinanceSubscriptionCadence> = new Map()): FinanceSubscriptions {
+export function detectSubscriptions(
+  transactions: FinanceTransaction[],
+  asOf: string,
+  overrides: ReadonlyMap<string, FinanceSubscriptionCadence> = new Map(),
+): FinanceSubscriptions {
   const groups = new Map<string, FinanceTransaction[]>();
   const lastImportedDates = new Map<number, string>();
   for (const entry of transactions) {
@@ -43,12 +55,18 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
     const override = overrides.get(subscriptionSourceKey(group[0]));
     if (group.length < 2 && !override) continue;
     const gaps = group.slice(1).map((entry, index) => (timestamp(entry.date) - timestamp(group[index].date)) / day);
-    const cadence = cadences.find((candidate) => candidate.cadence === override) ?? cadences.find((candidate) => group.length >= candidate.minimum
-      && gaps.every((gap) => gap > 0)
-      && gaps.filter((gap) => Math.abs(gap - candidate.days) <= candidate.tolerance).length / gaps.length >= 0.8);
+    const cadence =
+      cadences.find((candidate) => candidate.cadence === override) ??
+      cadences.find(
+        (candidate) =>
+          group.length >= candidate.minimum &&
+          gaps.every((gap) => gap > 0) &&
+          gaps.filter((gap) => Math.abs(gap - candidate.days) <= candidate.tolerance).length / gaps.length >= 0.8,
+      );
     const irregular = override === "irregular";
     if (!cadence && !irregular) continue;
-    const first = group[0], last = group[group.length - 1];
+    const first = group[0],
+      last = group[group.length - 1];
     const paymentCents = -last.amountCents;
     const id = subscriptionSourceKey(last);
     const totalCents = group.reduce((sum, entry) => sum - entry.amountCents, 0);
@@ -60,17 +78,26 @@ export function detectSubscriptions(transactions: FinanceTransaction[], asOf: st
       name: last.name.trim(),
       cadence: irregular ? "irregular" : cadence!.cadence,
       paymentCents,
-      monthlyCents: irregular ? monthlyAverage(totalCents, first.date, lastImportedDates.get(last.accountId)!) : Math.round(paymentCents * cadence!.perYear / 12),
+      monthlyCents: irregular
+        ? monthlyAverage(totalCents, first.date, lastImportedDates.get(last.accountId)!)
+        : Math.round((paymentCents * cadence!.perYear) / 12),
       totalCents,
       paymentCount: group.length,
       firstDate: first.date,
       lastDate: last.date,
-      active: irregular || (timestamp(asOf) - timestamp(last.date)) / day <= cadence!.days + Math.max(7, cadence!.tolerance * 2),
+      active:
+        irregular ||
+        (timestamp(asOf) - timestamp(last.date)) / day <= cadence!.days + Math.max(7, cadence!.tolerance * 2),
       inactive: false,
     });
   }
-  entries.sort((a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name));
-  const dates = transactions.filter((entry) => entry.date <= asOf).map((entry) => entry.date).sort();
+  entries.sort(
+    (a, b) => Number(b.active) - Number(a.active) || b.monthlyCents - a.monthlyCents || a.name.localeCompare(b.name),
+  );
+  const dates = transactions
+    .filter((entry) => entry.date <= asOf)
+    .map((entry) => entry.date)
+    .sort();
   return {
     entries,
     monthlyCents: entries.filter((entry) => entry.active).reduce((sum, entry) => sum + entry.monthlyCents, 0),

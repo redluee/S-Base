@@ -1,6 +1,14 @@
 import { type ChatInputCommandInteraction, type Client, EmbedBuilder } from "discord.js";
 import type { MinecraftService } from "./index";
-import { SIGNAL_GREEN, SIGNAL_RED, startCooldowns, COOLDOWN_SECONDS, pingMinecraftServer, pingTcpPort, getPlayerAvatarEmoji } from "./discord-net";
+import {
+  SIGNAL_GREEN,
+  SIGNAL_RED,
+  startCooldowns,
+  COOLDOWN_SECONDS,
+  pingMinecraftServer,
+  pingTcpPort,
+  getPlayerAvatarEmoji,
+} from "./discord-net";
 
 interface DiscordCommandContext {
   minecraft: MinecraftService;
@@ -161,9 +169,7 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
         );
 
         const playerListText =
-          playerListItems.length > 0
-            ? playerListItems.join("\n")
-            : "*Geen spelers momenteel online*";
+          playerListItems.length > 0 ? playerListItems.join("\n") : "*Geen spelers momenteel online*";
 
         const alreadyOnEmbed = new EmbedBuilder()
           .setTitle(`🟢 Server Draait Al: ${server.displayName}`)

@@ -4,7 +4,9 @@ import { users } from "./auth";
 
 export const wines = sqliteTable("wines", {
   wineId: integer("wine_id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
   brand: text("brand").notNull(),
   type: text("type").notNull(),
   variety: text("variety").notNull(),
