@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FinanceData, FinanceTransactionPage } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, money } from "./lib/finance";
 import { t } from "@/lib/lang";
 import { Action, errorText, Notice, panel } from "./ui";
 

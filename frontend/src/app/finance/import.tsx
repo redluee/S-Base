@@ -9,14 +9,14 @@ import type {
 } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
-import { dateLabel, parseMoney } from "@/lib/finance";
+import { dateLabel, parseMoney } from "./lib/finance";
 import {
   defaultImportChoice,
   importSelections,
   type ImportChoice,
   detectImportFormat,
   readImportFile,
-} from "@/lib/finance-import";
+} from "./lib/finance-import";
 import { Action, Field, Notice, panel, selectClass, errorText } from "./ui";
 import { ImportSource } from "./import-source";
 

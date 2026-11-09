@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { FinanceData } from "@backend/types/finance";
 import { t } from "@/lib/lang";
 import { financeApi } from "@/lib/api/finance";
-import { money, moneyInput, parseMoney } from "@/lib/finance";
+import { money, moneyInput, parseMoney } from "./lib/finance";
 import { Action, Field, Notice, errorText, panel } from "./ui";
 
 export function FinanceSettings({ data, subscriptionMonthlyCents, busy, onReset, onSaved }: {

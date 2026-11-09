@@ -2,8 +2,8 @@
 
 import { memo, type Ref } from "react";
 import type { FinanceTransaction } from "@backend/types/finance";
-import type { FinanceHistoryPoint } from "@/lib/finance-history";
-import { dateLabel, money } from "@/lib/finance";
+import type { FinanceHistoryPoint } from "./lib/finance-history";
+import { dateLabel, money } from "./lib/finance";
 import { t } from "@/lib/lang";
 
 export const HistoryRow = memo(function HistoryRow({ point, selected, rowRef, entries, loaded, failed }: {

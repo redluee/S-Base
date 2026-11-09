@@ -10,7 +10,7 @@ import type {
 } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
-import { financePeriodEnd } from "@/lib/finance";
+import { financePeriodEnd } from "./lib/finance";
 import { Action, Notice, errorText, panel } from "./ui";
 import { Accounts } from "./accounts";
 import { Overview } from "./overview";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { FinanceAccount, FinanceData } from "@backend/types/finance";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, money } from "./lib/finance";
 import { t } from "@/lib/lang";
 import { AccountIcon } from "./account-icon";
 import { AccountIconPicker } from "./account-icon-picker";

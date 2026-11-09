@@ -3,7 +3,7 @@ import type { FinanceDashboard, FinanceData, FinancePeriod } from "@backend/type
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
-import { dateLabel, financeAccountLabel, money } from "@/lib/finance";
+import { dateLabel, financeAccountLabel, money } from "./lib/finance";
 import { AccountIcon } from "./account-icon";
 import { AnimatedMoney } from "./animated-money";
 import { Transactions } from "./transactions";

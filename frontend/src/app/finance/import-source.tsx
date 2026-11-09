@@ -2,12 +2,12 @@
 
 import type { FinanceData, FinanceImportSource } from "@backend/types/finance";
 import { t } from "@/lib/lang";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, money } from "./lib/finance";
 import {
   defaultImportChoice,
   importRows,
   type ImportChoice,
-} from "@/lib/finance-import";
+} from "./lib/finance-import";
 import { Action, Field, Notice, panel, selectClass } from "./ui";
 
 export function ImportSource({

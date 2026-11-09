@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { financeApi } from "@/lib/api/finance";
-import { dateLabel, money } from "@/lib/finance";
-import { loadHistoryTransactions } from "@/lib/finance-history-transactions";
-import { netBuckets, netRange } from "@/lib/finance-net";
-import { financeChartScale } from "@/lib/finance-chart-scale";
+import { dateLabel, money } from "./lib/finance";
+import { loadHistoryTransactions } from "./lib/finance-history-transactions";
+import { netBuckets, netRange } from "./lib/finance-net";
+import { financeChartScale } from "./lib/finance-chart-scale";
 import type { FinanceTransaction } from "@backend/types/finance";
 import { t } from "@/lib/lang";
 import { Action, errorText, Notice, panel } from "./ui";

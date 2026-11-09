@@ -3,13 +3,13 @@
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from "react";
 import type { FinanceDashboard, FinanceData, FinanceTransaction } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
-import { historyTransactionsByDate, loadHistoryTransactions } from "@/lib/finance-history-transactions";
-import { dateLabel, financeAccountLabel, money } from "@/lib/finance";
+import { historyTransactionsByDate, loadHistoryTransactions } from "./lib/finance-history-transactions";
+import { dateLabel, financeAccountLabel, money } from "./lib/finance";
 import {
   closestHistoryIndex,
   financeHistoryGeometry,
   financeHistoryPoints,
-} from "@/lib/finance-history";
+} from "./lib/finance-history";
 import { t } from "@/lib/lang";
 import { HistoryRow } from "./history-row";
 import { Action, errorText, Notice, selectClass } from "./ui";

@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { FinanceData, FinanceSubscriptionCadence, FinanceTransaction, FinanceTransactionPage } from "@backend/types/finance";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { financeApi } from "@/lib/api/finance";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, money } from "./lib/finance";
 import { t } from "@/lib/lang";
 import { Action, Field, Notice, errorText, panel, selectClass } from "./ui";
 

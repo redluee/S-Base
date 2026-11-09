@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { FinanceData, FinanceSubscription, FinanceSubscriptions } from "@backend/types/finance";
 import { History, Merge, MoreHorizontal, Pencil, Plus, Trash2, Pause, Play } from "lucide-react";
-import { dateLabel, money } from "@/lib/finance";
+import { dateLabel, money } from "./lib/finance";
 import { t } from "@/lib/lang";
 import { Menu } from "@base-ui/react/menu";
 import { ModalOverlay } from "@/components/ui/modal-overlay";

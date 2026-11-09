@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { money } from "@/lib/finance";
+import { money } from "./lib/finance";
 
 export function AnimatedMoney({ cents }: { cents: number | null }) {
   return cents === null ? money(null) : <Counter key={cents} cents={cents} />;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { dashboard } from "../../../backend/src/modules/finance/calculations";
-import { inferredBalances } from "../../../backend/src/modules/finance/inferred-balances";
+import { dashboard } from "../../../../../backend/src/modules/finance/calculations";
+import { inferredBalances } from "../../../../../backend/src/modules/finance/inferred-balances";
 import type {
   FinanceAccount,
   FinanceObservation,

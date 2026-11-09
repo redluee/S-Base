@@ -9,7 +9,7 @@ import {
   moneyInput,
   parseMoney,
   savingsState,
-} from "@/lib/finance";
+} from "./lib/finance";
 import { t } from "@/lib/lang";
 import { Action, Field, Notice, errorText, panel, selectClass } from "./ui";
 import { GoalForm } from "./goal-form";

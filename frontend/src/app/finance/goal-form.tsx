@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { FinanceGoal } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
-import { moneyInput, parseMoney } from "@/lib/finance";
+import { moneyInput, parseMoney } from "./lib/finance";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Action, Field, Notice, errorText, panel } from "./ui";
 

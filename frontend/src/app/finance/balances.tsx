@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { FinanceData, FinanceObservation } from "@backend/types/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
-import { dateLabel, money, moneyInput, parseMoney } from "@/lib/finance";
+import { dateLabel, money, moneyInput, parseMoney } from "./lib/finance";
 import { Action, Field, Notice, errorText, panel } from "./ui";
 
 export function Balances({
