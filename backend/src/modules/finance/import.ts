@@ -7,20 +7,22 @@ import {
   financeTransactions as transactions,
   financeSubscriptionPreferences as preferences,
 } from "../../db/schema/finance";
-import {
-  ConflictError,
-  ValidationError,
-  requireId,
-  requireObject,
-} from "../../utils/validation";
-import { FinanceTransactionsService, importKey, accountNumberKey } from "./transactions";
+import { ConflictError, ValidationError } from "../../utils/errors";
+import { requireId, requireObject } from "../../utils/validation";
+import type { FinanceAccounts } from "./accounts";
+import { type FinanceTransactions, importKey, accountNumberKey } from "./transactions";
 import { parseImport } from "./import-parser";
 import { importPreview, type ImportSource } from "./import-model";
 import { accountInput, calendarDate, cents } from "./validation";
 import type { FinanceImportResult } from "../../types/finance";
 import { subscriptionSourceKey } from "./subscriptions";
 
-export class FinanceImportService extends FinanceTransactionsService {
+export class FinanceImport {
+  constructor(
+    private readonly accounts: FinanceAccounts,
+    private readonly transactions: FinanceTransactions,
+  ) {}
+
   private sourceBinding(userId: number, source: ImportSource, camt: boolean) {
     const known = db.select().from(importSources).where(eq(importSources.userId, userId)).all();
     if (camt) {
@@ -131,8 +133,8 @@ export class FinanceImportService extends FinanceTransactionsService {
       for (const selection of selections) {
         const account =
           selection.accountId !== undefined
-            ? this.account(userId, selection.accountId)
-            : this.createAccount(userId, selection.newAccount);
+            ? this.accounts.account(userId, selection.accountId)
+            : this.accounts.createAccount(userId, selection.newAccount);
         const identity = importKey(userId, [selection.source.account, preview.format === "camt053" ? "" : selection.source.accountName]);
         const sourceBinding = this.sourceBinding(userId, selection.source, preview.format === "camt053");
         const targetBinding = tx.select().from(importSources).where(eq(importSources.accountId, account.id)).get();
@@ -225,7 +227,7 @@ export class FinanceImportService extends FinanceTransactionsService {
         ? tx.select().from(preferences).where(and(eq(preferences.userId, userId), eq(preferences.inactive, true))).all()
         : [];
       if (inactiveRules.length) {
-        const sourceKeys = new Set(this.periodTransactions(userId, "1900-01-01", "9999-12-31")
+        const sourceKeys = new Set(this.transactions.periodTransactions(userId, "1900-01-01", "9999-12-31")
           .filter((entry) => insertedIds.has(entry.id) && entry.amountCents < 0 && !entry.internalTransfer)
           .map(subscriptionSourceKey));
         const groups = new Set(inactiveRules.filter((rule) => sourceKeys.has(rule.sourceKey)).map((rule) => rule.groupKey));

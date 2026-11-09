@@ -1,5 +1,5 @@
 import { SaxesParser } from "saxes";
-import { ValidationError } from "../../utils/validation";
+import { ValidationError } from "../../utils/errors";
 import { calendarDate, cents } from "./validation";
 import { ING_MAX_BYTES } from "./ing-csv";
 

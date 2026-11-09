@@ -13,7 +13,6 @@ import { join } from "path";
 import { mkdir } from "fs/promises";
 import { resolveUploadExtension } from "./utils/uploads";
 import { ValidationError } from "./utils/errors";
-import { validationResponse } from "./utils/validation";
 import { ensureDefaultModules } from "./db/user-manager";
 
 try {
@@ -83,16 +82,6 @@ export const minecraftAuth = createAuthPlugin(["minecraft", "minecraft:monitor"]
 export const minorAuth = createAuthPlugin("minor");
 export const resumeAuth = createAuthPlugin("resume");
 export const financeAuth = createAuthPlugin("finance");
-
-export async function validated<T>(fn: () => T | Promise<T>): Promise<T | Response> {
-  try {
-    return await fn();
-  } catch (e) {
-    const res = validationResponse(e);
-    if (res) return res;
-    throw e;
-  }
-}
 
 export async function saveUpload(body: unknown, prefix: string, allowed: string[], maxBytes?: number) {
   const file = (body as { file?: File } | null | undefined)?.file;

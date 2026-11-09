@@ -1,4 +1,5 @@
-import { ValidationError, requireObject } from "../../utils/validation";
+import { ValidationError } from "../../utils/errors";
+import { requireObject } from "../../utils/validation";
 
 export const MAX_CENTS = 1_000_000_000_000;
 export function today() {
@@ -15,15 +16,15 @@ export function calendarDate(value: unknown, allowFuture = false): string {
     !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
     value < "1900-01-01"
   )
-    throw new ValidationError("Invalid calendar date");
+    throw new ValidationError("finance.invalidDate");
   const parsed = new Date(`${value}T12:00:00Z`);
   if (
     Number.isNaN(parsed.getTime()) ||
     parsed.toISOString().slice(0, 10) !== value
   )
-    throw new ValidationError("Invalid calendar date");
+    throw new ValidationError("finance.invalidDate");
   if (!allowFuture && value > today())
-    throw new ValidationError("Future balances are not allowed");
+    throw new ValidationError("finance.futureDate");
   return value;
 }
 export function cents(value: unknown, minimum = -MAX_CENTS): number {
@@ -33,19 +34,19 @@ export function cents(value: unknown, minimum = -MAX_CENTS): number {
     value < minimum ||
     value > MAX_CENTS
   )
-    throw new ValidationError("Invalid amount in cents");
+    throw new ValidationError("finance.invalidMoney");
   return value;
 }
 export function text(value: unknown, optional = false): string | null {
   if (optional && (value == null || value === "")) return null;
   if (typeof value !== "string" || !value.trim() || value.trim().length > 120)
-    throw new ValidationError("Name or bank must contain 1 to 120 characters");
+    throw new ValidationError("finance.invalidName");
   return value.trim();
 }
 export function accountInput(input: unknown) {
   const data = requireObject(input);
   if (data.type !== "current" && data.type !== "savings")
-    throw new ValidationError("Invalid account type");
+    throw new ValidationError("finance.invalidType");
   return {
     name: text(data.name)!,
     bank: text(data.bank, true),

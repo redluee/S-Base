@@ -1,4 +1,5 @@
-import { requireObject, ValidationError } from "../../utils/validation";
+import { ValidationError } from "../../utils/errors";
+import { requireObject } from "../../utils/validation";
 import { parseCamt053 } from "./camt053";
 import { parseIngFile } from "./ing-csv";
 import type { ParsedImport } from "./import-model";

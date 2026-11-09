@@ -44,37 +44,16 @@ export function Notice({
     </p>
   );
 }
-const errorKeys: Record<string, string> = {
-  "Invalid account icon": "finance.invalidIcon",
-  "Invalid amount in cents": "finance.invalidMoney",
-  "Invalid calendar date": "finance.invalidDate",
-  "Future balances are not allowed": "finance.futureDate",
-  "Name or bank must contain 1 to 120 characters": "finance.invalidName",
-  "Invalid account type": "finance.invalidType",
-  "Balance precedes account opening date": "finance.beforeOpening",
-  "Balance changed; reload and explicitly edit the existing observation":
-    "finance.staleBalance",
-  "Opening date conflicts with history": "finance.openingConflict",
-  "Release allocations before changing account type": "finance.releaseFirst",
-  "Allocation exceeds available savings or account is archived":
-    "finance.allocationLimit",
-  "Allocation exceeds goal target": "finance.goalLimit",
-  "Target is below allocated amount": "finance.targetLimit",
-  "Choose at least one balance": "finance.chooseBalance",
-  "Only savings accounts can be allocated": "finance.onlySavings",
-  "Account limit reached": "finance.accountLimit",
-  "Goal limit reached": "finance.goalCountLimit",
-};
 export function errorText(error: unknown) {
   if (error instanceof ApiError && error.status === 403)
     return t("finance.forbidden");
   if (error instanceof ApiError && error.status === 401)
     return t("finance.sessionExpired");
-  if (error instanceof ApiError && error.status === 404)
-    return t("finance.notFound");
+  if (error instanceof ApiError) {
+    if (error.key.startsWith("finance.") || error.key === "common.invalidRequest") return error.message;
+    if (error.status === 404) return t("finance.notFound");
+    return t("finance.failed");
+  }
   const message = error instanceof Error ? error.message : "";
-  return t(
-    errorKeys[message] ??
-      (message.startsWith("finance.") ? message : "finance.failed"),
-  );
+  return t(message.startsWith("finance.") ? message : "finance.failed");
 }

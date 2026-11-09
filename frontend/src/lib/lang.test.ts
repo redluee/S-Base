@@ -47,3 +47,12 @@ describe("minor error keys", () => {
     expect(t("minor.invalidDate")).toBe("Ongeldige datum. Gebruik het formaat JJJJ-MM-DD.");
   });
 });
+
+describe("finance error keys", () => {
+  it("translates finance backend error keys", () => {
+    expect(t("finance.accountNotFound")).toBe("Deze rekening is niet gevonden of is niet van jou.");
+    expect(t("finance.invalidPeriod")).toBe("Kies een geldige periode.");
+    expect(t("finance.import.stale")).not.toBe("finance.import.stale");
+    expect(t("finance.staleBalance")).not.toBe("finance.staleBalance");
+  });
+});

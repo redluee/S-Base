@@ -8,25 +8,19 @@ import {
   financeAllocations as allocations,
   financeSettings as settings,
 } from "../../db/schema/finance";
-import {
-  ConflictError,
-  ValidationError,
-  requireId,
-  requireObject,
-} from "../../utils/validation";
+import { ConflictError, NotFoundError, ValidationError } from "../../utils/errors";
+import { requireId, requireObject } from "../../utils/validation";
 import { accountInput, calendarDate, cents, today } from "./validation";
 import type { FinanceData } from "../../types/finance";
 
-export class FinanceNotFound extends Error {}
-
-export class FinanceAccountsService {
+export class FinanceAccounts {
   account(userId: number, id: number) {
     const account = db
       .select()
       .from(accounts)
       .where(and(eq(accounts.userId, userId), eq(accounts.id, requireId(id))))
       .get();
-    if (!account) throw new FinanceNotFound("Account not found");
+    if (!account) throw new NotFoundError("finance.accountNotFound");
     return account;
   }
   data(userId: number): FinanceData {
@@ -86,7 +80,7 @@ export class FinanceAccountsService {
         tx.select().from(accounts).where(eq(accounts.userId, userId)).all()
           .length >= 200
       )
-        throw new ValidationError("Account limit reached");
+        throw new ValidationError("finance.accountLimit");
       const account = tx
         .insert(accounts)
         .values({ ...data, userId })
@@ -116,16 +110,14 @@ export class FinanceAccountsService {
           .all()
           .some((a) => a.amountCents > 0)
       )
-        throw new ConflictError(
-          "Release allocations before changing account type",
-        );
+        throw new ConflictError("finance.releaseFirst");
       if (data.openingDate !== account.openingDate) {
         if (
           history.some(
             (o) => o.date !== account.openingDate && o.date <= data.openingDate,
           )
         )
-          throw new ConflictError("Opening date conflicts with history");
+          throw new ConflictError("finance.openingConflict");
         tx.delete(observations)
           .where(
             and(
@@ -158,7 +150,7 @@ export class FinanceAccountsService {
     this.account(userId, id);
     const { icon } = requireObject(input);
     if (icon !== null && !financeAccountIcons.includes(icon as FinanceAccountIcon))
-      throw new ValidationError("Invalid account icon");
+      throw new ValidationError("finance.invalidIcon");
     return db
       .update(accounts)
       .set({ icon: icon as FinanceAccountIcon | null })
@@ -170,7 +162,7 @@ export class FinanceAccountsService {
     this.account(userId, id);
     const { archived } = requireObject(input);
     if (typeof archived !== "boolean")
-      throw new ValidationError("Invalid archive status");
+      throw new ValidationError("finance.invalidArchive");
     return db
       .update(accounts)
       .set({ archived })
@@ -186,7 +178,7 @@ export class FinanceAccountsService {
       data.entries.length < 1 ||
       data.entries.length > 200
     )
-      throw new ValidationError("Choose at least one balance");
+      throw new ValidationError("finance.chooseBalance");
     const entries = data.entries.map((value: unknown) => {
       const entry = requireObject(value);
       return {
@@ -197,12 +189,12 @@ export class FinanceAccountsService {
       };
     });
     if (new Set(entries.map((e) => e.accountId)).size !== entries.length)
-      throw new ValidationError("Duplicate account in balance update");
+      throw new ValidationError("finance.duplicateAccount");
     return db.transaction((tx) => {
       for (const entry of entries) {
         const account = this.account(userId, entry.accountId);
         if (date < account.openingDate)
-          throw new ValidationError("Balance precedes account opening date");
+          throw new ValidationError("finance.beforeOpening");
         const existing = tx
           .select()
           .from(observations)
@@ -214,9 +206,7 @@ export class FinanceAccountsService {
           )
           .get();
         if ((existing?.balanceCents ?? null) !== entry.expectedCents)
-          throw new ConflictError(
-            "Balance changed; reload and explicitly edit the existing observation",
-          );
+          throw new ConflictError("finance.staleBalance");
         tx.insert(observations)
           .values({
             accountId: account.id,
@@ -240,7 +230,7 @@ export class FinanceAccountsService {
       .where(and(eq(observations.accountId, id), eq(observations.date, date)))
       .returning()
       .get();
-    if (!result) throw new FinanceNotFound("Observation not found");
+    if (!result) throw new NotFoundError("finance.observationNotFound");
     return { success: true };
   }
 }

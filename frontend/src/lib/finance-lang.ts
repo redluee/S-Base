@@ -337,4 +337,12 @@ export const financeNl: Record<string, string> = {
   "finance.nonnegativeAllocation": "Een toewijzing mag niet negatief zijn.",
   "finance.accountLimit": "Je kunt maximaal 200 rekeningen bijhouden.",
   "finance.goalCountLimit": "Je kunt maximaal 200 spaardoelen bijhouden.",
+  "finance.invalidArchive": "Kies een geldige archiefstatus.",
+  "finance.duplicateAccount": "Een rekening komt meerdere keren voor in de saldo-update.",
+  "finance.invalidPeriod": "Kies een geldige periode.",
+  "finance.accountNotFound": "Deze rekening is niet gevonden of is niet van jou.",
+  "finance.goalNotFound": "Dit spaardoel is niet gevonden of is niet van jou.",
+  "finance.transactionNotFound": "Deze transactie is niet gevonden of is niet van jou.",
+  "finance.subscriptionNotFound": "Dit abonnement is niet gevonden of is niet van jou.",
+  "finance.observationNotFound": "Dit saldomoment is niet gevonden.",
 };

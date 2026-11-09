@@ -4,23 +4,21 @@ import {
   financeGoals as goals,
   financeAllocations as allocations,
 } from "../../db/schema/finance";
-import {
-  ConflictError,
-  ValidationError,
-  requireId,
-  requireObject,
-} from "../../utils/validation";
-import { FinanceAccountsService, FinanceNotFound } from "./accounts";
+import { ConflictError, NotFoundError, ValidationError } from "../../utils/errors";
+import { requireId, requireObject } from "../../utils/validation";
+import type { FinanceAccounts } from "./accounts";
 import { goalInput, cents } from "./validation";
 
-export class FinanceGoalsService extends FinanceAccountsService {
+export class FinanceGoals {
+  constructor(private readonly accounts: FinanceAccounts) {}
+
   goal(userId: number, id: number) {
     const goal = db
       .select()
       .from(goals)
       .where(and(eq(goals.id, requireId(id)), eq(goals.userId, userId)))
       .get();
-    if (!goal) throw new FinanceNotFound("Goal not found");
+    if (!goal) throw new NotFoundError("finance.goalNotFound");
     return goal;
   }
   createGoal(userId: number, input: unknown) {
@@ -29,7 +27,7 @@ export class FinanceGoalsService extends FinanceAccountsService {
       db.select().from(goals).where(eq(goals.userId, userId)).all().length >=
       200
     )
-      throw new ValidationError("Goal limit reached");
+      throw new ValidationError("finance.goalCountLimit");
     return db
       .insert(goals)
       .values({ userId, ...data })
@@ -47,7 +45,7 @@ export class FinanceGoalsService extends FinanceAccountsService {
         .all()
         .reduce((sum, a) => sum + a.amountCents, 0);
       if (total > data.targetCents)
-        throw new ConflictError("Target is below allocated amount");
+        throw new ConflictError("finance.targetLimit");
       return tx
         .update(goals)
         .set(data)
@@ -67,9 +65,9 @@ export class FinanceGoalsService extends FinanceAccountsService {
     const amountCents = cents(requireObject(input).amountCents, 0);
     return db.transaction((tx) => {
       const goal = this.goal(userId, id),
-        account = this.account(userId, accountId);
+        account = this.accounts.account(userId, accountId);
       if (account.type !== "savings")
-        throw new ValidationError("Only savings accounts can be allocated");
+        throw new ValidationError("finance.onlySavings");
       const accountAllocations = tx
         .select()
         .from(allocations)
@@ -90,18 +88,16 @@ export class FinanceGoalsService extends FinanceAccountsService {
           .reduce((sum, a) => sum + a.amountCents, 0) -
         previous +
         amountCents;
-      const balance = this.history(userId, accountId).at(-1)?.balanceCents;
+      const balance = this.accounts.history(userId, accountId).at(-1)?.balanceCents;
       if (
         amountCents > previous &&
         (account.archived ||
           balance === undefined ||
           accountTotal > Math.max(0, balance))
       )
-        throw new ConflictError(
-          "Allocation exceeds available savings or account is archived",
-        );
+        throw new ConflictError("finance.allocationLimit");
       if (goalTotal > goal.targetCents)
-        throw new ConflictError("Allocation exceeds goal target");
+        throw new ConflictError("finance.goalLimit");
       if (amountCents === 0) {
         tx.delete(allocations)
           .where(

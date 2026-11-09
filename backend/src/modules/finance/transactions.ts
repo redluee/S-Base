@@ -9,10 +9,9 @@ import {
   financeSettings as settings,
   financeSubscriptionPreferences as subscriptionPreferences,
 } from "../../db/schema/finance";
-import { FinanceGoalsService } from "./goals";
-import { FinanceNotFound } from "./accounts";
 import { calendarDate, today } from "./validation";
-import { requireId, requireObject, ValidationError } from "../../utils/validation";
+import { NotFoundError, ValidationError } from "../../utils/errors";
+import { requireId, requireObject } from "../../utils/validation";
 import { savingsTransferAccount } from "./transfer-detection";
 import { inferredBalances } from "./inferred-balances";
 import type { FinanceActivity, FinanceData } from "../../types/finance";
@@ -27,7 +26,7 @@ export function accountNumberKey(userId: number, value: string) {
   return importKey(userId, dutch ? dutch[1] : /^\d{1,10}$/.test(normalized) ? normalized.padStart(10, "0") : normalized);
 }
 
-export class FinanceTransactionsService extends FinanceGoalsService {
+export class FinanceTransactions {
   private transferEntries(userId: number, start: string, end: string) {
     const bindings = db.select().from(sources).where(eq(sources.userId, userId)).all();
     const ownNumbers = new Set(bindings.map((source) => source.numberKey));
@@ -62,10 +61,10 @@ export class FinanceTransactionsService extends FinanceGoalsService {
         };
       });
   }
-  protected periodTransactions(userId: number, start: string, end: string) {
+  periodTransactions(userId: number, start: string, end: string) {
     return this.transferEntries(userId, start, end).map(({ counterpartyAccountId, counterpartyIdentity, savings, ...entry }) => entry);
   }
-  protected dashboardBalances(userId: number, data: FinanceData) {
+  dashboardBalances(userId: number, data: FinanceData) {
     const transfers = this.transferEntries(userId, "1900-01-01", "9999-12-31")
       .filter((entry) => entry.internalTransfer);
     return inferredBalances(data, transfers);
@@ -104,7 +103,7 @@ export class FinanceTransactionsService extends FinanceGoalsService {
     const entry = db.select({ id: transactions.id }).from(transactions)
       .innerJoin(accounts, eq(accounts.id, transactions.accountId))
       .where(and(eq(accounts.userId, userId), eq(transactions.id, requireId(id)))).get();
-    if (!entry) throw new FinanceNotFound("Transaction not found");
+    if (!entry) throw new NotFoundError("finance.transactionNotFound");
     db.update(transactions).set({ transferOverride: internalTransfer }).where(eq(transactions.id, id)).run();
     return { success: true };
   }

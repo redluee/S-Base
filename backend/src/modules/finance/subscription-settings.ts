@@ -2,17 +2,18 @@ import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { financeSubscriptionPreferences as preferences } from "../../db/schema/finance";
 import type { FinanceSubscription, FinanceSubscriptionCadence, FinanceSubscriptions, FinanceTransactionPage } from "../../types/finance";
-import { requireId, requireObject, ValidationError } from "../../utils/validation";
-import { FinanceNotFound } from "./accounts";
-import { FinanceImportService } from "./import";
+import { NotFoundError, ValidationError } from "../../utils/errors";
+import { requireId, requireObject } from "../../utils/validation";
+import type { FinanceTransactions } from "./transactions";
 import { detectSubscriptions, monthlyAverage, subscriptionSourceKey } from "./subscriptions";
 import { text, today } from "./validation";
 
-export class FinanceSubscriptionService extends FinanceImportService {
-  subscriptions(userId: number, end = today()): FinanceSubscriptions {
+export class FinanceSubscriptionService {
+  constructor(private readonly transactions: FinanceTransactions) {}
+  list(userId: number, end = today()): FinanceSubscriptions {
     const rules = db.select().from(preferences).where(eq(preferences.userId, userId)).all();
     const overrides = new Map(rules.filter((rule) => rule.irregular || rule.cadence !== null).map((rule) => [rule.sourceKey, rule.irregular ? "irregular" as const : rule.cadence!]));
-    const transactions = this.periodTransactions(userId, "1900-01-01", end);
+    const transactions = this.transactions.periodTransactions(userId, "1900-01-01", end);
     const report = detectSubscriptions(transactions, end, overrides);
     const lastImportedDates = new Map<number, string>();
     for (const entry of transactions) {
@@ -63,8 +64,8 @@ export class FinanceSubscriptionService extends FinanceImportService {
     const cadences: FinanceSubscriptionCadence[] = ["weekly", "fortnightly", "fourWeekly", "monthly", "quarterly", "yearly", "irregular"];
     if (!cadences.includes(body.cadence as FinanceSubscriptionCadence))
       throw new ValidationError("finance.subscriptions.invalidSelection");
-    const entry = this.periodTransactions(userId, "1900-01-01", today()).find((entry) => entry.id === transactionId);
-    if (!entry) throw new FinanceNotFound("Transaction not found");
+    const entry = this.transactions.periodTransactions(userId, "1900-01-01", today()).find((entry) => entry.id === transactionId);
+    if (!entry) throw new NotFoundError("finance.transactionNotFound");
     if (entry.amountCents >= 0 || entry.internalTransfer || !entry.name.trim())
       throw new ValidationError("finance.subscriptions.invalidTransaction");
     const sourceKey = subscriptionSourceKey(entry);
@@ -80,15 +81,15 @@ export class FinanceSubscriptionService extends FinanceImportService {
     if (!Number.isInteger(page) || page < 1 || page > 100000)
       throw new ValidationError("finance.transactions.invalidFilter");
     const sources = new Set(subscription.sourceKeys);
-    const entries = this.periodTransactions(userId, "1900-01-01", today())
+    const entries = this.transactions.periodTransactions(userId, "1900-01-01", today())
       .filter((entry) => entry.amountCents < 0 && !entry.internalTransfer && sources.has(subscriptionSourceKey(entry)));
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
   private subscription(userId: number, id: unknown) {
     if (typeof id !== "string" || !/^[a-f0-9]{64}$/.test(id))
       throw new ValidationError("finance.subscriptions.invalidSelection");
-    const entry = this.subscriptions(userId).entries.find((entry) => entry.id === id);
-    if (!entry) throw new FinanceNotFound("Subscription not found");
+    const entry = this.list(userId).entries.find((entry) => entry.id === id);
+    if (!entry) throw new NotFoundError("finance.subscriptionNotFound");
     return entry;
   }
   private saveSubscription(userId: number, entries: FinanceSubscription[], groupKey: string, name: string, excluded: boolean) {

@@ -1,18 +1,16 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
-import { Elysia } from "elysia";
 import db from "../../db/client";
 import { users, modules, sessions, usermodulepermissions, financeAccounts, financeGoals, financeTransactions, financeImportSources, cashflowClients } from "../../db/schema";
 import { setupTestDb } from "../../test-utils";
 import { FinanceService } from "./index";
 import { isSavingsTransfer } from "./transfer-detection";
 import { accountNumberKey } from "./transactions";
-import { financeRoutes } from "../../routes/finance";
+import { app } from "../../index";
 import { financeSettings } from "../../db/schema/finance";
 import type { FinanceImportSelection } from "../../types/finance";
 
 const service = new FinanceService();
-const app = new Elysia().use(financeRoutes);
 let owner: number, other: number, forbidden: number;
 const csv = [
   "Datum;Naam / Omschrijving;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
@@ -22,7 +20,7 @@ const csv = [
   "20250102;Sample current;DEMO0002;DEMO0001;Bij;20,00;Sample transfer;520,00",
 ].join("\n");
 function selections(): FinanceImportSelection[] {
-  return service.previewImport({ csv, order: "ascending" }).sources.map((source, index) => ({
+  return service.imports.previewImport({ csv, order: "ascending" }).sources.map((source, index) => ({
     sourceKey: source.sourceKey,
     newAccount: { name: `Sample account ${index}`, type: index ? "savings" : "current" },
     extendOpening: false,
@@ -30,7 +28,7 @@ function selections(): FinanceImportSelection[] {
   }));
 }
 function initial(userId = owner) {
-  return service.importBalances(userId, { csv, order: "ascending", selections: selections() });
+  return service.imports.importBalances(userId, { csv, order: "ascending", selections: selections() });
 }
 async function http(userId: number | null, path: string, method = "GET", body?: unknown) {
   return app.handle(new Request(`http://localhost/api/finance${path}`, {
@@ -81,27 +79,27 @@ describe("Finance transaction imports and totals", () => {
       "20250105;DEMO0001;EXTERNAL0002;Af;5,00;Sample shop;155,00",
       "20250106;DEMO0001;EXTERNAL0001;Bij;0,50;Sample interest;155,50",
     ].join("\n");
-    const entries = service.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
-    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
-    const before = service.data(owner);
+    const entries = service.imports.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
+    const before = service.accounts.data(owner);
     const report = await (await http(owner, "/dashboard?period=all&date=2025-01-06")).json();
     expect(report.history.every((point: object) => !("transferAdjustedTotalCents" in point))).toBe(true);
     expect(report.history.map((point: { totalCents: number }) => point.totalCents)).toEqual([12000, 12000, 17000, 17000, 16500, 16550]);
     expect(report.end.totalCents).toBe(16550);
     expect(report.end.accounts.find((account: { inferred?: boolean }) => account.inferred)).toMatchObject({ balanceCents: 1000, inferred: true });
     expect(report.activity).toMatchObject({ incomeCents: 15050, spendingCents: 500, excludedCount: 2 });
-    expect(service.data(owner)).toEqual(before);
-    expect(service.dashboard(other, "all", "2025-01-06").history.every((point) => point.totalCents === null)).toBe(true);
-    const past = service.dashboard(owner, "all", "2025-01-02");
+    expect(service.accounts.data(owner)).toEqual(before);
+    expect(service.budget.dashboard(other, "all", "2025-01-06").history.every((point) => point.totalCents === null)).toBe(true);
+    const past = service.budget.dashboard(owner, "all", "2025-01-02");
     expect(past.history.map((point) => point.totalCents)).toEqual([12000, 12000]);
-    const incoming = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
-    service.setTransfer(owner, incoming.id, { internalTransfer: false });
-    const corrected = service.dashboard(owner, "all", "2025-01-06");
+    const incoming = service.transactions.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
+    service.transactions.setTransfer(owner, incoming.id, { internalTransfer: false });
+    const corrected = service.budget.dashboard(owner, "all", "2025-01-06");
     expect(corrected.history[1].totalCents! - corrected.history[0].totalCents!).toBe(2000);
     expect(corrected.history[3].totalCents).toBe(corrected.history[2].totalCents);
     expect(corrected.activity.incomeCents).toBe(report.activity.incomeCents + 2000);
-    service.setTransfer(owner, incoming.id, { internalTransfer: null });
-    expect(service.dashboard(owner, "all", "2025-01-06").history).toEqual(report.history);
+    service.transactions.setTransfer(owner, incoming.id, { internalTransfer: null });
+    expect(service.budget.dashboard(owner, "all", "2025-01-06").history).toEqual(report.history);
   });
   it("keeps historical chart values identical across all, year and month filters", () => {
     const content = [
@@ -112,12 +110,12 @@ describe("Finance transaction imports and totals", () => {
       "20250102;DEMO0001;;Bij;30,00;Van Oranje spaarrekening S00000001;200,00",
       "20250201;DEMO0001;;Af;10,00;Naar Oranje spaarrekening S00000001;190,00",
     ].join("\n");
-    const entries = service.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
-    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
-    const all = service.dashboard(owner, "all", "2025-02-01");
+    const entries = service.imports.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
+    const all = service.budget.dashboard(owner, "all", "2025-02-01");
     expect(all.history.find((point) => point.date === "2024-02-10")?.totalCents).toBe(15000);
     for (const [period, end] of [["year", "2024-12-31"], ["month", "2024-02-29"], ["month", "2024-01-31"], ["all", "2024-02-10"]] as const) {
-      const filtered = service.dashboard(owner, period, end);
+      const filtered = service.budget.dashboard(owner, period, end);
       expect(filtered.history.length).toBeGreaterThan(0);
       for (const point of filtered.history) {
         expect(point.totalCents).toBe(point.accounts.reduce((sum, account) => sum + account.balanceCents!, 0));
@@ -134,44 +132,44 @@ describe("Finance transaction imports and totals", () => {
       "20250101;DEMO0001;EXTERNAL0001;Bij;100,00;Sample salary;100,00",
       "20250102;DEMO0001;CLOSED0001;Bij;40,00;Sample payout;140,00",
     ].join("\n");
-    const entries = service.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
-    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample payment", type: "current" }, extendOpening: false, entries }] });
-    const payout = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
+    const entries = service.imports.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample payment", type: "current" }, extendOpening: false, entries }] });
+    const payout = service.transactions.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-02")!;
     expect(payout.internalTransfer).toBe(false);
-    const before = service.data(owner);
-    service.setTransfer(owner, payout.id, { internalTransfer: true });
-    const report = service.dashboard(owner, "all", "2025-01-02");
+    const before = service.accounts.data(owner);
+    service.transactions.setTransfer(owner, payout.id, { internalTransfer: true });
+    const report = service.budget.dashboard(owner, "all", "2025-01-02");
     expect(report.history.map((point) => point.totalCents)).toEqual([14000, 14000]);
     expect(report.end.accounts.find((account) => account.inferred)).toMatchObject({ type: "untracked", balanceCents: 0 });
     expect(report.activity).toMatchObject({ incomeCents: 10000, excludedCount: 1 });
-    expect(service.data(owner)).toEqual(before);
-    expect(service.dashboard(other, "all", "2025-01-02").end.accounts).toHaveLength(0);
-    service.setTransfer(owner, payout.id, { internalTransfer: false });
-    expect(service.dashboard(owner, "all", "2025-01-02").history.map((point) => point.totalCents)).toEqual([10000, 14000]);
+    expect(service.accounts.data(owner)).toEqual(before);
+    expect(service.budget.dashboard(other, "all", "2025-01-02").end.accounts).toHaveLength(0);
+    service.transactions.setTransfer(owner, payout.id, { internalTransfer: false });
+    expect(service.budget.dashboard(owner, "all", "2025-01-02").history.map((point) => point.totalCents)).toEqual([10000, 14000]);
   });
   it("projects known counteraccounts and respects transfer overrides", () => {
     const content = csv + "\n20250104;Sample transfer;DEMO0001;DEMO0002;Af;10,00;Sample transfer;60,00";
-    const selected = service.previewImport({ csv: content, order: "ascending" }).sources.map((source, index) => ({
+    const selected = service.imports.previewImport({ csv: content, order: "ascending" }).sources.map((source, index) => ({
       sourceKey: source.sourceKey,
       newAccount: { name: `Sample account ${index}`, type: index ? "savings" : "current" },
       extendOpening: false,
       entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: null })),
     }));
-    service.importBalances(owner, { csv: content, order: "ascending", selections: selected });
-    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
-    expect(service.dashboard(owner, "all", "2025-01-04").history.every((point) => !("transferAdjustedTotalCents" in point))).toBe(true);
-    const entry = service.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-04")!;
-    service.setTransfer(owner, entry.id, { internalTransfer: false });
-    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(58000);
-    service.setTransfer(owner, entry.id, { internalTransfer: null });
-    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
+    service.imports.importBalances(owner, { csv: content, order: "ascending", selections: selected });
+    expect(service.budget.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
+    expect(service.budget.dashboard(owner, "all", "2025-01-04").history.every((point) => !("transferAdjustedTotalCents" in point))).toBe(true);
+    const entry = service.transactions.transactionList(owner, {}).entries.find((entry) => entry.date === "2025-01-04")!;
+    service.transactions.setTransfer(owner, entry.id, { internalTransfer: false });
+    expect(service.budget.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(58000);
+    service.transactions.setTransfer(owner, entry.id, { internalTransfer: null });
+    expect(service.budget.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(59000);
   });
   it("keeps total wealth stable for savings transfers while the savings export is stale", () => {
     const savingsCsv = [
       "Date;Description;Account;Account name;Counterparty;Debit/credit;Amount;Currency;Transaction type;Notifications;Resulting balance",
       "2025-01-01;Sample opening;S000-00001;Sample savings;;Credit;500,00;EUR;Interest;;500,00",
     ].join("\n");
-    service.importBalances(owner, { csv: savingsCsv, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample savings", type: "savings" }, extendOpening: false, entries: [{ date: "2025-01-01", expectedCents: null }] }] });
+    service.imports.importBalances(owner, { csv: savingsCsv, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample savings", type: "savings" }, extendOpening: false, entries: [{ date: "2025-01-01", expectedCents: null }] }] });
     const currentCsv = [
       "Datum;Rekening;Tegenrekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie",
       "20250101;DEMO0001;EXTERNAL0001;Bij;100,00;Sample salary;100,00",
@@ -179,16 +177,16 @@ describe("Finance transaction imports and totals", () => {
       "20250103;DEMO0001;;Af;10,00;Naar Oranje spaarrekening S00000001;110,00",
       "20250104;DEMO0001;EXTERNAL0002;Af;5,00;Sample shop;105,00",
     ].join("\n");
-    const entries = service.previewImport({ csv: currentCsv, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
-    service.importBalances(owner, { csv: currentCsv, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
-    const before = service.data(owner);
-    const report = service.dashboard(owner, "all", "2025-01-04");
+    const entries = service.imports.previewImport({ csv: currentCsv, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
+    service.imports.importBalances(owner, { csv: currentCsv, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
+    const before = service.accounts.data(owner);
+    const report = service.budget.dashboard(owner, "all", "2025-01-04");
     expect(report.history.map((point) => point.totalCents)).toEqual([60000, 60000, 60000, 59500]);
     expect(report.history.map((point) => point.savingsCents)).toEqual([50000, 48000, 49000, 49000]);
     expect(report.comparison.changeCents).toBe(-500);
-    expect(service.dashboard(owner, "month", "2025-02-01").start.totalCents).toBe(59500);
-    expect(service.data(owner)).toEqual(before);
-    expect(service.dashboard(other, "all", "2025-01-04").end.totalCents).toBeNull();
+    expect(service.budget.dashboard(owner, "month", "2025-02-01").start.totalCents).toBe(59500);
+    expect(service.accounts.data(owner)).toEqual(before);
+    expect(service.budget.dashboard(other, "all", "2025-01-04").end.totalCents).toBeNull();
 
     const savingsAccount = before.accounts.find((entry) => entry.type === "savings")!;
     const updatedCsv = savingsCsv.split("\n")[0] + "\n" + [
@@ -196,35 +194,35 @@ describe("Finance transaction imports and totals", () => {
       "2025-01-03;Sample deposit;S000-00001;Sample savings;DEMO0001;Credit;10,00;EUR;Deposit;;490,00",
       "2025-01-04;Sample interest;S000-00001;Sample savings;;Credit;0,50;EUR;Interest;;490,50",
     ].join("\n");
-    service.importBalances(owner, { csv: updatedCsv, order: "ascending", selections: [{ sourceKey: "1", accountId: savingsAccount.id, extendOpening: false, entries: ["02", "03", "04"].map((day) => ({ date: `2025-01-${day}`, expectedCents: null })) }] });
-    expect(service.dashboard(owner, "all", "2025-01-04").history.map((point) => point.totalCents)).toEqual([60000, 60000, 60000, 59550]);
+    service.imports.importBalances(owner, { csv: updatedCsv, order: "ascending", selections: [{ sourceKey: "1", accountId: savingsAccount.id, extendOpening: false, entries: ["02", "03", "04"].map((day) => ({ date: `2025-01-${day}`, expectedCents: null })) }] });
+    expect(service.budget.dashboard(owner, "all", "2025-01-04").history.map((point) => point.totalCents)).toEqual([60000, 60000, 60000, 59550]);
   });
   it("persists a per-user monthly budget and rejects invalid amounts", () => {
-    expect(service.data(owner).monthlyBudgetCents).toBeNull();
+    expect(service.accounts.data(owner).monthlyBudgetCents).toBeNull();
     for (const value of [-1, 1.5, "100", undefined, Infinity, 1_000_000_000_001]) {
-      expect(() => service.setMonthlyBudget(owner, { monthlyBudgetCents: value })).toThrow();
+      expect(() => service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: value })).toThrow();
     }
-    service.setMonthlyBudget(owner, { monthlyBudgetCents: 12345 });
-    expect(new FinanceService().data(owner).monthlyBudgetCents).toBe(12345);
-    expect(service.data(other).monthlyBudgetCents).toBeNull();
-    service.setMonthlyBudget(owner, { monthlyBudgetCents: null });
-    expect(service.dashboard(owner, "month", "2025-01-03").budget).toBeNull();
+    service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: 12345 });
+    expect(new FinanceService().accounts.data(owner).monthlyBudgetCents).toBe(12345);
+    expect(service.accounts.data(other).monthlyBudgetCents).toBeNull();
+    service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: null });
+    expect(service.budget.dashboard(owner, "month", "2025-01-03").budget).toBeNull();
   });
   it("subtracts only that month's external expenses and handles positive, zero and negative remaining budgets", () => {
     initial();
-    service.setMonthlyBudget(owner, { monthlyBudgetCents: 2000 });
+    service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: 2000 });
     for (const period of ["month", "year", "all"]) {
-      expect(service.dashboard(owner, period, "2025-01-03").budget).toEqual({ month: "2025-01", limitCents: 2000, spendingCents: 1000, remainingCents: 1000 });
-      expect(service.dashboard(owner, period, "2025-02-01").budget).toEqual({ month: "2025-02", limitCents: 2000, spendingCents: 0, remainingCents: 2000 });
+      expect(service.budget.dashboard(owner, period, "2025-01-03").budget).toEqual({ month: "2025-01", limitCents: 2000, spendingCents: 1000, remainingCents: 1000 });
+      expect(service.budget.dashboard(owner, period, "2025-02-01").budget).toEqual({ month: "2025-02", limitCents: 2000, spendingCents: 0, remainingCents: 2000 });
     }
-    expect(service.dashboard(owner, "month", "2025-01-02").budget?.remainingCents).toBe(2000);
-    service.setMonthlyBudget(owner, { monthlyBudgetCents: 1000 });
-    expect(service.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(0);
-    service.setMonthlyBudget(owner, { monthlyBudgetCents: 0 });
-    expect(service.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(-1000);
-    const shop = service.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")!;
-    service.setTransfer(owner, shop.id, { internalTransfer: true });
-    expect(service.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(0);
+    expect(service.budget.dashboard(owner, "month", "2025-01-02").budget?.remainingCents).toBe(2000);
+    service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: 1000 });
+    expect(service.budget.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(0);
+    service.budget.setMonthlyBudget(owner, { monthlyBudgetCents: 0 });
+    expect(service.budget.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(-1000);
+    const shop = service.transactions.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")!;
+    service.transactions.setTransfer(owner, shop.id, { internalTransfer: true });
+    expect(service.budget.dashboard(owner, "month", "2025-01-03").budget?.remainingCents).toBe(0);
   });
   it("protects budget settings with authentication and module access and clears only the owner's budget on reset", async () => {
     expect((await http(null, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(401);
@@ -232,20 +230,20 @@ describe("Finance transaction imports and totals", () => {
     expect((await http(owner, "/settings/budget", "PUT", { monthlyBudgetCents: -1 })).status).toBe(400);
     expect((await http(owner, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(200);
     expect((await (await http(owner, "/")).json()).monthlyBudgetCents).toBe(100);
-    service.setMonthlyBudget(other, { monthlyBudgetCents: 200 });
-    service.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
-    expect(service.data(owner).monthlyBudgetCents).toBeNull();
-    expect(service.data(other).monthlyBudgetCents).toBe(200);
+    service.budget.setMonthlyBudget(other, { monthlyBudgetCents: 200 });
+    service.transactions.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
+    expect(service.accounts.data(owner).monthlyBudgetCents).toBeNull();
+    expect(service.accounts.data(other).monthlyBudgetCents).toBe(200);
   });
   it("stores full transactions, separates transfers, and respects date boundaries", () => {
     expect(initial().transactionsInserted).toBe(4);
-    const report = service.dashboard(owner, "all", "2025-01-03");
+    const report = service.budget.dashboard(owner, "all", "2025-01-03");
     expect(report.end.totalCents).toBe(59000);
     expect(report.activity).toMatchObject({ incomeCents: 10000, spendingCents: 1000, netCents: 9000, transactionCount: 4, excludedCount: 2 });
-    expect(service.activity(owner, "2025-01-03", "2025-01-03")).toMatchObject({ incomeCents: 0, spendingCents: 1000, transactionCount: 1 });
-    expect(service.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")?.description).toBe("Sample purchase");
+    expect(service.transactions.activity(owner, "2025-01-03", "2025-01-03")).toMatchObject({ incomeCents: 0, spendingCents: 1000, transactionCount: 1 });
+    expect(service.transactions.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")?.description).toBe("Sample purchase");
     expect(report.activity?.coverage).toHaveLength(2);
-    expect(service.activity(other, "2025-01-01", "2025-01-03").transactionCount).toBe(0);
+    expect(service.transactions.activity(other, "2025-01-01", "2025-01-03").transactionCount).toBe(0);
   });
   it("excludes Dutch savings transfers with blank counterparties before the savings export is imported", () => {
     const content = [
@@ -254,21 +252,21 @@ describe("Finance transaction imports and totals", () => {
       "20250102;DEMO0001;;Af;20,00;Naar Oranje spaarrekening S00000001 Valutadatum: 02-01-2025;80,00",
       "20250103;DEMO0001;;Bij;10,00;Van Oranje spaarrekening S00000001 Valutadatum: 03-01-2025;90,00",
     ].join("\n");
-    const preview = service.previewImport({ csv: content, order: "ascending" });
-    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries: preview.sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null })) }] });
-    expect(service.activity(owner, "2025-01-01", "2025-01-03")).toMatchObject({ incomeCents: 10000, spendingCents: 0, excludedCount: 2 });
-    expect(service.activity(owner, "2025-01-02", "2025-01-02")).toMatchObject({ incomeCents: 0, spendingCents: 0, excludedCount: 1 });
+    const preview = service.imports.previewImport({ csv: content, order: "ascending" });
+    service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries: preview.sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null })) }] });
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-03")).toMatchObject({ incomeCents: 10000, spendingCents: 0, excludedCount: 2 });
+    expect(service.transactions.activity(owner, "2025-01-02", "2025-01-02")).toMatchObject({ incomeCents: 0, spendingCents: 0, excludedCount: 1 });
     const savings = [
       "Date;Description;Account;Account name;Counterparty;Debit/credit;Amount;Currency;Transaction type;Notifications;Resulting balance",
       "2025-01-02;Sample deposit;S000-00001;Sample savings;DEMO0001;Credit;20,00;EUR;Deposit;;20,00",
       "2025-01-03;Sample withdrawal;S000-00001;Sample savings;DEMO0001;Debit;10,00;EUR;Withdrawal;;10,00",
       "2025-01-04;Sample interest;S000-00001;Sample savings;;Credit;0,50;EUR;Interest;;10,50",
     ].join("\n");
-    const savingSource = service.previewImport({ csv: savings, order: "ascending" }).sources[0];
-    service.importBalances(owner, { csv: savings, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample savings", type: "savings" }, extendOpening: false, entries: savingSource.balances.map((entry) => ({ date: entry.date, expectedCents: null })) }] });
-    expect(service.activity(owner, "2025-01-01", "2025-01-04")).toMatchObject({ incomeCents: 10050, spendingCents: 0, excludedCount: 4 });
-    expect(service.transactionList(owner, {}).entries.filter((entry) => entry.automaticTransfer)).toHaveLength(4);
-    expect(service.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(10050);
+    const savingSource = service.imports.previewImport({ csv: savings, order: "ascending" }).sources[0];
+    service.imports.importBalances(owner, { csv: savings, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample savings", type: "savings" }, extendOpening: false, entries: savingSource.balances.map((entry) => ({ date: entry.date, expectedCents: null })) }] });
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-04")).toMatchObject({ incomeCents: 10050, spendingCents: 0, excludedCount: 4 });
+    expect(service.transactions.transactionList(owner, {}).entries.filter((entry) => entry.automaticTransfer)).toHaveLength(4);
+    expect(service.budget.dashboard(owner, "all", "2025-01-04").end.totalCents).toBe(10050);
   });
   it("does not mistake interest, opposite directions or external payments for internal savings transfers", () => {
     expect(isSavingsTransfer("Naar Oranje spaarrekening F00000002", -100)).toBe(true);
@@ -288,17 +286,17 @@ describe("Finance transaction imports and totals", () => {
       "20250101;Sample deposit;DEMO0003;Sample pot A;DEMO0001;Bij;20,00;EUR;",
       "20250101;Sample deposit;DEMO0003;Sample pot B;DEMO0001;Bij;50,00;EUR;",
     ].join("\n");
-    const preview = service.previewImport({ csv: content, order: "descending" }, owner);
+    const preview = service.imports.previewImport({ csv: content, order: "descending" }, owner);
     expect(preview.sources.every((source) => source.needsBalance)).toBe(true);
-    expect(service.data(owner).accounts).toHaveLength(0);
+    expect(service.accounts.data(owner).accounts).toHaveLength(0);
     const anchors = { "1": 3000, "2": 5000 };
-    const resolved = service.previewImport({ csv: content, order: "descending", anchors }, owner);
+    const resolved = service.imports.previewImport({ csv: content, order: "descending", anchors }, owner);
     const selected: FinanceImportSelection[] = resolved.sources.map((source) => ({ sourceKey: source.sourceKey, newAccount: { name: source.suggestedName!, type: "savings" }, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: null })) }));
-    expect(service.importBalances(owner, { csv: content, order: "descending", anchors, selections: selected }).transactionsInserted).toBe(3);
-    expect(service.data(owner).accounts).toHaveLength(2);
-    expect(service.dashboard(owner, "all", "2025-01-02").end.savingsCents).toBe(8000);
-    expect(service.data(owner).observations.map((entry) => entry.balanceCents)).toEqual([2000, 5000, 3000]);
-    expect(() => service.importBalances(other, { csv: content, order: "descending", selections: selected })).toThrow("finance.import.selection");
+    expect(service.imports.importBalances(owner, { csv: content, order: "descending", anchors, selections: selected }).transactionsInserted).toBe(3);
+    expect(service.accounts.data(owner).accounts).toHaveLength(2);
+    expect(service.budget.dashboard(owner, "all", "2025-01-02").end.savingsCents).toBe(8000);
+    expect(service.accounts.data(owner).observations.map((entry) => entry.balanceCents)).toEqual([2000, 5000, 3000]);
+    expect(() => service.imports.importBalances(other, { csv: content, order: "descending", selections: selected })).toThrow("finance.import.selection");
   });
   it("preserves repeated identical transactions and safely replaces corrected days", () => {
     const content = [
@@ -309,15 +307,15 @@ describe("Finance transaction imports and totals", () => {
       "20250101;DEMO0004;Af;10,00;0,00",
     ].join("\n");
     const newSelection: FinanceImportSelection = { sourceKey: "1", newAccount: { name: "Sample repeated", type: "current" }, extendOpening: false, entries: [{ date: "2025-01-01", expectedCents: null }] };
-    expect(service.importBalances(owner, { csv: content, order: "ascending", selections: [newSelection] }).transactionsInserted).toBe(4);
-    const account = service.data(owner).accounts[0];
+    expect(service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [newSelection] }).transactionsInserted).toBe(4);
+    const account = service.accounts.data(owner).accounts[0];
     const repeat = { sourceKey: "1", accountId: account.id, extendOpening: false, entries: [{ date: "2025-01-01", expectedCents: 0 }] };
-    expect(service.importBalances(owner, { csv: content, order: "ascending", selections: [repeat] }).transactionsInserted).toBe(0);
-    expect(service.activity(owner, "2025-01-01", "2025-01-01")).toMatchObject({ incomeCents: 2000, spendingCents: 2000 });
+    expect(service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [repeat] }).transactionsInserted).toBe(0);
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-01")).toMatchObject({ incomeCents: 2000, spendingCents: 2000 });
     const corrected = content.replace(/10,00;0,00$/, "5,00;5,00");
-    expect(service.importBalances(owner, { csv: corrected, order: "ascending", selections: [repeat] })).toMatchObject({ transactionsInserted: 1, transactionsRemoved: 1, updated: 1 });
-    expect(service.transactionList(owner, {}).total).toBe(4);
-    expect(service.activity(owner, "2025-01-01", "2025-01-01")).toMatchObject({ incomeCents: 2000, spendingCents: 1500 });
+    expect(service.imports.importBalances(owner, { csv: corrected, order: "ascending", selections: [repeat] })).toMatchObject({ transactionsInserted: 1, transactionsRemoved: 1, updated: 1 });
+    expect(service.transactions.transactionList(owner, {}).total).toBe(4);
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-01")).toMatchObject({ incomeCents: 2000, spendingCents: 1500 });
   });
   it("matches Dutch IBAN and legacy counteraccount formats within one user", () => {
     expect(accountNumberKey(owner, "NL00INGB0000000001")).toBe(accountNumberKey(owner, "1"));
@@ -327,84 +325,84 @@ describe("Finance transaction imports and totals", () => {
   });
   it("matches known sources and makes repeat and overlapping imports idempotent", () => {
     initial();
-    const preview = service.previewImport({ csv, order: "ascending" }, owner);
+    const preview = service.imports.previewImport({ csv, order: "ascending" }, owner);
     const selected = preview.sources.map((source) => ({ sourceKey: source.sourceKey, accountId: source.matchedAccountId!, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: entry.balanceCents })) }));
     expect(selected.every((selection) => selection.accountId > 0)).toBe(true);
     expect(JSON.stringify(preview)).not.toContain("DEMO0001");
     expect(JSON.stringify(preview)).not.toContain("Sample purchase");
-    expect(service.importBalances(owner, { csv, order: "ascending", selections: selected }).transactionsInserted).toBe(0);
+    expect(service.imports.importBalances(owner, { csv, order: "ascending", selections: selected }).transactionsInserted).toBe(0);
     const overlap = csv.split("\n").slice(0, 1).concat(csv.split("\n").slice(2)).join("\n");
-    const subset = service.previewImport({ csv: overlap, order: "ascending" }, owner).sources.map((source) => ({ sourceKey: source.sourceKey, accountId: source.matchedAccountId!, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: entry.balanceCents })) }));
-    expect(service.importBalances(owner, { csv: overlap, order: "ascending", selections: subset }).transactionsInserted).toBe(0);
-    expect(service.transactionList(owner, {}).total).toBe(4);
-    expect(service.previewImport({ csv, order: "ascending" }, other).sources[0].matchedAccountId).toBeUndefined();
+    const subset = service.imports.previewImport({ csv: overlap, order: "ascending" }, owner).sources.map((source) => ({ sourceKey: source.sourceKey, accountId: source.matchedAccountId!, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: entry.balanceCents })) }));
+    expect(service.imports.importBalances(owner, { csv: overlap, order: "ascending", selections: subset }).transactionsInserted).toBe(0);
+    expect(service.transactions.transactionList(owner, {}).total).toBe(4);
+    expect(service.imports.previewImport({ csv, order: "ascending" }, other).sources[0].matchedAccountId).toBeUndefined();
   });
   it("prevents importing the same bank source into a second account", () => {
     initial();
     expect(() => initial()).toThrow("finance.import.mappingConflict");
-    expect(service.data(owner).accounts).toHaveLength(2);
-    expect(service.transactionList(owner, {}).total).toBe(4);
+    expect(service.accounts.data(owner).accounts).toHaveLength(2);
+    expect(service.transactions.transactionList(owner, {}).total).toBe(4);
   });
   it("keeps transaction imports limited to selected dates", () => {
     const selected = selections();
     selected[0].entries = selected[0].entries.slice(0, 1);
-    service.importBalances(owner, { csv, order: "ascending", selections: selected.slice(0, 1) });
-    expect(service.transactionList(owner, {}).total).toBe(1);
-    expect(service.activity(owner, "2025-01-01", "2025-01-03").incomeCents).toBe(10000);
+    service.imports.importBalances(owner, { csv, order: "ascending", selections: selected.slice(0, 1) });
+    expect(service.transactions.transactionList(owner, {}).total).toBe(1);
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-03").incomeCents).toBe(10000);
   });
   it("lets the owner correct transfer classification without altering balances", () => {
     initial();
-    const transaction = service.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")!;
-    const total = service.dashboard(owner, "all", "2025-01-03").end.totalCents;
-    service.setTransfer(owner, transaction.id, { internalTransfer: true });
-    expect(service.activity(owner, "2025-01-01", "2025-01-03").spendingCents).toBe(0);
-    expect(() => service.setTransfer(other, transaction.id, { internalTransfer: false })).toThrow();
-    service.setTransfer(owner, transaction.id, { internalTransfer: null });
-    expect(service.activity(owner, "2025-01-01", "2025-01-03").spendingCents).toBe(1000);
-    expect(service.dashboard(owner, "all", "2025-01-03").end.totalCents).toBe(total);
+    const transaction = service.transactions.transactionList(owner, {}).entries.find((entry) => entry.name === "Sample shop")!;
+    const total = service.budget.dashboard(owner, "all", "2025-01-03").end.totalCents;
+    service.transactions.setTransfer(owner, transaction.id, { internalTransfer: true });
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-03").spendingCents).toBe(0);
+    expect(() => service.transactions.setTransfer(other, transaction.id, { internalTransfer: false })).toThrow();
+    service.transactions.setTransfer(owner, transaction.id, { internalTransfer: null });
+    expect(service.transactions.activity(owner, "2025-01-01", "2025-01-03").spendingCents).toBe(1000);
+    expect(service.budget.dashboard(owner, "all", "2025-01-03").end.totalCents).toBe(total);
   });
   it("paginates deterministically and rejects invalid filters", () => {
     initial();
-    const account = service.data(owner).accounts[0];
+    const account = service.accounts.data(owner).accounts[0];
     for (let index = 0; index < 53; index++) db.insert(financeTransactions).values({ accountId: account.id, date: "2025-01-03", amountCents: -100, name: "Sample", description: "", fingerprint: `sample-${index}` }).run();
-    const first = service.transactionList(owner, { page: 1 });
-    const second = service.transactionList(owner, { page: 2 });
+    const first = service.transactions.transactionList(owner, { page: 1 });
+    const second = service.transactions.transactionList(owner, { page: 2 });
     expect(first.entries).toHaveLength(50);
     expect(second.entries).toHaveLength(7);
     expect(new Set([...first.entries, ...second.entries].map((entry) => entry.id)).size).toBe(57);
-    expect(() => service.transactionList(owner, { page: -1 })).toThrow();
-    expect(() => service.transactionList(owner, { start: "2025-02-01", end: "2025-01-01" })).toThrow();
+    expect(() => service.transactions.transactionList(owner, { page: -1 })).toThrow();
+    expect(() => service.transactions.transactionList(owner, { start: "2025-02-01", end: "2025-01-01" })).toThrow();
   });
 });
 
 describe("Finance reset and HTTP isolation", () => {
   it("requires explicit confirmation and removes only the owner's finance data", () => {
     initial(); initial(other);
-    const saving = service.data(owner).accounts[1];
-    const goal = service.createGoal(owner, { name: "Sample goal", targetCents: 10000 });
-    service.allocate(owner, goal.id, saving.id, { amountCents: 5000 });
+    const saving = service.accounts.data(owner).accounts[1];
+    const goal = service.goals.createGoal(owner, { name: "Sample goal", targetCents: 10000 });
+    service.goals.allocate(owner, goal.id, saving.id, { amountCents: 5000 });
     const client = db.insert(cashflowClients).values({ userId: owner, name: "Sample business" }).returning().get();
-    const foreignBefore = service.data(other);
+    const foreignBefore = service.accounts.data(other);
     const userBefore = db.select().from(users).where(eq(users.userId, owner)).get();
-    expect(() => service.resetFinance(owner, {})).toThrow("finance.settings.confirmRequired");
-    expect(service.data(owner).accounts).toHaveLength(2);
-    service.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
-    expect(service.data(owner)).toMatchObject({ accounts: [], observations: [], goals: [], allocations: [] });
-    expect(service.transactionList(owner, {}).total).toBe(0);
+    expect(() => service.transactions.resetFinance(owner, {})).toThrow("finance.settings.confirmRequired");
+    expect(service.accounts.data(owner).accounts).toHaveLength(2);
+    service.transactions.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
+    expect(service.accounts.data(owner)).toMatchObject({ accounts: [], observations: [], goals: [], allocations: [] });
+    expect(service.transactions.transactionList(owner, {}).total).toBe(0);
     expect(db.select().from(financeImportSources).where(eq(financeImportSources.userId, owner)).all()).toHaveLength(0);
-    expect(service.data(other)).toEqual(foreignBefore);
+    expect(service.accounts.data(other)).toEqual(foreignBefore);
     expect(db.select().from(cashflowClients).where(eq(cashflowClients.id, client.id)).get()).toEqual(client);
-    expect(service.transactionList(other, {}).total).toBe(4);
+    expect(service.transactions.transactionList(other, {}).total).toBe(4);
     expect(db.select().from(users).where(eq(users.userId, owner)).get()).toEqual(userBefore);
     expect(initial().transactionsInserted).toBe(4);
   });
   it("allows imports and reads while rejecting manual transaction edits", async () => {
-    expect(service.data(owner).accounts).toHaveLength(0);
+    expect(service.accounts.data(owner).accounts).toHaveLength(0);
     expect((await http(owner, "/import/preview", "POST", { csv, order: "ascending" })).status).toBe(200);
-    expect(service.data(owner).accounts).toHaveLength(0);
+    expect(service.accounts.data(owner).accounts).toHaveLength(0);
     expect((await http(owner, "/import", "POST", { csv, order: "ascending", selections: selections() })).status).toBe(200);
     initial(other);
-    const foreignId = service.transactionList(other, {}).entries[0].id;
+    const foreignId = service.transactions.transactionList(other, {}).entries[0].id;
     for (const [path, method, body] of [
       ["/transactions", "GET", undefined],
       ["/subscriptions", "GET", undefined],
@@ -413,18 +411,18 @@ describe("Finance reset and HTTP isolation", () => {
       expect((await http(forbidden, path, method, body)).status).toBe(403);
     }
     expect((await http(owner, `/transactions/${foreignId}/transfer`, "PUT", { internalTransfer: true })).status).toBe(404);
-    const before = service.transactionList(owner, {});
+    const before = service.transactions.transactionList(owner, {});
     const ownId = before.entries[0].id;
     expect((await http(owner, `/transactions/${ownId}/transfer`, "PUT", { internalTransfer: true })).status).toBe(404);
-    expect(service.transactionList(owner, {})).toEqual(before);
+    expect(service.transactions.transactionList(owner, {})).toEqual(before);
     const list = await http(owner, "/transactions");
     expect(list.headers.get("Cache-Control")).toBe("no-store");
     expect((await list.json()).total).toBe(4);
   });
   it("scopes subscription spending to the authenticated user's accounts", async () => {
     initial(); initial(other);
-    const account = service.data(owner).accounts[0];
-    const foreign = service.data(other).accounts[0];
+    const account = service.accounts.data(owner).accounts[0];
+    const foreign = service.accounts.data(other).accounts[0];
     for (const [accountId, amountCents] of [[account.id, -1200], [foreign.id, -9900]]) {
       for (const date of ["2025-01-01", "2025-02-01", "2025-03-01"]) {
         db.insert(financeTransactions).values({ accountId, fingerprint: `subscription-${accountId}-${date}`, date, amountCents, name: "Sample subscription", description: "" }).run();
@@ -437,7 +435,7 @@ describe("Finance reset and HTTP isolation", () => {
     expect(report.totalCents).toBe(3600);
     expect(report.entries).toHaveLength(1);
     expect(report.entries[0].accountId).toBe(account.id);
-    expect(service.subscriptions(other).totalCents).toBe(29700);
+    expect(service.subscriptions.list(other).totalCents).toBe(29700);
   });
   it("automatically recognizes subscriptions from imports without manual setup or duplicate spending", async () => {
     const content = [
@@ -446,7 +444,7 @@ describe("Finance reset and HTTP isolation", () => {
       "20250201;Sample subscription;DEMO0001;EXTERNAL0001;Af;12,00;Sample payment;76,00",
       "20250301;Sample subscription;DEMO0001;EXTERNAL0001;Af;15,00;Sample payment;61,00",
     ].join("\n");
-    const source = service.previewImport({ csv: content, order: "ascending" }).sources[0];
+    const source = service.imports.previewImport({ csv: content, order: "ascending" }).sources[0];
     const body = {
       csv: content, order: "ascending",
       selections: [{ sourceKey: source.sourceKey, newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: null })) }],
@@ -455,31 +453,31 @@ describe("Finance reset and HTTP isolation", () => {
     const report = await (await http(owner, "/subscriptions")).json();
     expect(report.entries).toHaveLength(1);
     expect(report.entries[0]).toMatchObject({ name: "Sample subscription", cadence: "monthly", monthlyCents: 1500, totalCents: 3900, paymentCount: 3 });
-    const matched = service.previewImport({ csv: content, order: "ascending" }, owner).sources[0];
+    const matched = service.imports.previewImport({ csv: content, order: "ascending" }, owner).sources[0];
     const accountId = matched.matchedAccountId!;
-    const observations = service.history(owner, accountId);
-    service.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: matched.sourceKey, accountId, extendOpening: false, entries: matched.balances.map((entry) => ({ date: entry.date, expectedCents: observations.find((observation) => observation.date === entry.date)?.balanceCents ?? null })) }] });
-    expect(service.subscriptions(owner)).toEqual(report);
+    const observations = service.accounts.history(owner, accountId);
+    service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: matched.sourceKey, accountId, extendOpening: false, entries: matched.balances.map((entry) => ({ date: entry.date, expectedCents: observations.find((observation) => observation.date === entry.date)?.balanceCents ?? null })) }] });
+    expect(service.subscriptions.list(owner)).toEqual(report);
   });
   it("authenticates resets, requires confirmation and isolates deletion to the session owner", async () => {
     initial(); initial(other);
-    const before = service.data(owner);
-    const foreignBefore = service.data(other);
+    const before = service.accounts.data(owner);
+    const foreignBefore = service.accounts.data(other);
     const confirmation = { confirmation: "DELETE_FINANCE", userId: other };
     expect((await http(null, "/settings/reset", "POST", confirmation)).status).toBe(401);
     expect((await http(forbidden, "/settings/reset", "POST", confirmation)).status).toBe(403);
     for (const body of [{}, { confirmation: "" }, { confirmation: "VERWIJDEREN" }]) {
       expect((await http(owner, "/settings/reset", "POST", body)).status).toBe(400);
-      expect(service.data(owner)).toEqual(before);
+      expect(service.accounts.data(owner)).toEqual(before);
     }
     const response = await http(owner, "/settings/reset", "POST", confirmation);
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(await response.json()).toEqual({ success: true });
-    expect(service.data(owner)).toMatchObject({ accounts: [], observations: [], goals: [], allocations: [] });
-    expect(service.transactionList(owner, {}).total).toBe(0);
-    expect(service.data(other)).toEqual(foreignBefore);
-    expect(service.transactionList(other, {}).total).toBe(4);
+    expect(service.accounts.data(owner)).toMatchObject({ accounts: [], observations: [], goals: [], allocations: [] });
+    expect(service.transactions.transactionList(owner, {}).total).toBe(0);
+    expect(service.accounts.data(other)).toEqual(foreignBefore);
+    expect(service.transactions.transactionList(other, {}).total).toBe(4);
     expect((await http(owner, "/settings/reset", "POST", confirmation)).status).toBe(200);
     expect(initial().transactionsInserted).toBe(4);
   });
