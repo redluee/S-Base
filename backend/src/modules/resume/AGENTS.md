@@ -22,7 +22,7 @@
 
 ## Key Business Rules
 - `is_current` clears the end date (shown as HEDEN). End must not be before start. Libraries (and new resumes with all items selected) sort by start date, newest first.
-- `left_width_pct` (width of the main column), `title_scale_pct`, `text_scale_pct` (migration `0033`) must be a multiple of 5 between 50 and 80. Fonts are a curated id (`fonts.ts` `CURATED_FONTS`, mirrored in `frontend/src/lib/resume.ts`) or `google:<Family>`.
+- `left_width_pct` (width of the main column), `title_scale_pct`, `text_scale_pct` (migration `0033`) must be a multiple of 5 between 50 and 80. Fonts are a curated id (`fonts.ts` `CURATED_FONTS`, mirrored in `frontend/src/app/resume/resume.ts`) or `google:<Family>`.
 - Profile `sections` are user-defined (any title, up to `RESUME_SECTIONS_MAX` = 5), rendered on the PDF in order, skipping empty ones. `upsertProfile` sanitizes via `cleanSections` (trims/truncates titles, drops blank items, caps at 5, assigns an id if missing).
 - `setResumeItems` rejects items not owned by the user. Deleting a library item removes it from all resumes.
 - Photos are stored in `backend/uploads` as `resume_<uuid>.<ext>` and only served to their owner. Replacing/removing deletes the old file. Google font files live in `backend/uploads/fonts`.
