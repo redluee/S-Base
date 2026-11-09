@@ -11,7 +11,7 @@ import { SlideStory } from "./slide-story";
 import { SlideOutro } from "./slide-outro";
 import { PresentationStoryEditor } from "./presentation-story-editor";
 import { PresentationCriteriaModal } from "./presentation-criteria-modal";
-import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { getStoryTypeDetails } from "@/app/minor/story-type-badge";
 import { api } from "@/lib/api";
 import {
   exitFullscreenAcrossBrowsers,

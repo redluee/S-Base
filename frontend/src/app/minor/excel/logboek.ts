@@ -21,13 +21,13 @@ import {
   PLANNING_AGENT_URL,
   THIN_BORDER,
   estimateWrappedLines,
-} from "./minor-excel-styles";
+} from "./styles";
 import {
   LU_MASTER_DEFINITIONS,
   findSprintByNumber,
   resolveSprintLuArgumentation,
   resolveSprintLuLevel,
-} from "./minor-excel-lu";
+} from "./lu";
 
 export function addLogboekSheet(wb: ExcelJS.Workbook, sprints: MinorSprintFull[]): void {
   const wsLogboek = wb.addWorksheet("Logboek", {

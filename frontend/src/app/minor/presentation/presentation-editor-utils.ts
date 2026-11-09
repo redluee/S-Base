@@ -3,7 +3,7 @@ import {
   type MinorStoryPresentationDocument,
   type MinorStoryPresentationLink,
 } from "@/lib/api";
-import { isImageUrl } from "@/lib/minor-constants";
+import { isImageUrl } from "@/app/minor/constants";
 
 export type PresentationLayout = "auto" | "split" | "media" | "bullets" | "demo";
 export type PresentationListStyle = "bullets" | "steps";

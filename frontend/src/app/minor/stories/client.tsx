@@ -262,8 +262,8 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
         map.set(st.sprintId, {
           sprint: {
             id: st.sprintId,
-            sprintNumber: st.sprintNumber || `Sprint ${st.sprintId}`,
-            name: st.sprintName || `Sprint ${st.sprintId}`,
+            sprintNumber: st.sprintNumber || t("Sprint {nummer}", { nummer: String(st.sprintId) }),
+            name: st.sprintName || t("Sprint {nummer}", { nummer: String(st.sprintId) }),
           },
           stories: [st],
         });
@@ -276,7 +276,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
         sprint: {
           id: 0,
           sprintNumber: "Concept",
-          name: "Concept Stories / Backlog",
+          name: t("Concept Stories / Backlog"),
         },
         stories: unassigned,
       });

@@ -1,5 +1,5 @@
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
-import { api, ApiError } from "./api";
+import { api, ApiError } from "@/lib/api";
 
 const STORAGE_KEY_PREFIX = "sbase_offline_session_";
 

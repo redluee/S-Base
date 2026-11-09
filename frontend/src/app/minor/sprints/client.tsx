@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Download } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint } from "@/lib/api";
-import { MinorSprintImportModal } from "@/components/minor-sprint-import-modal";
-import { copySprintJsonToClipboard } from "@/lib/minor-sprint-export";
+import { MinorSprintImportModal } from "@/app/minor/sprints/sprint-import-modal";
+import { copySprintJsonToClipboard } from "@/app/minor/sprint-export";
 import { SprintList } from "./sprint-list";
 import { SprintFormModal, type SprintCalculatedDates } from "./sprint-form-modal";
 

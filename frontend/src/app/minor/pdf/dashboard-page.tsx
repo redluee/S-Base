@@ -5,8 +5,8 @@ import {
   LU_MASTER_DEFINITIONS,
   findSprintByNumber,
   resolveSprintLuLevel,
-} from "@/lib/minor-excel";
-import { COLOR_TEXT_DARK, styles } from "./minor-pdf-styles";
+} from "@/app/minor/excel/workbook";
+import { COLOR_TEXT_DARK, styles } from "./styles";
 
 interface DashboardPageProps {
   sprints: MinorSprintFull[];

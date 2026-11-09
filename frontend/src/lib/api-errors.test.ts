@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ApiError, apiErrorMessage } from "./api";
+import { ApiError, apiErrorMessage } from "@/lib/api";
 
 describe("API error keys", () => {
   it("translates a backend error key through t()", () => {

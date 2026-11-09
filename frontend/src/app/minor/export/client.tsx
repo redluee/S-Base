@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
-import { downloadAllSprintsPDF } from "@/components/minor-pdf";
-import { downloadAllSprintsExcel, validateSprintForExport } from "@/lib/minor-excel";
-import { downloadMultipleSprintsJson } from "@/lib/minor-sprint-export";
+import { downloadAllSprintsPDF } from "@/app/minor/pdf/portfolio-pdf";
+import { downloadAllSprintsExcel, validateSprintForExport } from "@/app/minor/excel/workbook";
+import { downloadMultipleSprintsJson } from "@/app/minor/sprint-export";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorExportClientProps {

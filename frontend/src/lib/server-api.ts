@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { Measurement, Wine, type AuthUser } from "./api";
+import { Measurement, Wine, type AuthUser } from "@/lib/api";
 import type {
   Recipe,
   FullRecipe,

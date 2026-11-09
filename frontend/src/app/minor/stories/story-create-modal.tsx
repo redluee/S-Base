@@ -2,7 +2,7 @@
 
 import { Sparkles, Plus, Check, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { MinorSprint, MinorStoryType } from "@/lib/api";
 
@@ -75,9 +75,9 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
                   }}
                   className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-zinc-200 text-xs focus:outline-none focus:border-brand"
                 >
-                  <option value="US">US - User Story</option>
-                  <option value="RS">RS - Research Story</option>
-                  <option value="LS">LS - Learning Story</option>
+                  <option value="US">{t("US - User Story")}</option>
+                  <option value="RS">{t("RS - Research Story")}</option>
+                  <option value="LS">{t("LS - Learning Story")}</option>
                   {storyTypes
                     .filter((t) => !["US", "RS", "LS"].includes(t.code.toUpperCase()))
                     .map((t) => (

@@ -3,7 +3,7 @@
 import { Tag, Plus, Trash2, Edit2, CheckSquare } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorStoryType } from "@/lib/api";
-import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { getStoryTypeDetails } from "@/app/minor/story-type-badge";
 
 interface StoryTypeSectionProps {
   storyTypes: MinorStoryType[];

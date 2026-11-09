@@ -2,7 +2,7 @@
 
 import { CheckSquare, Square, Save } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { getLUShortDesc } from "@/app/minor/constants";
 import type { useSprintData } from "./use-sprint-data";
 
 interface ReflectionTabProps {
@@ -56,7 +56,7 @@ export function ReflectionTab({ data }: ReflectionTabProps) {
               rows={3}
               value={whatLearned}
               onChange={(e) => setWhatLearned(e.target.value)}
-              placeholder="Nieuwe technieken, methodieken, inzichten of feedback..."
+              placeholder={t("Nieuwe technieken, methodieken, inzichten of feedback...")}
               className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand"
             />
           </div>
@@ -69,7 +69,7 @@ export function ReflectionTab({ data }: ReflectionTabProps) {
               rows={3}
               value={whatRetained}
               onChange={(e) => setWhatRetained(e.target.value)}
-              placeholder="Werkwijzen, structuur of routines die goed werkten..."
+              placeholder={t("Werkwijzen, structuur of routines die goed werkten...")}
               className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand"
             />
           </div>
@@ -82,7 +82,7 @@ export function ReflectionTab({ data }: ReflectionTabProps) {
               rows={3}
               value={whatChange}
               onChange={(e) => setWhatChange(e.target.value)}
-              placeholder="Aanpassingen in planning, communicatie of voorbereiding voor de volgende sprint..."
+              placeholder={t("Aanpassingen in planning, communicatie of voorbereiding voor de volgende sprint...")}
               className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand"
             />
           </div>

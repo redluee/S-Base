@@ -4,8 +4,8 @@ import { ExternalLink, CheckSquare, Square, Sparkles, Link2, X } from "lucide-re
 import Link from "next/link";
 import { t } from "@/lib/lang";
 import { toExternalHref } from "@/lib/uri";
-import { StoryTypeBadge } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { MinorSprint, MinorStoryWithSprint, MinorStoryType } from "@/lib/api";
 

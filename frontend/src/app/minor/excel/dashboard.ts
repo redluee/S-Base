@@ -7,8 +7,8 @@ import {
   FONT_CALIBRI_11_BOLD_WHITE,
   FONT_CALIBRI_11_ITALIC_GREY,
   THIN_BORDER,
-} from "./minor-excel-styles";
-import { LU_MASTER_DEFINITIONS } from "./minor-excel-lu";
+} from "./styles";
+import { LU_MASTER_DEFINITIONS } from "./lu";
 
 export function addDashboardSheet(
   wb: ExcelJS.Workbook,

@@ -1,8 +1,8 @@
 import ExcelJS from "exceljs";
 import { api, type MinorSprintFull } from "@/lib/api";
-import { findSprintByNumber, resolveSprintLuLevel } from "./minor-excel-lu";
-import { addDashboardSheet } from "./minor-excel-dashboard";
-import { addListsSheet, addLogboekSheet } from "./minor-excel-logboek";
+import { findSprintByNumber, resolveSprintLuLevel } from "./lu";
+import { addDashboardSheet } from "./dashboard";
+import { addListsSheet, addLogboekSheet } from "./logboek";
 
 export {
   LU_MASTER_DEFINITIONS,
@@ -11,7 +11,7 @@ export {
   isLuSelectedInSprint,
   resolveSprintLuLevel,
   resolveSprintLuArgumentation,
-} from "./minor-excel-lu";
+} from "./lu";
 
 export function buildIntegraalSprintLogboekWorkbook(sprints: MinorSprintFull[] = [], portfolioUrl?: string | null): ExcelJS.Workbook {
   const wb = new ExcelJS.Workbook();

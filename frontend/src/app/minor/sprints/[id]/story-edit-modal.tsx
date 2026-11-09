@@ -3,7 +3,7 @@ import type { MinorStoryType } from "@/lib/api";
 
 import { Trash2, CheckSquare, Square, Sparkles, Unlink, Copy, Check, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { useStoryEditor } from "./use-story-editor";
 import type { useStoryLinking } from "./use-story-linking";
@@ -90,7 +90,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Story nummer")}</label>
               <input
                 type="text"
-                placeholder="bijv. US 1.1"
+                placeholder={t("bijv. US 1.1")}
                 value={storyNumber}
                 onChange={(e) => setStoryNumber(e.target.value)}
                 className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-brand"
@@ -100,7 +100,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Titel")}</label>
               <input
                 type="text"
-                placeholder="Korte omschrijving"
+                placeholder={t("Korte omschrijving")}
                 value={storyTitle}
                 onChange={(e) => setStoryTitle(e.target.value)}
                 className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
@@ -120,7 +120,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
                 <label className="block text-zinc-400 text-xs font-medium mb-1">{t("Als [rol]")}</label>
                 <input
                   type="text"
-                  placeholder="bijv. beheerder, gebruiker..."
+                  placeholder={t("bijv. beheerder, gebruiker...")}
                   value={asA}
                   onChange={(e) => setAsA(e.target.value)}
                   className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
@@ -130,7 +130,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
                 <label className="block text-zinc-400 text-xs font-medium mb-1">{t("Wil ik [wens]")}</label>
                 <input
                   type="text"
-                  placeholder="bijv. kunnen inloggen met wachtwoord..."
+                  placeholder={t("bijv. kunnen inloggen met wachtwoord...")}
                   value={iWant}
                   onChange={(e) => setIWant(e.target.value)}
                   className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"
@@ -140,7 +140,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
                 <label className="block text-zinc-400 text-xs font-medium mb-1">{t("Zodat [doel]")}</label>
                 <input
                   type="text"
-                  placeholder="bijv. alleen geautoriseerde personen toegang hebben..."
+                  placeholder={t("bijv. alleen geautoriseerde personen toegang hebben...")}
                   value={soThat}
                   onChange={(e) => setSoThat(e.target.value)}
                   className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand"

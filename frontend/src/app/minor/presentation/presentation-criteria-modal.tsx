@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorStory, type MinorStoryType } from "@/lib/api";
-import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { StoryTypeBadge, getStoryTypeDetails } from "@/app/minor/story-type-badge";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface PresentationCriteriaModalProps {
@@ -134,8 +134,8 @@ export function PresentationCriteriaModal({
         {/* Story Context / User Story sentence (if present) */}
         {story.iWant && (
           <div className="text-xs sm:text-sm text-zinc-300 italic bg-zinc-950/70 p-3 rounded-xl border border-white/5">
-            {story.asA && `Als ${story.asA} `}wil ik {story.iWant}
-            {story.soThat && ` zodat ${story.soThat}`}.
+            {story.asA && t("Als {rol} ", { rol: story.asA })}{t("wil ik")} {story.iWant}
+            {story.soThat && ` ${t("zodat {doel}", { doel: story.soThat })}`}.
           </div>
         )}
 

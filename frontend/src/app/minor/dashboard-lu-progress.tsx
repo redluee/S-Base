@@ -2,7 +2,7 @@
 
 import { GraduationCap, Check } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { LU_MIN_TARGETS } from "./dashboard-constants";
 import type { MinorDashboardStats } from "@/lib/api";
 

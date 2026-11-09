@@ -3,8 +3,8 @@
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprintFull, MinorStory, MinorStoryType } from "@/lib/api";
-import { StoryTypeBadge } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 
 interface SlideIntroProps {
   sprint: MinorSprintFull;

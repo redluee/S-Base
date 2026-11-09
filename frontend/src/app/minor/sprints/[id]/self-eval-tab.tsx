@@ -3,7 +3,7 @@
 import { Sparkles, Save, Check } from "lucide-react";
 import { toExternalHref } from "@/lib/uri";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { getLUShortDesc } from "@/app/minor/constants";
 import type { useSprintData } from "./use-sprint-data";
 
 interface SelfEvalTabProps {
@@ -141,9 +141,9 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                         }}
                         className="bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1 text-white text-xs font-bold focus:outline-none focus:border-brand cursor-pointer"
                       >
-                        <option value="V">V (Voldoende)</option>
-                        <option value="NV">NV (Niet Voldaan)</option>
-                        <option value="-">- (N.v.t.)</option>
+                        <option value="V">{t("V (Voldoende)")}</option>
+                        <option value="NV">{t("NV (Niet Voldaan)")}</option>
+                        <option value="-">{t("- (N.v.t.)")}</option>
                       </select>
                     </div>
 
@@ -170,9 +170,9 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                             : "border-white/10 text-zinc-300"
                         }`}
                       >
-                        <option value="V">V (Voldoende)</option>
-                        <option value="O">O (Onvoldoende)</option>
-                        <option value="-">- (Geen beoordeling)</option>
+                        <option value="V">{t("V (Voldoende)")}</option>
+                        <option value="O">{t("O (Onvoldoende)")}</option>
+                        <option value="-">{t("- (Geen beoordeling)")}</option>
                       </select>
                     </div>
                   </div>
@@ -183,7 +183,7 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <label className="text-zinc-300 font-semibold flex items-center gap-1.5">
                       <span>{t("Argumentatie en bewijs")}</span>
-                      <span className="text-zinc-500 font-normal text-[11px]">(Excel kolom D)</span>
+                      <span className="text-zinc-500 font-normal text-[11px]">{t("(Excel kolom D)")}</span>
                     </label>
                     <button
                       type="button"
@@ -208,7 +208,7 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                       );
                     }}
                     onBlur={() => handleSaveEvalsAndAssessments()}
-                    placeholder="Beschrijf concrete beroepsproducten, acties en linkjes naar bewijslast voor deze leeruitkomst..."
+                    placeholder={t("Beschrijf concrete beroepsproducten, acties en linkjes naar bewijslast voor deze leeruitkomst...")}
                     className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-brand"
                   />
 
@@ -265,7 +265,7 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                         )
                       );
                     }}
-                    placeholder="Eventuele opmerkingen of voorwaarden van de docent..."
+                    placeholder={t("Eventuele opmerkingen of voorwaarden van de docent...")}
                     className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-brand"
                   />
                 </div>

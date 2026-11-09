@@ -61,7 +61,7 @@ export function VacationModal({
           <label className="block text-zinc-400 mb-1">{t("Vakantienaam")}</label>
           <input
             type="text"
-            placeholder="bijv. Herfstvakantie / Kerstvakantie"
+            placeholder={t("bijv. Herfstvakantie / Kerstvakantie")}
             value={vacName}
             onChange={(e) => setVacName(e.target.value)}
             className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"

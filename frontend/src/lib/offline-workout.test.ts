@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { api, ApiError } from "./api";
+import { api, ApiError } from "@/lib/api";
 import type { FullWorkoutSession } from "@backend/types/shared";
 import {
   saveOfflineSession,

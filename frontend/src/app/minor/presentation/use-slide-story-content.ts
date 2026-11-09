@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { t } from "@/lib/lang";
 import type { MinorStory } from "@/lib/api";
-import { isImageUrl } from "@/lib/minor-constants";
+import { isImageUrl } from "@/app/minor/constants";
 
 export type SlideLayout = "auto" | "split" | "media" | "bullets" | "demo";
 

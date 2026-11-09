@@ -4,8 +4,8 @@ import {
   buildIntegraalSprintLogboekWorkbook,
   generateIntegraalSprintLogboekBlob,
   validateSprintForExport,
-} from "./minor-excel";
-import type { MinorSprintFull } from "./api";
+} from "./workbook";
+import type { MinorSprintFull } from "@/lib/api";
 
 describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
   it("creates exactly 3 sheets in the correct order: Dashboard, Logboek, Lijsten", () => {

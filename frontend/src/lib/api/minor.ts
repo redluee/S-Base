@@ -1,4 +1,4 @@
-import { errorFromBody, request } from "./core";
+import { request, requestForm } from "./core";
 import type {
   MinorSprint,
   MinorSprintFull,
@@ -211,14 +211,6 @@ export const minorApi = {
   upload: async (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch("/api/minor/upload", {
-      method: "POST",
-      credentials: "include",
-      body: form,
-    });
-    if (!res.ok) {
-      throw errorFromBody(res.status, res.statusText, await res.text().catch(() => ""));
-    }
-    return res.json() as Promise<{ filePath: string; originalName: string }>;
+    return requestForm<{ filePath: string; originalName: string }>("/minor/upload", form);
   },
 };

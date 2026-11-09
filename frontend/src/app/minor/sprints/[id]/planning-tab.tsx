@@ -4,8 +4,8 @@ import type { MinorStoryType, MinorStory } from "@/lib/api";
 import { Layers, Plus, Edit3, CheckSquare, Presentation, Download, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
-import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge, getStoryTypeDetails } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";
 import type { useStoryLinking } from "./use-story-linking";
@@ -203,7 +203,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                               : "bg-zinc-950 text-zinc-400 border-white/5"
                           }`}
-                          title={`${completedCriteria} van ${totalCriteria} criteria voltooid`}
+                          title={t("{done} van {total} criteria voltooid", { done: String(completedCriteria), total: String(totalCriteria) })}
                         >
                           <CheckSquare className="size-3 shrink-0" />
                           <span>

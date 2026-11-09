@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { t } from "@/lib/lang";
-import { MINOR_THEME_COOKIE, type MinorTheme } from "@/lib/minor-theme";
+import { MINOR_THEME_COOKIE, type MinorTheme } from "@/app/minor/theme-cookie";
 
 const MinorThemeContext = createContext<{ theme: MinorTheme; toggle: () => void } | null>(null);
 

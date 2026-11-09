@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Layers, Clock, CheckCircle2, Sparkles } from "lucide-react";
+import { t } from "@/lib/lang";
 import { api, type MinorStory, type MinorSprintFull, type MinorStoryType } from "@/lib/api";
-import { SprintPresentation } from "@/components/minor-presentation/sprint-presentation";
-import { PresentationStoryEditor } from "@/components/minor-presentation/presentation-story-editor";
+import { SprintPresentation } from "@/app/minor/presentation/sprint-presentation";
+import { PresentationStoryEditor } from "@/app/minor/presentation/presentation-story-editor";
 import type { Tab } from "./sprint-detail-types";
 import { useSprintData } from "./use-sprint-data";
 import { useStoryEditor } from "./use-story-editor";
@@ -114,7 +115,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
               }`}
             >
               <Icon className="size-3.5" />
-              <span>{tab.label}</span>
+              <span>{t(tab.label)}</span>
             </button>
           );
         })}

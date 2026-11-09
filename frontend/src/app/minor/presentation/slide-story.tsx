@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { ListChecks } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorStory, MinorStoryType } from "@/lib/api";
-import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge, getStoryTypeDetails } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { useSlideStoryContent } from "./use-slide-story-content";
 import { BulletsLayout, DemoLayout, MediaLayout, SplitLayout } from "./slide-story-layouts";
 

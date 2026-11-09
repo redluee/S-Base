@@ -177,7 +177,7 @@ export function MediaLayout({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.url}
-                    alt={img.caption || `Afbeelding ${idx + 1}`}
+                    alt={img.caption || t("Afbeelding {nummer}", { nummer: String(idx + 1) })}
                     className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>

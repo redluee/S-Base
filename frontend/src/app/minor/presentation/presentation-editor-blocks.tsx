@@ -133,7 +133,7 @@ export function BulletsBlock({
                           const val = e.target.value;
                           setBullets((prev) => prev.map((item, i) => (i === idx ? val : item)));
                         }}
-                        placeholder="bijv. API endpoints gerealiseerd volgens specificatie..."
+                        placeholder={t("bijv. API endpoints gerealiseerd volgens specificatie...")}
                         className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
                       />
                       {bullets.length > 1 && (
@@ -321,7 +321,7 @@ export function DocumentsBlock({
                               prev.map((item, i) => (i === idx ? { ...item, title: val } : item))
                             );
                           }}
-                          placeholder="Titel (bijv. Onderzoeksrapport, Figma, Live Link)"
+                          placeholder={t("Titel (bijv. Onderzoeksrapport, Figma, Live Link)")}
                           className="min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand font-medium"
                         />
                         <input
@@ -460,7 +460,7 @@ export function ImagesBlock({
                               prev.map((item, i) => (i === idx ? { ...item, caption: val } : item))
                             );
                           }}
-                          placeholder="Onderschrift (optioneel)"
+                          placeholder={t("Onderschrift (optioneel)")}
                           className="sm:col-span-4 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand"
                         />
                         <div className="sm:col-span-1 flex items-center justify-end">

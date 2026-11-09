@@ -2,9 +2,9 @@
 
 import { api } from "@/lib/api";
 import { useState } from "react";
-import { downloadSprintPDF } from "@/components/minor-pdf";
-import { downloadSprintExcel, validateSprintForExport } from "@/lib/minor-excel";
-import { copySprintJsonToClipboard } from "@/lib/minor-sprint-export";
+import { downloadSprintPDF } from "@/app/minor/pdf/portfolio-pdf";
+import { downloadSprintExcel, validateSprintForExport } from "@/app/minor/excel/workbook";
+import { copySprintJsonToClipboard } from "@/app/minor/sprint-export";
 import type { MinorSprintFull, MinorSelfEvaluation } from "@/lib/api";
 
 export function useSprintExport(sprint: MinorSprintFull, selfEvals: MinorSelfEvaluation[], getCurrentFullSprint: () => MinorSprintFull) {

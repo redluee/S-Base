@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { api } from "./api";
+import { api } from "@/lib/api";
 
 describe("Frontend API client", () => {
   it("defines api client methods for authentication, recipes, workouts, cashflow, pulse, measurements", () => {

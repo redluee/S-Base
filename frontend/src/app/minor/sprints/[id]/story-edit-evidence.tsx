@@ -54,9 +54,9 @@ export function StoryEditEvidence({ editor }: StoryEditEvidenceProps) {
                     className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-brand"
                   >
                     <option value="github">GitHub</option>
-                    <option value="document">Document</option>
-                    <option value="app">Live URL</option>
-                    <option value="link">Link</option>
+                    <option value="document">{t("Document")}</option>
+                    <option value="app">{t("Live URL")}</option>
+                    <option value="link">{t("Link")}</option>
                   </select>
                   <button
                     type="button"
@@ -69,7 +69,7 @@ export function StoryEditEvidence({ editor }: StoryEditEvidenceProps) {
                 </div>
                 <input
                   type="text"
-                  placeholder="Titel/Omschrijving"
+                  placeholder={t("Titel/Omschrijving")}
                   value={ev.title}
                   onChange={(e) => {
                     const val = e.target.value;

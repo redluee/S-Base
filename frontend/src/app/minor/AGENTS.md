@@ -16,14 +16,18 @@ This guide gives AI models an instant index of the Minor module frontend structu
 
 ---
 
-## Key Components (`frontend/src/components/`)
-| Component File | Role & Features |
-|----------------|-----------------|
-| `subnav.tsx` (in `app/minor/`) | Persistent subnavigation bar across all `/minor/*` pages |
-| `minor-story-type-badge.tsx` | Standardized badge component displaying story type code (e.g. US, RS, LS) and colors |
-| `minor-sprint-import-modal.tsx` | Modal dialog for parsing, validating, and importing sprint JSON files |
-| `minor-pdf.tsx` | `@react-pdf/renderer` PDF generator for single-sprint and all-sprints portfolio documents |
-| `minor-presentation/` | Presentation deck system: |
+## Module-local code (`frontend/src/app/minor/`)
+| File | Role & Features |
+|------|-----------------|
+| `subnav.tsx` | Persistent subnavigation bar across all `/minor/*` pages |
+| `theme.tsx` / `theme-cookie.ts` | Light/dark theme provider + toggle; cookie name and `MinorTheme` type shared with `layout.tsx` |
+| `story-type-badge.tsx` | Standardized badge component displaying story type code (e.g. US, RS, LS) and colors |
+| `sprints/sprint-import-modal.tsx` | Modal dialog for parsing, validating, and importing sprint JSON files |
+| `constants.ts` | LU descriptions and URL helpers (see below) |
+| `sprint-export.ts` | Sprint JSON normalisation, clipboard copy and download helpers |
+| `pdf/` | `@react-pdf/renderer` PDF generator: `portfolio-pdf.tsx` (entry, single-sprint and all-sprints), `dashboard-page.tsx`, `sprint-page.tsx`, `styles.ts` |
+| `excel/` | ExcelJS workbook generator: `workbook.ts` (entry + test `workbook.test.ts`), `dashboard.ts`, `logboek.ts`, `lu.ts`, `styles.ts` |
+| `presentation/` | Presentation deck system: |
 | ├── `sprint-presentation.tsx` | Main slide deck engine: keyboard controls (`←`, `→`, `F`), slide thumbnails, progress bar |
 | ├── `slide-intro.tsx` | Title slide: sprint number, date span, days, team/author |
 | ├── `slide-story.tsx` | Story slide: story narrative (Als/wil ik/zodat), criteria checklist, evidence showcase, screenshots |
@@ -32,6 +36,8 @@ This guide gives AI models an instant index of the Minor module frontend structu
 | ├── `presentation-criteria-modal.tsx` | Pop-up checklist modal during presentation |
 | ├── `presentation-lightbox.tsx` | Fullscreen screenshot/image preview modal |
 | └── `presentation-background.tsx` | Configurable visual themes/background styles for presentation slides |
+
+Shared (stay in `lib/`): `lib/api/minor.ts` (client API, all requests via `lib/api/core.ts` helpers) and `lib/minor-lang.ts` (Dutch strings). PDF/Excel export wording is document content and is deliberately not translated.
 
 ---
 
@@ -46,13 +52,13 @@ This guide gives AI models an instant index of the Minor module frontend structu
   - `api.minor.peerHelp.{list, create, update, delete}`
 - **Server API (`serverApi.minor.*` in `@/lib/server-api.ts`)**:
   - Used in SSR Next.js App Router `page.tsx` loaders for initial pre-rendering.
-- **Constants (`@/lib/minor-constants.ts`)**:
+- **Constants (`./constants.ts`)**:
   - `MINOR_LU_DESCRIPTIONS`: Learning outcomes mapping (1: Impact, 2: Realisatie, 3: Ethiek, 4: Tools, 5: Zelfstandig).
   - `getLULabel(lu)`, `getLUShortDesc(lu)`, `isImageUrl(url)`, `getDomainFromUrl(url)`.
-- **Excel Export (`@/lib/minor-excel.ts` / `minor-excel.test.ts`)**:
+- **Excel Export (`./excel/workbook.ts` / `excel/workbook.test.ts`)**:
   - Generates multi-tab Excel files via ExcelJS containing story backlog, criteria checklist, and LU matrix.
   - Layout mirrors the teacher template (`Dashboard`, `Logboek` with 8 blocks of 28 rows, hidden `Lijsten`). Teachers convert the xlsx to PDF via Canvas: a manual page break follows every sprint block and the Logboek print scale is estimated from the tallest block (row heights are set explicitly) so each sprint stays on exactly one page. Keep sheet/row layout identical to the template.
-- **JSON Export/Import (`@/lib/minor-sprint-export.ts`)**:
+- **JSON Export/Import (`./sprint-export.ts`)**:
   - Normalizes sprint objects into clean, portable JSON format.
 
 ---
@@ -63,14 +69,14 @@ This guide gives AI models an instant index of the Minor module frontend structu
    - Update shared type: `backend/src/types/shared.ts` (`MinorStory`, `MinorSprintExportStory`)
    - Update backend service: `backend/src/modules/minor/` (`minor-*.ts` layers) (`stories.create`, `stories.update`, `sprints.getById`, `transfer.exportSprint`, `transfer.importSprint`)
    - Update UI modal & forms: `frontend/src/app/minor/sprints/[id]/` (client plus extracted modals, tabs and `use-*.ts` hooks) and `frontend/src/app/minor/stories/`
-   - If included in presentation: `frontend/src/components/minor-presentation/`
+   - If included in presentation: `frontend/src/app/minor/presentation/`
 2. **Changing Sprint calculation / dates**:
    - Check `schedule.calculateSprintDates` and `calculateSprintStatus` in `backend/src/modules/minor/` (`minor-*.ts` layers)
    - Test with `DB_PATH=:memory: bun test backend/src/modules/minor`
 3. **Updating Export (PDF / Excel / JSON)**:
-   - PDF: `frontend/src/components/minor-pdf.tsx`
-   - Excel: `frontend/src/lib/minor-excel.ts` (test: `bun test frontend/src/lib/minor-excel.test.ts`)
-   - JSON: `frontend/src/lib/minor-sprint-export.ts` and `backend/src/modules/minor/` (`minor-*.ts` layers) (`transfer.exportSprint`/`transfer.importSprint`)
+   - PDF: `frontend/src/app/minor/pdf/portfolio-pdf.tsx`
+   - Excel: `frontend/src/app/minor/excel/workbook.ts` (test: `bun test frontend/src/app/minor/excel/workbook.test.ts`)
+   - JSON: `frontend/src/app/minor/sprint-export.ts` and `backend/src/modules/minor/` (`minor-*.ts` layers) (`transfer.exportSprint`/`transfer.importSprint`)
 
 ## Errors
 Backend errors are i18n keys (`minor.*`, see `lib/minor-lang.ts`). Show them with `apiErrorMessage(err, fallbackKey)`; server pages wrap `sprints.get` in `notFoundOn404()`.

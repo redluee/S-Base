@@ -340,7 +340,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
                 <label className="block text-zinc-400 mb-1">{t("Naam medestudent")}</label>
                 <input
                   type="text"
-                  placeholder="bijv. Lisa van Dijk"
+                  placeholder={t("bijv. Lisa van Dijk")}
                   value={peerName}
                   onChange={(e) => setPeerName(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
@@ -352,7 +352,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
                 <label className="block text-zinc-400 mb-1">{t("Toelichting geboden hulp")}</label>
                 <textarea
                   rows={3}
-                  placeholder="Wat heb je uitgelegd, gereviewed of opgelost?"
+                  placeholder={t("Wat heb je uitgelegd, gereviewed of opgelost?")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"

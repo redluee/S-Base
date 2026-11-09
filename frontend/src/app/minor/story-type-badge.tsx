@@ -1,5 +1,6 @@
 import React from "react";
 import type { MinorStoryType } from "@/lib/api";
+import { t } from "@/lib/lang";
 
 export interface StoryTypeDetails {
   code: string;
@@ -21,7 +22,7 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
   if (normalizedCode === "US") {
     return {
       code: "US",
-      name: custom?.name || "User Story",
+      name: custom?.name || t("User Story"),
       color: "#10b981",
       bgClass: "bg-emerald-500/15",
       textClass: "text-emerald-400",
@@ -34,7 +35,7 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
   if (normalizedCode === "RS") {
     return {
       code: "RS",
-      name: custom?.name || "Research Story",
+      name: custom?.name || t("Research Story"),
       color: "#f97316",
       bgClass: "bg-orange-500/15",
       textClass: "text-orange-400",
@@ -47,7 +48,7 @@ export function getStoryTypeDetails(code: string = "US", customTypes: MinorStory
   if (normalizedCode === "LS") {
     return {
       code: "LS",
-      name: custom?.name || "Learning Story",
+      name: custom?.name || t("Learning Story"),
       color: "#a855f7",
       bgClass: "bg-purple-500/15",
       textClass: "text-purple-400",

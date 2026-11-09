@@ -74,7 +74,7 @@ export function StoryEditCriteria({ editor }: StoryEditCriteriaProps) {
                             prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
                           );
                         }}
-                        placeholder={isSub ? "Subtaak omschrijving..." : "Criterium omschrijving..."}
+                        placeholder={isSub ? t("Subtaak omschrijving...") : t("Criterium omschrijving...")}
                         className="flex-1 min-w-0 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
                       />
                       <button
@@ -178,7 +178,7 @@ export function StoryEditCriteria({ editor }: StoryEditCriteriaProps) {
                             prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
                           );
                         }}
-                        placeholder={isSub ? "Sub-kwaliteitseis..." : "Kwaliteitseis omschrijving..."}
+                        placeholder={isSub ? t("Sub-kwaliteitseis...") : t("Kwaliteitseis omschrijving...")}
                         className="flex-1 min-w-0 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
                       />
                       <button

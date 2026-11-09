@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api } from "@/lib/api";
 import { GOOGLE_PREFIX, resolveCuratedFont, type ResolvedFont } from "./resume";
 
 const cache = new Map<string, Promise<ResolvedFont | null>>();

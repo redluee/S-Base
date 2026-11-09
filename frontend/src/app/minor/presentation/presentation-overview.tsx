@@ -1,7 +1,7 @@
 import { LayoutGrid, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprintFull, MinorStory, MinorStoryType } from "@/lib/api";
-import { getStoryTypeDetails } from "@/components/minor-story-type-badge";
+import { getStoryTypeDetails } from "@/app/minor/story-type-badge";
 
 interface PresentationOverviewProps {
   sprint: MinorSprintFull;

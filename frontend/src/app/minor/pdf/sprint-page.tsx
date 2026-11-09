@@ -5,7 +5,7 @@ import {
   LU_MASTER_DEFINITIONS,
   resolveSprintLuLevel,
   resolveSprintLuArgumentation,
-} from "@/lib/minor-excel";
+} from "@/app/minor/excel/workbook";
 import {
   COLOR_EVEN_BANNER,
   COLOR_EVEN_CELL,
@@ -14,7 +14,7 @@ import {
   COLOR_ODD_CELL,
   COLOR_ODD_SECTION,
   styles,
-} from "./minor-pdf-styles";
+} from "./styles";
 
 interface SprintPdfPageProps {
   sprintNum: number;

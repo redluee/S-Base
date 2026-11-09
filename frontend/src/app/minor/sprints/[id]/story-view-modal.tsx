@@ -5,8 +5,8 @@ import { Trash2, Edit3, CheckSquare, Square, Sparkles, Presentation, ExternalLin
 import { toExternalHref } from "@/lib/uri";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
-import { StoryTypeBadge } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";

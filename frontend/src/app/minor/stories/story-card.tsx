@@ -4,8 +4,8 @@ import { ExternalLink, ChevronDown, ChevronUp, CheckSquare, Square } from "lucid
 import Link from "next/link";
 import { t } from "@/lib/lang";
 import { toExternalHref } from "@/lib/uri";
-import { StoryTypeBadge, getStoryTypeDetails } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge, getStoryTypeDetails } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 import type { MinorSprint, MinorStoryWithSprint, MinorStoryType } from "@/lib/api";
 
 interface StoryCardProps {

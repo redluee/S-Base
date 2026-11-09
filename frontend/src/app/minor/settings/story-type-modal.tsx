@@ -74,7 +74,7 @@ export function StoryTypeModal({
             <label className="block text-zinc-400 mb-1">{t("Type Code")}</label>
             <input
               type="text"
-              placeholder="bijv. TS of BUG"
+              placeholder={t("bijv. TS of BUG")}
               maxLength={6}
               value={typeCode}
               onChange={(e) => setTypeCode(e.target.value)}
@@ -87,7 +87,7 @@ export function StoryTypeModal({
             <label className="block text-zinc-400 mb-1">{t("Type Naam")}</label>
             <input
               type="text"
-              placeholder="bijv. Technical Story"
+              placeholder={t("bijv. Technical Story")}
               value={typeName}
               onChange={(e) => setTypeName(e.target.value)}
               className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
@@ -100,7 +100,7 @@ export function StoryTypeModal({
           <label className="block text-zinc-400 mb-1">{t("Omschrijving (optioneel)")}</label>
           <input
             type="text"
-            placeholder="Korte beschrijving van wanneer dit type gebruikt wordt"
+            placeholder={t("Korte beschrijving van wanneer dit type gebruikt wordt")}
             value={typeDesc}
             onChange={(e) => setTypeDesc(e.target.value)}
             className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
@@ -186,7 +186,7 @@ export function StoryTypeModal({
                           prev.map((item, i) => (i === idx ? { ...item, text: val } : item))
                         );
                       }}
-                      placeholder={isSub ? "Sub-kwaliteitseis..." : "Kwaliteitseis omschrijving..."}
+                      placeholder={isSub ? t("Sub-kwaliteitseis...") : t("Kwaliteitseis omschrijving...")}
                       className="flex-1 min-w-0 bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-brand transition-colors placeholder-zinc-500"
                     />
                     <button

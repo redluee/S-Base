@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MinorSprintFull, MinorStoryType, MinorStory } from "@/lib/api";
-import { SprintPresentation } from "@/components/minor-presentation/sprint-presentation";
+import { SprintPresentation } from "@/app/minor/presentation/sprint-presentation";
 
 interface SprintPresentClientProps {
   initialSprint: MinorSprintFull;

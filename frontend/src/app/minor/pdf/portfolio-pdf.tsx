@@ -3,9 +3,9 @@
 import React from "react";
 import { Document, pdf } from "@react-pdf/renderer";
 import { api, type MinorSprintFull } from "@/lib/api";
-import { findSprintByNumber } from "@/lib/minor-excel";
-import { DashboardPdfPage } from "./minor-pdf-dashboard";
-import { SprintPdfPage } from "./minor-pdf-sprint-page";
+import { findSprintByNumber } from "@/app/minor/excel/workbook";
+import { DashboardPdfPage } from "./dashboard-page";
+import { SprintPdfPage } from "./sprint-page";
 
 export interface IntegraalSprintLogboekPdfDocumentProps {
   sprints: MinorSprintFull[];

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { MinorSubnav } from "./subnav";
 import { MinorThemeProvider } from "./theme";
-import { MINOR_THEME_COOKIE } from "@/lib/minor-theme";
+import { MINOR_THEME_COOKIE } from "@/app/minor/theme-cookie";
 
 export default async function MinorLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();

@@ -3,8 +3,8 @@ import type { MinorStoryType } from "@/lib/api";
 
 import { Plus, Link2, Search, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { StoryTypeBadge } from "@/components/minor-story-type-badge";
-import { getLUShortDesc } from "@/lib/minor-constants";
+import { StoryTypeBadge } from "@/app/minor/story-type-badge";
+import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";
@@ -126,7 +126,7 @@ export function LinkStoryModal({ storyTypes, data, editor, linking }: LinkStoryM
                     </div>
                     {(st.asA || st.iWant) && (
                       <p className="text-[11px] text-zinc-400 line-clamp-1">
-                        {st.asA ? `Als ${st.asA}, ` : ""}{st.iWant ? `wil ik ${st.iWant}` : ""}
+                        {st.asA ? t("Als {rol}, ", { rol: st.asA }) : ""}{st.iWant ? t("wil ik {doel}", { doel: st.iWant }) : ""}
                       </p>
                     )}
                     {st.learningOutcomes && st.learningOutcomes.length > 0 && (

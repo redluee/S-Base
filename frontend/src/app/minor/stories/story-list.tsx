@@ -43,7 +43,7 @@ export function StoryList({ storyTypes, sprints, filteredStories, sprintGroups, 
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-bold text-xs px-2.5 py-1 rounded border bg-amber-500/10 border-amber-500/30 text-amber-400">
-                          {group.sprint.sprintNumber || `Sprint ${group.sprint.id}`}
+                          {group.sprint.sprintNumber || t("Sprint {nummer}", { nummer: String(group.sprint.id) })}
                         </span>
                         <h2 className="text-base font-bold text-white">{group.sprint.name}</h2>
                       </div>
@@ -60,7 +60,7 @@ export function StoryList({ storyTypes, sprints, filteredStories, sprintGroups, 
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-bold text-xs px-2.5 py-1 rounded border bg-zinc-800 border-white/10 text-white group-hover/sprint:border-brand/40 group-hover/sprint:text-brand transition-colors">
-                          {group.sprint.sprintNumber || `Sprint ${group.sprint.id}`}
+                          {group.sprint.sprintNumber || t("Sprint {nummer}", { nummer: String(group.sprint.id) })}
                         </span>
                         <h2 className="text-base font-bold text-white group-hover/sprint:text-brand transition-colors">
                           {group.sprint.name}
