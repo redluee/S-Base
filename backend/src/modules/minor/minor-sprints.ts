@@ -1,46 +1,52 @@
-import {
-  eq,
-  and,
-  asc,
-  inArray,
-  sql,
-} from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
 import {
-  minorSprints,
-  minorStories,
-  minorStoryCriteria,
-  minorStoryEvidence,
-  minorSelfEvaluations,
-  minorTeacherAssessments,
   minorFeedbackEntries,
   minorReflections,
+  minorSelfEvaluations,
+  minorSprints,
+  minorStories,
+  minorTeacherAssessments,
 } from "../../db/schema";
 import type {
-  MinorSprint,
-  MinorSprintFull,
-  MinorStory,
-  MinorSelfEvaluation,
-  MinorTeacherAssessment,
   MinorFeedbackEntry,
   MinorReflection,
+  MinorSelfEvaluation,
+  MinorSprint,
+  MinorSprintFull,
+  MinorTeacherAssessment,
 } from "../../types/shared";
-import {
-  formatDate,
-  calculateSprintStatus,
-} from "./minor-helpers";
-import {
-  MinorStoryService,
-} from "./minor-stories";
+import { orNotFound } from "../../utils/errors";
+import type { MinorEvaluations } from "./minor-evaluations";
+import { calculateSprintStatus, formatDate } from "./minor-helpers";
+import type { MinorSchedule } from "./minor-schedule";
+import { loadStoryChildren, toStory } from "./minor-story-mapper";
 
-export class MinorSprintService extends MinorStoryService {
-  // --- Sprints ---
+type SprintStatus = "planned" | "active" | "completed";
 
-  getNextSprintNumber(userId: number): { nextNumber: string; nextName: string } {
+export interface SprintInput {
+  sprintNumber?: string | null;
+  name?: string | null;
+  startDate?: string;
+  endDate?: string | null;
+  durationDays?: number | null;
+  showAndGrowDate?: string | null;
+  extendedDays?: number | null;
+  extensionReason?: string | null;
+  status?: SprintStatus | null;
+}
+
+type SprintRow = typeof minorSprints.$inferSelect;
+
+export class MinorSprints {
+  constructor(
+    private readonly schedule: MinorSchedule,
+    private readonly evaluations: MinorEvaluations,
+  ) {}
+
+  getNextNumber(userId: number): { nextNumber: string; nextName: string } {
     const sprints = db.select().from(minorSprints).where(eq(minorSprints.userId, userId)).all();
-    if (sprints.length === 0) {
-      return { nextNumber: "1", nextName: "Sprint 1" };
-    }
+    if (sprints.length === 0) return { nextNumber: "1", nextName: "Sprint 1" };
 
     let maxNum = 0;
     for (const s of sprints) {
@@ -54,103 +60,25 @@ export class MinorSprintService extends MinorStoryService {
     return { nextNumber: String(next), nextName: `Sprint ${next}` };
   }
 
-  listSprints(userId: number): MinorSprint[] {
-    const sprints = db.select().from(minorSprints).where(eq(minorSprints.userId, userId)).orderBy(asc(minorSprints.startDate), asc(minorSprints.id)).all();
-    const today = formatDate(new Date());
-
-    return sprints.map((s) => {
-      const computedStatus = calculateSprintStatus(s.startDate, s.endDate, today, s.status as any);
-      if (s.status !== computedStatus) {
-        db.update(minorSprints)
-          .set({ status: computedStatus, updatedAt: sql`CURRENT_TIMESTAMP` })
-          .where(eq(minorSprints.id, s.id))
-          .run();
-        return { ...s, status: computedStatus };
-      }
-      return { ...s, status: computedStatus };
-    }) as MinorSprint[];
+  list(userId: number): MinorSprint[] {
+    const rows = db.select().from(minorSprints).where(eq(minorSprints.userId, userId)).orderBy(asc(minorSprints.startDate), asc(minorSprints.id)).all();
+    return rows.map((row) => this.withComputedStatus(row));
   }
 
-  getSprintById(id: number, userId: number): MinorSprintFull | null {
-    const sprintRaw = db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get();
-    if (!sprintRaw) return null;
-
-    const today = formatDate(new Date());
-    const computedStatus = calculateSprintStatus(sprintRaw.startDate, sprintRaw.endDate, today, sprintRaw.status as any);
-    if (sprintRaw.status !== computedStatus) {
-      db.update(minorSprints)
-        .set({ status: computedStatus, updatedAt: sql`CURRENT_TIMESTAMP` })
-        .where(eq(minorSprints.id, sprintRaw.id))
-        .run();
-    }
-    const sprint: MinorSprint = { ...sprintRaw, status: computedStatus } as MinorSprint;
+  getById(id: number, userId: number): MinorSprintFull {
+    const sprint = this.withComputedStatus(this.requireOwned(id, userId));
 
     const storiesRaw = db.select().from(minorStories).where(eq(minorStories.sprintId, id)).orderBy(asc(minorStories.orderIndex), asc(minorStories.id)).all();
-    const storyIds = storiesRaw.map((s) => s.id);
+    const { criteria, evidence } = loadStoryChildren(storiesRaw.map((s) => s.id));
+    const stories = storiesRaw.map((s) => toStory(s, criteria, evidence));
 
-    const criteria = storyIds.length > 0
-      ? db.select().from(minorStoryCriteria).where(inArray(minorStoryCriteria.storyId, storyIds)).orderBy(asc(minorStoryCriteria.orderIndex)).all()
-      : [];
+    const selfEvaluations = this.loadSelfEvaluations(id);
+    if (selfEvaluations.length === 0) this.evaluations.initDefaults(id);
 
-    const evidence = storyIds.length > 0
-      ? db.select().from(minorStoryEvidence).where(inArray(minorStoryEvidence.storyId, storyIds)).orderBy(asc(minorStoryEvidence.id)).all()
-      : [];
-
-    const stories: MinorStory[] = storiesRaw.map((s) => {
-      let outcomes: number[] = [];
-      try {
-        outcomes = JSON.parse(s.learningOutcomes);
-      } catch {
-        outcomes = [];
-      }
-      return {
-        id: s.id,
-        sprintId: s.sprintId,
-        userId: s.userId,
-        storyTypeCode: s.storyTypeCode,
-        storyNumber: s.storyNumber,
-        title: s.title,
-        asA: s.asA,
-        iWant: s.iWant,
-        soThat: s.soThat,
-        learningOutcomes: outcomes,
-        status: s.status as "todo" | "in_progress" | "done",
-        orderIndex: s.orderIndex,
-        presentationData: s.presentationData ? (() => {
-          try { return JSON.parse(s.presentationData); } catch { return null; }
-        })() : null,
-        createdAt: s.createdAt,
-        criteria: criteria.filter((c) => c.storyId === s.id).map((c) => ({
-          id: c.id,
-          storyId: c.storyId,
-          type: c.type as "acceptance" | "quality",
-          orderIndex: c.orderIndex,
-          indent: c.indent ?? 0,
-          text: c.text,
-          isCompleted: Boolean(c.isCompleted),
-        })),
-        evidence: evidence.filter((e) => e.storyId === s.id).map((e) => ({
-          id: e.id,
-          storyId: e.storyId,
-          type: e.type as "link" | "github" | "document" | "app",
-          title: e.title,
-          url: e.url,
-          createdAt: e.createdAt,
-        })),
-      };
-    });
-
-    let selfEvaluations = db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, id)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
-    if (selfEvaluations.length === 0) {
-      this.initSelfEvaluationsAndAssessments(id);
-    }
-    this.syncSprintSelfEvaluations(id, stories);
-    selfEvaluations = db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, id)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
-
-    let teacherAssessments = db.select().from(minorTeacherAssessments).where(eq(minorTeacherAssessments.sprintId, id)).orderBy(asc(minorTeacherAssessments.learningOutcome)).all() as MinorTeacherAssessment[];
+    let teacherAssessments = this.loadTeacherAssessments(id);
     if (teacherAssessments.length === 0) {
-      this.initSelfEvaluationsAndAssessments(id);
-      teacherAssessments = db.select().from(minorTeacherAssessments).where(eq(minorTeacherAssessments.sprintId, id)).orderBy(asc(minorTeacherAssessments.learningOutcome)).all() as MinorTeacherAssessment[];
+      this.evaluations.initDefaults(id);
+      teacherAssessments = this.loadTeacherAssessments(id);
     }
 
     const feedback = db.select().from(minorFeedbackEntries).where(eq(minorFeedbackEntries.sprintId, id)).orderBy(asc(minorFeedbackEntries.orderIndex), asc(minorFeedbackEntries.date)).all() as MinorFeedbackEntry[];
@@ -159,24 +87,16 @@ export class MinorSprintService extends MinorStoryService {
     return {
       ...sprint,
       stories,
-      selfEvaluations,
+      selfEvaluations: this.loadSelfEvaluations(id),
       teacherAssessments,
       feedback,
       reflection,
     };
   }
 
-  createSprint(userId: number, data: {
-    sprintNumber?: string;
-    name?: string;
-    startDate: string;
-    endDate?: string;
-    durationDays?: number;
-    showAndGrowDate?: string;
-    status?: "planned" | "active" | "completed";
-  }): MinorSprint {
-    const calc = this.calculateSprintDates(userId, data.startDate, data.durationDays ?? 14);
-    const nextInfo = this.getNextSprintNumber(userId);
+  create(userId: number, data: SprintInput & { startDate: string }): MinorSprint {
+    const calc = this.schedule.calculateSprintDates(userId, data.startDate, data.durationDays ?? 14);
+    const nextInfo = this.getNextNumber(userId);
 
     const sprintNumber = data.sprintNumber?.trim() || nextInfo.nextNumber;
     const name = data.name?.trim() || `Sprint ${sprintNumber}`;
@@ -196,24 +116,12 @@ export class MinorSprintService extends MinorStoryService {
       status,
     }).returning().get() as MinorSprint;
 
-    this.initSelfEvaluationsAndAssessments(sprint.id);
-
+    this.evaluations.initDefaults(sprint.id);
     return sprint;
   }
 
-  updateSprint(id: number, userId: number, data: Partial<{
-    sprintNumber: string;
-    name: string;
-    startDate: string;
-    endDate: string;
-    durationDays: number;
-    showAndGrowDate: string;
-    extendedDays: number;
-    extensionReason: string | null;
-    status: "planned" | "active" | "completed";
-  }>): MinorSprint | null {
-    const existing = db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get();
-    if (!existing) return null;
+  update(id: number, userId: number, data: SprintInput): MinorSprint {
+    const existing = this.requireOwned(id, userId);
 
     let extendedDays = data.extendedDays ?? existing.extendedDays;
     let extensionReason = data.extensionReason !== undefined ? data.extensionReason : existing.extensionReason;
@@ -221,18 +129,17 @@ export class MinorSprintService extends MinorStoryService {
     let showAndGrowDate = data.showAndGrowDate ?? existing.showAndGrowDate;
     const startDate = data.startDate ?? existing.startDate;
 
-    // Recalculate if startDate or duration changed and not explicitly overridden
     if (data.startDate && data.startDate !== existing.startDate && !data.endDate) {
-      const calc = this.calculateSprintDates(userId, data.startDate, data.durationDays ?? existing.durationDays);
+      const calc = this.schedule.calculateSprintDates(userId, data.startDate, data.durationDays ?? existing.durationDays);
       endDate = calc.endDate;
       showAndGrowDate = calc.showAndGrowDate;
       extendedDays = calc.extendedDays;
       extensionReason = calc.extensionReason;
     }
 
-    const computedStatus = data.status || calculateSprintStatus(startDate, endDate);
+    const status = data.status || calculateSprintStatus(startDate, endDate);
 
-    const updated = db.update(minorSprints).set({
+    return db.update(minorSprints).set({
       sprintNumber: data.sprintNumber?.trim() ?? existing.sprintNumber,
       name: data.name?.trim() ?? existing.name,
       startDate,
@@ -241,17 +148,37 @@ export class MinorSprintService extends MinorStoryService {
       showAndGrowDate,
       extendedDays,
       extensionReason,
-      status: computedStatus,
+      status,
       updatedAt: sql`CURRENT_TIMESTAMP`,
-    }).where(eq(minorSprints.id, id)).returning().get();
-
-    return updated as MinorSprint;
+    }).where(eq(minorSprints.id, id)).returning().get() as MinorSprint;
   }
 
-  deleteSprint(id: number, userId: number) {
-    const existing = db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get();
-    if (!existing) return null;
+  remove(id: number, userId: number) {
+    this.requireOwned(id, userId);
     db.delete(minorSprints).where(eq(minorSprints.id, id)).run();
     return { success: true };
+  }
+
+  requireOwned(id: number, userId: number): SprintRow {
+    return orNotFound(
+      db.select().from(minorSprints).where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId))).get(),
+      "minor.sprintNotFound",
+    );
+  }
+
+  private withComputedStatus(row: SprintRow): MinorSprint {
+    const status = calculateSprintStatus(row.startDate, row.endDate, formatDate(new Date()), row.status as SprintStatus);
+    if (row.status !== status) {
+      db.update(minorSprints).set({ status, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(minorSprints.id, row.id)).run();
+    }
+    return { ...row, status } as MinorSprint;
+  }
+
+  private loadSelfEvaluations(sprintId: number): MinorSelfEvaluation[] {
+    return db.select().from(minorSelfEvaluations).where(eq(minorSelfEvaluations.sprintId, sprintId)).orderBy(asc(minorSelfEvaluations.learningOutcome)).all() as MinorSelfEvaluation[];
+  }
+
+  private loadTeacherAssessments(sprintId: number): MinorTeacherAssessment[] {
+    return db.select().from(minorTeacherAssessments).where(eq(minorTeacherAssessments.sprintId, sprintId)).orderBy(asc(minorTeacherAssessments.learningOutcome)).all() as MinorTeacherAssessment[];
   }
 }

@@ -1,0 +1,17 @@
+export const minorNl: Record<string, string> = {
+  "minor.sprintNotFound": "Sprint niet gevonden.",
+  "minor.targetSprintNotFound": "Doelsprint niet gevonden.",
+  "minor.storyNotFound": "Story niet gevonden.",
+  "minor.criterionNotFound": "Criterium niet gevonden.",
+  "minor.feedbackNotFound": "Feedback niet gevonden.",
+  "minor.vacationNotFound": "Vakantie niet gevonden.",
+  "minor.storyTypeNotFound": "Storytype niet gevonden.",
+  "minor.peerHelpNotFound": "Kennisdeling niet gevonden.",
+  "minor.vacationNameRequired": "Naam van de vakantie is verplicht.",
+  "minor.vacationDatesRequired": "Start- en einddatum zijn verplicht.",
+  "minor.storyTitleRequired": "Titel van de story is verplicht.",
+  "minor.storyTypeFieldsRequired": "Code en naam zijn verplicht.",
+  "minor.peerHelpFieldsRequired": "Naam en beschrijving zijn verplicht.",
+  "minor.feedbackFieldsRequired": "Alle feedbackvelden zijn verplicht.",
+  "minor.invalidDate": "Ongeldige datum. Gebruik het formaat JJJJ-MM-DD.",
+};

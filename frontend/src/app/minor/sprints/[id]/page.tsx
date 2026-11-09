@@ -1,4 +1,4 @@
-import { serverApi } from "@/lib/server-api";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { notFound } from "next/navigation";
 import { MinorSprintDetailClient } from "./client";
 
@@ -8,10 +8,9 @@ export default async function MinorSprintDetailPage({ params }: { params: Promis
   if (isNaN(sprintId)) notFound();
 
   const [sprint, storyTypes] = await Promise.all([
-    serverApi.minor.sprints.get(sprintId).catch(() => null),
+    notFoundOn404(serverApi.minor.sprints.get(sprintId)),
     serverApi.minor.storyTypes.list().catch(() => []),
   ]);
-  if (!sprint) notFound();
 
   return <MinorSprintDetailClient initialSprint={sprint} initialStoryTypes={storyTypes} />;
 }

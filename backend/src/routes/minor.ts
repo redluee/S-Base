@@ -2,7 +2,8 @@ import { Elysia } from "elysia";
 import { ASSET_NAME_PATTERN, bearerTokenCheck, buildPublicSnapshot, defaultUploadsDir, resolvePublishUserId } from "../modules/minor/public-snapshot";
 import { join } from "path";
 import { ATTACHMENT_EXTENSIONS } from "../utils/uploads";
-import { minor, minorAuth, validated, saveUpload } from "../context";
+import { minor, minorAuth, saveUpload } from "../context";
+import * as schema from "../modules/minor/minor-schemas";
 
 export const minorRoutes = new Elysia()
   .get("/api/minor/public/snapshot", ({ request }) => {
@@ -26,134 +27,102 @@ export const minorRoutes = new Elysia()
     return new Response(file);
   })
 
-  // --- Minor App / Sprint & Portfolio routes ---
   .group("/api/minor", (app) =>
     app
       .use(minorAuth)
-      .get("/dashboard", ({ userId }) => minor.getDashboardStats(userId))
-      .get("/sprints/next-number", ({ userId }) => minor.getNextSprintNumber(userId))
-      .get("/sprints/calculate-dates", ({ userId, query }) => {
-        const startDate = (query as any)?.startDate || new Date().toISOString().slice(0, 10);
-        const durationDays = (query as any)?.durationDays ? Number((query as any).durationDays) : 14;
-        return minor.calculateSprintDates(userId, startDate, durationDays);
+      .get("/dashboard", ({ userId }) => minor.dashboard.getStats(userId))
+      .get("/sprints/next-number", ({ userId }) => minor.sprints.getNextNumber(userId))
+      .get("/sprints/calculate-dates", ({ userId, query }) => minor.schedule.calculateSprintDates(userId, query.startDate, query.durationDays), {
+        query: schema.calculateDatesQuery,
       })
-      .get("/sprints", ({ userId }) => minor.listSprints(userId))
-      .post("/sprints", ({ userId, body }) => minor.createSprint(userId, (body ?? {}) as any))
-      .post("/sprints/import", ({ userId, body }) => {
-        const b = (body ?? {}) as any;
-        const targetSprintId = b.targetSprintId ? Number(b.targetSprintId) : undefined;
-        const overwrite = Boolean(b.overwrite);
-        return minor.importSprint(userId, b, targetSprintId, overwrite);
+      .get("/sprints", ({ userId }) => minor.sprints.list(userId))
+      .post("/sprints", ({ userId, body }) => minor.sprints.create(userId, body), { body: schema.sprintCreateBody })
+      .post("/sprints/import", ({ userId, body }) => minor.transfer.importSprint(userId, body, undefined, Boolean(body.overwrite)), {
+        body: schema.importBody,
       })
-      .get("/sprints/:id", ({ params: { id }, userId }) => {
-        const s = minor.getSprintById(Number(id), userId);
-        if (!s) return new Response("Not Found", { status: 404 });
-        return s;
+      .get("/sprints/:id", ({ params: { id }, userId }) => minor.sprints.getById(id, userId), { params: schema.idParams })
+      .get("/sprints/:id/export", ({ params: { id }, userId }) => minor.transfer.exportSprint(id, userId), { params: schema.idParams })
+      .post("/sprints/:id/import", ({ params: { id }, userId, body }) => minor.transfer.importSprint(userId, body, id, Boolean(body.overwrite)), {
+        params: schema.idParams,
+        body: schema.importBody,
       })
-      .get("/sprints/:id/export", ({ params: { id }, userId }) => {
-        const exp = minor.exportSprint(Number(id), userId);
-        if (!exp) return new Response("Not Found", { status: 404 });
-        return exp;
+      .put("/sprints/:id", ({ params: { id }, userId, body }) => minor.sprints.update(id, userId, body), {
+        params: schema.idParams,
+        body: schema.sprintUpdateBody,
       })
-      .post("/sprints/:id/import", ({ params: { id }, userId, body }) => {
-        const b = (body ?? {}) as any;
-        const overwrite = Boolean(b.overwrite);
-        return minor.importSprint(userId, b, Number(id), overwrite);
+      .delete("/sprints/:id", ({ params: { id }, userId }) => minor.sprints.remove(id, userId), { params: schema.idParams })
+      .get("/stories", ({ userId }) => minor.stories.listAll(userId))
+      .post("/stories", ({ userId, body }) => minor.stories.create(userId, body.sprintId, body), { body: schema.storyCreateBody })
+      .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.stories.create(userId, id, body), {
+        params: schema.idParams,
+        body: schema.storyCreateBody,
       })
-      .put("/sprints/:id", ({ params: { id }, userId, body }) => {
-        const s = minor.updateSprint(Number(id), userId, (body ?? {}) as any);
-        if (!s) return new Response("Not Found", { status: 404 });
-        return s;
+      .put("/sprints/:id/stories/reorder", ({ params: { id }, userId, body }) => minor.stories.reorder(id, userId, body.storyIds), {
+        params: schema.idParams,
+        body: schema.reorderBody,
       })
-      .delete("/sprints/:id", ({ params: { id }, userId }) => {
-        const r = minor.deleteSprint(Number(id), userId);
-        if (!r) return new Response("Not Found", { status: 404 });
-        return r;
+      .put("/stories/:id", ({ params: { id }, userId, body }) => minor.stories.update(id, userId, body), {
+        params: schema.idParams,
+        body: schema.storyUpdateBody,
       })
-      .get("/stories", ({ userId }) => minor.listAllStories(userId))
-      .post("/stories", ({ userId, body }) => minor.createStory(userId, (body as any)?.sprintId ?? null, (body ?? {}) as any))
-      .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.createStory(userId, Number(id), (body ?? {}) as any))
-      .put("/sprints/:id/stories/reorder", ({ params: { id }, userId, body }) => {
-        const storyIds = ((body as any)?.storyIds || []) as number[];
-        const res = minor.reorderStories(Number(id), userId, storyIds);
-        if (!res) return new Response("Not Found", { status: 404 });
-        return res;
+      .delete("/stories/:id", ({ params: { id }, userId }) => minor.stories.remove(id, userId), { params: schema.idParams })
+      .patch("/criteria/:id/toggle", ({ params: { id }, body }) => minor.stories.toggleCriterion(id, body.isCompleted), {
+        params: schema.idParams,
+        body: schema.toggleBody,
       })
-      .put("/stories/:id", ({ params: { id }, userId, body }) => {
-        const s = minor.updateStory(Number(id), userId, (body ?? {}) as any);
-        if (!s) return new Response("Not Found", { status: 404 });
-        return s;
+      .post("/sprints/:id/self-evaluations/auto", ({ params: { id }, userId }) => minor.drafts.autoGenerate(id, userId), { params: schema.idParams })
+      .put("/sprints/:id/self-evaluations", ({ params: { id }, userId, body }) => minor.evaluations.saveSelfEvaluations(id, userId, body.evaluations), {
+        params: schema.idParams,
+        body: schema.selfEvaluationsBody,
       })
-      .delete("/stories/:id", ({ params: { id }, userId }) => {
-        const r = minor.deleteStory(Number(id), userId);
-        if (!r) return new Response("Not Found", { status: 404 });
-        return r;
+      .put("/sprints/:id/teacher-assessments", ({ params: { id }, userId, body }) => minor.evaluations.saveTeacherAssessments(id, userId, body.assessments), {
+        params: schema.idParams,
+        body: schema.teacherAssessmentsBody,
       })
-      .patch("/criteria/:id/toggle", ({ params: { id }, body }) => {
-        const isCompleted = Boolean((body as any)?.isCompleted);
-        const c = minor.toggleCriterion(Number(id), isCompleted);
-        if (!c) return new Response("Not Found", { status: 404 });
-        return c;
+      .get("/sprints/:id/feedback", ({ params: { id } }) => minor.feedback.list(id), { params: schema.idParams })
+      .post("/sprints/:id/feedback", ({ params: { id }, body }) => minor.feedback.add(id, body), {
+        params: schema.idParams,
+        body: schema.feedbackCreateBody,
       })
-      .post("/sprints/:id/self-evaluations/auto", ({ params: { id }, userId }) => minor.autoGenerateSelfEvaluations(Number(id), userId))
-      .put("/sprints/:id/self-evaluations", ({ params: { id }, userId, body }) => minor.saveSelfEvaluations(Number(id), userId, (body as any)?.evaluations || []))
-      .put("/sprints/:id/teacher-assessments", ({ params: { id }, userId, body }) => minor.saveTeacherAssessments(Number(id), userId, (body as any)?.assessments || []))
-      .get("/sprints/:id/feedback", ({ params: { id } }) => minor.listFeedback(Number(id)))
-      .post("/sprints/:id/feedback", ({ params: { id }, body }) => minor.addFeedback(Number(id), (body ?? {}) as any))
-      .put("/feedback/:id", ({ params: { id }, body }) => {
-        const fb = minor.updateFeedback(Number(id), (body ?? {}) as any);
-        if (!fb) return new Response("Not Found", { status: 404 });
-        return fb;
+      .put("/feedback/:id", ({ params: { id }, body }) => minor.feedback.update(id, body), {
+        params: schema.idParams,
+        body: schema.feedbackUpdateBody,
       })
-      .delete("/feedback/:id", ({ params: { id } }) => {
-        const r = minor.deleteFeedback(Number(id));
-        if (!r) return new Response("Not Found", { status: 404 });
-        return r;
+      .delete("/feedback/:id", ({ params: { id } }) => minor.feedback.remove(id), { params: schema.idParams })
+      .get("/sprints/:id/reflection", ({ params: { id } }) => minor.feedback.getReflection(id), { params: schema.idParams })
+      .put("/sprints/:id/reflection", ({ params: { id }, body }) => minor.feedback.saveReflection(id, body), {
+        params: schema.idParams,
+        body: schema.reflectionBody,
       })
-      .get("/sprints/:id/reflection", ({ params: { id } }) => minor.getReflection(Number(id)))
-      .put("/sprints/:id/reflection", ({ params: { id }, body }) => minor.saveReflection(Number(id), (body ?? {}) as any))
-      .get("/vacations", ({ userId }) => minor.listVacations(userId))
-      .post("/vacations", ({ userId, body }) => minor.createVacation(userId, (body ?? {}) as any))
-      .put("/vacations/:id", ({ params: { id }, userId, body }) => {
-        const v = minor.updateVacation(Number(id), userId, (body ?? {}) as any);
-        if (!v) return new Response("Not Found", { status: 404 });
-        return v;
+      .get("/vacations", ({ userId }) => minor.schedule.listVacations(userId))
+      .post("/vacations", ({ userId, body }) => minor.schedule.createVacation(userId, body), { body: schema.vacationCreateBody })
+      .put("/vacations/:id", ({ params: { id }, userId, body }) => minor.schedule.updateVacation(id, userId, body), {
+        params: schema.idParams,
+        body: schema.vacationUpdateBody,
       })
-      .delete("/vacations/:id", ({ params: { id }, userId }) => {
-        const r = minor.deleteVacation(Number(id), userId);
-        if (!r) return new Response("Not Found", { status: 404 });
-        return r;
+      .delete("/vacations/:id", ({ params: { id }, userId }) => minor.schedule.removeVacation(id, userId), { params: schema.idParams })
+      .get("/story-types", ({ userId }) => minor.storyTypes.list(userId))
+      .post("/story-types", ({ userId, body }) => minor.storyTypes.create(userId, body), { body: schema.storyTypeCreateBody })
+      .put("/story-types/:id", ({ params: { id }, userId, body }) => minor.storyTypes.update(id, userId, body), {
+        params: schema.idParams,
+        body: schema.storyTypeUpdateBody,
       })
-      .get("/story-types", ({ userId }) => minor.listStoryTypes(userId))
-      .post("/story-types", ({ userId, body }) => minor.createStoryType(userId, (body ?? {}) as any))
-      .put("/story-types/:id", ({ params: { id }, userId, body }) => {
-        const t = minor.updateStoryType(Number(id), userId, (body ?? {}) as any);
-        if (!t) return new Response("Not Found", { status: 404 });
-        return t;
+      .delete("/story-types/:id", ({ params: { id }, userId }) => minor.storyTypes.remove(id, userId), { params: schema.idParams })
+      .get("/peer-help", ({ userId }) => minor.peerHelp.list(userId))
+      .post("/peer-help", ({ userId, body }) => minor.peerHelp.create(userId, body), { body: schema.peerHelpCreateBody })
+      .put("/peer-help/:id", ({ params: { id }, userId, body }) => minor.peerHelp.update(id, userId, body), {
+        params: schema.idParams,
+        body: schema.peerHelpUpdateBody,
       })
-      .delete("/story-types/:id", ({ params: { id }, userId }) => {
-        const r = minor.deleteStoryType(Number(id), userId);
-        if (!r) return new Response("Not Found", { status: 404 });
-        return r;
-      })
-      .get("/peer-help", ({ userId }) => minor.listPeerHelp(userId))
-      .post("/peer-help", ({ userId, body }) => minor.createPeerHelp(userId, (body ?? {}) as any))
-      .put("/peer-help/:id", ({ params: { id }, userId, body }) => {
-        const p = minor.updatePeerHelp(Number(id), userId, (body ?? {}) as any);
-        if (!p) return new Response("Not Found", { status: 404 });
-        return p;
-      })
-      .delete("/peer-help/:id", ({ params: { id }, userId }) => {
-        const r = minor.deletePeerHelp(Number(id), userId);
-        if (!r) return new Response("Not Found", { status: 404 });
-        return r;
-      })
-      .get("/settings", ({ userId }) => minor.getSettings(userId))
-      .put("/settings", ({ userId, body }) => minor.saveSettings(userId, (body ?? {}) as any))
-      .post("/upload", async ({ body }) => {
-        return validated(async () => {
+      .delete("/peer-help/:id", ({ params: { id }, userId }) => minor.peerHelp.remove(id, userId), { params: schema.idParams })
+      .get("/settings", ({ userId }) => minor.settings.get(userId))
+      .put("/settings", ({ userId, body }) => minor.settings.save(userId, body), { body: schema.settingsBody })
+      .post(
+        "/upload",
+        async ({ body }) => {
           const { filename, originalName } = await saveUpload(body, "minor_", ATTACHMENT_EXTENSIONS);
           return { filePath: `/api/uploads/${filename}`, originalName };
-        });
-      })
+        },
+        { body: schema.uploadBody },
+      ),
   );

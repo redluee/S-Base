@@ -32,3 +32,10 @@ describe("minecraft error keys", () => {
     expect(t("minecraft.versionNotFound", { version: "1.21" })).toBe("Versie 1.21 niet gevonden.");
   });
 });
+
+describe("minor error keys", () => {
+  it("translates minor backend error keys", () => {
+    expect(t("minor.sprintNotFound")).toBe("Sprint niet gevonden.");
+    expect(t("minor.invalidDate")).toBe("Ongeldige datum. Gebruik het formaat JJJJ-MM-DD.");
+  });
+});

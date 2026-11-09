@@ -1,4 +1,4 @@
-import { request } from "./core";
+import { errorFromBody, request } from "./core";
 import type {
   MinorSprint,
   MinorSprintFull,
@@ -217,7 +217,7 @@ export const minorApi = {
       body: form,
     });
     if (!res.ok) {
-      throw new Error("Upload failed");
+      throw errorFromBody(res.status, res.statusText, await res.text().catch(() => ""));
     }
     return res.json() as Promise<{ filePath: string; originalName: string }>;
   },

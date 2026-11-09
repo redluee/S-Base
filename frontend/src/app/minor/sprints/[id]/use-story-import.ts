@@ -1,7 +1,7 @@
 "use client";
 
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { useState } from "react";
 import { parseStoryJson } from "./story-json";
 import type { MinorSprintFull } from "@/lib/api";
@@ -47,8 +47,7 @@ export function useStoryImport(sprint: MinorSprintFull, reloadSprint: (keepLocal
       }
     } catch (err: unknown) {
       console.error("Story import error:", err);
-      const msg = err instanceof Error ? err.message : t("Fout bij importeren van story.");
-      setImportError(msg);
+      setImportError(apiErrorMessage(err, "Fout bij importeren van story."));
     } finally {
       setIsImportingStory(false);
     }

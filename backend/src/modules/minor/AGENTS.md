@@ -7,7 +7,7 @@ This guide enables AI models to navigate and understand the Minor module without
 - **Auth middleware**: `createAuthPlugin("minor")` in `backend/src/context.ts`
 - **Service instance**: `MinorService` instantiated at startup in `backend/src/context.ts`
 - **Routes group**: `.group("/api/minor", ...)` located in `backend/src/routes/minor.ts`
-- **Test file**: `backend/src/modules/minor/minor.test.ts` (run with `DB_PATH=:memory: bun test backend/src/modules/minor/minor.test.ts`)
+- **Tests**: `backend/src/modules/minor/minor-*.test.ts` per topic, `backend/src/routes/minor.test.ts` for the error contract (run with `DB_PATH=:memory: bun test backend/src/modules/minor backend/src/routes/minor.test.ts`)
 
 ---
 
@@ -28,50 +28,25 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ---
 
-## Service Methods (`MinorService` in `backend/src/modules/minor/index.ts`, implemented across the layered `minor-*.ts` files in the same directory)
-| Domain | Method Name | Description |
-|--------|-------------|-------------|
-| **Vacations** | `listVacations(userId)` | Returns all user vacations ordered by start date |
-| | `createVacation(userId, data)` | Inserts a new vacation period |
-| | `updateVacation(id, userId, data)` | Updates existing vacation |
-| | `deleteVacation(id, userId)` | Deletes vacation |
-| | `calculateSprintDates(userId, startDateStr, durationDays)` | Calculates end date, Show & Grow Wednesday, and extends for vacation overlaps |
-| **Story Types** | `listStoryTypes(userId)` | Combines virtual defaults (US, RS, LS) with user overrides and custom types |
-| | `createStoryType(userId, data)` | Adds custom story type with default quality criteria |
-| | `updateStoryType(id, userId, data)` | Overrides default or updates custom type |
-| | `deleteStoryType(id, userId)` | Deletes custom story type |
-| **Sprints** | `getNextSprintNumber(userId)` | Suggests next sequential sprint number and name |
-| | `listSprints(userId)` | Returns all sprints and dynamically updates their status |
-| | `getSprintById(id, userId)` | Returns full sprint with stories, criteria, evidence, evals, assessments, feedback, reflection |
-| | `createSprint(userId, data)` | Creates sprint, auto-computes dates/extensions, initialises evals/assessments/reflection |
-| | `updateSprint(id, userId, data)` | Updates sprint details and recalculates status/dates if requested |
-| | `deleteSprint(id, userId)` | Deletes sprint |
-| | `exportSprint(sprintId, userId)` | Produces clean `MinorSprintExportData` export object |
-| | `importSprint(userId, rawData, targetSprintId?, overwrite?)` | Imports or replaces a sprint from JSON |
-| **Stories & Criteria** | `listAllStories(userId)` | Returns all user stories with sprint numbers and nested criteria/evidence |
-| | `createStory(userId, sprintId?, data)` | Creates story with acceptanceCriteria, qualityCriteria, evidence, presentationData |
-| | `updateStory(storyId, userId, data)` | Updates story fields and replaces criteria/evidence arrays if provided |
-| | `deleteStory(storyId, userId)` | Deletes story and cascades criteria/evidence |
-| | `reorderStories(sprintId, userId, storyIds)` | Updates orderIndex in batch transaction |
-| | `toggleCriterion(criterionId, isCompleted)` | Toggles single criterion checkbox |
-| **Evaluations & Assessments** | `autoGenerateSelfEvaluations(sprintId, userId)` | Pre-fills argumentation text based on completed stories and evidence per LU |
-| | `saveSelfEvaluations(sprintId, userId, items)` | Persists self-evaluations array |
-| | `saveTeacherAssessments(sprintId, userId, items)` | Persists teacher assessments array |
-| **Feedback & Reflection** | `listFeedback(sprintId)` | Returns feedback entries ordered by index |
-| | `addFeedback(sprintId, data)` | Adds feedback row |
-| | `updateFeedback(id, data)` | Updates feedback row |
-| | `deleteFeedback(id)` | Deletes feedback row |
-| | `getReflection(sprintId)` | Gets sprint reflection record |
-| | `saveReflection(sprintId, data)` | Inserts or updates reflection answers |
-| **Peer Help** | `listPeerHelp(userId)` | Lists peer help records |
-| | `createPeerHelp(userId, data)` | Adds peer help entry |
-| | `updatePeerHelp(id, userId, data)` | Updates peer help entry |
-| | `deletePeerHelp(id, userId)` | Deletes peer help entry |
-| **Dashboard** | `getDashboardStats(userId)` | Computes active sprint, days to Show & Grow, official passes, projected passes, and LU warnings |
+## Service Methods (`MinorService` in `index.ts` composes topic classes as readonly properties; the file per topic is `minor-<topic>.ts`)
+Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `ValidationError`; schemas for every route live in `minor-schemas.ts`. `MinorService` also keeps flat delegates (`listSprints`, `getSprintById`, `createSprint`, `createStory`, `addFeedback`, `saveSelfEvaluations`, `listPeerHelp`, `createPeerHelp`, `listVacations`) only because `public-snapshot.ts` and its tests call them.
+| Property (file) | Methods |
+|-----------------|---------|
+| `schedule` (`minor-schedule.ts`) | `listVacations`, `createVacation`, `updateVacation`, `removeVacation`, `calculateSprintDates(userId, startDate?, durationDays?)` (extends for vacation overlaps, Show & Grow Wednesday) |
+| `storyTypes` (`minor-story-types.ts`) | `list` (virtual defaults US/RS/LS + overrides + custom), `create`, `update` (overrides a default or edits custom), `remove` |
+| `sprints` (`minor-sprints.ts`) | `getNextNumber`, `list` (refreshes status), `getById` (full sprint), `create`, `update`, `remove`, `requireOwned` |
+| `stories` (`minor-stories.ts`, mapping in `minor-story-mapper.ts`) | `listAll`, `create`, `update`, `remove`, `reorder`, `toggleCriterion` |
+| `evaluations` (`minor-evaluations.ts`) | `initDefaults`, `markLearningOutcomesSufficient`, `saveSelfEvaluations`, `saveTeacherAssessments` |
+| `drafts` (`minor-evaluation-drafts.ts`) | `autoGenerate(sprintId, userId)` pre-fills argumentation from stories and evidence |
+| `feedback` (`minor-feedback.ts`) | `list`, `add`, `update`, `remove`, `getReflection`, `saveReflection` |
+| `peerHelp` (`minor-peer-help.ts`) | `list`, `create`, `update`, `remove` |
+| `settings` (`minor-settings.ts`) | `get`, `save` |
+| `dashboard` (`minor-dashboard.ts`) | `getStats(userId)` active sprint, days to Show & Grow, official/projected passes, LU warnings |
+| `transfer` (`minor-transfer.ts`, parsing in `minor-import-parse.ts`) | `exportSprint`, `importSprint(userId, rawData, targetSprintId?, overwrite?)` |
 
 ---
 
-## API Endpoints (`/api/minor/*` in `backend/src/routes/minor.ts`)
+## API Endpoints (`/api/minor/*` in `backend/src/routes/minor.ts`; method names are the topic methods above, e.g. `getSprintById` = `sprints.getById`)
 - `GET /dashboard`: `getDashboardStats`
 - `GET /sprints`: `listSprints`
 - `GET /sprints/next-number`: `getNextSprintNumber`
@@ -121,7 +96,7 @@ This guide enables AI models to navigate and understand the Minor module without
 
 The public one-pager `minor.stevenheijn.nl` (repo `redluee/future-proof-met-ai`, local `~/Development/future-proof-met-ai`, Vercel) is a **read-only view** of a snapshot produced here. S-Base is the only source of truth. Do not change the snapshot format, the routes or the env vars without also updating the n8n workflow (`docs/n8n/minor-publish.workflow.json`) and the site repo (`src/types/snapshot.ts`, bump `version`). Never edit the site repo on its own to add data, auth or a database.
 
-Flow: `saveSelfEvaluations` -> `PublishNotifier` POSTs to n8n (`N8N_WEBHOOK_URL`, header `X-Webhook-Secret`) -> n8n GETs `/api/minor/public/snapshot` (Bearer `MINOR_SNAPSHOT_TOKEN`) -> n8n commits `data/minor-snapshot.json` and `public/minor/*` to the site repo -> Vercel rebuilds.
+Flow: `evaluations.saveSelfEvaluations` -> `PublishNotifier` POSTs to n8n (`N8N_WEBHOOK_URL`, header `X-Webhook-Secret`) -> n8n GETs `/api/minor/public/snapshot` (Bearer `MINOR_SNAPSHOT_TOKEN`) -> n8n commits `data/minor-snapshot.json` and `public/minor/*` to the site repo -> Vercel rebuilds.
 
 | Piece | File |
 |-------|------|
@@ -135,6 +110,6 @@ Rules baked into the snapshot:
 - No ids, no `feedback.fromWhom`, no `peerHelp.peerName`, no presentation `notes`.
 - Upload URLs `/api/uploads/minor_*` are rewritten to `/minor/<file>` and listed in `assets[]` (sha256, size, max 5 MB).
 - `contentHash` covers everything except `generatedAt`; n8n skips the commit when it is unchanged.
-- `autoGenerateSelfEvaluations` and `saveTeacherAssessments` do not trigger a publish.
+- `drafts.autoGenerate` and `evaluations.saveTeacherAssessments` do not trigger a publish.
 
 Env vars (see `.env.example`): `MINOR_SNAPSHOT_TOKEN`, `MINOR_PUBLISH_USERNAME`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`. Without them the routes answer 503 and the notifier does nothing.

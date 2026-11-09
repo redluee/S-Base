@@ -64,7 +64,7 @@ export function parseDefaultQualityCriteria(raw: string | null | undefined): Min
           }
           return null;
         })
-        .filter((item): item is MinorDefaultQualityCriterion => Boolean(item && item.text));
+        .filter((item): item is MinorDefaultQualityCriterion => Boolean(item?.text));
     }
   } catch {}
   return [];

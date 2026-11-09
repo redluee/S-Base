@@ -1,36 +1,42 @@
-import {
-  eq,
-  and,
-  sql,
-} from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import db from "../../db/client";
+import { minorFeedbackEntries, minorSprints, minorStories } from "../../db/schema";
+import type { MinorSprint, MinorSprintExportData, MinorSprintExportStory, MinorSprintFull } from "../../types/shared";
+import { NotFoundError } from "../../utils/errors";
+import type { MinorEvaluations } from "./minor-evaluations";
+import type { MinorFeedback } from "./minor-feedback";
+import { calculateSprintStatus, formatDate } from "./minor-helpers";
 import {
-  minorSprints,
-  minorStories,
-  minorSelfEvaluations,
-  minorFeedbackEntries,
-} from "../../db/schema";
-import type {
-  MinorSprint,
-  MinorSprintFull,
-  MinorSelfEvaluation,
-  MinorSprintExportData,
-  MinorSprintExportStory,
-} from "../../types/shared";
-import {
-  formatDate,
-  calculateSprintStatus,
-} from "./minor-helpers";
-import {
-  MinorSprintService,
-} from "./minor-sprints";
+  isRecord,
+  type JsonRecord,
+  parseFeedback,
+  parseReflection,
+  parseSelfEvaluations,
+  parseStory,
+  parseTeacherAssessments,
+} from "./minor-import-parse";
+import type { MinorSchedule } from "./minor-schedule";
+import type { MinorSprints } from "./minor-sprints";
+import type { MinorStories } from "./minor-stories";
 
-export class MinorTransferService extends MinorSprintService {
-  exportSprint(sprintId: number, userId: number): MinorSprintExportData | null {
-    const sprint = this.getSprintById(sprintId, userId);
-    if (!sprint) return null;
+function pickText(...values: unknown[]): string | undefined {
+  const found = values.find((v) => v !== undefined && v !== null);
+  return found === undefined ? undefined : String(found).trim();
+}
 
-    const stories: MinorSprintExportStory[] = (sprint.stories || []).map((s) => ({
+export class MinorTransfer {
+  constructor(
+    private readonly sprints: MinorSprints,
+    private readonly stories: MinorStories,
+    private readonly schedule: MinorSchedule,
+    private readonly evaluations: MinorEvaluations,
+    private readonly feedback: MinorFeedback,
+  ) {}
+
+  exportSprint(sprintId: number, userId: number): MinorSprintExportData {
+    const sprint = this.sprints.getById(sprintId, userId);
+
+    const stories: MinorSprintExportStory[] = sprint.stories.map((s) => ({
       storyTypeCode: s.storyTypeCode,
       storyNumber: s.storyNumber || undefined,
       title: s.title,
@@ -43,54 +49,12 @@ export class MinorTransferService extends MinorSprintService {
       presentationData: s.presentationData || undefined,
       acceptanceCriteria: (s.criteria || [])
         .filter((c) => c.type === "acceptance")
-        .map((c) => ({
-          text: c.text,
-          isCompleted: c.isCompleted,
-          indent: c.indent ?? 0,
-        })),
+        .map((c) => ({ text: c.text, isCompleted: c.isCompleted, indent: c.indent ?? 0 })),
       qualityCriteria: (s.criteria || [])
         .filter((c) => c.type === "quality")
-        .map((c) => ({
-          text: c.text,
-          isCompleted: c.isCompleted,
-          indent: c.indent ?? 0,
-        })),
-      evidence: (s.evidence || []).map((e) => ({
-        type: e.type,
-        title: e.title,
-        url: e.url,
-      })),
+        .map((c) => ({ text: c.text, isCompleted: c.isCompleted, indent: c.indent ?? 0 })),
+      evidence: (s.evidence || []).map((e) => ({ type: e.type, title: e.title, url: e.url })),
     }));
-
-    const feedback = (sprint.feedback || []).map((f) => ({
-      date: f.date,
-      fromWhom: f.fromWhom,
-      feedback: f.feedback,
-      action: f.action,
-      orderIndex: f.orderIndex,
-    }));
-
-    const selfEvaluations = (sprint.selfEvaluations || []).map((se) => ({
-      learningOutcome: se.learningOutcome,
-      level: se.level,
-      argumentation: se.argumentation || null,
-    }));
-
-    const teacherAssessments = (sprint.teacherAssessments || []).map((ta) => ({
-      learningOutcome: ta.learningOutcome,
-      assessment: ta.assessment,
-      notes: ta.notes || null,
-      evaluatedAt: ta.evaluatedAt || null,
-    }));
-
-    const reflection = sprint.reflection
-      ? {
-          date: sprint.reflection.date,
-          whatLearned: sprint.reflection.whatLearned || null,
-          whatRetained: sprint.reflection.whatRetained || null,
-          whatChange: sprint.reflection.whatChange || null,
-        }
-      : null;
 
     return {
       version: 1,
@@ -104,312 +68,128 @@ export class MinorTransferService extends MinorSprintService {
       extensionReason: sprint.extensionReason,
       status: sprint.status,
       stories,
-      feedback,
-      selfEvaluations,
-      teacherAssessments,
-      reflection,
+      feedback: sprint.feedback.map((f) => ({
+        date: f.date,
+        fromWhom: f.fromWhom,
+        feedback: f.feedback,
+        action: f.action,
+        orderIndex: f.orderIndex,
+      })),
+      selfEvaluations: sprint.selfEvaluations.map((se) => ({
+        learningOutcome: se.learningOutcome,
+        level: se.level,
+        argumentation: se.argumentation || null,
+      })),
+      teacherAssessments: sprint.teacherAssessments.map((ta) => ({
+        learningOutcome: ta.learningOutcome,
+        assessment: ta.assessment,
+        notes: ta.notes || null,
+        evaluatedAt: ta.evaluatedAt || null,
+      })),
+      reflection: sprint.reflection
+        ? {
+            date: sprint.reflection.date,
+            whatLearned: sprint.reflection.whatLearned || null,
+            whatRetained: sprint.reflection.whatRetained || null,
+            whatChange: sprint.reflection.whatChange || null,
+          }
+        : null,
     };
   }
 
-  importSprint(userId: number, rawData: any, targetSprintId?: number, overwrite?: boolean): MinorSprintFull {
-    if (!rawData || typeof rawData !== "object") {
-      throw new Error("Invalid sprint JSON payload");
-    }
-
-    const data = (rawData.sprint && typeof rawData.sprint === "object") ? rawData.sprint : rawData;
+  importSprint(userId: number, rawData: JsonRecord, targetSprintId?: number, overwrite?: boolean): MinorSprintFull {
+    const data: JsonRecord = isRecord(rawData.sprint) ? rawData.sprint : rawData;
     const shouldOverwrite = Boolean(overwrite ?? rawData.overwrite ?? data.overwrite);
-    const customName = (rawData.customName ?? data.customName ?? data.name)?.trim();
-    const customNumber = (rawData.customSprintNumber ?? data.customSprintNumber ?? data.sprintNumber)?.trim();
+    const customName = pickText(rawData.customName, data.customName, data.name) ?? "";
+    const customNumber = pickText(rawData.customSprintNumber, data.customSprintNumber, data.sprintNumber) ?? "";
+    const resolvedTargetId = Number(targetSprintId ?? rawData.targetSprintId ?? data.targetSprintId);
 
     let sprintId: number;
-
-    const resolvedTargetId = targetSprintId ?? rawData.targetSprintId ?? data.targetSprintId;
-
-    if (resolvedTargetId && Number(resolvedTargetId) > 0) {
-      const existing = db.select().from(minorSprints).where(and(eq(minorSprints.id, Number(resolvedTargetId)), eq(minorSprints.userId, userId))).get();
-      if (!existing) throw new Error("Target sprint not found");
+    if (resolvedTargetId > 0) {
+      const existing = this.requireTarget(resolvedTargetId, userId);
       sprintId = existing.id;
-
-      if (shouldOverwrite) {
-        const startDate = data.startDate ? String(data.startDate).trim() : existing.startDate;
-        const durationDays = typeof data.durationDays === "number" && data.durationDays > 0 ? data.durationDays : existing.durationDays;
-        const calc = this.calculateSprintDates(userId, startDate, durationDays);
-        const endDate = data.endDate ? String(data.endDate).trim() : calc.endDate;
-        const showAndGrowDate = data.showAndGrowDate ? String(data.showAndGrowDate).trim() : calc.showAndGrowDate;
-        const extendedDays = typeof data.extendedDays === "number" ? data.extendedDays : calc.extendedDays;
-        const extensionReason = data.extensionReason !== undefined ? data.extensionReason : calc.extensionReason;
-        const status = calculateSprintStatus(startDate, endDate);
-
-        db.update(minorSprints).set({
-          sprintNumber: customNumber || existing.sprintNumber,
-          name: customName || existing.name,
-          startDate,
-          endDate,
-          durationDays,
-          showAndGrowDate,
-          extendedDays,
-          extensionReason,
-          status,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
-        }).where(eq(minorSprints.id, sprintId)).run();
-
-        db.delete(minorStories).where(eq(minorStories.sprintId, sprintId)).run();
-        db.delete(minorFeedbackEntries).where(eq(minorFeedbackEntries.sprintId, sprintId)).run();
-      }
+      if (shouldOverwrite) this.overwriteSprint(userId, existing, data, customName, customNumber);
     } else {
-      const nextInfo = this.getNextSprintNumber(userId);
-      const sprintNumber = customNumber || (data.sprintNumber != null ? String(data.sprintNumber).trim() : nextInfo.nextNumber);
-      const name = customName || (data.name != null ? String(data.name).trim() : (data.sprintNumber ? `Sprint ${data.sprintNumber}` : nextInfo.nextName));
-      const startDate = data.startDate ? String(data.startDate).trim() : formatDate(new Date());
-      const durationDays = typeof data.durationDays === "number" && data.durationDays > 0 ? data.durationDays : 14;
-      const calc = this.calculateSprintDates(userId, startDate, durationDays);
-      const endDate = data.endDate ? String(data.endDate).trim() : calc.endDate;
-      const showAndGrowDate = data.showAndGrowDate ? String(data.showAndGrowDate).trim() : calc.showAndGrowDate;
-      const extendedDays = typeof data.extendedDays === "number" ? data.extendedDays : calc.extendedDays;
-      const extensionReason = data.extensionReason !== undefined ? data.extensionReason : calc.extensionReason;
-      const status = calculateSprintStatus(startDate, endDate);
-
-      const created = db.insert(minorSprints).values({
-        userId,
-        sprintNumber,
-        name,
-        startDate,
-        endDate,
-        durationDays,
-        showAndGrowDate,
-        extendedDays,
-        extensionReason,
-        status,
-      }).returning().get() as MinorSprint;
-
-      sprintId = created.id;
-      this.initSelfEvaluationsAndAssessments(sprintId);
+      sprintId = this.createImportedSprint(userId, data, customName, customNumber).id;
     }
 
+    this.importChildren(userId, sprintId, data);
+    return this.sprints.getById(sprintId, userId);
+  }
+
+  private requireTarget(id: number, userId: number) {
+    try {
+      return this.sprints.requireOwned(id, userId);
+    } catch (error) {
+      if (error instanceof NotFoundError) throw new NotFoundError("minor.targetSprintNotFound");
+      throw error;
+    }
+  }
+
+  private resolveDates(userId: number, data: JsonRecord, fallbackStart: string, fallbackDuration: number) {
+    const startDate = data.startDate ? String(data.startDate).trim() : fallbackStart;
+    const durationDays = typeof data.durationDays === "number" && data.durationDays > 0 ? data.durationDays : fallbackDuration;
+    const calc = this.schedule.calculateSprintDates(userId, startDate, durationDays);
+    const endDate = data.endDate ? String(data.endDate).trim() : calc.endDate;
+    return {
+      startDate,
+      durationDays,
+      endDate,
+      showAndGrowDate: data.showAndGrowDate ? String(data.showAndGrowDate).trim() : calc.showAndGrowDate,
+      extendedDays: typeof data.extendedDays === "number" ? data.extendedDays : calc.extendedDays,
+      extensionReason: data.extensionReason !== undefined ? (data.extensionReason as string | null) : calc.extensionReason,
+      status: calculateSprintStatus(startDate, endDate),
+    };
+  }
+
+  private overwriteSprint(userId: number, existing: typeof minorSprints.$inferSelect, data: JsonRecord, name: string, number: string) {
+    const dates = this.resolveDates(userId, data, existing.startDate, existing.durationDays);
+    db.update(minorSprints).set({
+      sprintNumber: number || existing.sprintNumber,
+      name: name || existing.name,
+      ...dates,
+      updatedAt: sql`CURRENT_TIMESTAMP`,
+    }).where(eq(minorSprints.id, existing.id)).run();
+
+    db.delete(minorStories).where(eq(minorStories.sprintId, existing.id)).run();
+    db.delete(minorFeedbackEntries).where(eq(minorFeedbackEntries.sprintId, existing.id)).run();
+  }
+
+  private createImportedSprint(userId: number, data: JsonRecord, name: string, number: string): MinorSprint {
+    const next = this.sprints.getNextNumber(userId);
+    const dates = this.resolveDates(userId, data, formatDate(new Date()), 14);
+    const created = db.insert(minorSprints).values({
+      userId,
+      sprintNumber: number || (data.sprintNumber != null ? String(data.sprintNumber).trim() : next.nextNumber),
+      name: name || (data.name != null ? String(data.name).trim() : (data.sprintNumber ? `Sprint ${data.sprintNumber}` : next.nextName)),
+      ...dates,
+    }).returning().get() as MinorSprint;
+    this.evaluations.initDefaults(created.id);
+    return created;
+  }
+
+  private importChildren(userId: number, sprintId: number, data: JsonRecord) {
     if (Array.isArray(data.stories)) {
-      data.stories.forEach((st: any, idx: number) => {
-        if (!st || typeof st !== "object") return;
-        const rawTitle = st.title ?? st.name ?? "";
-        const title = String(rawTitle).trim();
-        if (!title) return;
-
-        const storyTypeCode = String(st.storyTypeCode ?? st.type ?? st.storyType ?? "US").trim().toUpperCase();
-        const storyNumber = st.storyNumber != null ? String(st.storyNumber).trim() : undefined;
-        const asA = st.asA ?? st.as_a ?? st.role;
-        const iWant = st.iWant ?? st.i_want ?? st.want;
-        const soThat = st.soThat ?? st.so_that ?? st.purpose;
-
-        let learningOutcomes: number[] = [];
-        const rawLUs = st.learningOutcomes ?? st.learning_outcomes ?? st.lus ?? st.lu;
-        if (Array.isArray(rawLUs)) {
-          learningOutcomes = rawLUs.map((n: any) => Number(n)).filter((n: number) => !isNaN(n) && n >= 1 && n <= 5);
-        } else if (typeof rawLUs === "number" || typeof rawLUs === "string") {
-          const parsed = Number(rawLUs);
-          if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) learningOutcomes = [parsed];
-        }
-
-        const statusStr = String(st.status || "todo");
-        const status = (["todo", "in_progress", "done"].includes(statusStr) ? statusStr : "todo") as "todo" | "in_progress" | "done";
-
-        let acceptance: Array<{ text: string; isCompleted?: boolean; indent?: number }> = [];
-        const rawAcceptance = st.acceptanceCriteria ?? st.acceptance_criteria;
-        if (Array.isArray(rawAcceptance)) {
-          acceptance = rawAcceptance
-            .map((item: any) => {
-              if (typeof item === "string") return { text: item.trim(), isCompleted: false, indent: 0 };
-              if (item && typeof item === "object") {
-                const textVal = String(item.text ?? item.title ?? "").trim();
-                return { text: textVal, isCompleted: Boolean(item.isCompleted), indent: item.indent ? 1 : 0 };
-              }
-              return null;
-            })
-            .filter((item): item is { text: string; isCompleted: boolean; indent: number } => Boolean(item && item.text));
-        }
-
-        let quality: Array<{ text: string; isCompleted?: boolean; indent?: number }> = [];
-        const rawQuality = st.qualityCriteria ?? st.quality_criteria;
-        if (Array.isArray(rawQuality)) {
-          quality = rawQuality
-            .map((item: any) => {
-              if (typeof item === "string") return { text: item.trim(), isCompleted: false, indent: 0 };
-              if (item && typeof item === "object") {
-                const textVal = String(item.text ?? item.title ?? "").trim();
-                return { text: textVal, isCompleted: Boolean(item.isCompleted), indent: item.indent ? 1 : 0 };
-              }
-              return null;
-            })
-            .filter((item): item is { text: string; isCompleted: boolean; indent: number } => Boolean(item && item.text));
-        }
-
-        if (Array.isArray(st.criteria)) {
-          st.criteria.forEach((c: any) => {
-            if (!c || typeof c !== "object") return;
-            const textVal = String(c.text ?? c.title ?? "").trim();
-            if (!textVal) return;
-            const critObj = { text: textVal, isCompleted: Boolean(c.isCompleted), indent: c.indent ? 1 : 0 };
-            if (c.type === "quality") {
-              quality.push(critObj);
-            } else {
-              acceptance.push(critObj);
-            }
-          });
-        }
-
-        let evidence: Array<{ type: "link" | "github" | "document" | "app"; title: string; url: string }> = [];
-        const rawEvidence = st.evidence ?? st.evidenceList;
-        if (Array.isArray(rawEvidence)) {
-          evidence = rawEvidence
-            .map((e: any) => {
-              if (!e || typeof e !== "object") return null;
-              const evTitle = String(e.title ?? "").trim();
-              const evUrl = String(e.url ?? "").trim();
-              const evTypeStr = String(e.type ?? "link");
-              const evType = (["link", "github", "document", "app"].includes(evTypeStr) ? evTypeStr : "link") as "link" | "github" | "document" | "app";
-              return { type: evType, title: evTitle, url: evUrl };
-            })
-            .filter((e): e is { type: "link" | "github" | "document" | "app"; title: string; url: string } => Boolean(e && e.title && e.url));
-        }
-
-        const orderIndex = typeof st.orderIndex === "number" ? st.orderIndex : idx + 1;
-        const presentationData = st.presentationData && typeof st.presentationData === "object" ? st.presentationData : null;
-
-        this.createStory(userId, sprintId, {
-          storyTypeCode,
-          storyNumber,
-          title,
-          asA: asA != null ? String(asA).trim() : undefined,
-          iWant: iWant != null ? String(iWant).trim() : undefined,
-          soThat: soThat != null ? String(soThat).trim() : undefined,
-          learningOutcomes,
-          status,
-          orderIndex,
-          presentationData,
-          acceptanceCriteria: acceptance,
-          qualityCriteria: quality,
-          evidence,
-        });
+      data.stories.forEach((raw, index) => {
+        const story = parseStory(raw, index);
+        if (story) this.stories.create(userId, sprintId, story);
       });
     }
 
     if (Array.isArray(data.feedback)) {
-      data.feedback.forEach((fb: any, idx: number) => {
-        if (!fb || typeof fb !== "object") return;
-        const fromWhom = String(fb.fromWhom ?? fb.from_whom ?? "").trim();
-        const feedbackText = String(fb.feedback ?? "").trim();
-        const actionText = String(fb.action ?? "").trim();
-        if (!fromWhom || (!feedbackText && !actionText)) return;
-
-        this.addFeedback(sprintId, {
-          date: fb.date ? String(fb.date).trim() : formatDate(new Date()),
-          fromWhom,
-          feedback: feedbackText,
-          action: actionText,
-          orderIndex: typeof fb.orderIndex === "number" ? fb.orderIndex : idx + 1,
-        });
+      data.feedback.forEach((raw, index) => {
+        const entry = parseFeedback(raw, index);
+        if (entry) this.feedback.add(sprintId, entry);
       });
     }
 
-    if (Array.isArray(data.selfEvaluations)) {
-      const validEvals = data.selfEvaluations
-        .filter((e: any) => e && typeof e.learningOutcome === "number" && e.learningOutcome >= 1 && e.learningOutcome <= 5)
-        .map((e: any) => ({
-          learningOutcome: e.learningOutcome,
-          level: ["V", "NV", "-"].includes(e.level) ? e.level : "-",
-          argumentation: e.argumentation ? String(e.argumentation) : "",
-        }));
-      if (validEvals.length > 0) {
-        this.saveSelfEvaluations(sprintId, userId, validEvals);
-      }
-    }
+    const selfEvaluations = parseSelfEvaluations(data.selfEvaluations);
+    if (selfEvaluations.length > 0) this.evaluations.saveSelfEvaluations(sprintId, userId, selfEvaluations);
 
-    if (Array.isArray(data.teacherAssessments)) {
-      const validAssess = data.teacherAssessments
-        .filter((a: any) => a && typeof a.learningOutcome === "number" && a.learningOutcome >= 1 && a.learningOutcome <= 5)
-        .map((a: any) => ({
-          learningOutcome: a.learningOutcome,
-          assessment: ["V", "O", "-"].includes(a.assessment) ? a.assessment : "-",
-          notes: a.notes ? String(a.notes) : "",
-          evaluatedAt: a.evaluatedAt ? String(a.evaluatedAt) : undefined,
-        }));
-      if (validAssess.length > 0) {
-        this.saveTeacherAssessments(sprintId, userId, validAssess);
-      }
-    }
+    const assessments = parseTeacherAssessments(data.teacherAssessments);
+    if (assessments.length > 0) this.evaluations.saveTeacherAssessments(sprintId, userId, assessments);
 
-    if (data.reflection && typeof data.reflection === "object") {
-      this.saveReflection(sprintId, {
-        date: data.reflection.date ? String(data.reflection.date) : formatDate(new Date()),
-        whatLearned: data.reflection.whatLearned ? String(data.reflection.whatLearned) : "",
-        whatRetained: data.reflection.whatRetained ? String(data.reflection.whatRetained) : "",
-        whatChange: data.reflection.whatChange ? String(data.reflection.whatChange) : "",
-      });
-    }
-
-    return this.getSprintById(sprintId, userId)!;
-  }
-
-  autoGenerateSelfEvaluations(sprintId: number, userId: number): MinorSelfEvaluation[] {
-    const sprint = this.getSprintById(sprintId, userId);
-    if (!sprint) throw new Error("Sprint not found");
-
-    const result: MinorSelfEvaluation[] = [];
-
-    for (let lu = 1; lu <= 5; lu++) {
-      const storiesForLu = sprint.stories.filter((s) => s.learningOutcomes.includes(lu));
-      const hasStories = storiesForLu.length > 0;
-      const defaultLevel = hasStories ? "V" : "-";
-
-      const completedStories = storiesForLu.filter((s) => s.status === "done");
-      const inProgressStories = storiesForLu.filter((s) => s.status !== "done");
-
-      const lines: string[] = [];
-      if (completedStories.length > 0) {
-        lines.push(`Voltooide stories voor LU ${lu}:`);
-        for (const st of completedStories) {
-          const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
-          lines.push(`• ${prefix}${st.title}`);
-          if (st.evidence && st.evidence.length > 0) {
-            for (const ev of st.evidence) {
-              lines.push(`   - Bewijs (${ev.type}): ${ev.title} (${ev.url})`);
-            }
-          }
-        }
-      }
-
-      if (inProgressStories.length > 0) {
-        if (lines.length > 0) lines.push("");
-        lines.push(`In uitvoering:`);
-        for (const st of inProgressStories) {
-          const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
-          lines.push(`• ${prefix}${st.title}`);
-        }
-      }
-
-      if (lines.length === 0) {
-        lines.push(`Geen stories gekoppeld aan LU ${lu} in deze sprint.`);
-      }
-
-      const generatedArgumentation = lines.join("\n");
-
-      const existing = db.select().from(minorSelfEvaluations).where(and(eq(minorSelfEvaluations.sprintId, sprintId), eq(minorSelfEvaluations.learningOutcome, lu))).get();
-      if (existing) {
-        const updated = db.update(minorSelfEvaluations).set({
-          level: defaultLevel,
-          argumentation: generatedArgumentation,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
-        }).where(eq(minorSelfEvaluations.id, existing.id)).returning().get();
-        result.push(updated as MinorSelfEvaluation);
-      } else {
-        const created = db.insert(minorSelfEvaluations).values({
-          sprintId,
-          learningOutcome: lu,
-          level: defaultLevel,
-          argumentation: generatedArgumentation,
-        }).returning().get();
-        result.push(created as MinorSelfEvaluation);
-      }
-    }
-
-    return result;
+    const reflection = parseReflection(data.reflection);
+    if (reflection) this.feedback.saveReflection(sprintId, reflection);
   }
 }

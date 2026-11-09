@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, type DragEvent, type FormEvent } from "react";
 import { Download, Copy, Upload, AlertTriangle, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
+import { api, apiErrorMessage, type MinorSprint, type MinorSprintFull } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorSprintImportModalProps {
@@ -178,8 +178,7 @@ export function MinorSprintImportModal({
       onClose();
     } catch (err: unknown) {
       console.error("Sprint import failed:", err);
-      const msg = err instanceof Error ? err.message : t("Fout bij importeren van sprint.");
-      setError(msg);
+      setError(apiErrorMessage(err, "Fout bij importeren van sprint."));
     } finally {
       setIsImporting(false);
     }
