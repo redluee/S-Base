@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { serverApi } from "@/lib/server-api";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { ResumeEditorClient } from "./client";
 
 export default async function ResumeEditorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -8,11 +8,10 @@ export default async function ResumeEditorPage({ params }: { params: Promise<{ i
   if (!Number.isInteger(resumeId)) notFound();
 
   const [full, experiences, educations] = await Promise.all([
-    serverApi.resume.resumes.get(resumeId).catch(() => null),
+    notFoundOn404(serverApi.resume.resumes.get(resumeId)),
     serverApi.resume.experiences().catch(() => []),
     serverApi.resume.educations().catch(() => []),
   ]);
-  if (!full) notFound();
 
   return <ResumeEditorClient initial={full} experiences={experiences} educations={educations} />;
 }

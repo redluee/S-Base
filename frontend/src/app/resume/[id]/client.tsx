@@ -13,7 +13,7 @@ import type {
   ResumeProfile,
 } from "@backend/types/shared";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { formatPeriod, snapColumnWidth, RESUME_COLUMN_MIN, RESUME_COLUMN_MAX, RESUME_COLUMN_STEP, RESUME_SCALE_MIN, RESUME_SCALE_MAX, RESUME_SCALE_STEP, snapScale } from "@/lib/resume";
 import { ResumePdfPreview } from "@/components/resume-pdf-preview";
 import { downloadResumePDF } from "@/components/resume-pdf";
@@ -88,7 +88,7 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
         setSaveError("");
       } catch (err) {
         setSave("error");
-        setSaveError(err instanceof Error ? err.message : t("Er ging iets mis"));
+        setSaveError(apiErrorMessage(err, "Er ging iets mis"));
       }
     }, 600);
     return () => clearTimeout(timer);
@@ -185,7 +185,7 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
       await downloadResumePDF(full);
     } catch (err) {
       setSave("error");
-      setSaveError(err instanceof Error ? err.message : t("Exporteren mislukt"));
+      setSaveError(apiErrorMessage(err, "Exporteren mislukt"));
     } finally {
       setExporting(false);
     }

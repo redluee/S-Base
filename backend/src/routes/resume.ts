@@ -1,77 +1,136 @@
-import { Elysia } from "elysia";
-import { ensureGoogleFont, googleFamilyOf, resolveFontFile } from "../modules/resume/fonts";
-import { join } from "path";
-import { mkdir } from "fs/promises";
-import { resume, resumeAuth, badRequest, notFoundOr } from "../context";
+import { Elysia, t } from "elysia";
+import { resume, resumeAuth, saveUpload } from "../context";
+import { PHOTO_EXTENSIONS, PHOTO_MAX_BYTES } from "../modules/resume";
+import { ensureGoogleFont, resolveFontFile } from "../modules/resume/fonts";
+import { NotFoundError } from "../utils/errors";
 
-export const resumeRoutes = new Elysia()
-  // --- Resume routes ---
-  .group("/api/resume", (app) =>
-    app
-      .use(resumeAuth)
-      .get("/profile", ({ userId }) => resume.getProfile(userId))
-      .put("/profile", ({ userId, body }) => badRequest(() => resume.upsertProfile(userId, (body ?? {}) as any)))
-      .post("/profile/photo", async ({ userId, body }) => {
-        const { file } = (body ?? {}) as any;
-        if (!file || typeof file.type !== "string" || !file.type.startsWith("image/")) {
-          return new Response("No image uploaded", { status: 400 });
-        }
-        if (file.size > 8 * 1024 * 1024) return new Response("File too large", { status: 413 });
-        const uploadsDir = join(import.meta.dir, "../../uploads");
-        await mkdir(uploadsDir, { recursive: true });
-        const ext = ({ "image/png": "png", "image/webp": "webp" } as Record<string, string>)[file.type] ?? "jpg";
-        const filename = `resume_${crypto.randomUUID()}.${ext}`;
-        await Bun.write(join(uploadsDir, filename), file);
-        const { profile, previousPath } = resume.setPhoto(userId, `/api/resume/photo/${filename}`);
-        if (previousPath?.startsWith("/api/resume/photo/")) {
-          await Bun.file(join(uploadsDir, previousPath.split("/").pop() as string)).delete().catch(() => {});
-        }
-        return profile;
-      })
-      .delete("/profile/photo", async ({ userId }) => {
-        const { profile, previousPath } = resume.setPhoto(userId, null);
-        if (previousPath?.startsWith("/api/resume/photo/")) {
-          await Bun.file(join(import.meta.dir, "../../uploads", previousPath.split("/").pop() as string)).delete().catch(() => {});
-        }
-        return profile;
-      })
-      .get("/photo/:filename", async ({ params: { filename }, userId }) => {
-        if (!/^resume_[0-9a-f-]+\.(jpg|png|webp)$/.test(filename) || !resume.ownsPhoto(userId, `/api/resume/photo/${filename}`)) {
-          return new Response("Not Found", { status: 404 });
-        }
-        const file = Bun.file(join(import.meta.dir, "../../uploads", filename));
-        return (await file.exists()) ? new Response(file, { headers: { "Cache-Control": "private, max-age=300" } }) : new Response("Not Found", { status: 404 });
-      })
-      .get("/experiences", ({ userId }) => resume.listExperiences(userId))
-      .post("/experiences", ({ userId, body }) => badRequest(() => resume.createExperience(userId, body ?? {})))
-      .put("/experiences/:id", ({ params: { id }, userId, body }) => badRequest(() => notFoundOr(resume.updateExperience(Number(id), userId, body ?? {}))))
-      .delete("/experiences/:id", ({ params: { id }, userId }) => resume.deleteExperience(Number(id), userId) ? { success: true } : new Response("Not Found", { status: 404 }))
-      .get("/educations", ({ userId }) => resume.listEducations(userId))
-      .post("/educations", ({ userId, body }) => badRequest(() => resume.createEducation(userId, body ?? {})))
-      .put("/educations/:id", ({ params: { id }, userId, body }) => badRequest(() => notFoundOr(resume.updateEducation(Number(id), userId, body ?? {}))))
-      .delete("/educations/:id", ({ params: { id }, userId }) => resume.deleteEducation(Number(id), userId) ? { success: true } : new Response("Not Found", { status: 404 }))
-      .get("/resumes", ({ userId }) => resume.listResumes(userId))
-      .post("/resumes", ({ userId, body }) => badRequest(() => resume.createResume(userId, body ?? {})))
-      .get("/resumes/:id", ({ params: { id }, userId }) => notFoundOr(resume.getResumeFull(Number(id), userId)))
-      .put("/resumes/:id", ({ params: { id }, userId, body }) => badRequest(() => notFoundOr(resume.updateResume(Number(id), userId, body ?? {}))))
-      .delete("/resumes/:id", ({ params: { id }, userId }) => resume.deleteResume(Number(id), userId) ? { success: true } : new Response("Not Found", { status: 404 }))
-      .post("/resumes/:id/duplicate", ({ params: { id }, userId }) => notFoundOr(resume.duplicateResume(Number(id), userId)))
-      .put("/resumes/:id/items", ({ params: { id }, userId, body }) => badRequest(() => notFoundOr(resume.setResumeItems(Number(id), userId, (body as any)?.items ?? []))))
-      .get("/fonts/google", async ({ query }) => {
-        const family = googleFamilyOf(`google:${String((query as any)?.family ?? "").trim()}`);
-        try {
-          return await ensureGoogleFont(family as string);
-        } catch (e: any) {
-          return new Response(JSON.stringify({ error: e?.message ?? "Font unavailable" }), {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-      })
-      .get("/fonts/file/:name", async ({ params: { name } }) => {
+const idParams = t.Object({ id: t.Numeric() });
+
+const optString = t.Optional(t.String());
+const optNullableNumber = t.Optional(t.Nullable(t.Number()));
+
+const periodFields = {
+  startMonth: optNullableNumber,
+  startYear: optNullableNumber,
+  endMonth: optNullableNumber,
+  endYear: optNullableNumber,
+  isCurrent: t.Optional(t.Boolean()),
+};
+
+const experienceFields = {
+  place: optString,
+  description: optString,
+  logoPath: t.Optional(t.Nullable(t.String())),
+  ...periodFields,
+};
+
+const settingsFields = {
+  titleFont: optString,
+  textFont: optString,
+  accentColor: optString,
+  leftWidthPct: t.Optional(t.Number()),
+  swapColumns: t.Optional(t.Boolean()),
+  titleScalePct: t.Optional(t.Number()),
+  textScalePct: t.Optional(t.Number()),
+};
+
+const profileBody = t.Object({
+  fullName: optString,
+  headline: optString,
+  photoShape: optString,
+  residence: optString,
+  phone: optString,
+  email: optString,
+  birthDate: optString,
+  drivingLicense: optString,
+  links: t.Optional(t.Array(t.Object({ label: optString, url: optString }))),
+  sections: t.Optional(
+    t.Array(t.Object({ id: optString, title: optString, items: t.Optional(t.Array(t.String())) })),
+  ),
+});
+
+const itemsBody = t.Object({
+  items: t.Array(
+    t.Object({
+      kind: t.String(),
+      refId: t.Number(),
+      descriptionOverride: t.Optional(t.Nullable(t.String())),
+    }),
+  ),
+});
+
+export const resumeRoutes = new Elysia().group("/api/resume", (app) =>
+  app
+    .use(resumeAuth)
+    .get("/profile", ({ userId }) => resume.profile.get(userId))
+    .put("/profile", ({ userId, body }) => resume.profile.upsert(userId, body), { body: profileBody })
+    .post(
+      "/profile/photo",
+      async ({ userId, body }) => {
+        const { filename } = await saveUpload(body, "resume_", PHOTO_EXTENSIONS, PHOTO_MAX_BYTES);
+        return resume.profile.replacePhoto(userId, filename);
+      },
+      { body: t.Object({ file: t.File() }) },
+    )
+    .delete("/profile/photo", ({ userId }) => resume.profile.replacePhoto(userId, null))
+    .get(
+      "/photo/:filename",
+      async ({ params: { filename }, userId }) =>
+        new Response(await resume.profile.photoFile(userId, filename), {
+          headers: { "Cache-Control": "private, max-age=300" },
+        }),
+      { params: t.Object({ filename: t.String() }) },
+    )
+    .get("/experiences", ({ userId }) => resume.library.listExperiences(userId))
+    .post("/experiences", ({ userId, body }) => resume.library.createExperience(userId, body), {
+      body: t.Object({ company: t.String(), jobTitle: t.String(), ...experienceFields }),
+    })
+    .put("/experiences/:id", ({ params: { id }, userId, body }) => resume.library.updateExperience(id, userId, body), {
+      params: idParams,
+      body: t.Object({ company: optString, jobTitle: optString, ...experienceFields }),
+    })
+    .delete("/experiences/:id", ({ params: { id }, userId }) => resume.library.deleteExperience(id, userId), {
+      params: idParams,
+    })
+    .get("/educations", ({ userId }) => resume.library.listEducations(userId))
+    .post("/educations", ({ userId, body }) => resume.library.createEducation(userId, body), {
+      body: t.Object({ institution: t.String(), degree: t.String(), ...experienceFields }),
+    })
+    .put("/educations/:id", ({ params: { id }, userId, body }) => resume.library.updateEducation(id, userId, body), {
+      params: idParams,
+      body: t.Object({ institution: optString, degree: optString, ...experienceFields }),
+    })
+    .delete("/educations/:id", ({ params: { id }, userId }) => resume.library.deleteEducation(id, userId), {
+      params: idParams,
+    })
+    .get("/resumes", ({ userId }) => resume.resumes.list(userId))
+    .post("/resumes", ({ userId, body }) => resume.resumes.create(userId, body), {
+      body: t.Object({ name: t.String(), selectAll: t.Optional(t.Boolean()), ...settingsFields }),
+    })
+    .get("/resumes/:id", ({ params: { id }, userId }) => resume.resumes.getFull(id, userId), { params: idParams })
+    .put("/resumes/:id", ({ params: { id }, userId, body }) => resume.resumes.update(id, userId, body), {
+      params: idParams,
+      body: t.Object({ name: optString, ...settingsFields }),
+    })
+    .delete("/resumes/:id", ({ params: { id }, userId }) => resume.resumes.remove(id, userId), { params: idParams })
+    .post("/resumes/:id/duplicate", ({ params: { id }, userId }) => resume.resumes.duplicate(id, userId), {
+      params: idParams,
+    })
+    .put("/resumes/:id/items", ({ params: { id }, userId, body }) => resume.resumes.setItems(id, userId, body.items), {
+      params: idParams,
+      body: itemsBody,
+    })
+    .get("/fonts/google", ({ query: { family } }) => ensureGoogleFont(family.trim()), {
+      query: t.Object({ family: t.String() }),
+    })
+    .get(
+      "/fonts/file/:name",
+      async ({ params: { name } }) => {
         const path = resolveFontFile(name);
-        if (!path) return new Response("Not Found", { status: 404 });
-        const file = Bun.file(path);
-        return (await file.exists()) ? new Response(file, { headers: { "Content-Type": "font/ttf", "Cache-Control": "private, max-age=86400" } }) : new Response("Not Found", { status: 404 });
-      })
-  );
+        const file = path ? Bun.file(path) : null;
+        if (!file || !(await file.exists())) throw new NotFoundError("resume.fontNotFound");
+        return new Response(file, { headers: { "Content-Type": "font/ttf", "Cache-Control": "private, max-age=86400" } });
+      },
+      { params: t.Object({ name: t.String() }) },
+    ),
+);

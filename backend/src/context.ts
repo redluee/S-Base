@@ -108,10 +108,10 @@ export async function validated<T>(fn: () => T | Promise<T>): Promise<T | Respon
   }
 }
 
-export async function saveUpload(body: unknown, prefix: string, allowed: string[]) {
+export async function saveUpload(body: unknown, prefix: string, allowed: string[], maxBytes?: number) {
   const file = (body as { file?: File } | null | undefined)?.file;
   if (!file) throw new ValidationError("upload.noFile");
-  const ext = resolveUploadExtension(file, allowed);
+  const ext = resolveUploadExtension(file, allowed, maxBytes);
   const uploadsDir = join(import.meta.dir, "../uploads");
   await mkdir(uploadsDir, { recursive: true });
   const filename = `${prefix}${crypto.randomUUID()}.${ext}`;

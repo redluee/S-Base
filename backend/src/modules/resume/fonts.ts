@@ -1,6 +1,7 @@
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import type { ResumeGoogleFont } from "../../types/shared";
+import { NotFoundError, ValidationError } from "../../utils/errors";
 
 export const CURATED_FONTS = [
   "carlito",
@@ -51,7 +52,7 @@ function parseFaces(css: string) {
 }
 
 export async function ensureGoogleFont(family: string): Promise<ResumeGoogleFont> {
-  if (!FAMILY_PATTERN.test(family)) throw new Error("Invalid font family");
+  if (!FAMILY_PATTERN.test(family)) throw new ValidationError("resume.invalidFontFamily");
   const slug = slugify(family);
   const regularName = `${slug}-400.ttf`;
   const boldName = `${slug}-700.ttf`;
@@ -64,16 +65,16 @@ export async function ensureGoogleFont(family: string): Promise<ResumeGoogleFont
 
   const cssUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@400;700`;
   const res = await fetch(cssUrl, { headers: { "User-Agent": "curl/8.0" } });
-  if (!res.ok) throw new Error("Font not found");
+  if (!res.ok) throw new NotFoundError("resume.fontNotFound");
   const faces = parseFaces(await res.text());
   const regular = faces.find((f) => f.weight === 400);
   const bold = faces.find((f) => f.weight === 700) ?? regular;
-  if (!regular || !bold) throw new Error("Font not available as TTF");
+  if (!regular || !bold) throw new NotFoundError("resume.fontNotAvailable");
 
   await mkdir(FONTS_DIR, { recursive: true });
   for (const [face, path] of [[regular, regularPath], [bold, boldPath]] as const) {
     const fontRes = await fetch(face.url);
-    if (!fontRes.ok) throw new Error("Font download failed");
+    if (!fontRes.ok) throw new NotFoundError("resume.fontDownloadFailed");
     await Bun.write(path, await fontRes.arrayBuffer());
   }
   return { family, regularUrl: fileUrl(regularName), boldUrl: fileUrl(boldName) };

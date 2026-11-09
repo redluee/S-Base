@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import type { ResumeExperience, ResumeEducation } from "@backend/types/shared";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { formatPeriod, MONTH_OPTIONS } from "@/lib/resume";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
@@ -108,7 +108,7 @@ export function ResumeLibraryClient({ kind, initialItems }: { kind: Kind; initia
       await reload();
       setOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setError(apiErrorMessage(err, "Er ging iets mis"));
     } finally {
       setSaving(false);
     }
@@ -120,7 +120,7 @@ export function ResumeLibraryClient({ kind, initialItems }: { kind: Kind; initia
       await service.delete(item.id);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setError(apiErrorMessage(err, "Er ging iets mis"));
     }
   }
 

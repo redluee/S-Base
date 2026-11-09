@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Copy, Trash2, FileText, ArrowUpRight } from "lucide-react";
 import type { Resume } from "@backend/types/shared";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 
 export function ResumeListClient({ initialResumes, libraryCount }: { initialResumes: Resume[]; libraryCount: number }) {
   const router = useRouter();
@@ -24,7 +24,7 @@ export function ResumeListClient({ initialResumes, libraryCount }: { initialResu
       const created = await api.resume.resumes.create({ name: name.trim(), selectAll: true });
       router.push(`/resume/${created.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setError(apiErrorMessage(err, "Er ging iets mis"));
       setBusy(false);
     }
   }
@@ -34,7 +34,7 @@ export function ResumeListClient({ initialResumes, libraryCount }: { initialResu
       const copy = await api.resume.resumes.duplicate(id);
       setResumes((prev) => [copy, ...prev]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setError(apiErrorMessage(err, "Er ging iets mis"));
     }
   }
 
@@ -44,7 +44,7 @@ export function ResumeListClient({ initialResumes, libraryCount }: { initialResu
       await api.resume.resumes.delete(id);
       setResumes((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setError(apiErrorMessage(err, "Er ging iets mis"));
     }
   }
 

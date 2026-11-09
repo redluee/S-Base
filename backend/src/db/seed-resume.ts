@@ -27,16 +27,16 @@ if (!hasPerm) {
 
 const svc = new ResumeService();
 const hasData =
-  svc.getProfile(user.userId).fullName !== "" ||
-  svc.listExperiences(user.userId).length > 0 ||
-  svc.listEducations(user.userId).length > 0 ||
-  svc.listResumes(user.userId).length > 0;
+  svc.profile.get(user.userId).fullName !== "" ||
+  svc.library.listExperiences(user.userId).length > 0 ||
+  svc.library.listEducations(user.userId).length > 0 ||
+  svc.resumes.list(user.userId).length > 0;
 if (hasData) {
   console.log(`User "${username}" already has resume data, nothing seeded.`);
   process.exit(0);
 }
 
-svc.upsertProfile(user.userId, {
+svc.profile.upsert(user.userId, {
   fullName: "Jan Voorbeeld",
   headline: "Student softwareontwikkeling | Fotograaf",
   photoShape: "circle",
@@ -66,7 +66,7 @@ const experiences = [
   { company: "Voorbeeld Supermarkt", place: "Voorbeelddorp", jobTitle: "Vulploegmedewerker / verfmenger", startMonth: 4, startYear: 2020, endMonth: 6, endYear: 2023, description: "" },
   { company: "Voorbeeld Fotoatelier", place: "Voorbeeldstad", jobTitle: "Stagiair fotografie, Webshop ontwikkelaar (snuffelstage)", startMonth: 2, startYear: 2019, endMonth: 2, endYear: 2019, description: "" },
 ];
-const expIds = experiences.map((e) => svc.createExperience(user.userId, e).id);
+const expIds = experiences.map((e) => svc.library.createExperience(user.userId, e).id);
 
 const educations = [
   { institution: "Voorbeeld Hogeschool", place: "Voorbeeldstad", degree: "HBO Software ontwikkeling", startMonth: 9, startYear: 2023, isCurrent: true,
@@ -74,12 +74,12 @@ const educations = [
   { institution: "Voorbeeld MBO", place: "Voorbeeldstad", degree: "MBO ICT-beheer", startMonth: 9, startYear: 2020, endMonth: 7, endYear: 2023,
     description: "Tijdens deze driejarige opleiding heb ik diverse vaardigheden opgedaan, waaronder netwerkbeheer, systeembeheer voor Windows en Linux, en helpdeskmanagement." },
 ];
-const eduIds = educations.map((e) => svc.createEducation(user.userId, e).id);
+const eduIds = educations.map((e) => svc.library.createEducation(user.userId, e).id);
 
-const resume = svc.createResume(user.userId, { name: "Voorbeeld CV (IT)" });
-svc.setResumeItems(resume.id, user.userId, [
-  ...svc.listExperiences(user.userId).filter((e) => expIds.includes(e.id)).map((e) => ({ kind: "experience" as const, refId: e.id })),
-  ...svc.listEducations(user.userId).filter((e) => eduIds.includes(e.id)).map((e) => ({ kind: "education" as const, refId: e.id })),
+const resume = svc.resumes.create(user.userId, { name: "Voorbeeld CV (IT)" });
+svc.resumes.setItems(resume.id, user.userId, [
+  ...svc.library.listExperiences(user.userId).filter((e) => expIds.includes(e.id)).map((e) => ({ kind: "experience" as const, refId: e.id })),
+  ...svc.library.listEducations(user.userId).filter((e) => eduIds.includes(e.id)).map((e) => ({ kind: "education" as const, refId: e.id })),
 ]);
 
 console.log(`Seeded placeholder resume data for "${username}".`);

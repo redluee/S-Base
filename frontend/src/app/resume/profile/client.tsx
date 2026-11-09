@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Plus, Trash2, Upload } from "lucide-react";
 import type { ResumeProfile, ResumeLink, ResumeSection } from "@backend/types/shared";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 
 const RESUME_SECTIONS_MAX = 5;
 
@@ -91,7 +91,7 @@ export function ResumeProfileClient({ initialProfile }: { initialProfile: Resume
       setMessage("");
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setMessage(apiErrorMessage(err, "Er ging iets mis"));
     }
   }
 
@@ -103,7 +103,7 @@ export function ResumeProfileClient({ initialProfile }: { initialProfile: Resume
       set("photoPath", saved.photoPath);
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : t("Uploaden mislukt"));
+      setMessage(apiErrorMessage(err, "Uploaden mislukt"));
     } finally {
       setUploading(false);
     }
@@ -115,7 +115,7 @@ export function ResumeProfileClient({ initialProfile }: { initialProfile: Resume
       set("photoPath", null);
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : t("Er ging iets mis"));
+      setMessage(apiErrorMessage(err, "Er ging iets mis"));
     }
   }
 
