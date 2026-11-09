@@ -1,5 +1,5 @@
 import { basename } from "path";
-import { ValidationError } from "./validation";
+import { ValidationError } from "./errors";
 
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif", "bmp"];
 export const DOCUMENT_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "md"];
@@ -23,14 +23,14 @@ export const UPLOAD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.[A-Za-z0-9
 export const MEASUREMENT_PHOTO_PATTERN = new RegExp(`^/api/uploads/(measurement_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(?:${IMAGE_EXTENSIONS.join("|")}))$`, "i");
 
 export function resolveUploadExtension(file: { name?: string; size?: number } | null | undefined, allowed: string[], maxBytes = 25 * 1024 * 1024): string {
-  if (!file || typeof file !== "object" || typeof (file as any).arrayBuffer !== "function") {
-    throw new ValidationError("No file uploaded");
+  if (!file || typeof file !== "object" || !("arrayBuffer" in file) || typeof file.arrayBuffer !== "function") {
+    throw new ValidationError("upload.noFile");
   }
-  if (typeof file.size === "number" && file.size > maxBytes) throw new ValidationError("File too large");
+  if (typeof file.size === "number" && file.size > maxBytes) throw new ValidationError("upload.tooLarge");
   const name = typeof file.name === "string" ? basename(file.name) : "";
   const dot = name.lastIndexOf(".");
   const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
-  if (!allowed.includes(ext)) throw new ValidationError(`File type not allowed. Allowed: ${allowed.join(", ")}`);
+  if (!allowed.includes(ext)) throw new ValidationError("upload.typeNotAllowed", { allowed });
   return ext;
 }
 

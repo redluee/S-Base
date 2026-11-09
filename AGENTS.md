@@ -36,10 +36,8 @@ In restricted agent sandboxes, Git writes to `.git`, SSH pushes, and Next.js Tur
 ## Modules & Domains
 
 Backend routes and frontend views are structured around discrete domain modules:
-- **Recipes** (`recipes`): Recipe book, ingredient calculations, cooking steps, photo storage, ratings (0–10), statuses (`"to try"`, `"success"`, `"needs tweak"`, `"failure"`, `"archived"`).
-- **Workouts** (`workout`): Workout routines, exercise templates, active workout session tracker, logs, offline caching.
-- **Measurements** (`measurements`): Body metric logging, physical progress photo gallery.
-- **Wines** (`wines`): Wine collection inventory, regions, grape types, tasting notes, ratings.
+- **Recipes** (`recipes`): Recipe book, ingredient calculations, cooking steps, photo storage, ratings (0–10), statuses (`"to try"`, `"success"`, `"needs tweak"`, `"failure"`, `"archived"`). Also owns the wine collection (inventory, regions, grape types, tasting notes, ratings) under the same `recipes` permission.
+- **Workouts** (`workout`): Workout routines, exercise templates, active workout session tracker, logs, offline caching. Also owns body measurements and progress photos under the same `workout` permission.
 - **Cashflow** (`cashflow`): Invoicing, client records, trade names, project budgeting, PDF invoice generation.
 - **Pulse** (`pulse`): System administration, active user management, module permission toggles, system metrics.
 - **Minecraft** (`minecraft`): Server instance monitoring, player tracking, backups.
@@ -75,6 +73,10 @@ Apply these to new code and to code you touch. Do not rewrite untouched modules.
 2. One `routes/<name>.ts` per module. Routes parse input and call the service; they hold no business logic.
 3. Name the service after the module (`recipes`, `wines`) and use the module's own permission key; no aliases to another module's.
 4. Split any file over ~300 lines (hard limit 500).
+
+**Reference module:** `recipes` (`backend/src/modules/recipes/`, `backend/src/routes/recipes.ts`, `backend/src/routes/recipes.test.ts`). Copy its shape: `index.ts` composes topic classes as readonly properties (`recipes.catalog`, `recipes.wines`), routes declare `t` schemas for params/query/body and return service results directly.
+
+**Error contract:** typed errors live in `backend/src/utils/errors.ts` (`ValidationError` 400, `NotFoundError` 404, `ConflictError` 409; `orNotFound()` for lookups). The constructor takes an i18n key named `<module>.<camelCaseName>` (shared ones: `common.*`, `upload.*`) plus optional details, and the central `onError` in `src/index.ts` answers `{ ...details, error: key }`. Elysia schema failures answer `{ error: "common.invalidRequest" }`. The frontend translates keys in `ApiError` (`lib/api/core.ts`); keys live in a per-domain lang file (`lib/<domain>-lang.ts`, spread into `lib/lang.ts`). Show errors with `apiErrorMessage(err, fallbackKey)`. Server pages wrap single-item fetches in `notFoundOn404()` from `lib/server-api.ts`.
 
 **Backend behaviour**
 5. Validate every body, query and param with an Elysia `t` schema on the route. `as any` is forbidden.

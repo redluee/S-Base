@@ -1,9 +1,8 @@
 import { Elysia } from "elysia";
 import { AuthService } from "./auth";
-import { RecipeService } from "./modules/recipes";
+import { RecipesService } from "./modules/recipes";
 import { WorkoutService } from "./modules/workout";
 import { MeasurementService } from "./modules/measurements";
-import { WineService } from "./modules/wines";
 import { CashflowService } from "./modules/cashflow";
 import { PulseService, ServerShutdownService, SystemUpdateService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
@@ -14,6 +13,7 @@ import { isProduction } from "./security";
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import { resolveUploadExtension } from "./utils/uploads";
+import { ValidationError } from "./utils/errors";
 import { validationResponse } from "./utils/validation";
 import { ensureDefaultModules } from "./db/user-manager";
 
@@ -31,10 +31,9 @@ if (isProduction()) {
     console.warn(`Default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`);
   }
 }
-export const recipes = new RecipeService();
+export const recipes = new RecipesService();
 export const workout = new WorkoutService();
 export const measurements = new MeasurementService();
-export const wineService = new WineService();
 export const cashflow = new CashflowService();
 export const pulse = new PulseService();
 export const minecraft = new MinecraftService();
@@ -112,7 +111,8 @@ export async function validated<T>(fn: () => T | Promise<T>): Promise<T | Respon
 }
 
 export async function saveUpload(body: unknown, prefix: string, allowed: string[]) {
-  const { file } = (body ?? {}) as any;
+  const file = (body as { file?: File } | null | undefined)?.file;
+  if (!file) throw new ValidationError("upload.noFile");
   const ext = resolveUploadExtension(file, allowed);
   const uploadsDir = join(import.meta.dir, "../uploads");
   await mkdir(uploadsDir, { recursive: true });

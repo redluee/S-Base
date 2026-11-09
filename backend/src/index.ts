@@ -14,6 +14,7 @@ import { resumeRoutes } from "./routes/resume";
 import { pulseRoutes } from "./routes/pulse";
 import { minecraftRoutes } from "./routes/minecraft";
 import { PORT, HOST, minecraft } from "./context";
+import { AppError, errorResponse, NotFoundError, ValidationError } from "./utils/errors";
 
 export const app = new Elysia()
   .use(cors({ origin: resolveCorsOrigin(), credentials: true }))
@@ -29,18 +30,9 @@ export const app = new Elysia()
     }
   })
   .onError(({ code, error }) => {
-    if (code === "NOT_FOUND") {
-      return new Response(JSON.stringify({ error: "Not Found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    if (code === "VALIDATION") {
-      return new Response(JSON.stringify({ error: (error as any)?.message || "Validation Error" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (error instanceof AppError) return errorResponse(error);
+    if (code === "NOT_FOUND") return errorResponse(new NotFoundError());
+    if (code === "VALIDATION" || code === "PARSE") return errorResponse(new ValidationError("common.invalidRequest"));
     console.error(JSON.stringify({ level: "error", code, message: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }));
     if (isProduction()) {
       return new Response(JSON.stringify({ error: "Internal Server Error" }), {

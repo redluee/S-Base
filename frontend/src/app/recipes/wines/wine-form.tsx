@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { t } from "@/lib/lang";
-import { api, type Wine } from "@/lib/api";
+import { api, apiErrorMessage, type Wine } from "@/lib/api";
 
 import { compressImage } from "@/lib/image";
 import { Loader2 } from "lucide-react";
@@ -79,7 +79,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
       setImageUrl(res.filePath);
     } catch (err: unknown) {
       console.error("Failed to upload photo:", err);
-      setError(err instanceof Error ? err.message : t("Failed to upload photo"));
+      setError(apiErrorMessage(err, "Failed to upload photo"));
     } finally {
       if (tempUrl) {
         URL.revokeObjectURL(tempUrl);
@@ -129,7 +129,7 @@ export function WineForm({ wine }: { wine?: Wine }) {
       router.refresh();
     } catch (err: unknown) {
       console.error("Failed to save wine:", err);
-      setError(err instanceof Error ? err.message : "Save failed");
+      setError(apiErrorMessage(err, "Save failed"));
       setIsSaving(false);
     }
   };

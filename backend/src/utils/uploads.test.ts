@@ -21,7 +21,7 @@ describe("upload allow-lists", () => {
 
   it("keeps image-only lists free of download-only types", () => {
     for (const ext of DOWNLOAD_ONLY_EXTENSIONS) {
-      expect(() => resolveUploadExtension(file(`a.${ext}`), IMAGE_EXTENSIONS)).toThrow("File type not allowed");
+      expect(() => resolveUploadExtension(file(`a.${ext}`), IMAGE_EXTENSIONS)).toThrow("upload.typeNotAllowed");
     }
   });
 
@@ -37,7 +37,7 @@ describe("upload allow-lists", () => {
 
   it("never allows markup or script types", () => {
     for (const ext of ["svg", "html", "htm", "js", "mjs", "xhtml", "xml", "php"]) {
-      expect(() => resolveUploadExtension(file(`evil.${ext}`), ATTACHMENT_EXTENSIONS)).toThrow("File type not allowed");
+      expect(() => resolveUploadExtension(file(`evil.${ext}`), ATTACHMENT_EXTENSIONS)).toThrow("upload.typeNotAllowed");
     }
   });
 

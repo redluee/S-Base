@@ -1,29 +1,31 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
-import { WineService } from "./index";
+import { NotFoundError, ValidationError } from "../../utils/errors";
+import { RecipesService } from "./index";
+import type { RecipeWines } from "./recipes-wines";
 
-describe("WineService", () => {
-  let wineService: WineService;
+describe("RecipeWines", () => {
+  let wineService: RecipeWines;
   let adminId: number;
 
   beforeEach(async () => {
     const ids = await setupTestDb();
     adminId = ids.adminId;
-    wineService = new WineService();
+    wineService = new RecipesService().wines;
   });
 
   it("validates mandatory fields and enum values when creating a wine", () => {
     expect(() =>
       wineService.create(adminId, { brand: "", type: "red", variety: "Merlot" })
-    ).toThrow("Brand is required");
+    ).toThrow(new ValidationError("recipes.wineBrandRequired"));
 
     expect(() =>
       wineService.create(adminId, { brand: "Bordeaux", type: "invalid_type", variety: "Merlot" })
-    ).toThrow("Invalid wine type");
+    ).toThrow(new ValidationError("recipes.invalidWineType"));
 
     expect(() =>
       wineService.create(adminId, { brand: "Bordeaux", type: "red", variety: "", purchaseLocation: "supermarket" })
-    ).toThrow("Variety is required");
+    ).toThrow(new ValidationError("recipes.wineVarietyRequired"));
 
     expect(() =>
       wineService.create(adminId, {
@@ -32,7 +34,7 @@ describe("WineService", () => {
         variety: "Merlot",
         purchaseLocation: "invalid_loc",
       })
-    ).toThrow("Invalid purchase location");
+    ).toThrow(new ValidationError("recipes.invalidPurchaseLocation"));
   });
 
   it("creates, retrieves, updates, and deletes wines", () => {
@@ -50,20 +52,21 @@ describe("WineService", () => {
     expect(wine.brand).toBe("Rioja Gran Reserva");
 
     const fetched = wineService.getById(wine.wineId);
-    expect(fetched?.vintage).toBe(2016);
+    expect(fetched.vintage).toBe(2016);
 
     const updated = wineService.update(wine.wineId, {
       rating: 10,
       notes: "Uitstekende rijpheid",
     });
-    expect(updated?.rating).toBe(10);
-    expect(updated?.notes).toBe("Uitstekende rijpheid");
+    expect(updated.rating).toBe(10);
+    expect(updated.notes).toBe("Uitstekende rijpheid");
 
-    const list = wineService.list(adminId, "red", "Rioja");
+    const list = wineService.list({ type: "red", q: "Rioja" });
     expect(list.some((w) => w.wineId === wine.wineId)).toBe(true);
 
     const removeRes = wineService.remove(wine.wineId);
-    expect(removeRes).toBe(true);
-    expect(wineService.getById(wine.wineId)).toBeFalsy();
+    expect(removeRes).toEqual({ success: true });
+    expect(() => wineService.getById(wine.wineId)).toThrow(new NotFoundError("recipes.wineNotFound"));
+    expect(() => wineService.update(wine.wineId, { rating: 1 })).toThrow(NotFoundError);
   });
 });

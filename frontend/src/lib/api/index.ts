@@ -42,5 +42,5 @@ export const api = {
   finance: financeApi,
 };
 
-export { ApiError } from "./core";
+export { ApiError, apiErrorMessage } from "./core";
 export * from "./types";

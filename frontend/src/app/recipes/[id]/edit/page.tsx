@@ -1,5 +1,5 @@
-import { serverApi } from "@/lib/server-api";
-import { redirect, notFound } from "next/navigation";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { RecipeForm } from "@/components/recipe-form";
 import Link from "next/link";
@@ -20,8 +20,7 @@ export default async function EditRecipePage({
   if (!user) redirect("/");
 
   const { id } = await params;
-  const recipe = await serverApi.recipes.get(Number(id));
-  if (!recipe) notFound();
+  const recipe = await notFoundOn404(serverApi.recipes.get(Number(id)));
 
   return (
     <div className="min-h-screen flex flex-col">

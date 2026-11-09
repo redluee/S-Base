@@ -1,5 +1,5 @@
-import { serverApi } from "@/lib/server-api";
-import { redirect, notFound } from "next/navigation";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
@@ -19,14 +19,7 @@ export default async function EditWinePage({
   if (!user) redirect("/");
 
   const { id } = await params;
-  let wine;
-  try {
-    wine = await serverApi.wines.get(Number(id));
-  } catch {
-    notFound();
-  }
-
-  if (!wine) notFound();
+  const wine = await notFoundOn404(serverApi.wines.get(Number(id)));
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { Measurement, Wine, type AuthUser } from "./api";
 import type {
   Recipe,
@@ -28,9 +29,27 @@ async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || res.statusText);
+    throw new ServerApiError(text || res.statusText, res.status);
   }
   return res.json();
+}
+
+export class ServerApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ServerApiError";
+    this.status = status;
+  }
+}
+
+export async function notFoundOn404<T>(promise: Promise<T>): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof ServerApiError && error.status === 404) notFound();
+    throw error;
+  }
 }
 
 export async function getCurrentUser() {

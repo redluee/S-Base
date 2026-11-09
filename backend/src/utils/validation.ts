@@ -1,20 +1,6 @@
-export class ValidationError extends Error {
-  details: Record<string, unknown>;
-  constructor(message: string, details: Record<string, unknown> = {}) {
-    super(message);
-    this.name = "ValidationError";
-    this.details = details;
-  }
-}
+import { AppError, errorResponse, ValidationError } from "./errors";
 
-export class ConflictError extends Error {
-  details: Record<string, unknown>;
-  constructor(message: string, details: Record<string, unknown> = {}) {
-    super(message);
-    this.name = "ConflictError";
-    this.details = details;
-  }
-}
+export { ConflictError, NotFoundError, ValidationError } from "./errors";
 
 export function requireId(value: unknown, label = "Id"): number {
   const n = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
@@ -60,17 +46,5 @@ export function requireDateTime(value: unknown, label: string): string {
 }
 
 export function validationResponse(e: unknown): Response | null {
-  if (e instanceof ValidationError) {
-    return new Response(JSON.stringify({ error: e.message, ...e.details }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-  if (e instanceof ConflictError) {
-    return new Response(JSON.stringify({ error: e.message, ...e.details }), {
-      status: 409,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-  return null;
+  return e instanceof AppError ? errorResponse(e) : null;
 }

@@ -1,7 +1,11 @@
+import { commonNl } from "./common-lang";
 import { financeImportNl } from "./finance-import-lang";
 import { financeNl } from "./finance-lang";
+import { recipesNl } from "./recipes-lang";
 
 const nl: Record<string, string> = {
+  ...commonNl,
+  ...recipesNl,
   ...financeNl,
   ...financeImportNl,
   "Skip to content": "Naar hoofdinhoud",

@@ -1,14 +1,41 @@
 import { compressImage } from "../image";
+import { t } from "../lang";
 
 export class ApiError extends Error {
   status: number;
+  key: string;
   data?: Record<string, unknown>;
-  constructor(message: string, status: number, data?: Record<string, unknown>) {
-    super(message);
+  constructor(key: string, status: number, data?: Record<string, unknown>) {
+    super(translateErrorKey(key, data));
     this.name = "ApiError";
+    this.key = key;
     this.status = status;
     this.data = data;
   }
+}
+
+function translateErrorKey(key: string, data?: Record<string, unknown>): string {
+  const params: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data ?? {})) {
+    if (k !== "error") params[k] = Array.isArray(v) ? v.join(", ") : String(v);
+  }
+  return t(key, params);
+}
+
+export function apiErrorMessage(error: unknown, fallbackKey: string): string {
+  return error instanceof ApiError ? error.message : t(fallbackKey);
+}
+
+function errorFromBody(status: number, statusText: string, text: string): ApiError {
+  try {
+    const json = JSON.parse(text);
+    if (json && typeof json === "object" && !Array.isArray(json)) {
+      return new ApiError(typeof json.error === "string" ? json.error : statusText, status, json);
+    }
+  } catch {
+    // body was not JSON
+  }
+  return new ApiError(text || statusText, status);
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -21,21 +48,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
-    let message = res.statusText;
-    let data: Record<string, unknown> | undefined;
-    try {
-      const text = await res.clone().text();
-      try {
-        const json = JSON.parse(text);
-        message = json.error || message;
-        if (json && typeof json === "object" && !Array.isArray(json)) data = json;
-      } catch {
-        message = text || message;
-      }
-    } catch {
-      // fallback if cloning/text reading fails
-    }
-    throw new ApiError(message, res.status, data);
+    const text = await res.text().catch(() => "");
+    throw errorFromBody(res.status, res.statusText, text);
   }
   return res.json();
 }
@@ -79,7 +93,7 @@ export async function uploadFormDataWithProgress<T>(
           reject(new Error("Invalid server response"));
         }
       } else {
-        reject(new Error(xhr.statusText || `Upload failed with status ${xhr.status}`));
+        reject(errorFromBody(xhr.status, xhr.statusText || `Upload failed with status ${xhr.status}`, xhr.responseText));
       }
     };
 
