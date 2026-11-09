@@ -1,10 +1,12 @@
 import { commonNl } from "./common-lang";
 import { financeImportNl } from "./finance-import-lang";
 import { financeNl } from "./finance-lang";
+import { pulseNl } from "./pulse-lang";
 import { recipesNl } from "./recipes-lang";
 
 const nl: Record<string, string> = {
   ...commonNl,
+  ...pulseNl,
   ...recipesNl,
   ...financeNl,
   ...financeImportNl,
@@ -807,13 +809,6 @@ const nl: Record<string, string> = {
   "No invitation email is sent. Add this email to Cloudflare Zero Trust and assign module access after creation.": "Er wordt geen e-mail verstuurd. Voeg dit e-mailadres toe aan Cloudflare Zero Trust en ken na het aanmaken moduletoegang toe.",
   "User created": "Gebruiker toegevoegd",
   "User creation failed": "Gebruiker aanmaken mislukt",
-  "Username is required": "Gebruikersnaam is verplicht",
-  "Username is too long": "Gebruikersnaam mag maximaal 50 tekens bevatten",
-  "Invalid email address": "Ongeldig e-mailadres",
-  "Password must be at least 8 characters": "Het wachtwoord moet minimaal 8 tekens bevatten",
-  "Username already exists": "Deze gebruikersnaam bestaat al",
-  "Email address already exists": "Dit e-mailadres bestaat al",
-  "Check the user details and try again": "Controleer de gebruikersgegevens en probeer het opnieuw",
   "Creating...": "Aanmaken...",
   "No users found.": "Geen gebruikers gevonden.",
   "Email bewerken": "E-mail bewerken",
@@ -1193,7 +1188,6 @@ const nl: Record<string, string> = {
   "Dit voert een systeemupdate (dnf) uit op de server. Dit kan enkele minuten duren.": "Dit voert een systeemupdate (dnf) uit op de server. Dit kan enkele minuten duren.",
   "Bijwerken starten": "Bijwerken starten",
   "Bijwerken starten mislukt": "Bijwerken starten mislukt",
-  "Er loopt al een update": "Er loopt al een update",
   "Bijwerken...": "Bijwerken...",
   "Herstarten": "Herstarten",
   "Server herstarten?": "Server herstarten?",
@@ -1203,7 +1197,6 @@ const nl: Record<string, string> = {
   "De server wordt herstart. Minecraft-servers zijn gestopt; deze pagina is zo weer bereikbaar.": "De server wordt herstart. Minecraft-servers zijn gestopt; deze pagina is zo weer bereikbaar.",
   "Herstarten mislukt": "Herstarten mislukt",
   "Herstarten kan niet tijdens een update": "Herstarten kan niet tijdens een update",
-  "Herstarten is niet mogelijk tijdens een update": "Herstarten is niet mogelijk tijdens een update",
   "Voortgang systeemupdate": "Voortgang systeemupdate",
   "Repositories laden": "Repositories laden",
   "Afhankelijkheden oplossen": "Afhankelijkheden oplossen",

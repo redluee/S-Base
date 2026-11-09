@@ -1,13 +1,19 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
-import { ServerShutdownService } from "./shutdown-service";
+import type { MinecraftService } from "../minecraft";
+import { ValidationError } from "../../utils/errors";
+import { PulseShutdown } from "./pulse-shutdown";
 
-describe("ServerShutdownService", () => {
-  let shutdownService: ServerShutdownService;
+function mockMinecraft(mock: object): MinecraftService {
+  return mock as unknown as MinecraftService;
+}
+
+describe("PulseShutdown", () => {
+  let shutdownService: PulseShutdown;
 
   beforeEach(async () => {
     await setupTestDb();
-    shutdownService = new ServerShutdownService(undefined, false);
+    shutdownService = new PulseShutdown(undefined, false);
   });
 
   it("loads default schedule status", () => {
@@ -34,13 +40,17 @@ describe("ServerShutdownService", () => {
     const updated = shutdownService.updateSchedule({ time: "02:30" });
     expect(updated.time).toBe("02:30");
 
-    expect(() => {
-      shutdownService.updateSchedule({ time: "25:00" });
-    }).toThrow();
+    expect(() => shutdownService.updateSchedule({ time: "25:00" })).toThrow(ValidationError);
 
-    expect(() => {
+    try {
       shutdownService.updateSchedule({ time: "invalid" });
-    }).toThrow();
+      throw new Error("expected ValidationError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ValidationError);
+      expect((err as ValidationError).key).toBe("pulse.invalidTime");
+      expect((err as ValidationError).status).toBe(400);
+    }
+    expect(shutdownService.getConfig().time).toBe("02:30");
 
     const disabled = shutdownService.updateSchedule({ enabled: false });
     expect(disabled.enabled).toBe(false);
@@ -61,9 +71,9 @@ describe("ServerShutdownService", () => {
     const sentCommands: { slug: string; cmd: string }[] = [];
     const stoppedServers: string[] = [];
 
-    const mockMc: any = {
+    const mockMc = mockMinecraft({
       listServers: () => [{ slug: "server-a" }, { slug: "server-b" }],
-      isRunning: (slug: string) => true,
+      isRunning: () => true,
       getOnlinePlayers: (slug: string) => (slug === "server-a" ? [{ username: "Steve" }] : []),
       sendCommand: async (slug: string, cmd: string) => {
         sentCommands.push({ slug, cmd });
@@ -72,9 +82,9 @@ describe("ServerShutdownService", () => {
         stoppedServers.push(slug);
         return { ok: true };
       },
-    };
+    });
 
-    const serviceWithMock = new ServerShutdownService(mockMc, false);
+    const serviceWithMock = new PulseShutdown(mockMc, false);
 
     // Test 10 minutes warning
     const testNow10m = new Date("2026-09-08T00:50:10.000Z"); // 9m 50s before 01:00
@@ -112,7 +122,7 @@ describe("ServerShutdownService", () => {
 
   it("does not send warnings or execute shutdown when blocked", async () => {
     const sentCommands: { slug: string; cmd: string }[] = [];
-    const mockMc: any = {
+    const mockMc = mockMinecraft({
       listServers: () => [{ slug: "server-a" }],
       isRunning: () => true,
       getOnlinePlayers: () => [{ username: "Player" }],
@@ -120,9 +130,9 @@ describe("ServerShutdownService", () => {
         sentCommands.push({ slug, cmd });
       },
       stopServer: async () => ({ ok: true }),
-    };
+    });
 
-    const service = new ServerShutdownService(mockMc, false);
+    const service = new PulseShutdown(mockMc, false);
     service.blockShutdown(new Date("2026-09-08T00:00:00.000Z"));
 
     const testNow10m = new Date("2026-09-08T00:50:10.000Z");
@@ -132,7 +142,7 @@ describe("ServerShutdownService", () => {
 
   it("stops all running servers immediately on manual shutdown trigger", async () => {
     const stoppedServers: string[] = [];
-    const mockMc: any = {
+    const mockMc = mockMinecraft({
       listServers: () => [{ slug: "server-a" }, { slug: "server-b" }],
       isRunning: () => true,
       getOnlinePlayers: () => [],
@@ -141,9 +151,9 @@ describe("ServerShutdownService", () => {
         stoppedServers.push(slug);
         return { ok: true };
       },
-    };
+    });
 
-    const service = new ServerShutdownService(mockMc, false);
+    const service = new PulseShutdown(mockMc, false);
     await service.triggerManualShutdown();
 
     expect(stoppedServers).toContain("server-a");

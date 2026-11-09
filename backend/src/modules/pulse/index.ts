@@ -1,228 +1,35 @@
-import { eq, inArray, sql } from "drizzle-orm";
-import db from "../../db/client";
-import { users, modules, usermodulepermissions, mc_servers, mc_server_permissions } from "../../db/schema";
+import { ConflictError } from "../../utils/errors";
+import type { MinecraftService } from "../minecraft";
+import { PulseShutdown } from "./pulse-shutdown";
+import { PulseSystemUpdate, type UpdateSpawn } from "./pulse-system-update";
+import { PulseUsers } from "./pulse-users";
 
-export interface PulseUser {
-  userId: number;
-  username: string;
-  email: string | null;
-  isPaused: number;
-  lastLoginAt: string | null;
-  createdAt: string | null;
-  modules: string[];
-  mcServers: string[];
-}
-
-export interface PulseModuleInfo {
-  moduleId: number;
-  moduleName: string;
-  moduleAlias: string | null;
-  description: string | null;
-}
-
-export interface PulseStats {
-  totalUsers: number;
-  activeUsers: number;
-  pausedUsers: number;
-  totalPermissions: number;
-}
-
-export type CreatePulseUserResult =
-  | { ok: true; user: PulseUser }
-  | {
-      ok: false;
-      reason:
-        | "username_required"
-        | "username_too_long"
-        | "email_invalid"
-        | "password_too_short"
-        | "username_exists"
-        | "email_exists";
-    };
+export type { PulseModuleInfo, PulseStats, PulseUser } from "./pulse-users";
+export type { ShutdownScheduleConfig, ShutdownScheduleStatus } from "./pulse-shutdown";
+export type { SystemUpdateState, UpdatePhase } from "./pulse-system-update";
 
 export class PulseService {
-  listUsers(): PulseUser[] {
-    const allUsers = db
-      .select({
-        userId: users.userId,
-        username: users.username,
-        email: users.email,
-        isPaused: users.isPaused,
-        lastLoginAt: users.lastLoginAt,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .all();
+  readonly users = new PulseUsers();
+  readonly shutdown: PulseShutdown;
+  readonly systemUpdate: PulseSystemUpdate;
 
-    const allPerms = db
-      .select({
-        userId: usermodulepermissions.userId,
-        moduleName: modules.moduleName,
-      })
-      .from(usermodulepermissions)
-      .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
-      .all();
-
-    const permsByUser = new Map<number, string[]>();
-    for (const p of allPerms) {
-      const list = permsByUser.get(p.userId) ?? [];
-      list.push(p.moduleName);
-      permsByUser.set(p.userId, list);
-    }
-
-    const allServerPerms = db
-      .select({
-        userId: mc_server_permissions.userId,
-        slug: mc_servers.slug,
-      })
-      .from(mc_server_permissions)
-      .innerJoin(mc_servers, eq(mc_server_permissions.serverId, mc_servers.serverId))
-      .all();
-
-    const mcServersByUser = new Map<number, string[]>();
-    for (const p of allServerPerms) {
-      const list = mcServersByUser.get(p.userId) ?? [];
-      list.push(p.slug);
-      mcServersByUser.set(p.userId, list);
-    }
-
-    return allUsers.map((u) => ({
-      ...u,
-      modules: permsByUser.get(u.userId) ?? [],
-      mcServers: mcServersByUser.get(u.userId) ?? [],
-    }));
+  constructor(options: { minecraft?: MinecraftService; autoStart?: boolean; spawnUpdate?: UpdateSpawn } = {}) {
+    this.shutdown = new PulseShutdown(options.minecraft, options.autoStart);
+    this.systemUpdate = new PulseSystemUpdate(options.spawnUpdate);
   }
 
-  listModules(): PulseModuleInfo[] {
-    return db
-      .select({
-        moduleId: modules.moduleId,
-        moduleName: modules.moduleName,
-        moduleAlias: modules.moduleAlias,
-        description: modules.description,
-      })
-      .from(modules)
-      .all();
+  reboot() {
+    if (this.systemUpdate.isRunning()) throw new ConflictError("pulse.updateRunning");
+    this.shutdown.triggerReboot().catch((err) => {
+      console.error("[Pulse] Reboot failed:", err);
+    });
+    return { ok: true };
   }
 
-  async createUser(usernameInput: string, emailInput: string, password: string): Promise<CreatePulseUserResult> {
-    const username = usernameInput.trim();
-    const email = emailInput.trim().toLowerCase();
-
-    if (!username) return { ok: false, reason: "username_required" };
-    if (username.length > 50) return { ok: false, reason: "username_too_long" };
-    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return { ok: false, reason: "email_invalid" };
-    }
-    if (password.length < 8) return { ok: false, reason: "password_too_short" };
-
-    const existingUsername = db.select({ userId: users.userId }).from(users).where(eq(users.username, username)).get();
-    if (existingUsername) return { ok: false, reason: "username_exists" };
-
-    const existingEmail = db
-      .select({ userId: users.userId })
-      .from(users)
-      .where(sql`lower(${users.email}) = ${email}`)
-      .get();
-    if (existingEmail) return { ok: false, reason: "email_exists" };
-
-    const pswdHash = await Bun.password.hash(password, { algorithm: "argon2id" });
-    const created = db
-      .insert(users)
-      .values({ username, email, pswdHash })
-      .returning({ userId: users.userId })
-      .get();
-    if (!created) throw new Error("Created Pulse user could not be loaded");
-    const user = this.listUsers().find((item) => item.userId === created.userId);
-
-    if (!user) throw new Error("Created Pulse user could not be loaded");
-    return { ok: true, user };
-  }
-
-  updateEmail(userId: number, email: string | null): PulseUser | null {
-    const trimmedEmail = email ? email.trim().toLowerCase() : null;
-    db.update(users)
-      .set({ email: trimmedEmail })
-      .where(eq(users.userId, userId))
-      .run();
-
-    const user = this.listUsers().find((u) => u.userId === userId);
-    return user ?? null;
-  }
-
-  updateStatus(userId: number, isPaused: number): PulseUser | null {
-    db.update(users)
-      .set({ isPaused: isPaused ? 1 : 0 })
-      .where(eq(users.userId, userId))
-      .run();
-
-    const user = this.listUsers().find((u) => u.userId === userId);
-    return user ?? null;
-  }
-
-  updateModules(userId: number, moduleNames: string[]): PulseUser | null {
-    // Delete existing permissions for user
-    db.delete(usermodulepermissions)
-      .where(eq(usermodulepermissions.userId, userId))
-      .run();
-
-    if (moduleNames.length > 0) {
-      const targetModules = db
-        .select({ moduleId: modules.moduleId, moduleName: modules.moduleName })
-        .from(modules)
-        .where(inArray(modules.moduleName, moduleNames))
-        .all();
-
-      for (const m of targetModules) {
-        db.insert(usermodulepermissions)
-          .values({ userId, moduleId: m.moduleId })
-          .run();
-      }
-    }
-
-    const user = this.listUsers().find((u) => u.userId === userId);
-    return user ?? null;
-  }
-
-  updateServerPermissions(userId: number, serverSlugs: string[]): PulseUser | null {
-    db.delete(mc_server_permissions)
-      .where(eq(mc_server_permissions.userId, userId))
-      .run();
-
-    if (serverSlugs.length > 0) {
-      const targetServers = db
-        .select({ serverId: mc_servers.serverId, slug: mc_servers.slug })
-        .from(mc_servers)
-        .where(inArray(mc_servers.slug, serverSlugs))
-        .all();
-
-      for (const s of targetServers) {
-        db.insert(mc_server_permissions)
-          .values({ userId, serverId: s.serverId })
-          .run();
-      }
-    }
-
-    const user = this.listUsers().find((u) => u.userId === userId);
-    return user ?? null;
-  }
-
-  getStats(): PulseStats {
-    const usersList = this.listUsers();
-    const totalUsers = usersList.length;
-    const pausedUsers = usersList.filter((u) => u.isPaused === 1).length;
-    const activeUsers = totalUsers - pausedUsers;
-    const totalPermissions = usersList.reduce((acc, u) => acc + u.modules.length, 0);
-
-    return {
-      totalUsers,
-      activeUsers,
-      pausedUsers,
-      totalPermissions,
-    };
+  shutdownNow() {
+    this.shutdown.triggerManualShutdown().catch((err) => {
+      console.error("[Pulse] Manual shutdown failed:", err);
+    });
+    return { ok: true };
   }
 }
-
-export * from "./shutdown-service";
-
-export * from "./system-update-service";

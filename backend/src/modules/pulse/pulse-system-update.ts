@@ -1,3 +1,5 @@
+import { ConflictError } from "../../utils/errors";
+
 export type UpdatePhase =
   | "starting"
   | "repositories"
@@ -34,14 +36,10 @@ export interface UpdateProcess {
 
 export type UpdateSpawn = () => UpdateProcess;
 
-export class UpdateAlreadyRunningError extends Error {
-  constructor() {
-    super("already_running");
-  }
-}
-
 const LOG_LIMIT = 200;
-const ANSI_PATTERN = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07/g;
+const ESC = String.fromCharCode(27);
+const BEL = String.fromCharCode(7);
+const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-9;?]*[ -/]*[@-~]|${ESC}\\][^${BEL}]*${BEL}`, "g");
 const SUDO_HINT =
   "Passwordless sudo for dnf is required. Add to sudoers: <user> ALL=(root) NOPASSWD: /usr/bin/dnf update -y";
 
@@ -124,9 +122,9 @@ const defaultSpawn: UpdateSpawn = () =>
     env: { ...process.env, LC_ALL: "C", TERM: "dumb" },
   }) as unknown as UpdateProcess;
 
-export class SystemUpdateService {
+export class PulseSystemUpdate {
   private spawnFn: UpdateSpawn;
-  private state: SystemUpdateState = SystemUpdateService.idleState();
+  private state: SystemUpdateState = PulseSystemUpdate.idleState();
   private stderrLines: string[] = [];
 
   constructor(spawnFn: UpdateSpawn = defaultSpawn) {
@@ -155,11 +153,11 @@ export class SystemUpdateService {
   }
 
   start(): SystemUpdateState {
-    if (this.isRunning()) throw new UpdateAlreadyRunningError();
+    if (this.isRunning()) throw new ConflictError("pulse.updateAlreadyRunning");
 
     this.stderrLines = [];
     this.state = {
-      ...SystemUpdateService.idleState(),
+      ...PulseSystemUpdate.idleState(),
       status: "running",
       phase: "starting",
       startedAt: new Date().toISOString(),

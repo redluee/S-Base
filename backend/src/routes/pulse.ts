@@ -1,99 +1,61 @@
-import { Elysia } from "elysia";
-import { auth, pulse, shutdownService, systemUpdate, pulseAuth } from "../context";
+import { Elysia, t } from "elysia";
+import { auth, pulse, pulseAuth } from "../context";
+import { NotFoundError, ValidationError } from "../utils/errors";
 
-export const pulseRoutes = new Elysia()
-  // --- Pulse Admin / Monitoring routes ---
-  .group("/api/pulse", (app) =>
-    app
-      .use(pulseAuth)
-      .get("/users", () => pulse.listUsers())
-      .post("/users", async ({ body, set }) => {
-        const { username, email, password } = (body ?? {}) as {
-          username?: unknown;
-          email?: unknown;
-          password?: unknown;
-        };
+const idParams = t.Object({ id: t.Numeric() });
 
-        if (typeof username !== "string" || typeof email !== "string" || typeof password !== "string") {
-          set.status = 400;
-          return { error: "invalid_input" };
-        }
-
-        const result = await pulse.createUser(username, email, password);
-        if (!result.ok) {
-          set.status = result.reason === "username_exists" || result.reason === "email_exists" ? 409 : 400;
-          return { error: result.reason };
-        }
-
+export const pulseRoutes = new Elysia().group("/api/pulse", (app) =>
+  app
+    .use(pulseAuth)
+    .get("/users", () => pulse.users.listUsers())
+    .post(
+      "/users",
+      async ({ body, set }) => {
+        const user = await pulse.users.createUser(body.username, body.email, body.password);
         set.status = 201;
-        return result.user;
-      })
-      .get("/modules", () => pulse.listModules())
-      .get("/stats", () => pulse.getStats())
-      .get("/shutdown-schedule", () => shutdownService.getStatus())
-      .post("/shutdown-schedule", ({ body }) => {
-        const { time, enabled } = (body ?? {}) as { time?: string; enabled?: boolean };
-        return shutdownService.updateSchedule({ time, enabled });
-      })
-      .post("/shutdown-schedule/block", () => shutdownService.blockShutdown())
-      .post("/shutdown-schedule/unblock", () => shutdownService.unblockShutdown())
-      .post("/shutdown-now", async () => {
-        shutdownService.triggerManualShutdown().catch((err) => {
-          console.error("[Pulse] Manual shutdown failed:", err);
-        });
-        return { ok: true };
-      })
-      .get("/system-update", () => systemUpdate.getState())
-      .post("/system-update", ({ set }) => {
-        if (systemUpdate.isRunning()) {
-          set.status = 409;
-          return { error: "already_running" };
-        }
-        return systemUpdate.start();
-      })
-      .post("/reboot", ({ set }) => {
-        if (systemUpdate.isRunning()) {
-          set.status = 409;
-          return { error: "update_running" };
-        }
-        shutdownService.triggerReboot().catch((err) => {
-          console.error("[Pulse] Reboot failed:", err);
-        });
-        return { ok: true };
-      })
-      .put("/users/:id/email", ({ params: { id }, body }) => {
-        const { email } = (body ?? {}) as { email?: string | null };
-        const u = pulse.updateEmail(Number(id), email ?? null);
-        if (!u) return new Response("Not Found", { status: 404 });
-        return u;
-      })
-      .put("/users/:id/status", ({ params: { id }, body }) => {
-        const { isPaused } = (body ?? {}) as { isPaused?: number | boolean };
-        const u = pulse.updateStatus(Number(id), isPaused ? 1 : 0);
-        if (!u) return new Response("Not Found", { status: 404 });
-        return u;
-      })
-      .put("/users/:id/modules", ({ params: { id }, body }) => {
-        const { modules } = (body ?? {}) as { modules?: string[] };
-        const u = pulse.updateModules(Number(id), Array.isArray(modules) ? modules : []);
-        if (!u) return new Response("Not Found", { status: 404 });
-        return u;
-      })
-      .put("/users/:id/servers", ({ params: { id }, body }) => {
-        const { servers } = (body ?? {}) as { servers?: string[] };
-        const u = pulse.updateServerPermissions(Number(id), Array.isArray(servers) ? servers : []);
-        if (!u) return new Response("Not Found", { status: 404 });
-        return u;
-      })
-      .post("/users/:id/impersonate", ({ params: { id }, userId, cookie: { session_id } }) => {
-        const targetUserId = Number(id);
-        const res = auth.impersonateUser(userId, targetUserId);
+        return user;
+      },
+      { body: t.Object({ username: t.String(), email: t.String(), password: t.String() }) },
+    )
+    .get("/modules", () => pulse.users.listModules())
+    .get("/stats", () => pulse.users.getStats())
+    .get("/shutdown-schedule", () => pulse.shutdown.getStatus())
+    .post("/shutdown-schedule", ({ body }) => pulse.shutdown.updateSchedule(body), {
+      body: t.Object({ time: t.Optional(t.String()), enabled: t.Optional(t.Boolean()) }),
+    })
+    .post("/shutdown-schedule/block", () => pulse.shutdown.blockShutdown())
+    .post("/shutdown-schedule/unblock", () => pulse.shutdown.unblockShutdown())
+    .post("/shutdown-now", () => pulse.shutdownNow())
+    .get("/system-update", () => pulse.systemUpdate.getState())
+    .post("/system-update", () => pulse.systemUpdate.start())
+    .post("/reboot", () => pulse.reboot())
+    .put("/users/:id/email", ({ params: { id }, body }) => pulse.users.updateEmail(id, body.email ?? null), {
+      params: idParams,
+      body: t.Object({ email: t.Optional(t.Nullable(t.String())) }),
+    })
+    .put("/users/:id/status", ({ params: { id }, body }) => pulse.users.updateStatus(id, body.isPaused ? 1 : 0), {
+      params: idParams,
+      body: t.Object({ isPaused: t.Union([t.Boolean(), t.Number()]) }),
+    })
+    .put("/users/:id/modules", ({ params: { id }, body }) => pulse.users.updateModules(id, body.modules), {
+      params: idParams,
+      body: t.Object({ modules: t.Array(t.String()) }),
+    })
+    .put("/users/:id/servers", ({ params: { id }, body }) => pulse.users.updateServerPermissions(id, body.servers), {
+      params: idParams,
+      body: t.Object({ servers: t.Array(t.String()) }),
+    })
+    .post(
+      "/users/:id/impersonate",
+      ({ params: { id }, userId, cookie: { session_id }, set }) => {
+        const res = auth.impersonateUser(userId, id);
         if (!res.ok) {
-          const status = res.reason === "forbidden" ? 403 : res.reason === "user_not_found" ? 404 : 400;
-          return new Response(JSON.stringify({ error: res.reason }), {
-            status,
-            headers: { "Content-Type": "application/json" },
-          });
+          if (res.reason === "forbidden") {
+            set.status = 403;
+            return { error: "forbidden" };
+          }
+          if (res.reason === "user_not_found") throw new NotFoundError("pulse.userNotFound");
+          throw new ValidationError("pulse.userPaused");
         }
 
         const isSecure = process.env.NODE_ENV === "production";
@@ -109,13 +71,9 @@ export const pulseRoutes = new Elysia()
               isImpersonated: true,
             },
           }),
-          {
-            status: 200,
-            headers: {
-              "Content-Type": "application/json",
-              "Set-Cookie": cookieValue,
-            },
-          }
+          { status: 200, headers: { "Content-Type": "application/json", "Set-Cookie": cookieValue } },
         );
-      })
-  );
+      },
+      { params: idParams },
+    ),
+);

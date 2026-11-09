@@ -12,7 +12,7 @@ import {
   type McServer,
   type ShutdownSchedule,
   type SystemUpdateState,
-  ApiError,
+  apiErrorMessage,
 } from "@/lib/api";
 import { Plus, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -94,17 +94,7 @@ export function PulseClient({
       setIsCreateUserOpen(false);
       showNotification(t("User created"));
     } catch (error) {
-      const reason = error instanceof ApiError ? error.data?.error : undefined;
-      const messages: Record<string, string> = {
-        username_required: t("Username is required"),
-        username_too_long: t("Username is too long"),
-        email_invalid: t("Invalid email address"),
-        password_too_short: t("Password must be at least 8 characters"),
-        username_exists: t("Username already exists"),
-        email_exists: t("Email address already exists"),
-        invalid_input: t("Check the user details and try again"),
-      };
-      showNotification(typeof reason === "string" ? messages[reason] ?? t("User creation failed") : t("User creation failed"), "error");
+      showNotification(apiErrorMessage(error, "User creation failed"), "error");
     } finally {
       setIsCreatingUser(false);
     }
@@ -126,8 +116,8 @@ export function PulseClient({
       });
       setEditingEmailUserId(null);
       showNotification(t("E-mailadres bijgewerkt"));
-    } catch {
-      showNotification(t("Opslaan mislukt"), "error");
+    } catch (error) {
+      showNotification(apiErrorMessage(error, "Opslaan mislukt"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -144,8 +134,8 @@ export function PulseClient({
         return next;
       });
       showNotification(newStatus === 1 ? t("Account gepauzeerd") : t("Account geactiveerd"));
-    } catch {
-      showNotification(t("Status wijzigen mislukt"), "error");
+    } catch (error) {
+      showNotification(apiErrorMessage(error, "Status wijzigen mislukt"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -164,8 +154,8 @@ export function PulseClient({
         return next;
       });
       showNotification(t("Module toegang bijgewerkt"));
-    } catch {
-      showNotification(t("Permissies wijzigen mislukt"), "error");
+    } catch (error) {
+      showNotification(apiErrorMessage(error, "Permissies wijzigen mislukt"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -183,8 +173,8 @@ export function PulseClient({
         prev.map((u) => (u.userId === user.userId ? { ...u, mcServers: updated.mcServers ?? updatedServers } : u))
       );
       showNotification(t("Server toegang bijgewerkt"));
-    } catch {
-      showNotification(t("Server toegang wijzigen mislukt"), "error");
+    } catch (error) {
+      showNotification(apiErrorMessage(error, "Server toegang wijzigen mislukt"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -198,8 +188,8 @@ export function PulseClient({
       await api.pulse.impersonate(user.userId);
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      showNotification(t("Login failed. Please try again."), "error");
+    } catch (error) {
+      showNotification(apiErrorMessage(error, "Login failed. Please try again."), "error");
       setLoadingUserId(null);
     }
   };

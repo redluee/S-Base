@@ -2,12 +2,13 @@ import { existsSync } from "fs";
 import db from "../../db/client";
 import { systemSettings } from "../../db/schema/system";
 import { eq } from "drizzle-orm";
+import { ValidationError } from "../../utils/errors";
 import type { MinecraftService } from "../minecraft";
 
 export interface ShutdownScheduleConfig {
   enabled: boolean;
-  time: string; // "HH:mm"
-  blockedUntil: string | null; // ISO date string
+  time: string;
+  blockedUntil: string | null;
 }
 
 export interface ShutdownScheduleStatus extends ShutdownScheduleConfig {
@@ -23,7 +24,7 @@ const DEFAULT_CONFIG: ShutdownScheduleConfig = {
   blockedUntil: null,
 };
 
-export class ServerShutdownService {
+export class PulseShutdown {
   private mcService?: MinecraftService;
   private intervalTimer: ReturnType<typeof setInterval> | null = null;
   private currentCycleKey: string | null = null;
@@ -122,7 +123,7 @@ export class ServerShutdownService {
     const current = this.getConfig();
     if (params.time !== undefined) {
       if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(params.time)) {
-        throw new Error("Invalid time format: must be HH:mm (00:00 to 23:59)");
+        throw new ValidationError("pulse.invalidTime");
       }
       current.time = params.time;
     }
@@ -280,10 +281,10 @@ export class ServerShutdownService {
 
     try {
       Bun.spawn(["sudo", "shutdown", "-h", "now"]);
-    } catch (e1) {
+    } catch {
       try {
         Bun.spawn(["sudo", "systemctl", "poweroff"]);
-      } catch (e2) {
+      } catch {
         try {
           Bun.spawn(["systemctl", "poweroff"]);
         } catch (e3) {

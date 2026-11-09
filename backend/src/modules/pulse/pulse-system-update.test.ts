@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { ConflictError } from "../../utils/errors";
 import {
-  SystemUpdateService,
-  UpdateAlreadyRunningError,
+  PulseSystemUpdate,
   parseDnfLine,
   splitOutputLines,
   type ParseResult,
   type UpdateProcess,
-} from "./system-update-service";
+} from "./pulse-system-update";
 
 const init: ParseResult = { phase: "starting", progress: null };
 
@@ -79,13 +79,13 @@ function fakeProcess(stdout: string, stderr: string, code: number, delayMs = 0):
   };
 }
 
-async function waitDone(svc: SystemUpdateService) {
+async function waitDone(svc: PulseSystemUpdate) {
   for (let i = 0; i < 200 && svc.isRunning(); i++) await Bun.sleep(5);
 }
 
-describe("SystemUpdateService", () => {
+describe("PulseSystemUpdate", () => {
   test("success lifecycle", async () => {
-    const svc = new SystemUpdateService(() =>
+    const svc = new PulseSystemUpdate(() =>
       fakeProcess("Updating and loading repositories:\nDownloading Packages:\n(1/2): a.rpm\nRunning transaction\n  Upgrading : a 1/2\nComplete!\n", "", 0, 10),
     );
     expect(svc.getState().status).toBe("idle");
@@ -103,7 +103,7 @@ describe("SystemUpdateService", () => {
   });
 
   test("nothing to do ends as nothing", async () => {
-    const svc = new SystemUpdateService(() => fakeProcess("Nothing to do.\n", "", 0));
+    const svc = new PulseSystemUpdate(() => fakeProcess("Nothing to do.\n", "", 0));
     svc.start();
     await waitDone(svc);
     expect(svc.getState().status).toBe("success");
@@ -111,7 +111,7 @@ describe("SystemUpdateService", () => {
   });
 
   test("failure", async () => {
-    const svc = new SystemUpdateService(() => fakeProcess("", "Error: failed to download\n", 1));
+    const svc = new PulseSystemUpdate(() => fakeProcess("", "Error: failed to download\n", 1));
     svc.start();
     await waitDone(svc);
     const st = svc.getState();
@@ -122,16 +122,23 @@ describe("SystemUpdateService", () => {
   });
 
   test("sudo password error", async () => {
-    const svc = new SystemUpdateService(() => fakeProcess("", "sudo: a password is required\n", 1));
+    const svc = new PulseSystemUpdate(() => fakeProcess("", "sudo: a password is required\n", 1));
     svc.start();
     await waitDone(svc);
     expect(svc.getState().error).toContain("Passwordless sudo for dnf is required");
   });
 
   test("double start rejected, restart allowed after finish", async () => {
-    const svc = new SystemUpdateService(() => fakeProcess("Complete!\n", "", 0, 30));
+    const svc = new PulseSystemUpdate(() => fakeProcess("Complete!\n", "", 0, 30));
     svc.start();
-    expect(() => svc.start()).toThrow(UpdateAlreadyRunningError);
+    try {
+      svc.start();
+      throw new Error("expected ConflictError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ConflictError);
+      expect((err as ConflictError).key).toBe("pulse.updateAlreadyRunning");
+      expect((err as ConflictError).status).toBe(409);
+    }
     await waitDone(svc);
     expect(svc.start().status).toBe("running");
     await waitDone(svc);
@@ -139,7 +146,7 @@ describe("SystemUpdateService", () => {
 
   test("log capped at 200 lines", async () => {
     const out = Array.from({ length: 500 }, (_, i) => `line ${i}`).join("\n") + "\n";
-    const svc = new SystemUpdateService(() => fakeProcess(out, "", 0));
+    const svc = new PulseSystemUpdate(() => fakeProcess(out, "", 0));
     svc.start();
     await waitDone(svc);
     const log = svc.getState().log;
@@ -148,7 +155,7 @@ describe("SystemUpdateService", () => {
   });
 
   test("spawn throwing yields failed state", () => {
-    const svc = new SystemUpdateService(() => {
+    const svc = new PulseSystemUpdate(() => {
       throw new Error("boom");
     });
     const st = svc.start();
