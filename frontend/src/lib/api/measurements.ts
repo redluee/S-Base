@@ -30,6 +30,11 @@ export const measurementsApi = {
       onProgress
     );
   },
+  linkPhoto: (measurementId: number, filePath: string) =>
+    request<unknown>(`/measurements/${measurementId}/photos`, {
+      method: "POST",
+      body: JSON.stringify({ filePath }),
+    }),
   deletePhoto: (photoId: number) =>
     request<{ success: boolean }>(`/measurements/photos/${photoId}`, {
       method: "DELETE",

@@ -1,7 +1,7 @@
 import { serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { WorkoutTemplateForm } from "@/components/workout-template-form";
+import { WorkoutTemplateForm } from "@/app/workouts/templates/workout-template-form";
 
 export default async function NewWorkoutPage() {
   let user: { id: number; username: string } | null = null;

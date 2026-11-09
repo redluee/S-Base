@@ -38,18 +38,12 @@ export function usePhotoUpload(onChanged: () => void, setActionError: (msg: stri
         (pct) => setUploadProgress(pct)
       );
 
-      const linkRes = await fetch(`/api/measurements/${targetLog.measurementId}/photos`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filePath }),
-      });
-      if (!linkRes.ok) throw new Error(`Photo link failed (${linkRes.status})`);
+      await api.measurements.linkPhoto(targetLog.measurementId, filePath);
 
       fetchLogs();
     } catch (err) {
       console.error("Failed to upload photo:", err);
-      setActionError(t("Foto uploaden mislukt. Probeer het opnieuw."));
+      setActionError(t("Photo upload failed. Try again."));
     } finally {
       if (tempUrl) {
         URL.revokeObjectURL(tempUrl);
@@ -69,7 +63,7 @@ export function usePhotoUpload(onChanged: () => void, setActionError: (msg: stri
       fetchLogs();
     } catch (err) {
       console.error("Failed to delete photo:", err);
-      setActionError(t("Foto verwijderen mislukt. Probeer het opnieuw."));
+      setActionError(t("Photo deletion failed. Try again."));
     }
   };
 

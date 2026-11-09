@@ -19,7 +19,7 @@ export function BodySummaryCards({
               {latestLog?.weight ? `${formatNumberNl(latestLog.weight)} kg` : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog ? latestLog.date : t("Geen metingen")}
+              {latestLog ? latestLog.date : t("No measurements")}
             </span>
           </div>
 
@@ -29,7 +29,7 @@ export function BodySummaryCards({
               {latestLog?.bodyFat ? `${latestLog.bodyFat}%` : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog?.fatMass ? `${formatNumberNl(latestLog.fatMass)} kg ${t("vetmassa")}` : t("Geen data")}
+              {latestLog?.fatMass ? `${formatNumberNl(latestLog.fatMass)} kg ${t("fat mass")}` : t("No data")}
             </span>
           </div>
 
@@ -39,7 +39,7 @@ export function BodySummaryCards({
               {latestLog?.skeletalMuscle ? `${formatNumberNl(latestLog.skeletalMuscle)} kg` : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {latestLog?.skeletalMuscle && latestLog?.weight ? `${formatNumberNl((latestLog.skeletalMuscle / latestLog.weight) * 100, 1)}%` : t("Skeletspiermassa")}
+              {latestLog?.skeletalMuscle && latestLog?.weight ? `${formatNumberNl((latestLog.skeletalMuscle / latestLog.weight) * 100, 1)}%` : t("Skeletal muscle mass")}
             </span>
           </div>
 
@@ -49,7 +49,7 @@ export function BodySummaryCards({
               {latestBmi !== null ? latestBmi : "-"}
             </span>
             <span className="text-[10px] text-muted-foreground mt-1 truncate">
-              {logCount} {logCount === 1 ? t("meting gelogd") : t("metingen gelogd")}
+              {logCount} {logCount === 1 ? t("measurement logged") : t("measurements logged")}
             </span>
           </div>
         </div>

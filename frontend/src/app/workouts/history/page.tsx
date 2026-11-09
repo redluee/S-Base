@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
-import { WorkoutSubnav } from "@/components/workout-subnav";
+import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
 import { t } from "@/lib/lang";
 import { Calendar } from "lucide-react";
 import { parseDateString } from "@/lib/utils";

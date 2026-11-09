@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { NavHeader } from "@/components/nav-header";
-import { WorkoutSubnav } from "@/components/workout-subnav";
+import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
 import { Scale, Plus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
@@ -64,7 +64,7 @@ export default function BodyPage() {
       })
       .catch((err) => {
         console.error("Failed to load measurements:", err);
-        setActionError(t("Metingen laden mislukt. Probeer het opnieuw."));
+        setActionError(t("Loading measurements failed. Try again."));
         setLoading(false);
       });
   };
@@ -82,7 +82,7 @@ export default function BodyPage() {
           })
           .catch((err) => {
             console.error("Failed to load measurements:", err);
-            setActionError(t("Metingen laden mislukt. Probeer het opnieuw."));
+            setActionError(t("Loading measurements failed. Try again."));
             setLoading(false);
           });
       })
@@ -194,7 +194,7 @@ export default function BodyPage() {
       fetchLogs();
     } catch (err) {
       console.error("Failed to delete log:", err);
-      setActionError(t("Meting verwijderen mislukt. Probeer het opnieuw."));
+      setActionError(t("Measurement deletion failed. Try again."));
     } finally {
       setDeletingLog(false);
       setPendingDeleteLogId(null);
@@ -225,7 +225,7 @@ export default function BodyPage() {
         <NavHeader username={user?.username ?? ""} />
         <div className="flex-1 flex flex-col items-center justify-center">
           <Loader2 className="size-8 text-brand animate-spin" />
-          <span className="text-muted-foreground text-sm mt-3">{t("Metingen laden...")}</span>
+          <span className="text-muted-foreground text-sm mt-3">{t("Loading measurements...")}</span>
         </div>
       </div>
     );
@@ -254,7 +254,7 @@ export default function BodyPage() {
           <section className="lg:col-span-7 flex flex-col gap-5 order-2 lg:order-1">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium text-muted-foreground">
-                {t("Logboek")}
+                {t("Log book")}
               </h2>
               <Button 
                 onClick={handleNewEntry} 
@@ -319,16 +319,16 @@ export default function BodyPage() {
           <section className="lg:col-span-5 flex flex-col gap-5 order-1 lg:order-2">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium text-muted-foreground">
-                {t("Statistieken & Voortgang")}
+                {t("Statistics & Progress")}
               </h2>
             </div>
 
             {/* Tab switchers */}
             <div className="flex gap-1.5 overflow-x-auto">
               {[
-                { id: "weight", label: t("Gewicht") },
-                { id: "fat", label: t("Vet%") },
-                { id: "muscle", label: t("Massa") },
+                { id: "weight", label: t("Weight") },
+                { id: "fat", label: t("Fat%") },
+                { id: "muscle", label: t("Mass") },
                 { id: "bmi", label: "BMI" },
               ].map((tab) => {
                 const isActive = chartTab === tab.id;
@@ -359,7 +359,7 @@ export default function BodyPage() {
         <ModalOverlay
           open
           onClose={() => setActivePhotoUrl(null)}
-          label={t("Meting groot scherm")}
+          label={t("Measurement large view")}
           backdropClassName="bg-background/90 backdrop-blur-md"
         >
           <button

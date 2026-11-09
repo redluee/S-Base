@@ -149,7 +149,7 @@ export function BodyEditCard({
             size="sm"
             className="text-sm min-h-11 cursor-pointer"
           >
-            {t("Annuleren")}
+            {t("Cancel")}
           </Button>
           <Button 
             type="submit" 
@@ -157,7 +157,7 @@ export function BodyEditCard({
             size="sm"
             className="bg-brand text-zinc-900 hover:bg-brand-hover font-medium text-sm min-h-11 px-4 cursor-pointer"
           >
-            {isSaving ? t("Opslaan...") : t("Opslaan")}
+            {isSaving ? t("Saving...") : t("Save")}
           </Button>
         </div>
       </form>

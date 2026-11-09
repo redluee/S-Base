@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavHeader } from "@/components/nav-header";
-import { MotivationalQuote } from "@/components/motivational-quote";
-import { WorkoutSubnav } from "@/components/workout-subnav";
+import { MotivationalQuote } from "@/app/workouts/motivational-quote";
+import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
-import { WorkoutImportModal } from "@/components/workout-import-modal";
-import { WorkoutTemplateList } from "@/components/workout-template-list";
+import { WorkoutImportModal } from "@/app/workouts/templates/workout-import-modal";
+import { WorkoutTemplateList } from "@/app/workouts/templates/workout-template-list";
 import { t } from "@/lib/lang";
 import { formatNumberNl } from "@/lib/number-input";
 
@@ -80,17 +80,17 @@ export default async function WorkoutsPage() {
           <div className="rounded-xl bg-card p-2.5 sm:p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[90px] sm:min-h-[130px]">
             {stats.daysAgo === null ? (
               <>
-                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">Geen</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">{t("None")}</span>
                 <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("trainingen voltooid")}</span>
               </>
             ) : stats.daysAgo === 0 ? (
               <>
-                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">Vandaag</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">{t("Today")}</span>
                 <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("was je laatste training")}</span>
               </>
             ) : stats.daysAgo === 1 ? (
               <>
-                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">1 dag</span>
+                <span className="text-xl sm:text-4xl md:text-5xl font-black text-foreground font-display">{t("1 day")}</span>
                 <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-1 sm:mt-1.5 font-medium leading-tight">{t("geleden was je laatste training")}</span>
               </>
             ) : (

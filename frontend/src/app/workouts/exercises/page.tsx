@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { WorkoutSubnav } from "@/components/workout-subnav";
-import { ExerciseList } from "@/components/exercise-list";
+import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
+import { ExerciseList } from "@/app/workouts/exercises/exercise-list";
 import { t } from "@/lib/lang";
 import { serverApi } from "@/lib/server-api";
 import { Dumbbell } from "lucide-react";

@@ -1,6 +1,6 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
-import { WorkoutSessionLive } from "@/components/workout-session-live";
+import { WorkoutSessionLive } from "@/app/workouts/session/workout-session-live";
 
 export default async function SessionPage({
   params,

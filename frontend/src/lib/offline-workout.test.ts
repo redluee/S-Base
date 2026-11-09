@@ -182,6 +182,8 @@ type SyncPayload = {
 describe("Offline sync loop robustness", () => {
   const original = api.workouts.sessions.update;
   let calls = 0;
+  const globalNames = ["window", "navigator", "localStorage"] as const;
+  const savedGlobals = globalNames.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
 
   beforeEach(() => {
     Object.defineProperty(globalThis, "window", { value: {}, writable: true, configurable: true });
@@ -191,6 +193,11 @@ describe("Offline sync loop robustness", () => {
   });
   afterEach(() => {
     api.workouts.sessions.update = original;
+    globalNames.forEach((name, i) => {
+      const descriptor = savedGlobals[i];
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else Reflect.deleteProperty(globalThis, name);
+    });
   });
 
   it("keeps pending data and retries on network failure", async () => {

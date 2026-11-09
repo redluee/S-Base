@@ -1,7 +1,7 @@
 import { serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { ExerciseProgress } from "@/components/exercise-progress";
+import { ExerciseProgress } from "@/app/workouts/exercises/exercise-progress";
 import { safeDecodeURIComponent } from "@/lib/uri";
 
 export default async function ExerciseDetailPage({

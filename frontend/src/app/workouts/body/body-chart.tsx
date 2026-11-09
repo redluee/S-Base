@@ -18,7 +18,7 @@ export function BodyChart({ logs, chartTab }: { logs: Measurement[]; chartTab: C
       return (
         <div className="h-64 flex flex-col items-center justify-center rounded-xl bg-card ring-1 ring-foreground/10 text-muted-foreground text-sm">
           <TrendingUp className="size-8 mb-2 opacity-30 text-brand" />
-          <span>{t("Onvoldoende gegevens om grafiek te tekenen")}</span>
+          <span>{t("Not enough data to draw chart")}</span>
         </div>
       );
     }
@@ -89,7 +89,7 @@ export function BodyChart({ logs, chartTab }: { logs: Measurement[]; chartTab: C
             )}
           </div>
           <span className="text-xs text-muted-foreground font-medium">
-            {chartData[0].date} {t("t/m")} {chartData[chartData.length - 1].date}
+            {chartData[0].date} {t("up to and including")} {chartData[chartData.length - 1].date}
           </span>
         </div>
 

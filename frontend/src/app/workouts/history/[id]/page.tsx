@@ -1,7 +1,7 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { WorkoutHistoryDetail } from "@/components/workout-history-detail";
+import { WorkoutHistoryDetail } from "@/app/workouts/history/workout-history-detail";
 import { Suspense } from "react";
 
 export default async function HistoryDetailPage({

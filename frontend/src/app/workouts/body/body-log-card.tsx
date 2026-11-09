@@ -67,8 +67,8 @@ export function BodyLogCard({
               size="icon"
               onClick={() => onEdit(log)}
               className="size-11 text-muted-foreground hover:text-brand cursor-pointer"
-              title={t("Bewerken")}
-              aria-label={t("Bewerken")}
+              title={t("workout.Edit")}
+              aria-label={t("workout.Edit")}
             >
               <Pencil className="size-3.5" />
             </Button>
@@ -77,8 +77,8 @@ export function BodyLogCard({
               size="icon"
               onClick={() => onDelete(log.measurementId)}
               className="size-11 text-muted-foreground hover:text-destructive hover:border-destructive/40 cursor-pointer"
-              title={t("Verwijderen")}
-              aria-label={t("Verwijderen")}
+              title={t("workout.Delete")}
+              aria-label={t("workout.Delete")}
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -141,7 +141,7 @@ export function BodyLogCard({
               <span className="font-display font-bold text-foreground text-sm">{bmi}</span>
             </div>
           ) : (
-            <div className="text-xs text-muted-foreground/60">{t("BMI niet beschikbaar")}</div>
+            <div className="text-xs text-muted-foreground/60">{t("BMI not available")}</div>
           )}
 
           {/* Photos uploads */}
@@ -151,19 +151,19 @@ export function BodyLogCard({
                 <button
                   type="button"
                   onClick={() => onViewPhoto(p.filePath)}
-                  aria-label={t("Bekijk foto groot")}
+                  aria-label={t("View photo enlarged")}
                   className="absolute inset-0 w-full h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   <img
                     src={p.filePath}
-                    alt="Meting foto"
+                    alt={t("Measurement photo")}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                   />
                 </button>
                 <button 
                   type="button"
                   onClick={() => onDeletePhoto(p.photoId)}
-                  aria-label={t("Foto verwijderen")}
+                  aria-label={t("Delete photo")}
                   className="absolute top-0.5 right-0.5 size-5 rounded bg-destructive/90 flex items-center justify-center text-white [@media(hover:hover)]:opacity-0 group-hover/photo:opacity-100 focus-visible:opacity-100 transition-opacity cursor-pointer"
                 >
                   <X className="size-3" />
@@ -175,7 +175,7 @@ export function BodyLogCard({
             {uploadingLogId === log.measurementId && (
               <div className="relative shrink-0 size-11 rounded-lg border border-brand/60 overflow-hidden bg-background flex flex-col items-center justify-center animate-in fade-in duration-200">
                 {optimisticPhotoUrl ? (
-                  <img src={optimisticPhotoUrl} alt={t("Voorbeeld")} className="w-full h-full object-cover opacity-35" />
+                  <img src={optimisticPhotoUrl} alt={t("Preview")} className="w-full h-full object-cover opacity-35" />
                 ) : null}
                 <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-0.5">
                   <Loader2 className="size-3.5 text-brand animate-spin" />
@@ -192,7 +192,7 @@ export function BodyLogCard({
                 : "hover:border-brand/50 text-muted-foreground hover:text-brand bg-muted/10 hover:bg-brand/5 cursor-pointer"
             }`}>
               <Camera className="size-4" aria-hidden="true" />
-              <span className="sr-only">{t("Foto toevoegen")}</span>
+              <span className="sr-only">{t("Add photo")}</span>
               <input 
                 type="file" 
                 accept="image/*"

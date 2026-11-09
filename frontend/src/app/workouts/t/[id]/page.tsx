@@ -1,7 +1,7 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { WorkoutTemplateDetail } from "@/components/workout-template-detail";
+import { WorkoutTemplateDetail } from "@/app/workouts/templates/workout-template-detail";
 
 export default async function TemplateDetailPage({
   params,
