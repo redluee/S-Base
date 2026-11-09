@@ -10,8 +10,8 @@ import {
 
 describe("parseSessionConflict", () => {
   it("extracts the running session from a 409 response", () => {
-    const err = new ApiError("A workout session is already running", 409, {
-      error: "A workout session is already running",
+    const err = new ApiError("workout.activeSessionExists", 409, {
+      error: "workout.activeSessionExists",
       activeSession: { sessionId: 12, templateId: 3, name: "Push", startedAt: "2026-01-01T10:00:00Z", exerciseCount: 4, completedSetsCount: 2 },
     });
     expect(parseSessionConflict(err)).toEqual({
@@ -26,7 +26,7 @@ describe("parseSessionConflict", () => {
 
   it("ignores other errors", () => {
     expect(parseSessionConflict(new ApiError("bad", 400, {}))).toBeNull();
-    expect(parseSessionConflict(new ApiError("conflict", 409, { error: "x" }))).toBeNull();
+    expect(parseSessionConflict(new ApiError("workout.measurementDateExists", 409, { error: "workout.measurementDateExists" }))).toBeNull();
     expect(parseSessionConflict(new Error("x"))).toBeNull();
     expect(parseSessionConflict(null)).toBeNull();
   });

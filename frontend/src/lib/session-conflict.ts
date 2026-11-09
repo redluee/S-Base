@@ -10,7 +10,7 @@ export interface ActiveSessionInfo {
 }
 
 export function parseSessionConflict(err: unknown): ActiveSessionInfo | null {
-  if (!(err instanceof ApiError) || err.status !== 409) return null;
+  if (!(err instanceof ApiError) || err.status !== 409 || err.key !== "workout.activeSessionExists") return null;
   const info = err.data?.activeSession as Partial<ActiveSessionInfo> | undefined;
   if (!info || typeof info.sessionId !== "number") return null;
   return {

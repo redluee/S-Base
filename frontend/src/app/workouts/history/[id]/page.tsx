@@ -1,5 +1,5 @@
-import { serverApi } from "@/lib/server-api";
-import { redirect, notFound } from "next/navigation";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { WorkoutHistoryDetail } from "@/components/workout-history-detail";
 import { Suspense } from "react";
@@ -16,8 +16,7 @@ export default async function HistoryDetailPage({
   if (!user) redirect("/");
 
   const { id } = await params;
-  const session = await serverApi.workouts.sessions.get(Number(id));
-  if (!session) notFound();
+  const session = await notFoundOn404(serverApi.workouts.sessions.get(Number(id)));
 
   return (
     <div className="min-h-screen flex flex-col">

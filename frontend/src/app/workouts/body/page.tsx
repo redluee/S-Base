@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { NavHeader } from "@/components/nav-header";
 import { WorkoutSubnav } from "@/components/workout-subnav";
@@ -176,11 +176,7 @@ export default function BodyPage() {
       fetchLogs();
     } catch (err) {
       console.error("Failed to save log:", err);
-      setSaveError(
-        err instanceof ApiError && err.status === 409
-          ? t("A measurement already exists for this date.")
-          : t("Failed to save measurement. Please try again.")
-      );
+      setSaveError(apiErrorMessage(err, "Failed to save measurement. Please try again."));
     } finally {
       setIsSaving(false);
     }

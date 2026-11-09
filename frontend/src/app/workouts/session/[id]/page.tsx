@@ -1,5 +1,5 @@
-import { serverApi } from "@/lib/server-api";
-import { redirect, notFound } from "next/navigation";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 import { WorkoutSessionLive } from "@/components/workout-session-live";
 
 export default async function SessionPage({
@@ -28,8 +28,7 @@ export default async function SessionPage({
     );
   }
 
-  const session = await serverApi.workouts.sessions.get(Number(id));
-  if (!session) notFound();
+  const session = await notFoundOn404(serverApi.workouts.sessions.get(Number(id)));
 
   return (
     <div className="min-h-screen flex flex-col">

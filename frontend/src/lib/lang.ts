@@ -7,6 +7,7 @@ import { pulseNl } from "./pulse-lang";
 import { cashflowNl } from "./cashflow-lang";
 import { recipesNl } from "./recipes-lang";
 import { resumeNl } from "./resume-lang";
+import { workoutNl } from "./workout-lang";
 
 const nl: Record<string, string> = {
   ...commonNl,
@@ -16,6 +17,7 @@ const nl: Record<string, string> = {
   ...pulseNl,
   ...recipesNl,
   ...resumeNl,
+  ...workoutNl,
   ...financeNl,
   ...financeImportNl,
   "Skip to content": "Naar hoofdinhoud",

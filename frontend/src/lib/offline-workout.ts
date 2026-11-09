@@ -219,14 +219,14 @@ export function dismissSyncWarning(id: string): void {
   writeSyncWarnings(readSyncWarnings().filter((w) => w.id !== id));
 }
 
-export const UNKNOWN_EXERCISE_CODE = "unknown_session_exercise";
+export const UNKNOWN_EXERCISE_KEY = "workout.exerciseNotInSession";
 export const UNKNOWN_EXERCISE_WARNING =
   "An exercise no longer exists on the server and was removed from your local workout. Its sets could not be synced.";
 
 export function getUnknownExerciseId(err: unknown): number | null {
   if (!(err instanceof ApiError) || err.status !== 400) return null;
-  if (err.data?.code !== UNKNOWN_EXERCISE_CODE) return null;
-  const id = err.data.sessionExerciseId;
+  if (err.key !== UNKNOWN_EXERCISE_KEY) return null;
+  const id = err.data?.sessionExerciseId;
   return typeof id === "number" ? id : null;
 }
 

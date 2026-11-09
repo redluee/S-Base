@@ -1,11 +1,13 @@
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import db from "../../db/client";
-import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
-import { ValidationError } from "../../utils/validation";
-import { type TemplateExerciseInput, validateTemplateInput, templateExerciseValues, parseDateString } from "./workout-helpers";
+import { workoutTemplates, templateExercises } from "../../db/schema";
+import { ValidationError, orNotFound } from "../../utils/errors";
+import { templateExerciseValues } from "./workout-helpers";
+import type { TemplateCreateInput, TemplateUpdateInput } from "./workout-schemas";
+import { validateTemplateInput } from "./workout-validation";
 
-export class WorkoutTemplateService {
-  listTemplates(userId: number) {
+export class WorkoutTemplates {
+  list(userId: number) {
     return db.select({
       templateId: workoutTemplates.templateId,
       userId: workoutTemplates.userId,
@@ -22,7 +24,7 @@ export class WorkoutTemplateService {
     .all();
   }
 
-  reorderTemplates(userId: number, orderedIds: number[]) {
+  reorder(userId: number, orderedIds: number[]) {
     const owned = db.select({ templateId: workoutTemplates.templateId })
       .from(workoutTemplates)
       .where(eq(workoutTemplates.userId, userId))
@@ -30,7 +32,7 @@ export class WorkoutTemplateService {
     const ownedIds = new Set(owned.map((o) => o.templateId));
 
     if (!Array.isArray(orderedIds) || orderedIds.length !== ownedIds.size || new Set(orderedIds).size !== orderedIds.length || orderedIds.some((id) => !ownedIds.has(id))) {
-      throw new ValidationError("Template order must include exactly the current templates");
+      throw new ValidationError("workout.templateOrderInvalid");
     }
 
     db.transaction((tx) => {
@@ -42,17 +44,16 @@ export class WorkoutTemplateService {
       });
     });
 
-    return this.listTemplates(userId);
+    return this.list(userId);
   }
 
-  getTemplate(id: number, userId?: number) {
-    const conditions = [eq(workoutTemplates.templateId, id)];
-    if (userId !== undefined) {
-      conditions.push(eq(workoutTemplates.userId, userId));
-    }
-    const template = db.select().from(workoutTemplates).where(and(...conditions)).get();
-    if (!template) return null;
-
+  get(id: number, userId: number) {
+    const template = orNotFound(
+      db.select().from(workoutTemplates)
+        .where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId)))
+        .get(),
+      "workout.templateNotFound",
+    );
     const exercises = db.select()
       .from(templateExercises)
       .where(eq(templateExercises.templateId, id))
@@ -62,13 +63,7 @@ export class WorkoutTemplateService {
     return { ...template, exercises };
   }
 
-  createTemplate(userId: number, data: {
-    name: string;
-    description?: string;
-    targetMuscleGroups?: string;
-    estimatedTime?: number;
-    exercises?: TemplateExerciseInput[];
-  }) {
+  create(userId: number, data: TemplateCreateInput) {
     validateTemplateInput(data, true);
 
     const templateId = db.transaction((tx) => {
@@ -92,19 +87,11 @@ export class WorkoutTemplateService {
       return template.templateId;
     });
 
-    return this.getTemplate(templateId, userId);
+    return this.get(templateId, userId);
   }
 
-  updateTemplate(id: number, userId: number, data: {
-    name?: string;
-    description?: string | null;
-    targetMuscleGroups?: string | null;
-    estimatedTime?: number | null;
-    exercises?: TemplateExerciseInput[];
-  }) {
-    const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
-    if (!existing) return null;
-
+  update(id: number, userId: number, data: TemplateUpdateInput) {
+    const existing = this.requireOwned(id, userId);
     validateTemplateInput(data, false);
 
     db.transaction((tx) => {
@@ -123,51 +110,21 @@ export class WorkoutTemplateService {
       }
     });
 
-    return this.getTemplate(id, userId);
+    return this.get(id, userId);
   }
 
-  deleteTemplate(id: number, userId: number) {
-    const existing = db.select().from(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).get();
-    if (!existing) return null;
+  remove(id: number, userId: number) {
+    this.requireOwned(id, userId);
     db.delete(workoutTemplates).where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId))).run();
     return { deleted: true };
   }
 
-  cleanupEmptySessions(userId: number, minAgeSeconds: number = 12 * 3600) {
-    const activeSessions = db.select({
-      sessionId: workoutSessions.sessionId,
-      startedAt: workoutSessions.startedAt,
-    })
-      .from(workoutSessions)
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        sql`completed_at IS NULL`
-      ))
-      .all();
-
-    for (const s of activeSessions) {
-      if (minAgeSeconds > 0) {
-        const startedTime = parseDateString(s.startedAt).getTime();
-        const ageSeconds = (Date.now() - startedTime) / 1000;
-        if (ageSeconds < minAgeSeconds) {
-          continue;
-        }
-      }
-
-      const completedSetsCount = db.select({
-        count: sql<number>`count(*)`
-      })
-        .from(sessionSets)
-        .innerJoin(sessionExercises, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
-        .where(and(
-          eq(sessionExercises.sessionId, s.sessionId),
-          eq(sessionSets.completed, 1)
-        ))
-        .get();
-
-      if (!completedSetsCount || completedSetsCount.count === 0) {
-        db.delete(workoutSessions).where(eq(workoutSessions.sessionId, s.sessionId)).run();
-      }
-    }
+  private requireOwned(id: number, userId: number) {
+    return orNotFound(
+      db.select().from(workoutTemplates)
+        .where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId)))
+        .get(),
+      "workout.templateNotFound",
+    );
   }
 }

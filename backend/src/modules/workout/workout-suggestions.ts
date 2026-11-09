@@ -3,11 +3,10 @@ import { eq, and, or, like, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
 import { normalizeSearchString, sqlNormalize } from "../../utils/search";
-import { parseDateString, formatDutchDate } from "./workout-helpers";
-import { WorkoutSessionService } from "./workout-sessions";
+import { formatDutchDate, parseDateString, sessionMatchesQuery } from "./workout-helpers";
 
-export class WorkoutSuggestionService extends WorkoutSessionService {
-  suggestExercises(userId: number, q: string) {
+export class WorkoutSuggestions {
+  exercises(userId: number, q: string) {
     const normalizedQ = normalizeSearchString(q);
     if (!normalizedQ) return [];
 
@@ -193,10 +192,10 @@ export class WorkoutSuggestionService extends WorkoutSessionService {
     }));
   }
 
-  suggestWorkoutSearch(userId: number, q: string) {
+  search(userId: number, q: string) {
     const normalizedQ = normalizeSearchString(q);
 
-    const exercises = this.suggestExercises(userId, q).slice(0, 5);
+    const exercises = this.exercises(userId, q).slice(0, 5);
 
     const templates = db.select({
       templateId: workoutTemplates.templateId,
@@ -237,58 +236,18 @@ export class WorkoutSuggestionService extends WorkoutSessionService {
       .all();
 
     const historySuggestions = sessions
-      .map(session => {
-        const dateObj = parseDateString(session.startedAt);
-        const formattedDate = formatDutchDate(dateObj, {
+      .filter((session) => sessionMatchesQuery(session.startedAt, session.name, session.notes, normalizedQ))
+      .slice(0, 5)
+      .map((session) => ({
+        type: "history" as const,
+        value: `${session.name || "Training"} - ${formatDutchDate(parseDateString(session.startedAt), {
           weekday: "short",
           day: "numeric",
           month: "short",
           year: "numeric",
-        });
-        
-        const nameNorm = normalizeSearchString(session.name || "");
-        const notesNorm = normalizeSearchString(session.notes || "");
-        const dateNorm = normalizeSearchString(formattedDate);
-
-        const dateLong = formatDutchDate(dateObj, {
-          weekday: "short",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
-        const dateLongNorm = normalizeSearchString(dateLong);
-
-        const dayStr = String(dateObj.getDate()).padStart(2, "0");
-        const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
-        const yearStr = String(dateObj.getFullYear());
-        const dayRaw = String(dateObj.getDate());
-        const monthRaw = String(dateObj.getMonth() + 1);
-
-        const datePadded = `${dayStr}${monthStr}${yearStr}`;
-        const datePaddedShort = `${dayStr}${monthStr}`;
-        const dateUnpadded = `${dayRaw}${monthRaw}${yearStr}`;
-        const dateUnpaddedShort = `${dayRaw}${monthRaw}`;
-
-        const isMatch =
-          nameNorm.includes(normalizedQ) ||
-          notesNorm.includes(normalizedQ) ||
-          dateNorm.includes(normalizedQ) ||
-          dateLongNorm.includes(normalizedQ) ||
-          datePadded.includes(normalizedQ) ||
-          datePaddedShort.includes(normalizedQ) ||
-          dateUnpadded.includes(normalizedQ) ||
-          dateUnpaddedShort.includes(normalizedQ);
-
-        return {
-          isMatch,
-          type: "history" as const,
-          value: `${session.name || "Training"} - ${formattedDate}`,
-          id: session.sessionId
-        };
-      })
-      .filter(s => s.isMatch)
-      .slice(0, 5)
-      .map(({ type, value, id }) => ({ type, value, id }));
+        })}`,
+        id: session.sessionId,
+      }));
 
     return [
       ...exercises,

@@ -256,9 +256,8 @@ describe("Offline sync loop robustness", () => {
       payloads.push(payload);
       const ids = (payload.exercises ?? []).map((e) => e.sessionExerciseId);
       if (ids.includes(999)) {
-        throw new ApiError("Exercise does not belong to this session", 400, {
-          error: "Exercise does not belong to this session",
-          code: "unknown_session_exercise",
+        throw new ApiError("workout.exerciseNotInSession", 400, {
+          error: "workout.exerciseNotInSession",
           sessionExerciseId: 999,
         });
       }

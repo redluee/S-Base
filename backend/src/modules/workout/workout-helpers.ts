@@ -1,92 +1,5 @@
-import { ValidationError, optionalInteger, optionalText, requireObject, requireText } from "../../utils/validation";
-
-export const MAX_SETS_PER_EXERCISE = 50;
-export const MAX_EXERCISES = 100;
-
-export function validateSetParams(params: {
-  reps?: number;
-  weight?: number;
-  distance?: number;
-  duration?: number;
-  rpe?: number;
-  heartRate?: number;
-  defaultRestTime?: number;
-}, prefix: string = "", allowNegativeWeight: boolean = false) {
-  const fields: [string, unknown][] = [
-    ["reps", params.reps], ["weight", params.weight], ["distance", params.distance], ["duration", params.duration],
-    ["rpe", params.rpe], ["heart rate", params.heartRate], ["rest time", params.defaultRestTime],
-  ];
-  for (const [field, value] of fields) {
-    if (value !== undefined && value !== null && (typeof value !== "number" || !Number.isFinite(value))) {
-      throw new ValidationError(`${prefix ? prefix + " " : ""}${field} must be a number`);
-    }
-  }
-  const getMsg = (field: string, suffix: string) => {
-    if (prefix) {
-      return `${prefix} ${field} ${suffix}`;
-    }
-    return `${field.charAt(0).toUpperCase() + field.slice(1)} ${suffix}`;
-  };
-
-  if (params.reps !== undefined && params.reps < 0) throw new ValidationError(getMsg("reps", "cannot be negative"));
-  if (params.weight !== undefined && params.weight < 0 && !allowNegativeWeight) throw new ValidationError(getMsg("weight", "cannot be negative"));
-  if (params.distance !== undefined && params.distance < 0) throw new ValidationError(getMsg("distance", "cannot be negative"));
-  if (params.duration !== undefined && params.duration < 0) throw new ValidationError(getMsg("duration", "cannot be negative"));
-  if (params.rpe !== undefined && (params.rpe < 0 || params.rpe > 10)) throw new ValidationError(getMsg("RPE", "must be 0-10"));
-  if (params.heartRate !== undefined && params.heartRate < 0) throw new ValidationError(getMsg("heart rate", "cannot be negative"));
-  if (params.defaultRestTime !== undefined && params.defaultRestTime < 0) throw new ValidationError(getMsg("rest time", "cannot be negative"));
-}
-
-export type TemplateExerciseInput = {
-  exerciseName: string;
-  category?: string;
-  sets?: number;
-  reps?: number;
-  weight?: number;
-  distance?: number;
-  duration?: number;
-  rpe?: number;
-  heartRate?: number;
-  defaultRestTime?: number;
-  equipment?: string;
-  perSide?: number;
-  isAssisted?: number;
-};
-
-export function validateTemplateInput(data: any, requireName: boolean) {
-  const input = requireObject(data);
-  if (requireName || input.name !== undefined) requireText(input.name, "Name");
-  optionalText(input.description, "Description");
-  optionalText(input.targetMuscleGroups, "Target muscle groups");
-  optionalInteger(input.estimatedTime, "Estimated time");
-  if (input.estimatedTime !== undefined && input.estimatedTime !== null && input.estimatedTime < 0) {
-    throw new ValidationError("Estimated time cannot be negative");
-  }
-  if (input.exercises !== undefined && input.exercises !== null && !Array.isArray(input.exercises)) {
-    throw new ValidationError("Exercises must be a list");
-  }
-  if (Array.isArray(input.exercises) && input.exercises.length > MAX_EXERCISES) {
-    throw new ValidationError(`A template can have at most ${MAX_EXERCISES} exercises`);
-  }
-  for (const raw of input.exercises ?? []) {
-    const ex = requireObject(raw, "Exercise");
-    requireText(ex.exerciseName, "Exercise name");
-    optionalText(ex.category, "Category", 100);
-    optionalText(ex.equipment, "Equipment", 100);
-    if (ex.sets !== undefined && (typeof ex.sets !== "number" || !Number.isInteger(ex.sets) || ex.sets < 1)) {
-      throw new ValidationError(`Exercise "${ex.exerciseName}" must have at least 1 set`);
-    }
-    if (ex.sets !== undefined && ex.sets > MAX_SETS_PER_EXERCISE) {
-      throw new ValidationError(`Exercise "${ex.exerciseName}" can have at most ${MAX_SETS_PER_EXERCISE} sets`);
-    }
-    if (ex.reps !== undefined && ex.reps !== null && (typeof ex.reps !== "number" || !Number.isFinite(ex.reps))) {
-      throw new ValidationError(`Exercise "${ex.exerciseName}" reps must be a number`);
-    }
-    optionalInteger(ex.perSide, "Per side");
-    optionalInteger(ex.isAssisted, "Assisted");
-    validateSetParams(ex, `Exercise "${ex.exerciseName}"`, Boolean(ex.isAssisted));
-  }
-}
+import { normalizeSearchString } from "../../utils/search";
+import type { TemplateExerciseInput } from "./workout-schemas";
 
 export function templateExerciseValues(templateId: number, ex: TemplateExerciseInput, index: number) {
   return {
@@ -139,4 +52,27 @@ export function activeSeconds(session: { startedAt: string; completedAt: string 
 
 export function formatDutchDate(date: Date, options: Intl.DateTimeFormatOptions): string {
   return date.toLocaleDateString("nl-NL", options);
+}
+
+export function sessionMatchesQuery(startedAt: string, name: string | null, notes: string | null, normalizedQ: string): boolean {
+  const date = parseDateString(startedAt);
+  const dayRaw = String(date.getDate());
+  const monthRaw = String(date.getMonth() + 1);
+  const year = String(date.getFullYear());
+  const day = dayRaw.padStart(2, "0");
+  const month = monthRaw.padStart(2, "0");
+  const dateFormats = [
+    formatDutchDate(date, { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+    formatDutchDate(date, { weekday: "short", day: "numeric", month: "long", year: "numeric" }),
+  ].map(normalizeSearchString);
+  const candidates = [
+    normalizeSearchString(name || ""),
+    normalizeSearchString(notes || ""),
+    ...dateFormats,
+    `${day}${month}${year}`,
+    `${day}${month}`,
+    `${dayRaw}${monthRaw}${year}`,
+    `${dayRaw}${monthRaw}`,
+  ];
+  return candidates.some((candidate) => candidate.includes(normalizedQ));
 }

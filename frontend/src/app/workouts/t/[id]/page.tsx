@@ -1,5 +1,5 @@
-import { serverApi } from "@/lib/server-api";
-import { redirect, notFound } from "next/navigation";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { WorkoutTemplateDetail } from "@/components/workout-template-detail";
 
@@ -15,8 +15,7 @@ export default async function TemplateDetailPage({
   if (!user) redirect("/");
 
   const { id } = await params;
-  const template = await serverApi.workouts.templates.get(Number(id));
-  if (!template) notFound();
+  const template = await notFoundOn404(serverApi.workouts.templates.get(Number(id)));
 
   return (
     <div className="min-h-screen flex flex-col">

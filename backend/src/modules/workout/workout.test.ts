@@ -14,29 +14,29 @@ describe("WorkoutService", () => {
 
   it("validates exercise parameters when creating a workout template", () => {
     expect(() =>
-      workoutService.createTemplate(adminId, {
+      workoutService.templates.create(adminId, {
         name: "Invalid Template",
         estimatedTime: -10,
       })
-    ).toThrow("Estimated time cannot be negative");
+    ).toThrow("workout.estimatedTimeNegative");
 
     expect(() =>
-      workoutService.createTemplate(adminId, {
+      workoutService.templates.create(adminId, {
         name: "Invalid Exercise Sets",
         exercises: [{ exerciseName: "Bench Press", sets: 0, reps: 10 }],
       })
-    ).toThrow('Exercise "Bench Press" must have at least 1 set');
+    ).toThrow("workout.exerciseNeedsSet");
 
     expect(() =>
-      workoutService.createTemplate(adminId, {
+      workoutService.templates.create(adminId, {
         name: "Invalid RPE",
         exercises: [{ exerciseName: "Bench Press", sets: 3, reps: 10, rpe: 15 }],
       })
-    ).toThrow("RPE must be 0-10");
+    ).toThrow("workout.rpeRange");
   });
 
   it("manages workout templates CRUD", () => {
-    const template = workoutService.createTemplate(adminId, {
+    const template = workoutService.templates.create(adminId, {
       name: "Full Body Strength",
       description: "Complete full body routine",
       targetMuscleGroups: "Full Body",
@@ -51,27 +51,27 @@ describe("WorkoutService", () => {
     expect(template?.name).toBe("Full Body Strength");
     expect(template?.exercises.length).toBe(2);
 
-    const list = workoutService.listTemplates(adminId);
+    const list = workoutService.templates.list(adminId);
     expect(list.some((t) => t.templateId === template?.templateId)).toBe(true);
 
-    const fetched = workoutService.getTemplate(template!.templateId, adminId);
+    const fetched = workoutService.templates.get(template!.templateId, adminId);
     expect(fetched?.targetMuscleGroups).toBe("Full Body");
 
-    const updated = workoutService.updateTemplate(template!.templateId, adminId, {
+    const updated = workoutService.templates.update(template!.templateId, adminId, {
       name: "Full Body Hypertrophy",
     });
     expect(updated?.name).toBe("Full Body Hypertrophy");
 
-    const delRes = workoutService.deleteTemplate(template!.templateId, adminId);
+    const delRes = workoutService.templates.remove(template!.templateId, adminId);
     expect(delRes?.deleted).toBe(true);
   });
 
   it("manages workout session lifecycle", () => {
-    const session = workoutService.createSession(adminId, undefined, true)!;
+    const session = workoutService.sessions.create(adminId, undefined, true)!;
     expect(session).not.toBeNull();
     expect(session?.name).toBe("Vrije training");
 
-    const updated = workoutService.updateSession(session!.sessionId, adminId, {
+    const updated = workoutService.sessions.update(session!.sessionId, adminId, {
       notes: "Felt strong today",
       exercises: [
         {
@@ -86,23 +86,23 @@ describe("WorkoutService", () => {
     expect(updated?.notes).toBe("Felt strong today");
     expect(updated?.exercises.length).toBe(1);
 
-    const completed = workoutService.completeSession(session!.sessionId, adminId);
+    const completed = workoutService.sessions.complete(session!.sessionId, adminId);
     expect(completed?.completedAt).not.toBeNull();
 
-    const activeSessions = workoutService.listSessions(adminId, "completed");
+    const activeSessions = workoutService.sessions.list(adminId, "completed");
     expect(activeSessions.some((s) => s.sessionId === session!.sessionId)).toBe(true);
 
-    const delRes = workoutService.deleteSession(session!.sessionId, adminId);
+    const delRes = workoutService.sessions.remove(session!.sessionId, adminId);
     expect(delRes?.deleted).toBe(true);
   });
 
   it("provides exercise suggestions and progress tracking", () => {
-    workoutService.createTemplate(adminId, {
+    workoutService.templates.create(adminId, {
       name: "Suggest Test",
       exercises: [{ exerciseName: "Overhead Press", sets: 3, reps: 10, weight: 40 }],
     });
 
-    const suggestions = workoutService.suggestExercises(adminId, "Overhead");
+    const suggestions = workoutService.suggestions.exercises(adminId, "Overhead");
     expect(suggestions.filter((s) => s.value.toLowerCase() === "overhead press").length).toBe(1);
     expect(suggestions[0].value).toBe("Overhead Press");
     expect(suggestions[0].defaultSets).toBe(3);
@@ -110,8 +110,8 @@ describe("WorkoutService", () => {
     expect(suggestions[0].defaultWeight).toBe(40);
 
     // Create completed session 1 with 50kg
-    const s1 = workoutService.createSession(adminId, undefined, true)!;
-    workoutService.updateSession(s1.sessionId, adminId, {
+    const s1 = workoutService.sessions.create(adminId, undefined, true)!;
+    workoutService.sessions.update(s1.sessionId, adminId, {
       exercises: [
         {
           exerciseName: "Overhead Press",
@@ -122,11 +122,11 @@ describe("WorkoutService", () => {
         },
       ],
     });
-    workoutService.completeSession(s1.sessionId, adminId);
+    workoutService.sessions.complete(s1.sessionId, adminId);
 
     // Create completed session 2 with 55kg (more recent)
-    const s2 = workoutService.createSession(adminId, undefined, true)!;
-    workoutService.updateSession(s2.sessionId, adminId, {
+    const s2 = workoutService.sessions.create(adminId, undefined, true)!;
+    workoutService.sessions.update(s2.sessionId, adminId, {
       exercises: [
         {
           exerciseName: "Overhead Press",
@@ -140,10 +140,10 @@ describe("WorkoutService", () => {
         },
       ],
     });
-    workoutService.completeSession(s2.sessionId, adminId);
+    workoutService.sessions.complete(s2.sessionId, adminId);
 
     // Ensure suggestExercises only returns ONE entry for Overhead Press and uses the latest session data
-    const suggestionsAfter = workoutService.suggestExercises(adminId, "Overhead");
+    const suggestionsAfter = workoutService.suggestions.exercises(adminId, "Overhead");
     const ohMatches = suggestionsAfter.filter((s) => s.value.toLowerCase() === "overhead press");
     expect(ohMatches.length).toBe(1);
     expect(ohMatches[0].defaultSets).toBe(2);
@@ -152,17 +152,17 @@ describe("WorkoutService", () => {
     expect(ohMatches[0].lastSets?.length).toBe(2);
     expect(ohMatches[0].lastSets?.[0].weight).toBe(55);
 
-    const searchSuggestions = workoutService.suggestWorkoutSearch(adminId, "Suggest");
+    const searchSuggestions = workoutService.suggestions.search(adminId, "Suggest");
     expect(searchSuggestions.length).toBeGreaterThan(0);
 
-    const progress = workoutService.exerciseProgress(adminId, "Overhead Press");
+    const progress = workoutService.exercises.progress(adminId, "Overhead Press");
     expect(progress).toBeDefined();
     expect(progress.sessions.length).toBe(2);
     expect(progress.sessions[1].sets[0].weight).toBe(55);
   });
 
   it("handles perSide toggles properly across session creation and updates", () => {
-    const tmpl = workoutService.createTemplate(adminId, {
+    const tmpl = workoutService.templates.create(adminId, {
       name: "Per Side Test Template",
       exercises: [
         { exerciseName: "Single Leg Press", sets: 3, reps: 10, weight: 60, perSide: 1 },
@@ -170,11 +170,11 @@ describe("WorkoutService", () => {
     })!;
     expect(tmpl.exercises[0].perSide).toBe(1);
 
-    const s = workoutService.createSession(adminId, tmpl.templateId, true);
+    const s = workoutService.sessions.create(adminId, tmpl.templateId, true);
     expect(s?.exercises?.[0].perSide).toBe(1);
 
     // Disable perSide on this session exercise
-    const updated = workoutService.updateSession(s!.sessionId, adminId, {
+    const updated = workoutService.sessions.update(s!.sessionId, adminId, {
       exercises: [
         {
           sessionExerciseId: s!.exercises![0].sessionExerciseId,
@@ -190,22 +190,22 @@ describe("WorkoutService", () => {
 
   it("rejects negative weight unless the exercise is marked assisted", () => {
     expect(() =>
-      workoutService.createTemplate(adminId, {
+      workoutService.templates.create(adminId, {
         name: "Non-Assisted Negative Weight",
         exercises: [{ exerciseName: "Pull-Up", category: "Bodyweight", sets: 3, reps: 8, weight: -20 }],
       })
-    ).toThrow("weight cannot be negative");
+    ).toThrow("workout.weightNegative");
 
-    const tmpl = workoutService.createTemplate(adminId, {
+    const tmpl = workoutService.templates.create(adminId, {
       name: "Assisted Negative Weight",
       exercises: [{ exerciseName: "Pull-Up", category: "Bodyweight", sets: 3, reps: 8, weight: -20, isAssisted: 1 }],
     })!;
     expect(tmpl.exercises[0].defaultWeight).toBe(-20);
     expect(tmpl.exercises[0].isAssisted).toBe(1);
 
-    const session = workoutService.createSession(adminId, undefined, true)!;
+    const session = workoutService.sessions.create(adminId, undefined, true)!;
     expect(() =>
-      workoutService.updateSession(session!.sessionId, adminId, {
+      workoutService.sessions.update(session!.sessionId, adminId, {
         exercises: [
           {
             exerciseName: "Pull-Up",
@@ -215,9 +215,9 @@ describe("WorkoutService", () => {
           },
         ],
       })
-    ).toThrow("Weight cannot be negative");
+    ).toThrow("workout.weightNegative");
 
-    const updated = workoutService.updateSession(session!.sessionId, adminId, {
+    const updated = workoutService.sessions.update(session!.sessionId, adminId, {
       exercises: [
         {
           exerciseName: "Pull-Up",
@@ -233,8 +233,8 @@ describe("WorkoutService", () => {
 
   it("fires a weight PR when assistance decreases and keeps one continuous progress series across the assisted-to-added transition", () => {
     // Session 1: heavily assisted (-20kg support)
-    const s1 = workoutService.createSession(adminId, undefined, true)!;
-    workoutService.updateSession(s1.sessionId, adminId, {
+    const s1 = workoutService.sessions.create(adminId, undefined, true)!;
+    workoutService.sessions.update(s1.sessionId, adminId, {
       exercises: [
         {
           exerciseName: "Assisted Pull-Up",
@@ -245,11 +245,11 @@ describe("WorkoutService", () => {
         },
       ],
     });
-    workoutService.completeSession(s1.sessionId, adminId);
+    workoutService.sessions.complete(s1.sessionId, adminId);
 
     // Session 2: less assistance (-15kg support) -> should register a weight PR
-    const s2 = workoutService.createSession(adminId, undefined, true)!;
-    workoutService.updateSession(s2.sessionId, adminId, {
+    const s2 = workoutService.sessions.create(adminId, undefined, true)!;
+    workoutService.sessions.update(s2.sessionId, adminId, {
       exercises: [
         {
           exerciseName: "Assisted Pull-Up",
@@ -260,9 +260,9 @@ describe("WorkoutService", () => {
         },
       ],
     });
-    workoutService.completeSession(s2.sessionId, adminId);
+    workoutService.sessions.complete(s2.sessionId, adminId);
 
-    const prs = workoutService.getSessionPRs(s2.sessionId, adminId);
+    const prs = workoutService.stats.sessionPRs(s2.sessionId, adminId);
     const weightPr = prs.find((p) => p.type === "weight");
     expect(weightPr).toBeDefined();
     expect(weightPr?.prevValue).toBe(20);
@@ -270,8 +270,8 @@ describe("WorkoutService", () => {
     expect(weightPr?.assisted).toBe(true);
 
     // Session 3: same exercise, now with added weight instead of assistance
-    const s3 = workoutService.createSession(adminId, undefined, true)!;
-    workoutService.updateSession(s3.sessionId, adminId, {
+    const s3 = workoutService.sessions.create(adminId, undefined, true)!;
+    workoutService.sessions.update(s3.sessionId, adminId, {
       exercises: [
         {
           exerciseName: "Assisted Pull-Up",
@@ -282,9 +282,9 @@ describe("WorkoutService", () => {
         },
       ],
     });
-    workoutService.completeSession(s3.sessionId, adminId);
+    workoutService.sessions.complete(s3.sessionId, adminId);
 
-    const progress = workoutService.exerciseProgress(adminId, "Assisted Pull-Up");
+    const progress = workoutService.exercises.progress(adminId, "Assisted Pull-Up");
     expect(progress.sessions.length).toBe(3);
     expect(progress.sessions[0].sets[0].weight).toBe(-20);
     expect(progress.sessions[1].sets[0].weight).toBe(-15);

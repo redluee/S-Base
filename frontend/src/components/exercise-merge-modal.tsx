@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
@@ -88,8 +88,7 @@ export function ExerciseMergeModal({
       onSuccess(trimmedTarget);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t("Failed to merge exercises.");
-      setError(msg);
+      setError(apiErrorMessage(err, "Failed to merge exercises."));
     } finally {
       setLoading(false);
     }

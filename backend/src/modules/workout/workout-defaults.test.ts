@@ -17,24 +17,24 @@ beforeEach(async () => {
 });
 
 function history(weights: number[], owner = userId, completed = true) {
-  const session = workout.createSession(owner, undefined, true)!;
-  workout.updateSession(session.sessionId, owner, {
+  const session = workout.sessions.create(owner, undefined, true)!;
+  workout.sessions.update(session.sessionId, owner, {
     exercises: [{
       exerciseName,
       sortOrder: 0,
       sets: weights.map((weight, i) => ({ setNumber: i + 1, weight, reps: 8, completed: 1 })),
     }],
   });
-  if (completed) workout.completeSession(session.sessionId, owner);
+  if (completed) workout.sessions.complete(session.sessionId, owner);
   return session;
 }
 
 function start(weight: number | null = 20) {
-  const template = workout.createTemplate(userId, {
+  const template = workout.templates.create(userId, {
     name: "Default test",
     exercises: [{ exerciseName, sets: 3, reps: 10, weight }],
   })!;
-  return workout.createSession(userId, template.templateId, true)!;
+  return workout.sessions.create(userId, template.templateId, true)!;
 }
 
 describe("workout system defaults", () => {
@@ -46,12 +46,12 @@ describe("workout system defaults", () => {
     const current = start();
     expect(current.exercises[0].sets.map((set) => set.weight)).toEqual([50, 50, 50]);
     expect(current.exercises[0].sets.every((set) => set.editedFields === "")).toBe(true);
-    expect(workout.suggestExercises(userId, exerciseName)[0].defaultWeight).toBe(50);
+    expect(workout.suggestions.exercises(userId, exerciseName)[0].defaultWeight).toBe(50);
   });
 
   it("ignores uncompleted sets and falls back to the template without history", () => {
     const past = history([35]);
-    workout.updateSession(past.sessionId, userId, {
+    workout.sessions.update(past.sessionId, userId, {
       exercises: [{ exerciseName, sortOrder: 0, sets: [
         { setNumber: 1, reps: 8, weight: 35, completed: 1 },
         { setNumber: 2, reps: 8, weight: 500, completed: 0 },
@@ -67,7 +67,7 @@ describe("workout system defaults", () => {
     expect(start().exercises[0].sets[0].weight).toBe(0);
     exerciseName += " unweighted";
     const past = history([0]);
-    workout.updateSession(past.sessionId, userId, {
+    workout.sessions.update(past.sessionId, userId, {
       exercises: [{ exerciseName, sortOrder: 0, sets: [{ setNumber: 1, reps: 8, completed: 1 }] }],
     });
     expect(start().exercises[0].sets[0].weight).toBeNull();
@@ -79,8 +79,8 @@ describe("workout system defaults", () => {
       ...ex,
       sets: ex.sets.map((set, i) => ({ ...set, editedFields: i === 0 ? "weight" : "" })),
     }));
-    workout.updateSession(session.sessionId, userId, { exercises });
-    expect(workout.getSession(session.sessionId, userId)!.exercises[0].sets.map((set) => set.editedFields))
+    workout.sessions.update(session.sessionId, userId, { exercises });
+    expect(workout.sessions.get(session.sessionId, userId)!.exercises[0].sets.map((set) => set.editedFields))
       .toEqual(["weight", "", ""]);
   });
 });

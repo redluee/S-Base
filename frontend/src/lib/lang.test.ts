@@ -26,6 +26,14 @@ describe("Frontend translation utility t()", () => {
   });
 });
 
+describe("workout error keys", () => {
+  it("translates backend error keys with parameters", () => {
+    expect(t("workout.sessionNotFound")).toBe("Training niet gevonden.");
+    expect(t("workout.tooManySets", { exerciseName: "Squat", max: "50" })).toBe("Oefening \"Squat\" mag maximaal 50 sets hebben.");
+    expect(t("workout.measurementDateExists")).toBe("Er bestaat al een meting op deze datum.");
+  });
+});
+
 describe("minecraft error keys", () => {
   it("translates backend error keys with parameters", () => {
     expect(t("minecraft.serverNotFound")).toBe("Server niet gevonden");

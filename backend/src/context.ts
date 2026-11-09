@@ -2,7 +2,6 @@ import { Elysia } from "elysia";
 import { AuthService } from "./auth";
 import { RecipesService } from "./modules/recipes";
 import { WorkoutService } from "./modules/workout";
-import { MeasurementService } from "./modules/measurements";
 import { CashflowService } from "./modules/cashflow";
 import { PulseService } from "./modules/pulse";
 import { MinecraftService } from "./modules/minecraft";
@@ -33,7 +32,6 @@ if (isProduction()) {
 }
 export const recipes = new RecipesService();
 export const workout = new WorkoutService();
-export const measurements = new MeasurementService();
 export const cashflow = new CashflowService();
 export const minecraft = new MinecraftService();
 export const pulse = new PulseService({ minecraft });
@@ -79,24 +77,12 @@ export function createAuthPlugin(moduleName: string | string[]) {
 
 export const recipeAuth = createAuthPlugin("recipes");
 export const workoutAuth = createAuthPlugin("workout");
-export const measurementsAuth = workoutAuth;
 export const cashflowAuth = createAuthPlugin("cashflow");
 export const pulseAuth = createAuthPlugin("pulse");
 export const minecraftAuth = createAuthPlugin(["minecraft", "minecraft:monitor"]);
 export const minorAuth = createAuthPlugin("minor");
 export const resumeAuth = createAuthPlugin("resume");
 export const financeAuth = createAuthPlugin("finance");
-
-export function badRequest(fn: () => any) {
-  try {
-    return fn();
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message ?? "Bad Request" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
 
 export async function validated<T>(fn: () => T | Promise<T>): Promise<T | Response> {
   try {
@@ -117,10 +103,6 @@ export async function saveUpload(body: unknown, prefix: string, allowed: string[
   const filename = `${prefix}${crypto.randomUUID()}.${ext}`;
   await Bun.write(join(uploadsDir, filename), file);
   return { filename, originalName: typeof file.name === "string" ? file.name : filename };
-}
-
-export function notFoundOr<T>(value: T | null | undefined) {
-  return value ?? new Response("Not Found", { status: 404 });
 }
 
 export const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
