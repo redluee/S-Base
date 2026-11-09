@@ -345,4 +345,8 @@ export const financeNl: Record<string, string> = {
   "finance.transactionNotFound": "Deze transactie is niet gevonden of is niet van jou.",
   "finance.subscriptionNotFound": "Dit abonnement is niet gevonden of is niet van jou.",
   "finance.observationNotFound": "Dit saldomoment is niet gevonden.",
+  "monthly": "Maandelijks",
+  "Eenmalig": "Eenmalig",
+  "Maandelijks": "Maandelijks",
+  "Projecttype": "Projecttype",
 };
