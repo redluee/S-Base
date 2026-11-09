@@ -65,7 +65,7 @@ export function pingMinecraftServer(host: string, port: number, timeoutMs = 800)
             online: true,
             onlineCount: json.players?.online ?? 0,
             maxCount: json.players?.max ?? 20,
-            players: (json.players?.sample ?? []).map((p: any) => p.name).filter(Boolean),
+            players: (json.players?.sample ?? []).map((p: { name?: string }) => p.name).filter(Boolean),
           });
         }
       } catch {}

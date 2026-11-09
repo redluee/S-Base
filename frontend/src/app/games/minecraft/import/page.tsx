@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, McUnregisteredServerScan, McServerInspection } from "@/lib/api";
+import { api, apiErrorMessage, McUnregisteredServerScan, McServerInspection } from "@/lib/api";
 import { t } from "@/lib/lang";
 import {
   FolderDown,
@@ -103,10 +103,10 @@ export default function ImportServerPage() {
       if (res.isValid) {
         applyInspectionData(res);
       } else {
-        setError(res.error || t("Invalid server folder"));
+        setError(res.error ? t(res.error) : t("Invalid server folder"));
       }
     } catch (err: unknown) {
-      setError((err as Error).message || t("Invalid server folder"));
+      setError(apiErrorMessage(err, "Invalid server folder"));
       setInspection(null);
     } finally {
       setInspecting(false);
@@ -134,7 +134,7 @@ export default function ImportServerPage() {
 
       router.push(`/games/minecraft/${slug}`);
     } catch (err: unknown) {
-      setError((err as Error).message || t("Server failed to start"));
+      setError(apiErrorMessage(err, "Server failed to start"));
       setSubmitting(false);
     }
   };

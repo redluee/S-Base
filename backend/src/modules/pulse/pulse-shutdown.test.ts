@@ -4,8 +4,21 @@ import type { MinecraftService } from "../minecraft";
 import { ValidationError } from "../../utils/errors";
 import { PulseShutdown } from "./pulse-shutdown";
 
-function mockMinecraft(mock: object): MinecraftService {
-  return mock as unknown as MinecraftService;
+interface McMock {
+  listServers: () => { slug: string }[];
+  isRunning: (slug: string) => boolean;
+  getOnlinePlayers: (slug: string) => object[];
+  sendCommand: (slug: string, cmd: string) => Promise<void>;
+  stopServer: (slug: string) => Promise<{ ok: boolean }>;
+}
+
+function mockMinecraft(mock: McMock): MinecraftService {
+  const parts = {
+    servers: { rows: mock.listServers },
+    lifecycle: { isRunning: mock.isRunning, sendCommand: mock.sendCommand, stopServer: mock.stopServer },
+    players: { getOnline: mock.getOnlinePlayers },
+  };
+  return parts as unknown as MinecraftService;
 }
 
 describe("PulseShutdown", () => {

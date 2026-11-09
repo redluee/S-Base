@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api, McTemplate } from "@/lib/api";
+import { api, apiErrorMessage, McTemplate } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { ChevronRight, Loader2, Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,7 +134,7 @@ export default function NewServerPage() {
 
       router.push(`/games/minecraft/${slug}`);
     } catch (err: unknown) {
-      setError((err as Error).message || t("Server failed to start"));
+      setError(apiErrorMessage(err, "Server failed to start"));
       setLoading(false);
     }
   };

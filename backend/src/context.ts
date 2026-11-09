@@ -125,7 +125,7 @@ export function notFoundOr<T>(value: T | null | undefined) {
 
 export const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
   if (!auth.moduleAccessCheck(userId, "minecraft")) {
-    return new Response(JSON.stringify({ error: "Forbidden: Full access required" }), {
+    return new Response(JSON.stringify({ error: "minecraft.fullAccessRequired" }), {
       status: 403,
       headers: { "Content-Type": "application/json" }
     });

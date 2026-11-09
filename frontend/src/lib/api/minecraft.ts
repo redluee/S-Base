@@ -1,4 +1,5 @@
-import { request } from "./core";
+import { t } from "../lang";
+import { errorFromBody, request } from "./core";
 import type {
   McBannedPlayer,
   McPlayerStat,
@@ -62,11 +63,10 @@ export const minecraftApi = {
               body: formData,
             });
             if (!res.ok) {
-              const errText = await res.text().catch(() => "Upload failed");
-              throw new Error(errText);
+              throw errorFromBody(res.status, res.statusText, await res.text().catch(() => ""));
             }
           } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : "Upload failed";
+            const msg = err instanceof Error ? err.message : t("minecraft.uploadFailed");
             errors.push({ file: file.name, error: msg });
           } finally {
             completed++;
@@ -143,8 +143,7 @@ export const minecraftApi = {
           body: form,
         });
         if (!res.ok) {
-          const errText = await res.text().catch(() => "Upload failed");
-          throw new Error(errText);
+          throw errorFromBody(res.status, res.statusText, await res.text().catch(() => ""));
         }
         return res.json().catch(() => ({ ok: true }));
       },

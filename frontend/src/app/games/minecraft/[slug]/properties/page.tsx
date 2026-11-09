@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Loader2, Save, FileText, ArrowLeft, Search, Plus, Trash2, Settings, Swords, Globe, Gauge, Sliders, CheckCircle2, X, Lock, AlertTriangle, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export default function PropertiesPage() {
       await api.minecraft.servers.delete(slug, alsoDisk);
       router.push("/games/minecraft");
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
       setDeleting(false);
     }
   };
@@ -94,7 +94,7 @@ export default function PropertiesPage() {
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (e: unknown) {
       console.error(e);
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     }
   };
 
@@ -130,7 +130,7 @@ export default function PropertiesPage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     } finally {
       setSaving(false);
     }

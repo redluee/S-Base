@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api, McTemplate } from "@/lib/api";
+import { api, apiErrorMessage, McTemplate } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { ArrowLeft, Box, Loader2, Zap, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function TemplatesPage() {
       await api.minecraft.templates.delete(id);
       refreshTemplates();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     }
   };
 
@@ -59,7 +59,7 @@ export default function TemplatesPage() {
       await api.minecraft.templates.speedrun(showSpeedrunModal, slug, speedrunName);
       router.push(`/games/minecraft/${slug}`);
     } catch (err: unknown) {
-      alert((err as Error).message);
+      alert(apiErrorMessage(err, "minecraft.actionFailed"));
       setSpeedrunLoading(false);
     }
   };

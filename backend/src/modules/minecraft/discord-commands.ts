@@ -14,10 +14,10 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
 
   async function getServerPort(slug: string): Promise<number> {
     try {
-      const props = await minecraft.readProperties(slug);
+      const props = await minecraft.properties.read(slug);
       if (props["server-port"]) {
         const p = parseInt(props["server-port"], 10);
-        if (!isNaN(p) && p > 0) return p;
+        if (!Number.isNaN(p) && p > 0) return p;
       }
     } catch {}
     return 25565;
@@ -26,19 +26,19 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
   async function getServerStatusAndPlayers(slug: string) {
     const port = await getServerPort(slug);
     const slp = await pingMinecraftServer("127.0.0.1", port);
-    const processRunning = minecraft.isRunning(slug);
+    const processRunning = minecraft.lifecycle.isRunning(slug);
     const portOpen = slp?.online ?? (await pingTcpPort("127.0.0.1", port));
     const isOnline = processRunning || portOpen;
 
     let maxPlayers = slp ? String(slp.maxCount) : "20";
     try {
-      const props = await minecraft.readProperties(slug);
+      const props = await minecraft.properties.read(slug);
       if (props["max-players"]) {
         maxPlayers = props["max-players"];
       }
     } catch {}
 
-    const trackedPlayers = isOnline ? minecraft.getOnlinePlayers(slug).map((p) => p.playerName) : [];
+    const trackedPlayers = isOnline ? minecraft.players.getOnline(slug).map((p) => p.playerName) : [];
     const slpPlayers = slp?.players ?? [];
     const playerNames = Array.from(new Set([...trackedPlayers, ...slpPlayers]));
     const playerCount = Math.max(playerNames.length, slp?.onlineCount ?? 0);
@@ -61,7 +61,7 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
         return;
       }
 
-      const server = minecraft.getServer(slug);
+      const server = minecraft.servers.findBySlug(slug);
       if (!server) {
         await interaction.reply({
           content: `❌ Server \`${slug}\` is niet gevonden in S-Base.`,
@@ -116,7 +116,7 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
       }
 
       await interaction.editReply({ embeds: [embed] });
-    } catch (err: any) {
+    } catch (err) {
       console.error(`[Discord Bot] Fout bij /status voor ${slug}:`, err);
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({ content: "Er is een fout opgetreden bij het ophalen van de status." });
@@ -139,7 +139,7 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
         return;
       }
 
-      const server = minecraft.getServer(slug);
+      const server = minecraft.servers.findBySlug(slug);
       if (!server) {
         await interaction.reply({
           content: `❌ Server \`${slug}\` is niet gevonden in S-Base.`,
@@ -207,7 +207,7 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
       startCooldowns.set(slug, now);
 
       // Trigger start
-      await minecraft.startServer(slug);
+      await minecraft.lifecycle.startServer(slug);
 
       const embed = new EmbedBuilder()
         .setTitle(`🚀 Server Wordt Opgestart: ${server.displayName}`)
@@ -222,9 +222,9 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
 
       // Trigger an immediate presence check update soon
       setTimeout(updatePresence, 15000);
-    } catch (err: any) {
+    } catch (err) {
       console.error(`[Discord Bot] Fout bij /start voor ${slug}:`, err);
-      const errMsg = err?.message ? `Fout: ${err.message}` : "Onbekende fout.";
+      const errMsg = err instanceof Error && err.message ? `Fout: ${err.message}` : "Onbekende fout.";
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({
           content: `❌ Kon server **${slug}** niet starten. ${errMsg}`,

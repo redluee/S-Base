@@ -1,207 +1,175 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { auth, minecraft, minecraftAuth, requireFullMinecraftAccess } from "../context";
+import type { MapFile } from "../modules/minecraft/minecraft-map";
 
-export const minecraftRoutes = new Elysia()
-  .group("/api/minecraft", (app) =>
-    app
-      .use(minecraftAuth)
-      .onBeforeHandle((ctx) => {
-        const path = new URL(ctx.request.url).pathname;
-        const method = ctx.request.method;
-        const userId = (ctx as any).userId ?? 0;
-        const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
+const slugParams = t.Object({ slug: t.String() });
+const folderParams = t.Object({ slug: t.String(), type: t.String() });
+const playerParams = t.Object({ slug: t.String(), uuid: t.String() });
+const idParams = t.Object({ id: t.Numeric() });
+const templateFolderParams = t.Object({ id: t.Numeric(), type: t.String() });
+type WildcardParams = { slug: string; "*": string };
+const reasonBody = t.Object({ reason: t.Optional(t.String()) });
+const nonEmpty = t.String({ minLength: 1 });
+const uploadField = t.Optional(t.Union([t.File(), t.Files()]));
+const uploadBody = t.Object({ files: uploadField, file: uploadField });
 
-        const serverMatch = path.match(/\/api\/minecraft\/servers\/([^/]+)/);
-        if (serverMatch) {
-          const slug = serverMatch[1];
-          if (!minecraft.canUserAccessServer(userId, slug, hasFullAccess)) {
-            return new Response(JSON.stringify({ error: "Forbidden: No access to this server" }), {
-              status: 403,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
-        }
+function uploadedFiles(body: { files?: File | File[]; file?: File | File[] }): File[] {
+  return [body.files, body.file].flat().filter((f): f is File => !!f);
+}
 
-        if (method === "GET") return;
-        if (path.match(/\/servers\/[^/]+\/start$/)) return;
-        return requireFullMinecraftAccess({ userId });
-      })
-      .get("/versions", async () => minecraft.listAvailableVersions())
-      .get("/import/scan", async () => minecraft.scanUnregisteredServers())
-      .post("/import/inspect", async ({ body }) => {
-        const { serverDir } = (body ?? {}) as any;
-        if (!serverDir) return new Response("Missing serverDir", { status: 400 });
-        return minecraft.inspectServerDirectory(serverDir);
-      })
-      .post("/import", async ({ body }) => {
-        const { slug, displayName, engine, mcVersion, serverDir, javaArgs } = (body ?? {}) as any;
-        if (!slug || !displayName || !engine || !mcVersion || !serverDir) {
-          return new Response("Missing required fields", { status: 400 });
-        }
-        return minecraft.importServer({ slug, displayName, engine, mcVersion, serverDir, javaArgs });
-      })
-      .get("/servers", ({ userId }) => {
-        const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
-        return minecraft.listServersForUser(userId, hasFullAccess);
-      })
-      .post("/servers", async ({ body }) => {
-        const { slug, displayName, engine, mcVersion, javaArgs, templateId } = (body ?? {}) as any;
-        return minecraft.createServer({ slug, displayName, engine, mcVersion, javaArgs, templateId });
-      })
-      .get("/servers/:slug", ({ params: { slug } }) => {
-        const s = minecraft.getServerDetail(slug);
-        if (!s) return new Response("Not Found", { status: 404 });
-        return s;
-      })
-      .patch("/servers/:slug", async ({ params: { slug }, body }) => {
-        return minecraft.updateServer(slug, (body ?? {}) as any);
-      })
-      .delete("/servers/:slug", async ({ params: { slug }, query }) => {
-        const deleteDisk = (query as any)?.deleteDisk === "true";
-        return minecraft.deleteServer(slug, deleteDisk);
-      })
-      .post("/servers/:slug/start", async ({ params: { slug } }) => minecraft.startServer(slug))
-      .post("/servers/:slug/stop", async ({ params: { slug } }) => minecraft.stopServer(slug))
-      .post("/servers/:slug/restart", async ({ params: { slug } }) => minecraft.restartServer(slug))
-      .get("/servers/:slug/status", async ({ params: { slug } }) => minecraft.getStatus(slug))
-      .get("/servers/:slug/console", async ({ params: { slug }, query }) => {
-        const lines = (query as any)?.lines ? Number((query as any).lines) : 100;
-        return { lines: await minecraft.getConsoleLogs(slug, lines) };
-      })
-      .post("/servers/:slug/console", async ({ params: { slug }, body }) => {
-        const { command } = (body ?? {}) as { command?: string };
-        if (!command) return new Response("Bad Request", { status: 400 });
-        await minecraft.sendCommand(slug, command);
-        return { ok: true };
-      })
-      .get("/servers/:slug/map/status", async ({ params: { slug } }) => {
-        return minecraft.getMapStatus(slug);
-      })
-      .get("/servers/:slug/map", async ({ params: { slug } }) => {
-        const res = await minecraft.serveMapFile(slug, "index.html");
-        if (res.notFound || !res.data) {
-          return new Response("World map not found or not yet generated", { status: 404 });
-        }
-        if (res.status === 403) {
-          return new Response("Forbidden", { status: 403 });
-        }
-        return new Response(res.data, {
-          status: res.status || 200,
-          headers: res.headers,
-        });
-      })
-      .get("/servers/:slug/map/*", async ({ params: { slug, "*": subpath } }) => {
-        const res = await minecraft.serveMapFile(slug, subpath);
-        if (res.notFound || !res.data) {
-          return new Response("Not Found", { status: 404 });
-        }
-        if (res.status === 403) {
-          return new Response("Forbidden", { status: 403 });
-        }
-        return new Response(res.data, {
-          status: res.status || 200,
-          headers: res.headers,
-        });
-      })
-      .get("/servers/:slug/properties", ({ params: { slug } }) => minecraft.readProperties(slug))
-      .patch("/servers/:slug/properties", async ({ params: { slug }, body }) => {
-        await minecraft.writeProperties(slug, (body ?? {}) as any);
-        return { ok: true };
-      })
-      .get("/servers/:slug/files/:type", ({ params: { slug, type } }) => minecraft.listFiles(slug, type))
-      .post("/servers/:slug/files/:type", async ({ params: { slug, type }, body }) => {
-        const bodyObj = (body ?? {}) as Record<string, any>;
-        const rawFiles = [
-          ...(Array.isArray(bodyObj.files) ? bodyObj.files : bodyObj.files ? [bodyObj.files] : []),
-          ...(Array.isArray(bodyObj.file) ? bodyObj.file : bodyObj.file ? [bodyObj.file] : []),
-        ];
-        const files = rawFiles.filter((f): f is File => !!f && typeof f.name === "string" && typeof f.arrayBuffer === "function");
-        if (files.length === 0) return new Response("No files provided", { status: 400 });
-        for (const file of files) {
-          const buffer = await file.arrayBuffer();
-          await minecraft.uploadFile(slug, type, file.name, buffer);
-        }
-        return { ok: true, count: files.length };
-      })
-      .delete("/servers/:slug/files/:type/:filename", async ({ params: { slug, type, filename } }) => {
-        await minecraft.deleteFile(slug, type, filename);
-        return { ok: true };
-      })
-      .post("/servers/:slug/files/:type/copy", async ({ params: { slug, type }, body }) => {
-        const { sourceSlug, filename } = (body ?? {}) as any;
-        await minecraft.copyFileFromServer(slug, type, sourceSlug, filename);
-        return { ok: true };
-      })
-      .get("/servers/:slug/players", async ({ params: { slug } }) => minecraft.getPlayers(slug))
-      .post("/servers/:slug/players/:uuid/op", async ({ params: { slug, uuid } }) => {
-        const player = minecraft.getPlayerName(slug, uuid);
-        await minecraft.opPlayer(slug, player);
-        return { ok: true };
-      })
-      .post("/servers/:slug/players/:uuid/deop", async ({ params: { slug, uuid } }) => {
-        const player = minecraft.getPlayerName(slug, uuid);
-        await minecraft.deopPlayer(slug, player);
-        return { ok: true };
-      })
-      .post("/servers/:slug/players/:uuid/kick", async ({ params: { slug, uuid }, body }) => {
-        const { reason } = (body ?? {}) as any;
-        const player = minecraft.getPlayerName(slug, uuid);
-        await minecraft.kickPlayer(slug, player, reason);
-        return { ok: true };
-      })
-      .post("/servers/:slug/players/:uuid/ban", async ({ params: { slug, uuid }, body }) => {
-        const { reason } = (body ?? {}) as any;
-        const player = minecraft.getPlayerName(slug, uuid);
-        await minecraft.banPlayer(slug, player, reason);
-        return { ok: true };
-      })
-      .post("/servers/:slug/players/:uuid/unban", async ({ params: { slug, uuid } }) => {
-        await minecraft.unbanPlayer(slug, uuid);
-        return { ok: true };
-      })
-      .get("/servers/:slug/error", ({ params: { slug } }) => minecraft.getStartupError(slug))
-      .get("/templates", () => minecraft.listTemplates())
-      .post("/templates", async ({ body }) => {
-        const bodyObj = (body ?? {}) as any;
-        if (bodyObj.slug) {
-          return minecraft.saveAsTemplate(bodyObj.slug, bodyObj.name, bodyObj.notes);
-        }
-        return minecraft.createCustomTemplate({
-          name: bodyObj.name,
-          engine: bodyObj.engine,
-          mcVersion: bodyObj.mcVersion,
-          properties: bodyObj.properties,
-          notes: bodyObj.notes,
-          javaArgs: bodyObj.javaArgs,
-        });
-      })
-      .get("/templates/:id", ({ params: { id } }) => {
-        const t = minecraft.getTemplate(Number(id));
-        if (!t) return new Response("Not Found", { status: 404 });
-        return t;
-      })
-      .delete("/templates/:id", async ({ params: { id } }) => minecraft.deleteTemplate(Number(id)))
-      .get("/templates/:id/files/:type", ({ params: { id, type } }) => minecraft.listTemplateFiles(Number(id), type))
-      .post("/templates/:id/files/:type", async ({ params: { id, type }, body }) => {
-        const bodyObj = (body ?? {}) as Record<string, any>;
-        const rawFiles = [
-          ...(Array.isArray(bodyObj.files) ? bodyObj.files : bodyObj.files ? [bodyObj.files] : []),
-          ...(Array.isArray(bodyObj.file) ? bodyObj.file : bodyObj.file ? [bodyObj.file] : []),
-        ];
-        const files = rawFiles.filter((f): f is File => !!f && typeof f.name === "string" && typeof f.arrayBuffer === "function");
-        if (files.length === 0) return new Response("No files provided", { status: 400 });
-        for (const file of files) {
-          const buffer = await file.arrayBuffer();
-          await minecraft.uploadTemplateFile(Number(id), type, file.name, buffer);
-        }
-        return { ok: true, count: files.length };
-      })
-      .delete("/templates/:id/files/:type/:filename", async ({ params: { id, type, filename } }) => {
-        await minecraft.deleteTemplateFile(Number(id), type, filename);
-        return { ok: true };
-      })
-      .post("/templates/:id/speedrun", async ({ params: { id }, body }) => {
-        const { slug, displayName } = (body ?? {}) as any;
-        return minecraft.speedrunFromTemplate(Number(id), slug, displayName);
-      })
-  );
+function mapResponse(file: MapFile) {
+  return new Response(file.data, { status: file.status, headers: file.headers });
+}
+
+const forbidden = (key: string) =>
+  new Response(JSON.stringify({ error: key }), { status: 403, headers: { "Content-Type": "application/json" } });
+
+export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
+  app
+    .use(minecraftAuth)
+    .onBeforeHandle(({ request, userId }) => {
+      const path = new URL(request.url).pathname;
+      const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
+
+      const serverMatch = path.match(/\/api\/minecraft\/servers\/([^/]+)/);
+      if (serverMatch && !minecraft.servers.canAccess(userId, serverMatch[1], hasFullAccess)) {
+        return forbidden("minecraft.serverForbidden");
+      }
+
+      if (request.method === "GET") return;
+      if (path.match(/\/servers\/[^/]+\/start$/)) return;
+      return requireFullMinecraftAccess({ userId });
+    })
+    .get("/versions", () => minecraft.downloads.listVersions())
+    .get("/import/scan", () => minecraft.importer.scan())
+    .post("/import/inspect", ({ body }) => minecraft.importer.inspect(body.serverDir), {
+      body: t.Object({ serverDir: nonEmpty }),
+    })
+    .post("/import", ({ body }) => minecraft.importer.import(body), {
+      body: t.Object({
+        slug: nonEmpty,
+        displayName: nonEmpty,
+        engine: nonEmpty,
+        mcVersion: nonEmpty,
+        serverDir: nonEmpty,
+        javaArgs: t.Optional(t.String()),
+      }),
+    })
+    .get("/servers", ({ userId }) => minecraft.servers.listForUser(userId, auth.moduleAccessCheck(userId, "minecraft")))
+    .post("/servers", ({ body }) => minecraft.servers.create(body), {
+      body: t.Object({
+        slug: t.String(),
+        displayName: t.String(),
+        engine: t.String(),
+        mcVersion: t.String(),
+        javaArgs: t.Optional(t.String()),
+        templateId: t.Optional(t.Number()),
+      }),
+    })
+    .get("/servers/:slug", ({ params: { slug } }) => minecraft.servers.detail(slug), { params: slugParams })
+    .patch("/servers/:slug", ({ params: { slug }, body }) => minecraft.servers.update(slug, body), {
+      params: slugParams,
+      body: t.Object({
+        displayName: t.Optional(t.String()),
+        javaArgs: t.Optional(t.Nullable(t.String())),
+        engine: t.Optional(t.String()),
+        mcVersion: t.Optional(t.String()),
+      }),
+    })
+    .delete("/servers/:slug", ({ params: { slug }, query }) => minecraft.servers.remove(slug, query.deleteDisk === "true"), {
+      params: slugParams,
+      query: t.Object({ deleteDisk: t.Optional(t.String()) }),
+    })
+    .post("/servers/:slug/start", ({ params: { slug } }) => minecraft.lifecycle.startServer(slug), { params: slugParams })
+    .post("/servers/:slug/stop", ({ params: { slug } }) => minecraft.lifecycle.stopServer(slug), { params: slugParams })
+    .post("/servers/:slug/restart", ({ params: { slug } }) => minecraft.lifecycle.restartServer(slug), { params: slugParams })
+    .get("/servers/:slug/status", ({ params: { slug } }) => minecraft.lifecycle.getStatus(slug), { params: slugParams })
+    .get(
+      "/servers/:slug/console",
+      async ({ params: { slug }, query }) => ({ lines: await minecraft.lifecycle.getConsoleLogs(slug, query.lines ?? 100) }),
+      { params: slugParams, query: t.Object({ lines: t.Optional(t.Numeric({ minimum: 1, maximum: 10000 })) }) },
+    )
+    .post("/servers/:slug/console", ({ params: { slug }, body }) => minecraft.lifecycle.runConsoleCommand(slug, body.command), {
+      params: slugParams,
+      body: t.Object({ command: t.String() }),
+    })
+    .get("/servers/:slug/map/status", ({ params: { slug } }) => minecraft.map.status(slug), { params: slugParams })
+    .get("/servers/:slug/map", async ({ params: { slug } }) => mapResponse(await minecraft.map.serve(slug, "index.html")), {
+      params: slugParams,
+    })
+    .get(
+      "/servers/:slug/map/*",
+      async ({ params }) => mapResponse(await minecraft.map.serve(params.slug, (params as WildcardParams)["*"])),
+      { params: t.Object({ slug: t.String() }, { additionalProperties: true }) },
+    )
+    .get("/servers/:slug/properties", ({ params: { slug } }) => minecraft.properties.read(slug), { params: slugParams })
+    .patch("/servers/:slug/properties", ({ params: { slug }, body }) => minecraft.properties.update(slug, body), {
+      params: slugParams,
+      body: t.Record(t.String(), t.String()),
+    })
+    .get("/servers/:slug/files/:type", ({ params: { slug, type } }) => minecraft.files.list(slug, type), { params: folderParams })
+    .post(
+      "/servers/:slug/files/:type",
+      ({ params: { slug, type }, body }) => minecraft.files.uploadMany(slug, type, uploadedFiles(body)),
+      { params: folderParams, body: uploadBody },
+    )
+    .delete(
+      "/servers/:slug/files/:type/:filename",
+      ({ params: { slug, type, filename } }) => minecraft.files.remove(slug, type, filename),
+      { params: t.Object({ slug: t.String(), type: t.String(), filename: t.String() }) },
+    )
+    .post(
+      "/servers/:slug/files/:type/copy",
+      ({ params: { slug, type }, body }) => minecraft.files.copyFromServer(slug, type, body.sourceSlug, body.filename),
+      { params: folderParams, body: t.Object({ sourceSlug: t.String(), filename: t.String() }) },
+    )
+    .get("/servers/:slug/players", ({ params: { slug } }) => minecraft.players.list(slug), { params: slugParams })
+    .post("/servers/:slug/players/:uuid/op", ({ params: { slug, uuid } }) => minecraft.players.op(slug, uuid), { params: playerParams })
+    .post("/servers/:slug/players/:uuid/deop", ({ params: { slug, uuid } }) => minecraft.players.deop(slug, uuid), { params: playerParams })
+    .post(
+      "/servers/:slug/players/:uuid/kick",
+      ({ params: { slug, uuid }, body }) => minecraft.players.kick(slug, uuid, body.reason),
+      { params: playerParams, body: reasonBody },
+    )
+    .post(
+      "/servers/:slug/players/:uuid/ban",
+      ({ params: { slug, uuid }, body }) => minecraft.players.ban(slug, uuid, body.reason),
+      { params: playerParams, body: reasonBody },
+    )
+    .post("/servers/:slug/players/:uuid/unban", ({ params: { slug, uuid } }) => minecraft.players.unban(slug, uuid), {
+      params: playerParams,
+    })
+    .get("/servers/:slug/error", ({ params: { slug } }) => minecraft.diagnostics.startupError(slug), { params: slugParams })
+    .get("/templates", () => minecraft.templates.list())
+    .post("/templates", ({ body }) => minecraft.templates.create(body), {
+      body: t.Object({
+        name: t.String(),
+        slug: t.Optional(t.String()),
+        engine: t.Optional(t.String()),
+        mcVersion: t.Optional(t.String()),
+        properties: t.Optional(t.Record(t.String(), t.String())),
+        notes: t.Optional(t.String()),
+        javaArgs: t.Optional(t.String()),
+      }),
+    })
+    .get("/templates/:id", ({ params: { id } }) => minecraft.templates.get(id), { params: idParams })
+    .delete("/templates/:id", ({ params: { id } }) => minecraft.templates.remove(id), { params: idParams })
+    .get("/templates/:id/files/:type", ({ params: { id, type } }) => minecraft.templates.listFiles(id, type), {
+      params: templateFolderParams,
+    })
+    .post(
+      "/templates/:id/files/:type",
+      ({ params: { id, type }, body }) => minecraft.templates.uploadMany(id, type, uploadedFiles(body)),
+      { params: templateFolderParams, body: uploadBody },
+    )
+    .delete(
+      "/templates/:id/files/:type/:filename",
+      ({ params: { id, type, filename } }) => minecraft.templates.removeFile(id, type, filename),
+      { params: t.Object({ id: t.Numeric(), type: t.String(), filename: t.String() }) },
+    )
+    .post(
+      "/templates/:id/speedrun",
+      ({ params: { id }, body }) => minecraft.templates.speedrun(id, body.slug, body.displayName),
+      { params: idParams, body: t.Object({ slug: t.String(), displayName: t.String() }) },
+    ),
+);

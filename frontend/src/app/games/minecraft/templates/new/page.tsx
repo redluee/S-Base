@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { ChevronRight, Loader2, Box, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -126,7 +126,7 @@ export default function NewTemplatePage() {
 
       router.push("/games/minecraft/templates");
     } catch (err: unknown) {
-      setError((err as Error).message || t("Failed to save template."));
+      setError(apiErrorMessage(err, "Failed to save template."));
       setLoading(false);
     }
   };

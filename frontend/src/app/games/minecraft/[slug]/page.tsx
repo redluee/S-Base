@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { api, McServer, McServerStatus, McPlayerStat, McBannedPlayer } from "@/lib/api";
+import { api, apiErrorMessage, McServer, McServerStatus, McPlayerStat, McBannedPlayer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
 import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, ArrowLeft, Copy, Check, Map } from "lucide-react";
@@ -145,7 +145,7 @@ export default function ServerDashboardPage() {
       await api.minecraft.servers[action](slug);
       await refreshStatus();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     } finally {
       setLoadingAction("");
     }
@@ -158,7 +158,7 @@ export default function ServerDashboardPage() {
       await api.minecraft.servers.console.send(slug, cmd);
       setCmd("");
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     }
   };
 
@@ -170,7 +170,7 @@ export default function ServerDashboardPage() {
       await api.minecraft.servers.players.ban(slug, playerUuid, reason);
       refreshStatus();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     }
   };
 
@@ -181,7 +181,7 @@ export default function ServerDashboardPage() {
       await api.minecraft.servers.players.unban(slug, uuidOrName);
       refreshStatus();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     }
   };
 

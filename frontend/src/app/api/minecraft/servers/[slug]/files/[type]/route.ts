@@ -52,9 +52,9 @@ async function proxyHandler(
       }
     );
 
-    req.on("error", (err) => {
+    req.on("error", () => {
       resolve(
-        new Response(JSON.stringify({ error: err.message }), {
+        new Response(JSON.stringify({ error: "minecraft.proxyUnavailable" }), {
           status: 502,
           headers: { "content-type": "application/json" },
         })

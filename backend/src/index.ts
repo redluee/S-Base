@@ -66,12 +66,12 @@ if (process.env.NODE_ENV !== "test") {
   const discordBot = createDiscordBot(minecraft);
 
   process.on("SIGINT", () => {
-    minecraft.stopIdleMonitor();
+    minecraft.idle.stop();
     discordBot?.stop();
     process.exit(0);
   });
   process.on("SIGTERM", () => {
-    minecraft.stopIdleMonitor();
+    minecraft.idle.stop();
     discordBot?.stop();
     process.exit(0);
   });

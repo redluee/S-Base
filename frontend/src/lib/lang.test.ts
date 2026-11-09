@@ -25,3 +25,10 @@ describe("Frontend translation utility t()", () => {
     expect(t("Remove this exercise?")).toBe("Deze oefening verwijderen?");
   });
 });
+
+describe("minecraft error keys", () => {
+  it("translates backend error keys with parameters", () => {
+    expect(t("minecraft.serverNotFound")).toBe("Server niet gevonden");
+    expect(t("minecraft.versionNotFound", { version: "1.21" })).toBe("Versie 1.21 niet gevonden.");
+  });
+});

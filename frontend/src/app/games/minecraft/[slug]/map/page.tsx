@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { api, McServer, McServerStatus } from "@/lib/api";
+import { api, apiErrorMessage, McServer, McServerStatus } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
 import {
@@ -108,7 +108,7 @@ export default function WorldMapPage() {
       await api.minecraft.servers.start(slug);
       await refreshStatus();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     } finally {
       setStartingServer(false);
     }

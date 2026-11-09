@@ -1,6 +1,7 @@
 import { commonNl } from "./common-lang";
 import { financeImportNl } from "./finance-import-lang";
 import { financeNl } from "./finance-lang";
+import { minecraftNl } from "./minecraft-lang";
 import { pulseNl } from "./pulse-lang";
 import { cashflowNl } from "./cashflow-lang";
 import { recipesNl } from "./recipes-lang";
@@ -9,6 +10,7 @@ import { resumeNl } from "./resume-lang";
 const nl: Record<string, string> = {
   ...commonNl,
   ...cashflowNl,
+  ...minecraftNl,
   ...pulseNl,
   ...recipesNl,
   ...resumeNl,

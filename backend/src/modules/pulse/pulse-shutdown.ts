@@ -194,16 +194,16 @@ export class PulseShutdown {
   async notifyOnlinePlayers(minutesLeft: number) {
     if (!this.mcService) return;
     try {
-      const servers = this.mcService.listServers();
+      const servers = this.mcService.servers.rows();
       for (const server of servers) {
-        if (!this.mcService.isRunning(server.slug)) continue;
-        const onlinePlayers = this.mcService.getOnlinePlayers(server.slug);
+        if (!this.mcService.lifecycle.isRunning(server.slug)) continue;
+        const onlinePlayers = this.mcService.players.getOnline(server.slug);
         if (onlinePlayers.length > 0) {
           const msg =
             minutesLeft === 1
               ? "say [Server] Belangrijk: De server sluit af over 1 minuut! Sla je voortgang op."
               : `say [Server] Waarschuwing: Automatische serverafsluiting over ${minutesLeft} minuten!`;
-          await this.mcService.sendCommand(server.slug, msg);
+          await this.mcService.lifecycle.sendCommand(server.slug, msg);
         }
       }
     } catch (err) {
@@ -214,16 +214,16 @@ export class PulseShutdown {
   async stopAllMinecraftServers() {
     if (!this.mcService) return;
     try {
-      const servers = this.mcService.listServers();
-      const runningServers = servers.filter((s) => this.mcService!.isRunning(s.slug));
+      const servers = this.mcService.servers.rows();
+      const runningServers = servers.filter((s) => this.mcService!.lifecycle.isRunning(s.slug));
       for (const server of runningServers) {
         try {
-          await this.mcService.sendCommand(server.slug, "say [Server] De server wordt nu afgesloten...");
+          await this.mcService.lifecycle.sendCommand(server.slug, "say [Server] De server wordt nu afgesloten...");
         } catch {}
       }
 
       // Stop all running servers cleanly in parallel
-      await Promise.allSettled(runningServers.map((s) => this.mcService!.stopServer(s.slug)));
+      await Promise.allSettled(runningServers.map((s) => this.mcService!.lifecycle.stopServer(s.slug)));
     } catch (err) {
       console.error("[ShutdownService] Failed to cleanly stop Minecraft servers:", err);
     }

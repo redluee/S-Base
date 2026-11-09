@@ -34,7 +34,7 @@ export function createDiscordBot(minecraft: MinecraftService) {
   async function updatePresence() {
     try {
       if (!client.user) return;
-      const server = minecraft.getServer(defaultServerSlug);
+      const server = minecraft.servers.findBySlug(defaultServerSlug);
       const serverName = server?.displayName || defaultServerSlug;
       const { isOnline, playerCount } = await getServerStatusAndPlayers(defaultServerSlug);
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { api, McServer } from "@/lib/api";
+import { api, apiErrorMessage, McServer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Loader2, ArrowLeft, Upload as UploadIcon, Trash2, Folder, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -116,7 +116,7 @@ export default function FileManagerPage() {
       }
       refreshFiles(tab);
     } catch (err: unknown) {
-      alert((err as Error).message);
+      alert(apiErrorMessage(err, "minecraft.actionFailed"));
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -168,7 +168,7 @@ export default function FileManagerPage() {
       await api.minecraft.servers.files.delete(slug, tab, filename);
       refreshFiles(tab);
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     }
   };
 
@@ -180,7 +180,7 @@ export default function FileManagerPage() {
       setSelectedSourceFile("");
       refreshFiles(tab);
     } catch (e: unknown) {
-      alert((e as Error).message);
+      alert(apiErrorMessage(e, "minecraft.actionFailed"));
     } finally {
       setCopying(false);
     }

@@ -26,7 +26,7 @@ export function apiErrorMessage(error: unknown, fallbackKey: string): string {
   return error instanceof ApiError ? error.message : t(fallbackKey);
 }
 
-function errorFromBody(status: number, statusText: string, text: string): ApiError {
+export function errorFromBody(status: number, statusText: string, text: string): ApiError {
   try {
     const json = JSON.parse(text);
     if (json && typeof json === "object" && !Array.isArray(json)) {

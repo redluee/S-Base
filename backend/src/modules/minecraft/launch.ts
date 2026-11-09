@@ -59,7 +59,7 @@ export function formatJavaLaunchCommand(engine: string, serverDir: string, rawJa
     if (!hasXmx) memFlags.push("-Xmx2G");
   }
 
-  const defaultGcFlags = (!rawJavaArgs || !rawJavaArgs.trim()) ? AIKAR_FLAGS : [];
+  const defaultGcFlags = !rawJavaArgs?.trim() ? AIKAR_FLAGS : [];
 
   const fullArgs = [...memFlags, ...parsedArgs, ...defaultGcFlags];
   const hasFabricJar = existsSync(join(serverDir, "fabric-server-launch.jar"));
