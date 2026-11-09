@@ -69,4 +69,12 @@ describe("recipe routes error contract", () => {
     expect(updated.notes).toBe("ok");
     expect(await (await call(cookie, "DELETE", `/api/wines/${created.wineId}`)).json()).toEqual({ success: true });
   });
+
+  it("checks authentication before validating the body", async () => {
+    for (const [method, path] of [["POST", "/api/wines"], ["PATCH", "/api/recipes/abc/rating"]]) {
+      const res = await call("", method, path, { brand: 5 });
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "Unauthorized" });
+    }
+  });
 });

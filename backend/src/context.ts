@@ -12,7 +12,7 @@ import { isProduction } from "./security";
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import { resolveUploadExtension } from "./utils/uploads";
-import { ValidationError } from "./utils/errors";
+import { AppError, ValidationError } from "./utils/errors";
 import { ensureDefaultModules } from "./db/user-manager";
 
 try {
@@ -38,40 +38,24 @@ export const minor = new MinorService();
 export const resume = new ResumeService();
 export const finance = new FinanceService();
 
+function sessionIdFrom(cookieValue: unknown, request: Request): string {
+  if (typeof cookieValue === "string" && cookieValue) return cookieValue;
+  const match = (request.headers.get("cookie") || "").match(/(?:^|;\s*)session_id=([^;]+)/);
+  return match ? match[1] : "";
+}
+
 export function createAuthPlugin(moduleName: string | string[]) {
-  return new Elysia({ name: `auth-${Array.isArray(moduleName) ? moduleName.join("-") : moduleName}` })
-    .derive({ as: "scoped" }, ({ cookie: { session_id }, request }) => {
-      let sid = typeof session_id?.value === "string" ? session_id.value : "";
-      if (!sid) {
-        const cookieHeader = request.headers.get("cookie") || "";
-        const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
-        if (match) sid = match[1];
-      }
-      if (!sid) return { user: null };
-      const sessionInfo = auth.validateSession(sid);
-      return { user: sessionInfo };
-    })
-    .onBeforeHandle({ as: "scoped" }, ({ user }) => {
-      if (!user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      
-      const modules = Array.isArray(moduleName) ? moduleName : [moduleName];
-      const hasAccess = modules.some(mod => auth.moduleAccessCheck(user.userId, mod));
-      
-      if (!hasAccess) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-    })
-    .derive({ as: "scoped" }, ({ user }) => {
-      return { userId: user?.userId ?? 0, username: user?.username ?? "" };
-    });
+  const moduleNames = Array.isArray(moduleName) ? moduleName : [moduleName];
+  return new Elysia({ name: `auth-${moduleNames.join("-")}` }).derive(
+    { as: "scoped" },
+    ({ cookie: { session_id }, request }) => {
+      const sid = sessionIdFrom(session_id?.value, request);
+      const user = sid ? auth.validateSession(sid) : null;
+      if (!user) throw new AppError(401, "Unauthorized");
+      if (!moduleNames.some((mod) => auth.moduleAccessCheck(user.userId, mod))) throw new AppError(403, "Forbidden");
+      return { user, userId: user.userId, username: user.username };
+    },
+  );
 }
 
 export const recipeAuth = createAuthPlugin("recipes");
