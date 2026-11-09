@@ -92,9 +92,13 @@ describe("pulse routes error contract", () => {
 
   it("rejects impersonating a paused user with a validation key", async () => {
     await call(cookie, "PUT", `/api/pulse/users/${testerId}/status`, { isPaused: true });
-    const res = await call(cookie, "POST", `/api/pulse/users/${testerId}/impersonate`);
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "pulse.userPaused" });
+    try {
+      const res = await call(cookie, "POST", `/api/pulse/users/${testerId}/impersonate`);
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: "pulse.userPaused" });
+    } finally {
+      await call(cookie, "PUT", `/api/pulse/users/${testerId}/status`, { isPaused: false });
+    }
   });
 
   it("answers 409 while a system update is running", async () => {

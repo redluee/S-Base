@@ -1,7 +1,7 @@
 # Resume (CV Builder) Module Guide
 
 ## Overview & Permissions
-- Module key `resume` (`createAuthPlugin("resume")`), service `ResumeService` in `index.ts`, routes in `backend/src/index.ts` under `/api/resume`.
+- Module key `resume` (`createAuthPlugin("resume")`). `ResumeService` in `index.ts` composes `profile`, `library` and `resumes` (`resume-profile.ts`, `resume-library.ts`, `resume-documents.ts`); routes in `backend/src/routes/resume.ts` under `/api/resume`. Errors are typed with `resume.*` keys (Dutch copy in `frontend/src/lib/resume-lang.ts`).
 - Everything is per user: every service method takes `userId` and scopes queries on it.
 - Tests: `DB_PATH=:memory: bun test src/modules/resume`.
 
