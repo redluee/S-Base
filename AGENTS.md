@@ -10,7 +10,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 | `bun run dev:backend` | Backend only on `:3001` |
 | `bun run dev:frontend` | Frontend only on `:3000` |
 | `bun run test` | Run backend and frontend test suites |
-| `bun run test:all` | Backend typecheck (`tsc`, non-test source) + Biome lint, all unit tests, frontend ESLint |
+| `bun run test:all` | Backend typecheck (`tsc`, including tests) + Biome check (lint and format), all unit tests, frontend ESLint |
 | `bun run pre-push` | Pre-push checks (`test:all` + `build`) |
 | `bun run db:migrate` | Run Drizzle SQLite migrations |
 | `bun run db:seed` | Seed sample data (admin/admin, tester/tester) |
@@ -102,7 +102,7 @@ Apply these to new code and to code you touch. Do not rewrite untouched modules.
 
 **Done means**
 17. `bun run test:all` and `bun run build` pass (the pre-push hook enforces this), and UI changes were checked in a browser on mobile and desktop widths.
-18. Backend Biome (`backend/biome.json`) fails on errors and reports legacy issues (`noExplicitAny`, unused variables, …) as warnings. Never add new warnings; fix the ones in code you touch. Test files are not typechecked yet (`backend/tsconfig.check.json`); keep new tests type-correct.
+18. Backend Biome (`backend/biome.json`) runs as `biome check`: every lint rule is an error and unformatted files fail (2 spaces, 120 columns, double quotes; run `bunx biome format --write src` in `backend/`). `backend/tsconfig.check.json` typechecks tests too. Never silence a rule with `biome-ignore` or `as any`.
 - **Privacy**: Personal data must never be written into the codebase. Never commit real user data, names, emails, addresses, or other personal information in code, comments, seed data, migrations, or documentation. Use placeholder or anonymized values instead.
 - **Database preservation**: The local development database `sbase.db` contains custom user data and must NEVER be deleted, overwritten, or reset by the AI agent. Avoid running `bun run db:reset` or `bun run db:seed`. If schema migrations are needed, use non-destructive migrations. Dropping tables or wiping data via AI commands is strictly prohibited. When fields or tables are added or edited write a migration file for a production database to migrate to the new version.
 

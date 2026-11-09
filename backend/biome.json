@@ -4,10 +4,7 @@
     "enabled": false
   },
   "files": {
-    "includes": [
-      "src/**",
-      "!src/**/fixtures/**"
-    ]
+    "includes": ["src/**", "!src/**/fixtures/**"]
   },
   "formatter": {
     "enabled": true,
@@ -23,34 +20,34 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "suspicious": {
-        "noExplicitAny": "warn",
-        "noGlobalIsNan": "warn",
-        "noControlCharactersInRegex": "warn",
-        "noImplicitAnyLet": "warn",
-        "noAssignInExpressions": "warn",
-        "useIterableCallbackReturn": "warn",
-        "noUselessEscapeInString": "warn"
+        "noExplicitAny": "error",
+        "noGlobalIsNan": "error",
+        "noControlCharactersInRegex": "error",
+        "noImplicitAnyLet": "error",
+        "noAssignInExpressions": "error",
+        "useIterableCallbackReturn": "error",
+        "noUselessEscapeInString": "error"
       },
       "style": {
         "noNonNullAssertion": "off",
         "useNodejsImportProtocol": "off",
         "useTemplate": "off",
-        "useConst": "warn",
-        "useImportType": "warn"
+        "useConst": "error",
+        "useImportType": "error"
       },
       "complexity": {
-        "useOptionalChain": "warn",
+        "useOptionalChain": "error",
         "useLiteralKeys": "off",
         "useMathMinMax": "off",
-        "noUselessEscapeInRegex": "warn",
-        "noUselessUndefinedInitialization": "warn"
+        "noUselessEscapeInRegex": "error",
+        "noUselessUndefinedInitialization": "error"
       },
       "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedFunctionParameters": "warn",
-        "noUnsafeOptionalChaining": "warn"
+        "noUnusedVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnsafeOptionalChaining": "error"
       }
     }
   },
