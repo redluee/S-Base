@@ -1,7 +1,7 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { RecipeDetail } from "@/components/recipe-detail";
+import { RecipeDetail } from "../recipe-detail";
 
 export default async function RecipeDetailPage({
   params,

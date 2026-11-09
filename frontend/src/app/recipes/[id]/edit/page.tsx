@@ -1,7 +1,7 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { RecipeForm } from "@/components/recipe-form";
+import { RecipeForm } from "../../recipe-form";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { t } from "@/lib/lang";

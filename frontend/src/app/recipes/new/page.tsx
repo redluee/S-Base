@@ -1,7 +1,7 @@
 import { serverApi } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
-import { RecipeForm } from "@/components/recipe-form";
+import { RecipeForm } from "../recipe-form";
 import { t } from "@/lib/lang";
 
 export default async function NewRecipePage() {

@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { KitchenCombobox } from "@/components/kitchen-combobox";
-import { RecipeIngredientList, IngredientRow } from "@/components/recipe-ingredient-list";
-import { RecipeStepList, StepRow } from "@/components/recipe-step-list";
+import { KitchenCombobox } from "./kitchen-combobox";
+import { RecipeIngredientList, IngredientRow } from "./recipe-ingredient-list";
+import { RecipeStepList, StepRow } from "./recipe-step-list";
 import { Loader2 } from "lucide-react";
 import type { FullRecipe } from "@backend/types/shared";
 

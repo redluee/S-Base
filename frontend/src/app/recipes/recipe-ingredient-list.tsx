@@ -5,7 +5,7 @@ import { GripVertical, X, ChevronUp, ChevronDown, CircleDashed, Plus } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IngredientAutocomplete } from "@/components/ingredient-autocomplete";
+import { IngredientAutocomplete } from "./ingredient-autocomplete";
 import { t } from "@/lib/lang";
 
 const UNITS = ["g", "kg", "ml", "l", "pcs", "tsp", "tbsp", "pinch"];
