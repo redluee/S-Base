@@ -94,6 +94,8 @@ export const workoutNl: Record<string, string> = {
   "Delete this workout?": "Deze training verwijderen?",
   "Export": "Exporteer",
   "Export JSON": "Exporteer JSON",
+  "Save as template": "Opslaan als sjabloon",
+  "Prefilled from your workout of {date}. Adjust it and save.": "Ingevuld vanuit je training van {date}. Pas aan en sla op.",
   "Back to templates": "Terug naar sjablonen",
   "Back to overview": "Terug naar overzicht",
   "Workout Studio Template": "Workout Studio Sjabloon",

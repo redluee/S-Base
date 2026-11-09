@@ -8,7 +8,7 @@ import { t } from "@/lib/lang";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Pencil, FileText, Upload, Check } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, FileText, Upload, Check, CopyPlus } from "lucide-react";
 import confetti from "canvas-confetti";
 import { parseDateString } from "@/lib/utils";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
@@ -19,6 +19,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatNumberNl } from "@/lib/number-input";
 import { formatSessionDuration } from "@/lib/workout-time";
 import { formatHistoryWeight } from "@/app/workouts/history/set-display";
+import { isQuickStartSession } from "@/app/workouts/templates/session-to-template";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {
   const cleaned: Record<string, any> = {
@@ -145,6 +146,7 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
   const completed = session.completedAt ? parseDateString(session.completedAt) : null;
   const durationSeconds = completed ? Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000)) : null;
   const sessionTitle = session.name?.trim() || t("Workout Session");
+  const canSaveAsTemplate = isQuickStartSession(session) && (session.exercises?.length ?? 0) > 0;
 
   return (
     <div>
@@ -205,6 +207,18 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
               {copied ? t("Copied!") : t("Export")}
             </span>
           </Button>
+          {canSaveAsTemplate && (
+            <Button
+              render={<Link href={`/workouts/new?vanSessie=${session.sessionId}`} />}
+              variant="outline"
+              title={t("Save as template")}
+              aria-label={t("Save as template")}
+              className="min-h-11 min-w-11 flex items-center gap-1.5"
+            >
+              <CopyPlus className="size-4" />
+              <span className="hidden sm:inline">{t("Template")}</span>
+            </Button>
+          )}
           <Button
             render={<Link href={`/workouts/session/${session.sessionId}`} />}
             variant="outline"

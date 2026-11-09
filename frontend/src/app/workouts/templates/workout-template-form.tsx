@@ -27,22 +27,34 @@ import {
   validateTemplate,
   type ExerciseRow,
 } from "@/app/workouts/templates/workout-template-form-helpers";
+import type { TemplatePrefill } from "@/app/workouts/templates/session-to-template";
 import { Plus, Loader2 } from "lucide-react";
 
-export function WorkoutTemplateForm({ initial }: { initial?: any }) {
+export function WorkoutTemplateForm({
+  initial,
+  prefill,
+  sourceSessionId,
+}: {
+  initial?: any;
+  prefill?: TemplatePrefill;
+  sourceSessionId?: number;
+}) {
   const router = useRouter();
   const isEdit = !!initial;
+  const source = initial ?? prefill;
 
   const storageKey = isEdit
     ? `workout_template_draft_edit_${initial?.templateId}`
-    : "workout_template_draft_new";
+    : prefill && sourceSessionId
+      ? `workout_template_draft_from_session_${sourceSessionId}`
+      : "workout_template_draft_new";
 
-  const [name, setName] = useState(initial?.name ?? "");
-  const [description, setDescription] = useState(initial?.description ?? "");
-  const [targetMuscleGroups, setTargetMuscleGroups] = useState(initial?.targetMuscleGroups ?? "");
-  const [estimatedTime, setEstimatedTime] = useState(initial?.estimatedTime?.toString() ?? "");
-  
-  const [exercises, setExercises] = useState<ExerciseRow[]>(() => buildInitialExercises(initial));
+  const [name, setName] = useState(source?.name ?? "");
+  const [description, setDescription] = useState(source?.description ?? "");
+  const [targetMuscleGroups, setTargetMuscleGroups] = useState(source?.targetMuscleGroups ?? "");
+  const [estimatedTime, setEstimatedTime] = useState(source?.estimatedTime?.toString() ?? "");
+
+  const [exercises, setExercises] = useState<ExerciseRow[]>(() => buildInitialExercises(source));
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
