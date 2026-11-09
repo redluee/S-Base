@@ -23,7 +23,7 @@ describe("Frontend API client", () => {
     globalThis.fetch = mock(async (url: string | URL | Request) => {
       requestedUrl = String(url);
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     try {
       await api.recipes.list("success", "rating", "desc");

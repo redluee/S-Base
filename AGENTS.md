@@ -10,7 +10,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 | `bun run dev:backend` | Backend only on `:3001` |
 | `bun run dev:frontend` | Frontend only on `:3000` |
 | `bun run test` | Run backend and frontend test suites |
-| `bun run test:all` | Backend typecheck (`tsc`, including tests) + Biome check (lint and format), all unit tests, frontend ESLint |
+| `bun run test:all` | Backend typecheck (`tsc`, including tests) + Biome check (lint and format), all unit tests, frontend typecheck (`tsc`) + frontend ESLint |
 | `bun run pre-push` | Pre-push checks (`test:all` + `build`) |
 | `bun run db:migrate` | Run Drizzle SQLite migrations |
 | `bun run db:seed` | Seed sample data (admin/admin, tester/tester) |
@@ -78,7 +78,7 @@ Apply these to new code and to code you touch. Do not rewrite untouched modules.
 
 **Error contract:** typed errors live in `backend/src/utils/errors.ts` (`ValidationError` 400, `NotFoundError` 404, `ConflictError` 409; `orNotFound()` for lookups). The constructor takes an i18n key named `<module>.<camelCaseName>` (shared ones: `common.*`, `upload.*`) plus optional details, and the central `onError` in `src/index.ts` answers `{ ...details, error: key }`. Elysia schema failures answer `{ error: "common.invalidRequest" }`. Failures of an upstream service (downloads, mail) may throw `new AppError(502, key)`. The frontend translates keys in `ApiError` (`lib/api/core.ts`); keys live in a per-domain lang file (`lib/<domain>-lang.ts`, spread into `lib/lang.ts`). Show errors with `apiErrorMessage(err, fallbackKey)`. Server pages wrap single-item fetches in `notFoundOn404()` from `lib/server-api.ts`.
 
-**Frontend reference:** `app/recipes/`. Components, hooks and helpers used by one module live next to its routes (`app/recipes/recipe-form.tsx`, `app/recipes/wines/wine-form.tsx`), with their tests. Shared code stays in `components/` and `lib/`. API clients stay in `lib/api/<module>.ts`, and translations in `lib/<domain>-lang.ts` (spread into `lib/lang.ts`). `bun run test:all` does not typecheck the frontend: after moving files, also run `bunx tsc --noEmit -p frontend` (only pre-existing errors in `*.test.ts` are allowed).
+**Frontend reference:** `app/recipes/`. Components, hooks and helpers used by one module live next to its routes (`app/recipes/recipe-form.tsx`, `app/recipes/wines/wine-form.tsx`), with their tests. Shared code stays in `components/` and `lib/`. API clients stay in `lib/api/<module>.ts`, and translations in `lib/<domain>-lang.ts` (spread into `lib/lang.ts`). `bun run test:all` typechecks the frontend (`bun run --cwd frontend typecheck`, test files included), so after moving files run it to catch broken imports.
 
 **Backend behaviour**
 5. Validate every body, query and param with an Elysia `t` schema on the route. `as any` is forbidden.

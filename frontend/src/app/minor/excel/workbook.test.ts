@@ -19,7 +19,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
   it("starts every sprint on a new printed page and hides Lijsten", () => {
     const wb = buildIntegraalSprintLogboekWorkbook([]);
     const ws = wb.getWorksheet("Logboek")!;
-    expect(ws.rowBreaks.map((b) => b.id)).toEqual([28, 56, 84, 112, 140, 168, 196]);
+    expect(ws.model.rowBreaks.map((b) => b.id)).toEqual([28, 56, 84, 112, 140, 168, 196]);
     expect(ws.pageSetup.fitToPage).toBe(false);
     expect(ws.pageSetup.scale).toBe(55);
     expect(wb.getWorksheet("Lijsten")!.state).toBe("hidden");
@@ -69,7 +69,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     expect((ws.getCell("K1").value as { text: string }).text).toBe("Sprint 8");
 
     // Header fill
-    const fillA1 = ws.getCell("A1").fill as ExcelJS.PatternFill;
+    const fillA1 = ws.getCell("A1").fill as ExcelJS.FillPattern;
     expect(fillA1?.fgColor?.argb).toBe("FFC00000");
 
     // LU 1 (Row 2)
@@ -118,7 +118,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     // Row 9: Portfolio link
     expect(ws.getCell("A9").value).toBe("Portfolio ");
     expect(ws.getCell("B9").value).toBe("vul hier je portfolio site url in");
-    const fillA9 = ws.getCell("A9").fill as ExcelJS.PatternFill;
+    const fillA9 = ws.getCell("A9").fill as ExcelJS.FillPattern;
     expect(fillA9?.fgColor?.argb).toBe("FFC00000");
   });
 
@@ -222,7 +222,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     // Sprint 1 (Rows 1 to 28)
     expect(ws.getCell("A1").value).toBe("SPRINT 1");
     expect(ws.getRow(1).height).toBe(18.0);
-    const fillMerged = ws.getCell("A1").fill as ExcelJS.PatternFill;
+    const fillMerged = ws.getCell("A1").fill as ExcelJS.FillPattern;
     expect(fillMerged?.fgColor?.argb).toBe("FFE6302B");
 
     // Section 1 Header (Row 3)
@@ -272,7 +272,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
 
     // Sprint 2 (Row 29) should be Blue theme
     expect(ws.getCell("A29").value).toBe("SPRINT 2");
-    const fillSprint2 = ws.getCell("A29").fill as ExcelJS.PatternFill;
+    const fillSprint2 = ws.getCell("A29").fill as ExcelJS.FillPattern;
     expect(fillSprint2?.fgColor?.argb).toBe("FF00A1E1");
 
     // Sprint 8 last row should be 224
@@ -342,6 +342,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
           { id: 5, sprintId: 1, learningOutcome: 5, level: "-", argumentation: "", updatedAt: "" },
         ],
         teacherAssessments: [],
+        reflection: null,
       },
     ];
 
@@ -415,6 +416,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
         feedback: [],
         selfEvaluations: [],
         teacherAssessments: [],
+        reflection: null,
       },
     ];
 
@@ -446,6 +448,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
         extensionReason: null,
         status: "completed",
         createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
         stories: [],
         feedback: [],
         selfEvaluations: [],
@@ -474,12 +477,14 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
         extensionReason: null,
         status: "completed",
         createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
         stories: [
           {
             id: 1,
             sprintId: 1,
             userId: 1,
             storyTypeCode: "US",
+            storyNumber: "1.1",
             title: "Test story",
             asA: "a",
             iWant: "b",
@@ -518,6 +523,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
           id: 1,
           sprintId: 1,
           date: "2026-01-15",
+          createdAt: "2026-01-15",
           whatLearned: "Veel geleerd",
           whatRetained: "Goede workflow",
           whatChange: "Eerder beginnen",

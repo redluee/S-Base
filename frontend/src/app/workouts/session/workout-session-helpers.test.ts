@@ -143,7 +143,7 @@ describe("fillCompletedSetDefaults", () => {
       ex.sets[1][field] = null;
       ex.templateExercise = { [defaultField]: value };
       fillCompletedSetDefaults(ex, ex.sets[1], 1, {});
-      expect(ex.sets[1][field]).toBe(value);
+      expect<number | null>(ex.sets[1][field]).toBe(value);
     });
   }
 
