@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { app } from "../index";
 import { setupTestDb } from "../test-utils";
 
-async function login() {
+async function login(username = "admin") {
   const res = await app.handle(
     new Request("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "admin" }),
+      body: JSON.stringify({ username, password: username }),
     }),
   );
   const match = (res.headers.get("set-cookie") ?? "").match(/session_id=([^;]+)/);
@@ -103,6 +103,56 @@ describe("minor routes error contract", () => {
     });
     expect(feedback.status).toBe(400);
     expect(await feedback.json()).toEqual({ error: "minor.feedbackFieldsRequired" });
+    await call(cookie, "DELETE", `/api/minor/sprints/${sprint.id}`);
+  });
+
+  it("hides another user's feedback and reflections behind 404", async () => {
+    const sprint = (await (await call(cookie, "POST", "/api/minor/sprints", { startDate: "2030-07-01" })).json()) as {
+      id: number;
+    };
+    const entry = (await (
+      await call(cookie, "POST", `/api/minor/sprints/${sprint.id}/feedback`, {
+        date: "2030-07-02",
+        fromWhom: "Coach",
+        feedback: "Owner feedback",
+        action: "Keep",
+      })
+    ).json()) as { id: number };
+    await call(cookie, "PUT", `/api/minor/sprints/${sprint.id}/reflection`, { whatLearned: "Owner reflection" });
+
+    const intruder = await login("tester");
+    const cases: Array<[string, string, unknown, string]> = [
+      ["GET", `/api/minor/sprints/${sprint.id}/feedback`, undefined, "minor.sprintNotFound"],
+      [
+        "POST",
+        `/api/minor/sprints/${sprint.id}/feedback`,
+        { date: "2030-07-03", fromWhom: "X", feedback: "Injected", action: "Y" },
+        "minor.sprintNotFound",
+      ],
+      ["PUT", `/api/minor/feedback/${entry.id}`, { feedback: "Tampered" }, "minor.feedbackNotFound"],
+      ["DELETE", `/api/minor/feedback/${entry.id}`, undefined, "minor.feedbackNotFound"],
+      ["GET", `/api/minor/sprints/${sprint.id}/reflection`, undefined, "minor.sprintNotFound"],
+      ["PUT", `/api/minor/sprints/${sprint.id}/reflection`, { whatLearned: "Tampered" }, "minor.sprintNotFound"],
+    ];
+    for (const [method, path, body, key] of cases) {
+      const res = await call(intruder, method, path, body);
+      expect({ method, path, status: res.status, body: await res.json() }).toEqual({
+        method,
+        path,
+        status: 404,
+        body: { error: key },
+      });
+    }
+
+    const feedback = (await (await call(cookie, "GET", `/api/minor/sprints/${sprint.id}/feedback`)).json()) as {
+      feedback: string;
+    }[];
+    expect(feedback.map((f) => f.feedback)).toEqual(["Owner feedback"]);
+    const reflection = (await (await call(cookie, "GET", `/api/minor/sprints/${sprint.id}/reflection`)).json()) as {
+      whatLearned: string;
+    };
+    expect(reflection.whatLearned).toBe("Owner reflection");
+
     await call(cookie, "DELETE", `/api/minor/sprints/${sprint.id}`);
   });
 

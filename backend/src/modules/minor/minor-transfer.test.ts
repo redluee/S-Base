@@ -43,7 +43,7 @@ describe("MinorTransfer", () => {
       },
     });
 
-    minor.feedback.add(sprint.id, {
+    minor.feedback.add(sprint.id, adminId, {
       date: "2026-09-16",
       fromWhom: "Evaluator",
       feedback: "Strong architectural choices",
@@ -58,7 +58,7 @@ describe("MinorTransfer", () => {
       { learningOutcome: 1, assessment: "V", notes: "Approved" },
     ]);
 
-    minor.feedback.saveReflection(sprint.id, {
+    minor.feedback.saveReflection(sprint.id, adminId, {
       date: "2026-09-20",
       whatLearned: "Session auth best practices",
       whatRetained: "Fast SQLite setup",

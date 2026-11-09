@@ -48,12 +48,12 @@ describe("public snapshot", () => {
       evidence: [{ type: "document", title: "Doc", url: `/api/uploads/${ASSET}` }],
       presentationData: { enabled: true, notes: "presenter only", images: [{ url: `/api/uploads/${ASSET}` }] },
     } as Parameters<typeof minor.createStory>[2]);
-    minor.addFeedback(sprint.id, {
+    minor.addFeedback(sprint.id, adminId, {
       date: "2031-03-05",
       fromWhom: SECRET_NAME,
       feedback: "Nice",
       action: "Continue",
-    } as Parameters<typeof minor.addFeedback>[1]);
+    } as Parameters<typeof minor.addFeedback>[2]);
     minor.createPeerHelp(adminId, {
       sprintId: sprint.id,
       date: "2031-03-06",
