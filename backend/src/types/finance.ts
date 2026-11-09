@@ -17,22 +17,10 @@ export interface FinanceAccount {
   openingDate: string;
   archived: boolean;
 }
-export interface FinanceAccountInput {
-  name: string;
-  bank?: string | null;
-  type: FinanceAccountType;
-  openingDate: string;
-  openingBalanceCents: number;
-}
 export type FinanceBalanceAccount = Omit<FinanceAccount, "type"> & {
   type: FinanceAccountType | "untracked";
   inferred?: boolean;
 };
-export interface FinanceBalanceEntry {
-  accountId: number;
-  balanceCents: number;
-  expectedCents: number | null;
-}
 export interface FinanceGoal {
   id: number;
   name: string;
