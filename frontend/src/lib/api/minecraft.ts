@@ -1,5 +1,5 @@
 import { t } from "../lang";
-import { errorFromBody, request } from "./core";
+import { request, requestForm } from "./core";
 import type {
   McBannedPlayer,
   McPlayerStat,
@@ -57,14 +57,7 @@ export const minecraftApi = {
           const formData = new FormData();
           formData.append("files", file);
           try {
-            const res = await fetch(`/api/minecraft/servers/${slug}/files/${type}`, {
-              method: "POST",
-              credentials: "include",
-              body: formData,
-            });
-            if (!res.ok) {
-              throw errorFromBody(res.status, res.statusText, await res.text().catch(() => ""));
-            }
+            await requestForm(`/minecraft/servers/${slug}/files/${type}`, formData);
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : t("minecraft.uploadFailed");
             errors.push({ file: file.name, error: msg });
@@ -137,15 +130,7 @@ export const minecraftApi = {
       upload: async (id: number, type: "mods" | "datapacks" | "resourcepacks", file: File) => {
         const form = new FormData();
         form.append("files", file);
-        const res = await fetch(`/api/minecraft/templates/${id}/files/${type}`, {
-          method: "POST",
-          credentials: "include",
-          body: form,
-        });
-        if (!res.ok) {
-          throw errorFromBody(res.status, res.statusText, await res.text().catch(() => ""));
-        }
-        return res.json().catch(() => ({ ok: true }));
+        return requestForm<{ ok: boolean }>(`/minecraft/templates/${id}/files/${type}`, form);
       },
       delete: (id: number, type: "mods" | "datapacks" | "resourcepacks", filename: string) =>
         request<{ ok: boolean }>(`/minecraft/templates/${id}/files/${type}/${encodeURIComponent(filename)}`, {

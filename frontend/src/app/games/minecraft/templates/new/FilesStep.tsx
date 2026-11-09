@@ -58,7 +58,7 @@ export function FilesStep({ stagedFiles, fileTab, setFileTab, handleFileUpload, 
                 <p className="text-sm font-semibold text-zinc-200">
                   {fileTab === "mods" ? t("Upload Mods (.jar)") : fileTab === "datapacks" ? t("Upload Datapacks (.zip)") : t("Upload Resourcepacks (.zip)")}
                 </p>
-                <p className="text-xs text-zinc-500 mt-1">Sleep bestanden hierheen of klik om te uploaden</p>
+                <p className="text-xs text-zinc-500 mt-1">{t("Sleep bestanden hierheen of klik om te uploaden")}</p>
               </div>
 
               {/* Bestandenlijst van actieve fileTab */}

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { JavaMemorySelector } from "@/components/minecraft/JavaMemorySelector";
+import { JavaMemorySelector } from "@/app/games/minecraft/components/JavaMemorySelector";
 import { t } from "@/lib/lang";
 import type { useServerSettings } from "./useServerSettings";
 
@@ -190,7 +190,7 @@ export function SettingsStep({ settings, displayName, javaArgs, setJavaArgs, eng
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
                     <Label htmlFor="server-fire-tick" className="cursor-pointer">{t("Fire tick")}</Label>
-                    <p className="text-xs text-zinc-500">Vuur verspreidt zich en dooft uit (doFireTick)</p>
+                    <p className="text-xs text-zinc-500">{t("Vuur verspreidt zich en dooft uit (doFireTick)")}</p>
                   </div>
                   <Switch id="server-fire-tick" checked={doFireTick} onCheckedChange={setDoFireTick} />
                 </div>
@@ -215,7 +215,7 @@ export function SettingsStep({ settings, displayName, javaArgs, setJavaArgs, eng
                       value={levelSeed}
                       maxLength={64}
                       onChange={(e) => setLevelSeed(e.target.value)}
-                      placeholder="Willekeurig (Random)"
+                      placeholder={t("Willekeurig (Random)")}
                     />
                   </div>
                 </div>

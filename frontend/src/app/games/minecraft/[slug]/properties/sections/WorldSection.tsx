@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { t } from "@/lib/lang";
 
 interface WorldSectionProps {
   activeTab: string;
@@ -21,14 +22,14 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
           <div className="p-6 rounded-2xl bg-zinc-900 border border-white/10 space-y-6">
             <div className="flex items-center gap-2.5 pb-4 border-b border-white/10">
               <Globe className="size-5 text-emerald-400" />
-              <h2 className="font-display text-lg font-bold text-zinc-100">World & Generation</h2>
+              <h2 className="font-display text-lg font-bold text-zinc-100">{t("World & Generation")}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {matchesSearch("level-name", "World Name") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">World Name</Label>
+                    <Label className="text-zinc-200">{t("World Name")}</Label>
                     {renderStatusBadge("level-name")}
                   </div>
                   <Input
@@ -45,7 +46,7 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
               {matchesSearch("level-seed", "World Seed") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">World Seed</Label>
+                    <Label className="text-zinc-200">{t("World Seed")}</Label>
                     {renderStatusBadge("level-seed")}
                   </div>
                   <Input
@@ -53,7 +54,7 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                     maxLength={64}
                     onChange={(e) => handleChange("level-seed", e.target.value)}
                     disabled={isRunning}
-                    placeholder="Random"
+                    placeholder={t("Random")}
                     className="bg-black/40 border-white/10 disabled:opacity-50"
                   />
                   <p className="text-[11px] text-zinc-500 font-mono">level-seed</p>
@@ -63,7 +64,7 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
               {matchesSearch("level-type", "World Type") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">World Type</Label>
+                    <Label className="text-zinc-200">{t("World Type")}</Label>
                     {renderStatusBadge("level-type")}
                   </div>
                   <Select
@@ -75,11 +76,11 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="minecraft:normal">Default (normal)</SelectItem>
-                      <SelectItem value="minecraft:flat">Flat</SelectItem>
-                      <SelectItem value="minecraft:large_biomes">Large Biomes</SelectItem>
-                      <SelectItem value="minecraft:amplified">Amplified</SelectItem>
-                      <SelectItem value="minecraft:single_biome_surface">Single Biome</SelectItem>
+                      <SelectItem value="minecraft:normal">{t("Default (normal)")}</SelectItem>
+                      <SelectItem value="minecraft:flat">{t("Flat")}</SelectItem>
+                      <SelectItem value="minecraft:large_biomes">{t("Large Biomes")}</SelectItem>
+                      <SelectItem value="minecraft:amplified">{t("Amplified")}</SelectItem>
+                      <SelectItem value="minecraft:single_biome_surface">{t("Single Biome")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-zinc-500 font-mono">level-type</p>
@@ -89,7 +90,7 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
               {matchesSearch("spawn-protection", "Spawn Protection (blocks)") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">Spawn Protection (blocks)</Label>
+                    <Label className="text-zinc-200">{t("Spawn Protection (blocks)")}</Label>
                     {renderStatusBadge("spawn-protection")}
                   </div>
                   <Input
@@ -103,7 +104,7 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                     disabled={isRunning}
                     className="bg-black/40 border-white/10 disabled:opacity-50"
                   />
-                  <p className="text-[11px] text-zinc-400">Radius in blocks around spawn where non-ops cannot place or break blocks</p>
+                  <p className="text-[11px] text-zinc-400">{t("Radius in blocks around spawn where non-ops cannot place or break blocks")}</p>
                 </div>
               )}
 
@@ -111,10 +112,10 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-generate-structures" className="text-zinc-200 cursor-pointer">Generate Structures</Label>
+                      <Label htmlFor="prop-generate-structures" className="text-zinc-200 cursor-pointer">{t("Generate Structures")}</Label>
                       {renderStatusBadge("generate-structures")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Generate structures (villages, dungeons, temples, etc.)</p>
+                    <p className="text-[11px] text-zinc-400">{t("Generate structures (villages, dungeons, temples, etc.)")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">generate-structures={props["generate-structures"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -130,10 +131,10 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-allow-nether" className="text-zinc-200 cursor-pointer">Allow Nether</Label>
+                      <Label htmlFor="prop-allow-nether" className="text-zinc-200 cursor-pointer">{t("Allow Nether")}</Label>
                       {renderStatusBadge("allow-nether")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Enable portals and the Nether dimension</p>
+                    <p className="text-[11px] text-zinc-400">{t("Enable portals and the Nether dimension")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">allow-nether={props["allow-nether"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -149,10 +150,10 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-spawn-monsters" className="text-zinc-200 cursor-pointer">Spawn Monsters</Label>
+                      <Label htmlFor="prop-spawn-monsters" className="text-zinc-200 cursor-pointer">{t("Spawn Monsters")}</Label>
                       {renderStatusBadge("spawn-monsters")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Allow hostile monsters to spawn naturally</p>
+                    <p className="text-[11px] text-zinc-400">{t("Allow hostile monsters to spawn naturally")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">spawn-monsters={props["spawn-monsters"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -168,10 +169,10 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-spawn-animals" className="text-zinc-200 cursor-pointer">Spawn Animals</Label>
+                      <Label htmlFor="prop-spawn-animals" className="text-zinc-200 cursor-pointer">{t("Spawn Animals")}</Label>
                       {renderStatusBadge("spawn-animals")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Allow passive animals to spawn naturally</p>
+                    <p className="text-[11px] text-zinc-400">{t("Allow passive animals to spawn naturally")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">spawn-animals={props["spawn-animals"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -187,10 +188,10 @@ export function WorldSection({ activeTab, props, isRunning, handleChange, handle
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-spawn-npcs" className="text-zinc-200 cursor-pointer">Spawn NPCs (Villagers)</Label>
+                      <Label htmlFor="prop-spawn-npcs" className="text-zinc-200 cursor-pointer">{t("Spawn NPCs (Villagers)")}</Label>
                       {renderStatusBadge("spawn-npcs")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Allow NPC villagers to spawn in villages</p>
+                    <p className="text-[11px] text-zinc-400">{t("Allow NPC villagers to spawn in villages")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">spawn-npcs={props["spawn-npcs"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch

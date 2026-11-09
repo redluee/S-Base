@@ -1,7 +1,8 @@
 import { Gauge } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { JavaMemorySelector } from "@/components/minecraft/JavaMemorySelector";
+import { JavaMemorySelector } from "@/app/games/minecraft/components/JavaMemorySelector";
+import { t } from "@/lib/lang";
 
 interface PerformanceSectionProps {
   activeTab: string;
@@ -24,7 +25,7 @@ export function PerformanceSection({ activeTab, props, isRunning, handleChange, 
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center gap-2.5">
                 <Gauge className="size-5 text-indigo-400" />
-                <h2 className="font-display text-lg font-bold text-zinc-100">Performance & Memory</h2>
+                <h2 className="font-display text-lg font-bold text-zinc-100">{t("Performance & Memory")}</h2>
               </div>
               {renderStatusBadge("performance")}
             </div>
@@ -48,7 +49,7 @@ export function PerformanceSection({ activeTab, props, isRunning, handleChange, 
               {matchesSearch("view-distance", "View Distance (chunks)") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">View Distance (chunks)</Label>
+                    <Label className="text-zinc-200">{t("View Distance (chunks)")}</Label>
                     {renderStatusBadge("view-distance")}
                   </div>
                   <Input
@@ -69,7 +70,7 @@ export function PerformanceSection({ activeTab, props, isRunning, handleChange, 
               {matchesSearch("simulation-distance", "Simulation Distance (chunks)") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">Simulation Distance (chunks)</Label>
+                    <Label className="text-zinc-200">{t("Simulation Distance (chunks)")}</Label>
                     {renderStatusBadge("simulation-distance")}
                   </div>
                   <Input
@@ -90,7 +91,7 @@ export function PerformanceSection({ activeTab, props, isRunning, handleChange, 
               {matchesSearch("player-idle-timeout", "Player Idle Timeout (min)") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">Player Idle Timeout (min)</Label>
+                    <Label className="text-zinc-200">{t("Player Idle Timeout (min)")}</Label>
                     {renderStatusBadge("player-idle-timeout")}
                   </div>
                   <Input
@@ -103,14 +104,14 @@ export function PerformanceSection({ activeTab, props, isRunning, handleChange, 
                     onChange={(e) => handleChange("player-idle-timeout", e.target.value)}
                     className="bg-black/40 border-white/10"
                   />
-                  <p className="text-[11px] text-zinc-400">Kick idle players after X minutes (0 = disabled)</p>
+                  <p className="text-[11px] text-zinc-400">{t("Kick idle players after X minutes (0 = disabled)")}</p>
                 </div>
               )}
 
               {matchesSearch("entity-broadcast-range-percentage", "Entity Broadcast Range (%)") && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">Entity Broadcast Range (%)</Label>
+                    <Label className="text-zinc-200">{t("Entity Broadcast Range (%)")}</Label>
                     {renderStatusBadge("entity-broadcast-range-percentage")}
                   </div>
                   <Input

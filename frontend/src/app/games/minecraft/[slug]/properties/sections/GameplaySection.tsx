@@ -2,6 +2,7 @@ import { Gamepad2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { t } from "@/lib/lang";
 
 interface GameplaySectionProps {
   activeTab: string;
@@ -20,14 +21,14 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
           <div className="p-6 rounded-2xl bg-zinc-900 border border-white/10 space-y-6">
             <h2 className="text-base font-bold text-zinc-200 flex items-center gap-2">
               <Gamepad2 className="size-5 text-brand" />
-              Gameplay & Rules
+              {t("Gameplay & Rules")}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {matchesSearch("gamemode", "Game Mode") && (
                 <div className="space-y-1.5 p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">Game Mode</Label>
+                    <Label className="text-zinc-200">{t("Game Mode")}</Label>
                     {renderStatusBadge("gamemode")}
                   </div>
                   <Select
@@ -35,13 +36,13 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                     onValueChange={(v) => handleChange("gamemode", v ?? "survival")}
                   >
                     <SelectTrigger className="bg-black/40 border-white/10">
-                      <SelectValue placeholder="Select mode" />
+                      <SelectValue placeholder={t("Select mode")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="survival">Survival</SelectItem>
-                      <SelectItem value="creative">Creative</SelectItem>
-                      <SelectItem value="adventure">Adventure</SelectItem>
-                      <SelectItem value="spectator">Spectator</SelectItem>
+                      <SelectItem value="survival">{t("Survival")}</SelectItem>
+                      <SelectItem value="creative">{t("Creative")}</SelectItem>
+                      <SelectItem value="adventure">{t("Adventure")}</SelectItem>
+                      <SelectItem value="spectator">{t("Spectator")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-zinc-500 font-mono">gamemode</p>
@@ -51,7 +52,7 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
               {matchesSearch("difficulty", "Difficulty") && (
                 <div className="space-y-1.5 p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-zinc-200">Difficulty</Label>
+                    <Label className="text-zinc-200">{t("Difficulty")}</Label>
                     {renderStatusBadge("difficulty")}
                   </div>
                   <Select
@@ -59,13 +60,13 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                     onValueChange={(v) => handleChange("difficulty", v ?? "normal")}
                   >
                     <SelectTrigger className="bg-black/40 border-white/10">
-                      <SelectValue placeholder="Select difficulty" />
+                      <SelectValue placeholder={t("Select difficulty")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="peaceful">Peaceful</SelectItem>
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
+                      <SelectItem value="peaceful">{t("Peaceful")}</SelectItem>
+                      <SelectItem value="easy">{t("Easy")}</SelectItem>
+                      <SelectItem value="normal">{t("Normal")}</SelectItem>
+                      <SelectItem value="hard">{t("Hard")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-zinc-500 font-mono">difficulty</p>
@@ -76,10 +77,10 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-hardcore" className="text-zinc-200 cursor-pointer">Hardcore Mode</Label>
+                      <Label htmlFor="prop-hardcore" className="text-zinc-200 cursor-pointer">{t("Hardcore Mode")}</Label>
                       {renderStatusBadge("hardcore")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">One life only; players cannot respawn in survival</p>
+                    <p className="text-[11px] text-zinc-400">{t("One life only; players cannot respawn in survival")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">hardcore={props["hardcore"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -95,10 +96,10 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-pvp" className="text-zinc-200 cursor-pointer">PvP Combat</Label>
+                      <Label htmlFor="prop-pvp" className="text-zinc-200 cursor-pointer">{t("PvP Combat")}</Label>
                       {renderStatusBadge("pvp")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Enable player vs player combat</p>
+                    <p className="text-[11px] text-zinc-400">{t("Enable player vs player combat")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">pvp={props["pvp"] !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -114,10 +115,10 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-allow-flight" className="text-zinc-200 cursor-pointer">Allow Flight</Label>
+                      <Label htmlFor="prop-allow-flight" className="text-zinc-200 cursor-pointer">{t("Allow Flight")}</Label>
                       {renderStatusBadge("allow-flight")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Allow players to fly in survival mode if enabled by mods/abilities</p>
+                    <p className="text-[11px] text-zinc-400">{t("Allow players to fly in survival mode if enabled by mods/abilities")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">allow-flight={props["allow-flight"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -133,10 +134,10 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-enable-command-block" className="text-zinc-200 cursor-pointer">Enable Command Blocks</Label>
+                      <Label htmlFor="prop-enable-command-block" className="text-zinc-200 cursor-pointer">{t("Enable Command Blocks")}</Label>
                       {renderStatusBadge("enable-command-block")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Allow execution of command blocks</p>
+                    <p className="text-[11px] text-zinc-400">{t("Allow execution of command blocks")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">enable-command-block={props["enable-command-block"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -152,10 +153,10 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-force-gamemode" className="text-zinc-200 cursor-pointer">Force Gamemode</Label>
+                      <Label htmlFor="prop-force-gamemode" className="text-zinc-200 cursor-pointer">{t("Force Gamemode")}</Label>
                       {renderStatusBadge("force-gamemode")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Force players to join in the default game mode</p>
+                    <p className="text-[11px] text-zinc-400">{t("Force players to join in the default game mode")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">force-gamemode={props["force-gamemode"] === "true" ? "true" : "false"}</p>
                   </div>
                   <Switch
@@ -171,10 +172,10 @@ export function GameplaySection({ activeTab, props, isRunning, handleChange, han
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="prop-do-fire-tick" className="text-zinc-200 cursor-pointer">Fire Tick</Label>
+                      <Label htmlFor="prop-do-fire-tick" className="text-zinc-200 cursor-pointer">{t("Fire Tick")}</Label>
                       {renderStatusBadge("do-fire-tick")}
                     </div>
-                    <p className="text-[11px] text-zinc-400">Allow fire to spread and naturally extinguish (gamerule doFireTick)</p>
+                    <p className="text-[11px] text-zinc-400">{t("Allow fire to spread and naturally extinguish (gamerule doFireTick)")}</p>
                     <p className="text-[10px] text-zinc-500 font-mono">do-fire-tick={(props["do-fire-tick"] ?? props["doFireTick"]) !== "false" ? "true" : "false"}</p>
                   </div>
                   <Switch
