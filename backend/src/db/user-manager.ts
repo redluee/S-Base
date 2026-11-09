@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import db from "./client";
-import { users, usermodulepermissions, modules } from "./schema";
+import { usermodulepermissions, modules } from "./schema";
 import { handleError, cliState } from "./user-manager-shared";
 import { listUsers, createUser, deleteUser, changePassword, renameUser, setEmail } from "./user-manager-users";
 import { listPermissions, grantPermission, revokePermission, listServerPermissions, grantServerPermission, revokeServerPermission } from "./user-manager-permissions";

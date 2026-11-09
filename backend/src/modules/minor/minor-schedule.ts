@@ -60,8 +60,8 @@ export class MinorScheduleService {
 
   calculateSprintDates(userId: number, startDateStr: string, durationDays: number = 14) {
     const vacations = this.listVacations(userId);
-    let start = parseDate(startDateStr);
-    let effectiveDuration = durationDays;
+    const start = parseDate(startDateStr);
+    const effectiveDuration = durationDays;
     let extendedDays = 0;
     const overlappingVacationNames: string[] = [];
 

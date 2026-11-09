@@ -11,7 +11,7 @@ export const minecraftRoutes = new Elysia()
         const userId = (ctx as any).userId ?? 0;
         const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
 
-        const serverMatch = path.match(/\/api\/minecraft\/servers\/([^\/]+)/);
+        const serverMatch = path.match(/\/api\/minecraft\/servers\/([^/]+)/);
         if (serverMatch) {
           const slug = serverMatch[1];
           if (!minecraft.canUserAccessServer(userId, slug, hasFullAccess)) {
@@ -23,7 +23,7 @@ export const minecraftRoutes = new Elysia()
         }
 
         if (method === "GET") return;
-        if (path.match(/\/servers\/[^\/]+\/start$/)) return;
+        if (path.match(/\/servers\/[^/]+\/start$/)) return;
         return requireFullMinecraftAccess({ userId });
       })
       .get("/versions", async () => minecraft.listAvailableVersions())

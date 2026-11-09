@@ -14,7 +14,7 @@ export function parsePlayerEvent(this: MinecraftService, slug: string, line: str
   const joinMatch = line.match(/UUID of player (\S+) is ([0-9a-fA-F-]+)/);
   if (joinMatch) {
     const [, name, uuid] = joinMatch;
-    let stat = db.select().from(mc_player_stats).where(and(eq(mc_player_stats.serverId, server.serverId), eq(mc_player_stats.playerUuid, uuid))).get();
+    const stat = db.select().from(mc_player_stats).where(and(eq(mc_player_stats.serverId, server.serverId), eq(mc_player_stats.playerUuid, uuid))).get();
     if (!stat) {
       db.insert(mc_player_stats).values({ serverId: server.serverId, playerUuid: uuid, playerName: name }).run();
     } else if (stat.playerName !== name) {

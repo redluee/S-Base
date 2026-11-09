@@ -10,7 +10,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 | `bun run dev:backend` | Backend only on `:3001` |
 | `bun run dev:frontend` | Frontend only on `:3000` |
 | `bun run test` | Run backend and frontend test suites |
-| `bun run test:all` | Run all unit tests and frontend ESLint |
+| `bun run test:all` | Backend typecheck (`tsc`, non-test source) + Biome lint, all unit tests, frontend ESLint |
 | `bun run pre-push` | Pre-push checks (`test:all` + `build`) |
 | `bun run db:migrate` | Run Drizzle SQLite migrations |
 | `bun run db:seed` | Seed sample data (admin/admin, tester/tester) |
@@ -54,7 +54,7 @@ Backend routes and frontend views are structured around discrete domain modules:
 
 ## Key conventions
 
-- `backend/src/modules/` contains feature modules. Each module is a class (exported from its `index.ts`, with methods split over layered sibling files) instantiated at startup in `src/context.ts`. Elysia routes live in `src/routes/<module>.ts` and are mounted from `src/index.ts`. Keep files under ~500 lines (ideally 150–300).
+- `backend/src/modules/` contains feature modules, instantiated at startup in `src/context.ts`. Elysia routes live in `src/routes/<module>.ts` and are mounted from `src/index.ts`. See "Development rules" below for structure.
 - **Language**: Backend code stays in English without comments. Frontend UI is in Dutch — all user-facing strings use `t()` from `@/lib/lang`.
 - **Design System**: Strict adherence to `DESIGN.md` ("The Signal Panel" aesthetic):
   - Pitch black background (`#000000`) with tonal card layering (Dark Slate `oklch(0.205 0 0)`), no default shadows.
@@ -65,6 +65,40 @@ Backend routes and frontend views are structured around discrete domain modules:
 - **Testing**: Run `bun run test` or `bun run test:all` before pushing. Backend tests use in-memory SQLite (`DB_PATH=:memory: bun test`).
 - Backend uses `bun:sqlite` with WAL pragma + foreign keys enabled.
 - Path alias `@/*` → `frontend/src/*` (configured in frontend tsconfig).
+
+## Development rules
+
+Apply these to new code and to code you touch. Do not rewrite untouched modules. Leave touched code more consistent than you found it, within the task's scope. Read the module's own `AGENTS.md` first, if it has one.
+
+**Backend structure**
+1. A module is `modules/<name>/` with a thin `index.ts` exporting one service class. Logic lives in `<name>-<topic>.ts` files composed by delegation, never inheritance chains.
+2. One `routes/<name>.ts` per module. Routes parse input and call the service; they hold no business logic.
+3. Name the service after the module (`recipes`, `wines`) and use the module's own permission key; no aliases to another module's.
+4. Split any file over ~300 lines (hard limit 500).
+
+**Backend behaviour**
+5. Validate every body, query and param with an Elysia `t` schema on the route. `as any` is forbidden.
+6. Modules throw typed errors (`ValidationError`, `NotFoundError`, `ConflictError`) carrying an i18n key. Never throw plain `Error` or return `null` for not-found. Routes never build error `Response`s; the central `onError` maps errors to 400/404/409.
+7. The backend holds no user-facing text, only keys.
+8. Handle uploads with `saveUpload`; do not duplicate file-handling code.
+
+**Frontend**
+9. Module code lives in `app/<module>/`: `page.tsx` (server fetch), `client.tsx` (interactivity), plus its own components, hooks and helpers. Only genuinely shared code goes in `components/` and `lib/`.
+10. Server code uses `server-api.ts`, client code uses `api.ts`. No raw `fetch`.
+11. One lang file per domain, all strings via `t()`.
+12. Style with Tailwind and `DESIGN.md` tokens. No inline `style={{}}` except for dynamic values.
+
+**Tests**
+13. New backend logic needs tests. A bug fix starts with a failing test that reproduces it.
+14. Frontend tests cover `lib/` and utility logic, not every component.
+15. Tests never touch `sbase.db` or real services.
+
+**Commits**
+16. Conventional Commits: `type(module): imperative summary`, with the module name from the list above (`recipes`, `cashflow`, …). One logical change per commit. Put a schema change and its migration in the same commit.
+
+**Done means**
+17. `bun run test:all` and `bun run build` pass (the pre-push hook enforces this), and UI changes were checked in a browser on mobile and desktop widths.
+18. Backend Biome (`backend/biome.json`) fails on errors and reports legacy issues (`noExplicitAny`, unused variables, …) as warnings. Never add new warnings; fix the ones in code you touch. Test files are not typechecked yet (`backend/tsconfig.check.json`); keep new tests type-correct.
 - **Privacy**: Personal data must never be written into the codebase. Never commit real user data, names, emails, addresses, or other personal information in code, comments, seed data, migrations, or documentation. Use placeholder or anonymized values instead.
 - **Database preservation**: The local development database `sbase.db` contains custom user data and must NEVER be deleted, overwritten, or reset by the AI agent. Avoid running `bun run db:reset` or `bun run db:seed`. If schema migrations are needed, use non-destructive migrations. Dropping tables or wiping data via AI commands is strictly prohibited. When fields or tables are added or edited write a migration file for a production database to migrate to the new version.
 

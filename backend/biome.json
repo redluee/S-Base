@@ -1,0 +1,52 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
+  "vcs": {
+    "enabled": false
+  },
+  "files": {
+    "includes": [
+      "src/**",
+      "!src/**/fixtures/**"
+    ]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noGlobalIsNan": "warn",
+        "noControlCharactersInRegex": "warn",
+        "noImplicitAnyLet": "warn",
+        "noAssignInExpressions": "warn",
+        "useIterableCallbackReturn": "warn",
+        "noUselessEscapeInString": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "useNodejsImportProtocol": "off",
+        "useTemplate": "off",
+        "useConst": "warn",
+        "useImportType": "warn"
+      },
+      "complexity": {
+        "useOptionalChain": "warn",
+        "useLiteralKeys": "off",
+        "useMathMinMax": "off",
+        "noUselessEscapeInRegex": "warn",
+        "noUselessUndefinedInitialization": "warn"
+      },
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnusedFunctionParameters": "warn",
+        "noUnsafeOptionalChaining": "warn"
+      }
+    }
+  },
+  "assist": {
+    "enabled": false
+  }
+}

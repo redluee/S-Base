@@ -54,7 +54,7 @@ export function parseDefaultQualityCriteria(raw: string | null | undefined): Min
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       return parsed
-        .map((item) => {
+        .map((item): MinorDefaultQualityCriterion | null => {
           if (typeof item === "string") return { text: item.trim(), indent: 0 };
           if (item && typeof item === "object") {
             return {

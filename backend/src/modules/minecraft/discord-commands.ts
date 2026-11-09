@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, Client, EmbedBuilder } from "discord.js";
+import { type ChatInputCommandInteraction, type Client, EmbedBuilder } from "discord.js";
 import type { MinecraftService } from "./index";
 import { SIGNAL_GREEN, SIGNAL_RED, startCooldowns, COOLDOWN_SECONDS, pingMinecraftServer, pingTcpPort, getPlayerAvatarEmoji } from "./discord-net";
 

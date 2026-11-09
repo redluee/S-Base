@@ -1,5 +1,4 @@
 import { Elysia } from "elysia";
-import { and } from "drizzle-orm";
 import { join } from "path";
 import { IMAGE_EXTENSIONS, UPLOAD_NAME_PATTERN, uploadResponseHeaders } from "../utils/uploads";
 import { requireId } from "../utils/validation";

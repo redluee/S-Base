@@ -108,7 +108,7 @@ export async function serveMapFile(this: MinecraftService, slug: string, subpath
     let data = await readFile(targetFile);
     const isGzip = targetFile.endsWith(".gz");
     let contentType = "application/octet-stream";
-    let contentEncoding: string | undefined = undefined;
+    let contentEncoding: string | undefined ;
 
     if (isGzip) {
       contentEncoding = "gzip";

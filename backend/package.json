@@ -11,7 +11,9 @@
     "db:seed:resume": "bun run src/db/seed-resume.ts",
     "db:user": "bun run src/db/user-manager.ts",
     "db:push": "drizzle-kit push",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json",
+    "lint": "biome lint src"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.2.0",
@@ -22,6 +24,7 @@
     "saxes": "^6.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
     "bun-types": "latest",
     "drizzle-kit": "^0.30.6"
   }

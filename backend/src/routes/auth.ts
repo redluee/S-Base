@@ -1,7 +1,6 @@
 import { Elysia } from "elysia";
 import { getClientIp, loginLimiter, verifyInternalSecret } from "../security";
-import { modules } from "../db/schema";
-import { auth, pulse } from "../context";
+import { auth, } from "../context";
 
 export const authRoutes = new Elysia()
   // --- Auth routes ---

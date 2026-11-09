@@ -129,15 +129,15 @@ export async function inspectServerDirectory(this: MinecraftService, targetPath:
       detectedEngine = "fabric";
     }
 
-    let detectedVersion: string | undefined = undefined;
+    let detectedVersion: string | undefined ;
     // Try to read version from logs
     if (files.includes("logs")) {
       try {
         const logPath = join(resolvedPath, "logs", "latest.log");
         if (existsSync(logPath)) {
           const logHead = (await readFile(logPath, "utf-8")).slice(0, 10000);
-          const vMatch = logHead.match(/Starting minecraft server version ([\w\.-]+)/i) ||
-                         logHead.match(/Loading Minecraft ([\w\.-]+)/i) ||
+          const vMatch = logHead.match(/Starting minecraft server version ([\w.-]+)/i) ||
+                         logHead.match(/Loading Minecraft ([\w.-]+)/i) ||
                          logHead.match(/Minecraft Server (\d+\.\d+(\.\d+)?)/i);
           if (vMatch) {
             detectedVersion = vMatch[1];

@@ -7,7 +7,7 @@
     "dev:backend": "bun run --cwd backend dev",
     "dev:frontend": "bun run --cwd frontend dev",
     "test": "bun run --cwd backend test && bun run --cwd frontend test",
-    "test:all": "bun run --cwd backend test && bun run --cwd frontend test && bun run --cwd frontend lint",
+    "test:all": "bun run --cwd backend typecheck && bun run --cwd backend lint && bun run --cwd backend test && bun run --cwd frontend test && bun run --cwd frontend lint",
     "pre-push": "bun run test:all && bun run build",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "build": "bun run --cwd frontend build",

@@ -5,7 +5,7 @@ import { join } from "path";
 import { BASE_DIR } from "./paths";
 import { mkdir, writeFile, readFile, rm } from "fs/promises";
 import db from "../../db/client";
-import { mc_servers, mc_templates } from "../../db/schema/minecraft";
+import { mc_servers, } from "../../db/schema/minecraft";
 import { eq } from "drizzle-orm";
 import { writeFileSync } from "node:fs";
 

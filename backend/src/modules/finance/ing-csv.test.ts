@@ -259,8 +259,8 @@ describe("ING CSV daily balances", () => {
       "Datum;Rekening;Af Bij;Bedrag (EUR)\n20250101;DEMO0001;Bij;1,00",
       csv([ascending[0]]).replace("Bedrag (EUR)", "Bedrag (USD)"),
       csv([ascending[0]]).replace("Tag", "Datum"),
-      `${header}\n\"unclosed`,
-      `${header}\n\"closed\"garbage`,
+      `${header}\n"unclosed`,
+      `${header}\n"closed"garbage`,
       `${header}\ninvalid`,
     ])
       expect(() => parseIngCsv(content, "descending")).toThrow();

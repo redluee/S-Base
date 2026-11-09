@@ -5,8 +5,6 @@ import {
   usermodulepermissions,
   recipes,
   recipeSteps,
-  recipeIngredients,
-  ingredients,
   workoutTemplates,
   templateExercises,
   workoutSessions,

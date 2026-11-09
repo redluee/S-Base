@@ -274,8 +274,8 @@ export class CashflowInvoiceService extends CashflowRecordService {
     }
 
     let finalClientId = data.clientId ?? existing.clientId;
-    let finalProjectId = data.projectId !== undefined ? data.projectId : existing.projectId;
-    let finalTradeNameId = data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId;
+    const finalProjectId = data.projectId !== undefined ? data.projectId : existing.projectId;
+    const finalTradeNameId = data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId;
 
     if (finalProjectId && !finalClientId) {
       const proj = this.getProjectById(finalProjectId);

@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { join, dirname } from "path";
 import { mkdirSync, readdirSync, unlinkSync } from "fs";
 
