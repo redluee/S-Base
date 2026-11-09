@@ -1,9 +1,10 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { minorFeedbackEntries, minorReflections, minorSprints } from "../../db/schema";
 import type { MinorFeedbackEntry, MinorReflection } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
 import { formatDate } from "./minor-helpers";
+import type { MinorSprints } from "./minor-sprints";
 import type { PublishNotifier } from "./publish-notifier";
 
 export interface FeedbackInput {
@@ -22,13 +23,18 @@ export interface ReflectionInput {
 }
 
 export class MinorFeedback {
-  constructor(private readonly notifier: PublishNotifier) {}
+  constructor(
+    private readonly sprints: MinorSprints,
+    private readonly notifier: PublishNotifier,
+  ) {}
 
-  list(sprintId: number): MinorFeedbackEntry[] {
+  list(sprintId: number, userId: number): MinorFeedbackEntry[] {
+    this.sprints.requireOwned(sprintId, userId);
     return db.select().from(minorFeedbackEntries).where(eq(minorFeedbackEntries.sprintId, sprintId)).orderBy(asc(minorFeedbackEntries.orderIndex), asc(minorFeedbackEntries.id)).all() as MinorFeedbackEntry[];
   }
 
-  add(sprintId: number, data: FeedbackInput) {
+  add(sprintId: number, userId: number, data: FeedbackInput) {
+    this.sprints.requireOwned(sprintId, userId);
     if (!data.fromWhom?.trim() || !data.feedback?.trim() || !data.action?.trim()) {
       throw new ValidationError("minor.feedbackFieldsRequired");
     }
@@ -42,8 +48,8 @@ export class MinorFeedback {
     }).returning().get() as MinorFeedbackEntry;
   }
 
-  update(id: number, data: FeedbackInput) {
-    const existing = this.requireEntry(id);
+  update(id: number, userId: number, data: FeedbackInput) {
+    const existing = this.requireEntry(id, userId);
     return db.update(minorFeedbackEntries).set({
       date: data.date ?? existing.date,
       fromWhom: data.fromWhom?.trim() ?? existing.fromWhom,
@@ -53,20 +59,21 @@ export class MinorFeedback {
     }).where(eq(minorFeedbackEntries.id, id)).returning().get() as MinorFeedbackEntry;
   }
 
-  remove(id: number) {
-    this.requireEntry(id);
+  remove(id: number, userId: number) {
+    this.requireEntry(id, userId);
     db.delete(minorFeedbackEntries).where(eq(minorFeedbackEntries.id, id)).run();
     return { success: true };
   }
 
-  getReflection(sprintId: number): MinorReflection | null {
+  getReflection(sprintId: number, userId: number): MinorReflection | null {
+    this.sprints.requireOwned(sprintId, userId);
     return db.select().from(minorReflections).where(eq(minorReflections.sprintId, sprintId)).get() as MinorReflection | null;
   }
 
-  saveReflection(sprintId: number, data: ReflectionInput): MinorReflection {
+  saveReflection(sprintId: number, userId: number, data: ReflectionInput): MinorReflection {
+    this.sprints.requireOwned(sprintId, userId);
     const saved = this.upsertReflection(sprintId, data);
-    const sprint = db.select({ userId: minorSprints.userId }).from(minorSprints).where(eq(minorSprints.id, sprintId)).get();
-    if (sprint) this.notifier.notify(sprint.userId, { event: "self_evaluations_saved", sprintId });
+    this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId });
     return saved;
   }
 
@@ -90,7 +97,13 @@ export class MinorFeedback {
     }).returning().get() as MinorReflection;
   }
 
-  private requireEntry(id: number) {
-    return orNotFound(db.select().from(minorFeedbackEntries).where(eq(minorFeedbackEntries.id, id)).get(), "minor.feedbackNotFound");
+  private requireEntry(id: number, userId: number) {
+    const row = db
+      .select({ entry: minorFeedbackEntries })
+      .from(minorFeedbackEntries)
+      .innerJoin(minorSprints, eq(minorSprints.id, minorFeedbackEntries.sprintId))
+      .where(and(eq(minorFeedbackEntries.id, id), eq(minorSprints.userId, userId)))
+      .get();
+    return orNotFound(row?.entry, "minor.feedbackNotFound");
   }
 }

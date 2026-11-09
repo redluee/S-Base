@@ -44,7 +44,7 @@ describe("public snapshot", () => {
       evidence: [{ type: "document", title: "Doc", url: `/api/uploads/${ASSET}` }],
       presentationData: { enabled: true, notes: "presenter only", images: [{ url: `/api/uploads/${ASSET}` }] },
     } as any);
-    minor.addFeedback(sprint.id, { date: "2031-03-05", fromWhom: SECRET_NAME, feedback: "Nice", action: "Continue" } as any);
+    minor.addFeedback(sprint.id, adminId, { date: "2031-03-05", fromWhom: SECRET_NAME, feedback: "Nice", action: "Continue" } as any);
     minor.createPeerHelp(adminId, { sprintId: sprint.id, date: "2031-03-06", peerName: SECRET_NAME, description: "Explained git" });
     minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "Shown in story" }]);
     return sprint;

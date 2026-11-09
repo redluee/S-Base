@@ -130,7 +130,7 @@ describe("MinorDashboard", () => {
     expect(stats.projectedPasses[2]).toBe(0);
 
     // Now fill in reflection for pastSprint
-    minor.feedback.saveReflection(pastSprint.id, {
+    minor.feedback.saveReflection(pastSprint.id, isoId, {
       whatLearned: "Geleerd",
       whatRetained: "Vastgehouden",
       whatChange: "Veranderen",

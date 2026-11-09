@@ -79,18 +79,18 @@ export const minorRoutes = new Elysia()
         params: schema.idParams,
         body: schema.teacherAssessmentsBody,
       })
-      .get("/sprints/:id/feedback", ({ params: { id } }) => minor.feedback.list(id), { params: schema.idParams })
-      .post("/sprints/:id/feedback", ({ params: { id }, body }) => minor.feedback.add(id, body), {
+      .get("/sprints/:id/feedback", ({ params: { id }, userId }) => minor.feedback.list(id, userId), { params: schema.idParams })
+      .post("/sprints/:id/feedback", ({ params: { id }, userId, body }) => minor.feedback.add(id, userId, body), {
         params: schema.idParams,
         body: schema.feedbackCreateBody,
       })
-      .put("/feedback/:id", ({ params: { id }, body }) => minor.feedback.update(id, body), {
+      .put("/feedback/:id", ({ params: { id }, userId, body }) => minor.feedback.update(id, userId, body), {
         params: schema.idParams,
         body: schema.feedbackUpdateBody,
       })
-      .delete("/feedback/:id", ({ params: { id } }) => minor.feedback.remove(id), { params: schema.idParams })
-      .get("/sprints/:id/reflection", ({ params: { id } }) => minor.feedback.getReflection(id), { params: schema.idParams })
-      .put("/sprints/:id/reflection", ({ params: { id }, body }) => minor.feedback.saveReflection(id, body), {
+      .delete("/feedback/:id", ({ params: { id }, userId }) => minor.feedback.remove(id, userId), { params: schema.idParams })
+      .get("/sprints/:id/reflection", ({ params: { id }, userId }) => minor.feedback.getReflection(id, userId), { params: schema.idParams })
+      .put("/sprints/:id/reflection", ({ params: { id }, userId, body }) => minor.feedback.saveReflection(id, userId, body), {
         params: schema.idParams,
         body: schema.reflectionBody,
       })

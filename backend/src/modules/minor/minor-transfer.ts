@@ -179,7 +179,7 @@ export class MinorTransfer {
     if (Array.isArray(data.feedback)) {
       data.feedback.forEach((raw, index) => {
         const entry = parseFeedback(raw, index);
-        if (entry) this.feedback.add(sprintId, entry);
+        if (entry) this.feedback.add(sprintId, userId, entry);
       });
     }
 
@@ -190,6 +190,6 @@ export class MinorTransfer {
     if (assessments.length > 0) this.evaluations.saveTeacherAssessments(sprintId, userId, assessments);
 
     const reflection = parseReflection(data.reflection);
-    if (reflection) this.feedback.saveReflection(sprintId, reflection);
+    if (reflection) this.feedback.saveReflection(sprintId, userId, reflection);
   }
 }

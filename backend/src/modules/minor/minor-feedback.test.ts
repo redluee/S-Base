@@ -18,18 +18,18 @@ describe("MinorFeedback", () => {
     });
 
     // Feedback
-    const fb = minor.feedback.add(sprint.id, {
+    const fb = minor.feedback.add(sprint.id, adminId, {
       date: "2026-09-16",
       fromWhom: "Docent Jan",
       feedback: "Kwaliteitscriteria scherper formuleren",
       action: "Checklist herzien",
     });
     expect(fb.id).toBeDefined();
-    const fbList = minor.feedback.list(sprint.id);
+    const fbList = minor.feedback.list(sprint.id, adminId);
     expect(fbList.length).toBe(1);
 
     // Reflection
-    const ref = minor.feedback.saveReflection(sprint.id, {
+    const ref = minor.feedback.saveReflection(sprint.id, adminId, {
       whatLearned: "Veel geleerd over SQLite indexes",
       whatRetained: "Gestructureerde feedbackverwerking",
       whatChange: "Eerder beginnen met Show & Grow voorbereiding",

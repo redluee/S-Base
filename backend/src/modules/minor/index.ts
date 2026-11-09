@@ -21,7 +21,7 @@ export class MinorService {
   readonly sprints = new MinorSprints(this.schedule, this.evaluations);
   readonly drafts = new MinorEvaluationDrafts(this.sprints);
   readonly stories = new MinorStories(this.evaluations, this.notifier);
-  readonly feedback = new MinorFeedback(this.notifier);
+  readonly feedback = new MinorFeedback(this.sprints, this.notifier);
   readonly peerHelp = new MinorPeerHelpLog();
   readonly settings = new MinorSettingsStore();
   readonly dashboard = new MinorDashboard(this.sprints, this.peerHelp);
@@ -31,7 +31,7 @@ export class MinorService {
   getSprintById: MinorSprints["getById"] = (id, userId) => this.sprints.getById(id, userId);
   createSprint: MinorSprints["create"] = (userId, data) => this.sprints.create(userId, data);
   createStory: MinorStories["create"] = (userId, sprintId, data) => this.stories.create(userId, sprintId, data);
-  addFeedback: MinorFeedback["add"] = (sprintId, data) => this.feedback.add(sprintId, data);
+  addFeedback: MinorFeedback["add"] = (sprintId, userId, data) => this.feedback.add(sprintId, userId, data);
   saveSelfEvaluations: MinorEvaluations["saveSelfEvaluations"] = (sprintId, userId, items) => this.evaluations.saveSelfEvaluations(sprintId, userId, items);
   listPeerHelp: MinorPeerHelpLog["list"] = (userId) => this.peerHelp.list(userId);
   createPeerHelp: MinorPeerHelpLog["create"] = (userId, data) => this.peerHelp.create(userId, data);
