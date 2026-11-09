@@ -54,6 +54,15 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export async function requestForm<T>(path: string, body: FormData): Promise<T> {
+  const res = await fetch(`/api${path}`, { method: "POST", body, credentials: "include" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw errorFromBody(res.status, res.statusText, text);
+  }
+  return res.json();
+}
+
 const MIME_TYPE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",

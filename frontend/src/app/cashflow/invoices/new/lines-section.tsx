@@ -277,7 +277,7 @@ export function LinesSection({
               <p className="text-xs text-zinc-400">{t("Factuurtotaal")}</p>
               <p className="text-xl font-bold text-white">{formatEuro(total)}</p>
               {isKor && (
-                <p className="text-[10px] text-zinc-500 mt-0.5">Excl. BTW (KOR)</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">{t("Excl. BTW (KOR)")}</p>
               )}
             </div>
           </div>

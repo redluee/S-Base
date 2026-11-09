@@ -15,7 +15,7 @@ import {
   Receipt,
   Wallet,
 } from "lucide-react";
-import { YearSelector } from "@/components/year-selector";
+import { YearSelector } from "./year-selector";
 
 function formatEuro(amount: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
@@ -168,7 +168,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
             <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-2xl font-bold text-white">{formatEuro(stats?.totalPaid12m ?? 0)}</p>
-          <p className="text-xs text-zinc-500">{paid?.count ?? 0} betaalde facturen</p>
+          <p className="text-xs text-zinc-500">{t("{count} betaalde facturen", { count: String(paid?.count ?? 0) })}</p>
         </Link>
 
         {/* Uitgaven */}
@@ -184,7 +184,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
             <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-2xl font-bold text-white">{formatEuro(totalExpenses)}</p>
-          <p className="text-xs text-zinc-500">Bedrijfskosten in {activeYear}</p>
+          <p className="text-xs text-zinc-500">{t("Bedrijfskosten in {year}", { year: String(activeYear) })}</p>
         </Link>
 
         {/* Netto resultaat */}
@@ -198,7 +198,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
           <p className={`text-2xl font-bold ${netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
             {formatEuro(netProfit)}
           </p>
-          <p className="text-xs text-zinc-500">Omzet minus uitgaven</p>
+          <p className="text-xs text-zinc-500">{t("Omzet minus uitgaven")}</p>
         </div>
 
         {/* Openstaand */}
@@ -214,7 +214,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
             <ArrowRight className="size-3.5 text-zinc-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
           </div>
           <p className="text-xl font-bold text-white">{formatEuro(outstanding)}</p>
-          <p className="text-xs text-zinc-500">{outstandingCount} facturen</p>
+          <p className="text-xs text-zinc-500">{t("{count} facturen", { count: String(outstandingCount) })}</p>
         </Link>
       </div>
 
@@ -315,9 +315,9 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                   )}
                 </div>
 
-                <div className="w-full flex items-end" style={{ height: "120px" }}>
+                <div className="w-full flex items-end h-[120px]">
                   {totalVal > 0 || expenseVal > 0 ? (
-                    <div className="w-full flex items-end justify-center gap-0.5" style={{ height: "100%" }}>
+                    <div className="w-full flex items-end justify-center gap-0.5 h-full">
                       {/* Income Bar */}
                       {hasIncome && (
                         <div
@@ -364,14 +364,13 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
                           style={{ height: `${maxIncome > 0 ? Math.max((expenseVal / maxIncome) * 100, 4) : 0}%` }}
                         >
                           <div
-                            className="w-full rounded-t bg-rose-500/50 hover:bg-rose-500/70 transition-colors"
-                            style={{ height: "100%" }}
+                            className="w-full h-full rounded-t bg-rose-500/50 hover:bg-rose-500/70 transition-colors"
                           />
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="w-full rounded-t bg-zinc-800" style={{ height: "2%" }} />
+                    <div className="w-full rounded-t bg-zinc-800 h-[2%]" />
                   )}
                 </div>
                 <MonthLabel month={month} isCurrentMonth={isCurrentMonth} />
@@ -384,10 +383,10 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
       {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         {[
-          { href: "/cashflow/invoices", label: "Facturen bekijken", icon: FileText },
-          { href: "/cashflow/expenses", label: "Uitgaven bekijken", icon: Receipt },
-          { href: "/cashflow/projects", label: "Projecten bekijken", icon: CheckCircle },
-          { href: "/cashflow/clients", label: "Klanten bekijken", icon: CheckCircle },
+          { href: "/cashflow/invoices", label: t("Facturen bekijken"), icon: FileText },
+          { href: "/cashflow/expenses", label: t("Uitgaven bekijken"), icon: Receipt },
+          { href: "/cashflow/projects", label: t("Projecten bekijken"), icon: CheckCircle },
+          { href: "/cashflow/clients", label: t("Klanten bekijken"), icon: CheckCircle },
         ].map(({ href, label, icon: Icon }) => (
           <Link
             key={href}

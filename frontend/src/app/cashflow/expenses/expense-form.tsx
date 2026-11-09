@@ -63,7 +63,7 @@ export function ExpenseForm({
     try {
       const res = await api.cashflow.upload(file, file.name);
       setReceiptPdfPath(res.filePath);
-      setReceiptPdfName(file.name || res.originalName || "Bon.pdf");
+      setReceiptPdfName(file.name || res.originalName || t("Bon.pdf"));
     } catch {
       setError(t("Bestand uploaden mislukt"));
     } finally {
@@ -90,7 +90,7 @@ export function ExpenseForm({
     }
 
     setError("");
-    const finalCategory = isCustomCategory ? customCategory.trim() || "Overig" : category;
+    const finalCategory = isCustomCategory ? customCategory.trim() || t("Overig") : category;
     const dateTimestamp = date ? new Date(date).getTime() : Date.now();
 
     onSave({
@@ -119,7 +119,7 @@ export function ExpenseForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="bg-zinc-800 border-zinc-700"
-            placeholder="bijv. Server hosting, Adobe abonnement, Monitor"
+            placeholder={t("bijv. Server hosting, Adobe abonnement, Monitor")}
           />
           {error && <p className="text-xs text-rose-400">{error}</p>}
         </div>
@@ -176,7 +176,7 @@ export function ExpenseForm({
               value={customCategory}
               onChange={(e) => setCustomCategory(e.target.value)}
               className="mt-2 bg-zinc-800 border-zinc-700"
-              placeholder="Typ aangepaste categorie..."
+              placeholder={t("Typ aangepaste categorie...")}
             />
           )}
         </div>
@@ -205,7 +205,7 @@ export function ExpenseForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="bg-zinc-800 border-zinc-700"
-            placeholder="Extra details of referentienummer..."
+            placeholder={t("Extra details of referentienummer...")}
           />
         </div>
 
@@ -224,7 +224,7 @@ export function ExpenseForm({
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-white truncate">
-                    {receiptPdfName || "Bon.pdf"}
+                    {receiptPdfName || t("Bon.pdf")}
                   </p>
                   <p className="text-[11px] text-zinc-400">{t("Bijlage gekoppeld")}</p>
                 </div>

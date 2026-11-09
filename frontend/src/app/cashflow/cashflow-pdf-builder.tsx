@@ -1,4 +1,4 @@
-import { getServicePeriod, formatServicePeriod } from "@/lib/cashflow-service-period";
+import { getServicePeriod, formatServicePeriod } from "./cashflow-service-period";
 import { t } from "@/lib/lang";
 import type { CashflowInvoiceFull } from "@/lib/api";
 

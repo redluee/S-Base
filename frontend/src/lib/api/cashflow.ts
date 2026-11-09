@@ -1,4 +1,4 @@
-import { request } from "./core";
+import { request, requestForm } from "./core";
 import type {
   CashflowClient,
   CashflowDashboardStats,
@@ -27,13 +27,7 @@ export const cashflowApi = {
   upload: async (file: File | Blob, fileName?: string) => {
     const formData = new FormData();
     formData.append("file", file, fileName || (file as File).name || "contract.pdf");
-    const res = await fetch("/api/cashflow/upload", {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Failed to upload file");
-    return res.json() as Promise<{ filePath: string; originalName: string }>;
+    return requestForm<{ filePath: string; originalName: string }>("/cashflow/upload", formData);
   },
   projects: {
     list: (clientId?: number) => {

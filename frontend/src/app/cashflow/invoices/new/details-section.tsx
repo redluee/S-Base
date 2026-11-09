@@ -134,7 +134,7 @@ export function DetailsSection({
               <div className="flex items-center gap-2 h-9">
                 <Switch checked={isKor} onCheckedChange={setIsKor} id="kor-toggle" />
                 <label htmlFor="kor-toggle" className="text-sm text-zinc-300 cursor-pointer">
-                  {isKor ? "Van toepassing" : "Niet van toepassing"}
+                  {isKor ? t("Van toepassing") : t("Niet van toepassing")}
                 </label>
               </div>
             </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import type { CashflowInvoiceSummary } from "@/lib/api";
 import { Check, Pencil, Trash2, Eye } from "lucide-react";
-import { CashflowPDFButton } from "@/components/cashflow-pdf";
+import { CashflowPDFButton } from "@/app/cashflow/cashflow-pdf";
 import { formatEuro, formatDate, statusConfig, SortHeaderIcon, type SortField, type SortOrder } from "./invoice-utils";
 
 export function InvoiceList({

@@ -40,7 +40,7 @@ export function ExpenseReceiptModal({
                 {expense.description} — {t("Bon / Factuur")}
               </h2>
               <p className="text-xs text-zinc-400 truncate">
-                {expense.receiptPdfName || "Bon.pdf"}
+                {expense.receiptPdfName || t("Bon.pdf")}
               </p>
             </div>
           </div>
@@ -77,14 +77,14 @@ export function ExpenseReceiptModal({
           {isPdf ? (
             <iframe
               src={expense.receiptPdfPath}
-              title={expense.receiptPdfName || "Receipt PDF"}
+              title={expense.receiptPdfName || t("Receipt PDF")}
               className="w-full h-full min-h-[58vh] sm:min-h-[70vh] rounded-xl border border-zinc-800 bg-zinc-900"
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={expense.receiptPdfPath}
-              alt={expense.receiptPdfName || "Receipt preview"}
+              alt={expense.receiptPdfName || t("Receipt preview")}
               className="max-h-[70vh] max-w-full object-contain rounded-xl border border-zinc-800"
             />
           )}

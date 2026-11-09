@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronUp, UserPlus } from "lucide-react";
-import { ClientAutocomplete } from "@/components/client-autocomplete";
+import { ClientAutocomplete } from "@/app/cashflow/client-autocomplete";
 import type { Dispatch, SetStateAction } from "react";
 
 export function ClientSection({
@@ -160,7 +160,7 @@ export function ClientSection({
                 />
                 <Input
                   type="number"
-                  placeholder="Tarief (€/uur)"
+                  placeholder={t("Tarief (€/uur)")}
                   value={newClientRate}
                   onChange={e => setNewClientRate(e.target.value)}
                   className="bg-zinc-700 border-zinc-600 text-xs"
@@ -171,7 +171,7 @@ export function ClientSection({
                   disabled={creatingClient || !newClientName.trim()}
                   className="bg-blue-500 hover:bg-blue-400 text-white text-xs self-end"
                 >
-                  {creatingClient ? "Aanmaken..." : t("Klant aanmaken")}
+                  {creatingClient ? t("Aanmaken...") : t("Klant aanmaken")}
                 </Button>
               </div>
             </div>

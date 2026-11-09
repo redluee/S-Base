@@ -1,5 +1,6 @@
 "use client";
 
+import { t } from "@/lib/lang";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ export function ClientAutocomplete({
   clients,
   selectedClientId,
   onSelectClient,
-  placeholder = "Selecteer klant",
+  placeholder = t("Selecteer klant"),
   className,
 }: {
   clients: CashflowClient[];

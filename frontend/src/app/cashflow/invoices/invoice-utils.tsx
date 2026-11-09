@@ -1,3 +1,4 @@
+import { t } from "@/lib/lang";
 import type { CashflowInvoiceSummary } from "@/lib/api";
 import {
   FileText,
@@ -52,9 +53,9 @@ export function SortHeaderIcon({ field, sortBy, sortOrder }: { field: SortField;
 }
 
 export const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  draft: { label: "Concept", color: "bg-zinc-800 text-zinc-300 border-zinc-700", icon: FileText },
-  sent: { label: "Verzonden", color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock },
-  paid: { label: "Betaald", color: "bg-brand/10 text-brand border-brand/20", icon: Check },
-  overdue: { label: "Te laat", color: "bg-rose-500/10 text-rose-400 border-rose-500/20", icon: AlertCircle },
-  open: { label: "Openstaand", color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock },
+  draft: { label: t("Concept"), color: "bg-zinc-800 text-zinc-300 border-zinc-700", icon: FileText },
+  sent: { label: t("Verzonden"), color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock },
+  paid: { label: t("Betaald"), color: "bg-brand/10 text-brand border-brand/20", icon: Check },
+  overdue: { label: t("Te laat"), color: "bg-rose-500/10 text-rose-400 border-rose-500/20", icon: AlertCircle },
+  open: { label: t("Openstaand"), color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock },
 };

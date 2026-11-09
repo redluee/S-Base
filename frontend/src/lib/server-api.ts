@@ -160,6 +160,7 @@ export const serverApi = {
         const qs = params.toString();
         return serverFetch<import("./api").CashflowProject[]>(`/cashflow/projects${qs ? `?${qs}` : ""}`);
       },
+      get: (id: number) => serverFetch<import("./api").CashflowProjectDetail>(`/cashflow/projects/${id}`),
     },
     invoices: {
       list: (status?: string, projectId?: number, clientId?: number) => {
@@ -171,6 +172,7 @@ export const serverApi = {
         return serverFetch<import("./api").CashflowInvoiceSummary[]>(`/cashflow/invoices${qs ? `?${qs}` : ""}`);
       },
       get: (id: number) => serverFetch<import("./api").CashflowInvoiceFull>(`/cashflow/invoices/${id}`),
+      nextNumber: () => serverFetch<{ invoiceNumber: string }>("/cashflow/invoices/next-number"),
     },
     expenses: {
       list: (options?: { year?: number; category?: string; tradeNameId?: number }) => {

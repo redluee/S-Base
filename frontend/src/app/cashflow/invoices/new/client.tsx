@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api, ApiError, apiErrorMessage } from "@/lib/api";
-import type { CashflowClient, CashflowProject, CashflowTradeName } from "@/lib/api";
+import type { CashflowClient, CashflowInvoiceFull, CashflowProject, CashflowTradeName } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   toTs,
@@ -15,38 +15,27 @@ import {
   type LineType,
   type DiscountType,
 } from "./invoice-form-utils";
-import { formatServicePeriod, getServicePeriod } from "@/lib/cashflow-service-period";
+import { formatServicePeriod, getServicePeriod } from "../../cashflow-service-period";
 import { ClientSection } from "./client-section";
 import { DetailsSection } from "./details-section";
 import { LinesSection } from "./lines-section";
 
-export function NewInvoiceForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const editId = searchParams.get("edit");
+function linesFromInvoice(inv: CashflowInvoiceFull): InvoiceLine[] {
+  return recalculateLines(inv.lines.map(l => ({
+    localId: crypto.randomUUID(),
+    date: toDate(l.date),
+    taskDescription: l.taskDescription,
+    quantity: l.quantity,
+    unitPrice: l.unitPrice,
+    totalCost: l.totalCost,
+    type: (l.type as LineType) ?? "hours",
+    discountType: (l.discountType as DiscountType) ?? "percentage",
+    discountValue: l.discountValue ?? 0,
+  })));
+}
 
-  const [clients, setClients] = useState<CashflowClient[]>([]);
-  const [projects, setProjects] = useState<CashflowProject[]>([]);
-  const [tradeNames, setTradeNames] = useState<CashflowTradeName[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
-
-  // Form state
-  const [clientId, setClientId] = useState<number | "">("");
-  const [projectId, setProjectId] = useState<number | "">("");
-  const [tradeNameId, setTradeNameId] = useState<number | "">("");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [invoiceName, setInvoiceName] = useState("");
-  const [dateCreated, setDateCreated] = useState("");
-  const [dateService, setDateService] = useState("");
-  const [automaticServicePeriod, setAutomaticServicePeriod] = useState(true);
-  const [paymentDueDate, setPaymentDueDate] = useState("");
-  const [status, setStatus] = useState<string>("draft");
-  const [datePaid, setDatePaid] = useState<string>("");
-  const [isKor, setIsKor] = useState(true);
-  const [lines, setLines] = useState<InvoiceLine[]>([
+function emptyLines(): InvoiceLine[] {
+  return [
     {
       localId: crypto.randomUUID(),
       date: "",
@@ -58,7 +47,47 @@ export function NewInvoiceForm() {
       discountType: "percentage",
       discountValue: 0,
     },
-  ]);
+  ];
+}
+
+export function NewInvoiceClient({
+  editId,
+  initialInvoice,
+  initialClients,
+  initialProjects,
+  tradeNames,
+  nextInvoiceNumber,
+}: {
+  editId: string | null;
+  initialInvoice: CashflowInvoiceFull | null;
+  initialClients: CashflowClient[];
+  initialProjects: CashflowProject[];
+  tradeNames: CashflowTradeName[];
+  nextInvoiceNumber: string;
+}) {
+  const router = useRouter();
+  const inv = initialInvoice;
+
+  const [clients, setClients] = useState<CashflowClient[]>(initialClients);
+  const [projects] = useState<CashflowProject[]>(initialProjects);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
+
+  // Form state
+  const [clientId, setClientId] = useState<number | "">(inv?.clientId ?? "");
+  const [projectId, setProjectId] = useState<number | "">(inv?.projectId ?? "");
+  const [tradeNameId, setTradeNameId] = useState<number | "">(inv?.tradeNameId ?? "");
+  const [invoiceNumber, setInvoiceNumber] = useState(inv?.invoiceNumber ?? nextInvoiceNumber);
+  const [invoiceName, setInvoiceName] = useState(inv?.name ?? "");
+  const [dateCreated, setDateCreated] = useState(inv ? toDate(inv.dateCreated) : "");
+  const [dateService, setDateService] = useState(inv ? toDate(inv.dateService) : "");
+  const [automaticServicePeriod, setAutomaticServicePeriod] = useState(inv ? inv.dateService == null : true);
+  const [paymentDueDate, setPaymentDueDate] = useState(inv ? toDate(inv.paymentDueDate) : "");
+  const [status, setStatus] = useState<string>(inv?.status ?? "draft");
+  const [datePaid, setDatePaid] = useState<string>(inv ? toDate(inv.datePaid) : "");
+  const [isKor, setIsKor] = useState(inv?.isKor ?? true);
+  const [lines, setLines] = useState<InvoiceLine[]>(() => (inv ? linesFromInvoice(inv) : emptyLines()));
 
   // Inline new client state
   const [showNewClient, setShowNewClient] = useState(false);
@@ -121,55 +150,6 @@ export function NewInvoiceForm() {
 
   const filteredProjects = projects.filter(p => clientId ? p.clientId === Number(clientId) : true);
   const selectedClient = clients.find(c => c.id === Number(clientId));
-
-  useEffect(() => {
-    async function init() {
-      setLoading(true);
-      try {
-        const [cls, prjs, numRes, tns] = await Promise.all([
-          api.cashflow.clients.list(),
-          api.cashflow.projects.list(),
-          api.cashflow.invoices.nextNumber(),
-          api.cashflow.tradeNames.list(),
-        ]);
-        setClients(cls);
-        setProjects(prjs);
-        setInvoiceNumber(numRes.invoiceNumber);
-        setTradeNames(tns);
-
-        if (editId) {
-          const inv = await api.cashflow.invoices.get(Number(editId));
-          setClientId(inv.clientId);
-          setProjectId(inv.projectId ?? "");
-          setTradeNameId(inv.tradeNameId ?? "");
-          setInvoiceNumber(inv.invoiceNumber);
-          setInvoiceName(inv.name ?? "");
-          setDateCreated(toDate(inv.dateCreated));
-          setDateService(toDate(inv.dateService));
-          setAutomaticServicePeriod(inv.dateService == null);
-          setPaymentDueDate(toDate(inv.paymentDueDate));
-          setStatus(inv.status);
-          setDatePaid(toDate(inv.datePaid));
-          setIsKor(inv.isKor);
-          setLines(recalculateLines(inv.lines.map(l => ({
-            localId: crypto.randomUUID(),
-            date: toDate(l.date),
-            taskDescription: l.taskDescription,
-            quantity: l.quantity,
-            unitPrice: l.unitPrice,
-            totalCost: l.totalCost,
-            type: (l.type as LineType) ?? "hours",
-            discountType: (l.discountType as DiscountType) ?? "percentage",
-            discountValue: l.discountValue ?? 0,
-          }))));
-        }
-      } catch {
-      } finally {
-        setLoading(false);
-      }
-    }
-    init();
-  }, [editId]);
 
   // Auto-set payment due date when dateCreated changes
   const handleDateCreatedChange = (val: string) => {
@@ -295,14 +275,6 @@ export function NewInvoiceForm() {
     } finally {
       setSaving(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-24">
-        <div className="size-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-      </div>
-    );
   }
 
   return (

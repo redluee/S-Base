@@ -1,5 +1,6 @@
 "use client";
 
+import { t } from "@/lib/lang";
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -73,7 +74,7 @@ export function YearSelector({
         onClick={handlePrev}
         disabled={year <= minYear}
         className="size-6 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center"
-        aria-label="Previous year"
+        aria-label={t("Previous year")}
       >
         <ChevronLeft className="size-4" />
       </button>
@@ -95,7 +96,7 @@ export function YearSelector({
           type="button"
           onClick={() => setIsEditing(true)}
           className="h-6 px-2 rounded text-sm font-semibold text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
-          title="Click to enter year manually"
+          title={t("Click to enter year manually")}
         >
           {year}
         </button>
@@ -106,7 +107,7 @@ export function YearSelector({
         onClick={handleNext}
         disabled={year >= maxYear}
         className="size-6 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center"
-        aria-label="Next year"
+        aria-label={t("Next year")}
       >
         <ChevronRight className="size-4" />
       </button>

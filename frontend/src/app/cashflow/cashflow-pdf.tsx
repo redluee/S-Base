@@ -1,6 +1,6 @@
 "use client";
 
-import { getServicePeriod } from "@/lib/cashflow-service-period";
+import { getServicePeriod } from "./cashflow-service-period";
 import { useState, useCallback } from "react";
 import { Download, AlertTriangle, X } from "lucide-react";
 import { t } from "@/lib/lang";
