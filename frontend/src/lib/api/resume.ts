@@ -46,6 +46,10 @@ export const resumeApi = {
     setItems: (id: number, items: ResumeItemInput[]) =>
       request<ResumeItemInput[]>(`/resume/resumes/${id}/items`, { method: "PUT", body: JSON.stringify({ items }) }),
   },
+  photo: async (path: string): Promise<Blob | null> => {
+    const res = await fetch(path, { credentials: "include" });
+    return res.ok ? res.blob() : null;
+  },
   fonts: {
     google: (family: string) =>
       request<ResumeGoogleFont>(`/resume/fonts/google?family=${encodeURIComponent(family)}`),

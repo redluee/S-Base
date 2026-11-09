@@ -1,7 +1,8 @@
 import type { ResumeFull, ResumeEntry } from "@backend/types/shared";
-import { PAGE, scaledTheme, formatPeriod, detailRows, type ResolvedFont } from "@/lib/resume";
-import { resolveResumeFont } from "@/lib/resume-fonts";
+import { PAGE, scaledTheme, formatPeriod, detailRows, type ResolvedFont } from "../resume";
+import { resolveResumeFont } from "../resume-fonts";
 import { t } from "@/lib/lang";
+import { api } from "@/lib/api";
 
 const registeredFonts = new Set<string>();
 const photoCache = new Map<string, Promise<string | null>>();
@@ -18,9 +19,8 @@ function photoToDataUrl(path: string): Promise<string | null> {
 
 async function fetchPhotoDataUrl(path: string): Promise<string | null> {
   try {
-    const res = await fetch(path, { credentials: "include" });
-    if (!res.ok) return null;
-    const blob = await res.blob();
+    const blob = await api.resume.photo(path);
+    if (!blob) return null;
     return await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ResumeFull } from "@backend/types/shared";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { buildResumePDFBlob } from "@/components/resume-pdf";
+import { buildResumePDFBlob } from "./resume-pdf";
 import { t } from "@/lib/lang";
 
 const DEBOUNCE_MS = 400;

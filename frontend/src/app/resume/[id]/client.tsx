@@ -14,9 +14,9 @@ import type {
 } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
-import { formatPeriod, snapColumnWidth, RESUME_COLUMN_MIN, RESUME_COLUMN_MAX, RESUME_COLUMN_STEP, RESUME_SCALE_MIN, RESUME_SCALE_MAX, RESUME_SCALE_STEP, snapScale } from "@/lib/resume";
-import { ResumePdfPreview } from "@/components/resume-pdf-preview";
-import { downloadResumePDF } from "@/components/resume-pdf";
+import { formatPeriod, snapColumnWidth, RESUME_COLUMN_MIN, RESUME_COLUMN_MAX, RESUME_COLUMN_STEP, RESUME_SCALE_MIN, RESUME_SCALE_MAX, RESUME_SCALE_STEP, snapScale } from "../resume";
+import { ResumePdfPreview } from "../pdf/resume-pdf-preview";
+import { downloadResumePDF } from "../pdf/resume-pdf";
 import { FontPicker, SliderField } from "./font-picker";
 
 type Kind = "experience" | "education";
@@ -286,8 +286,7 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
           {sel && openOverride === key && (
             <div className="px-3 pb-3 space-y-2">
               <textarea
-                style={{ height: 100 }}
-                className={`${inputCls} py-2 resize-y text-xs`}
+                className={`${inputCls} h-[100px] py-2 resize-y text-xs`}
                 value={sel.override ?? src.description}
                 onChange={(e) => setOverride(kind, src.id, e.target.value)}
                 aria-label={t("Omschrijving voor dit CV")}

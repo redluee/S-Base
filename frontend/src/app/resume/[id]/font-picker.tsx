@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { t } from "@/lib/lang";
-import { CURATED_FONTS, GOOGLE_PREFIX } from "@/lib/resume";
-import { resolveResumeFont } from "@/lib/resume-fonts";
+import { CURATED_FONTS, GOOGLE_PREFIX } from "../resume";
+import { resolveResumeFont } from "../resume-fonts";
 
 const selectCls =
   "w-full min-h-[44px] sm:min-h-[36px] rounded-lg bg-zinc-950 border border-border px-3 text-sm text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand";

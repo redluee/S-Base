@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import type { ResumeExperience, ResumeEducation } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
-import { formatPeriod, MONTH_OPTIONS } from "@/lib/resume";
+import { formatPeriod, MONTH_OPTIONS } from "./resume";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 type Kind = "experience" | "education";
