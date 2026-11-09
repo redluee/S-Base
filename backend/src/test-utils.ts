@@ -24,16 +24,16 @@ export async function setupTestDb() {
         const statements = sqlContent.split(";").map((s) => s.trim()).filter(Boolean);
         for (const stmt of statements) {
           try {
-            db.run(stmt as any);
-          } catch (e: any) {
+            db.run(stmt);
+          } catch {
             // Ignore expected duplicate table/column DDL errors if re-run
           }
         }
-      } catch (err: any) {
+      } catch {
         // Continue
       }
     }
-  } catch (err: any) {
+  } catch (err) {
     console.warn("Test migration read notice:", err);
   }
 

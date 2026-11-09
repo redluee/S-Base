@@ -37,20 +37,14 @@ describe("Database Migration Runner", () => {
     expect(cashflowMod).toBeDefined();
 
     // Ensure no permissions exist for tester
-    const permsBefore = memDb.query(
-      "SELECT * FROM usermodulepermissions WHERE user_id = ?",
-      [user!.user_id]
-    ).all();
+    const permsBefore = memDb.query("SELECT * FROM usermodulepermissions WHERE user_id = ?").all(user!.user_id);
     expect(permsBefore.length).toBe(0);
 
     // Simulate updating app and running migrations again
     await runMigrations(memDb);
 
     // Permission must NOT be re-inserted
-    const permsAfter = memDb.query(
-      "SELECT * FROM usermodulepermissions WHERE user_id = ?",
-      [user!.user_id]
-    ).all();
+    const permsAfter = memDb.query("SELECT * FROM usermodulepermissions WHERE user_id = ?").all(user!.user_id);
     expect(permsAfter.length).toBe(0);
 
     memDb.close();

@@ -99,7 +99,7 @@ describe("minecraft routes error contract", () => {
   it("keeps the success shape of server detail", async () => {
     const res = await call(cookie, "GET", `/servers/${SLUG}`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as { slug: string; onlinePlayers: unknown[]; template: unknown; hasMap: boolean };
     expect(body.slug).toBe(SLUG);
     expect(body.onlinePlayers).toEqual([]);
     expect(body.template).toBeNull();
@@ -180,7 +180,7 @@ describe("minecraft routes error contract", () => {
 
     const wrong = await upload(cookie, `/servers/${SLUG}/files/mods`, [new File(["x"], "notes.txt")]);
     expect(wrong.status).toBe(400);
-    expect((await wrong.json()).error).toBe("upload.typeNotAllowed");
+    expect(((await wrong.json()) as { error: string }).error).toBe("upload.typeNotAllowed");
 
     const ok = await upload(cookie, `/servers/${SLUG}/files/mods`, [new File(["single"], "single.jar")]);
     expect(ok.status).toBe(200);
@@ -218,7 +218,7 @@ describe("minecraft routes error contract", () => {
 
     const created = await call(cookie, "POST", "/templates", { name: "Route Tmpl", engine: "vanilla", mcVersion: "1.21.1" });
     expect(created.status).toBe(200);
-    const template = await created.json();
+    const template = (await created.json()) as { templateId: number };
     try {
       const dup = await call(cookie, "POST", "/templates", { name: "Route Tmpl", engine: "vanilla", mcVersion: "1.21.1" });
       expect(dup.status).toBe(409);
@@ -245,7 +245,7 @@ describe("minecraft routes error contract", () => {
     const engine = await call(cookie, "POST", "/import", { ...base, engine: "forge" });
     expect(await engine.json()).toEqual({ error: "minecraft.unsupportedEngine" });
 
-    const inspect = await (await call(cookie, "POST", "/import/inspect", { serverDir: join(serverDir, "nope") })).json();
+    const inspect = (await (await call(cookie, "POST", "/import/inspect", { serverDir: join(serverDir, "nope") })).json()) as { isValid: boolean; error: string };
     expect(inspect.isValid).toBe(false);
     expect(inspect.error).toBe("minecraft.directoryNotFound");
   });

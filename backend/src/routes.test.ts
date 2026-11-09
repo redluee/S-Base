@@ -45,7 +45,7 @@ describe("Elysia API Routes", () => {
     });
     const meRes = await app.handle(meReq);
     expect(meRes.status).toBe(200);
-    const meData = await meRes.json();
+    const meData = (await meRes.json()) as { user: { username: string } };
     expect(meData.user.username).toBe("admin");
   });
 
@@ -112,7 +112,7 @@ describe("Elysia API Routes", () => {
       body: formData,
     }));
     expect(uploadRes.status).toBe(200);
-    const uploadJson = await uploadRes.json();
+    const uploadJson = (await uploadRes.json()) as { ok: boolean; count: number };
     expect(uploadJson.ok).toBe(true);
     expect(uploadJson.count).toBe(2);
 
@@ -120,7 +120,7 @@ describe("Elysia API Routes", () => {
       headers: { Cookie: cookie },
     }));
     expect(listRes.status).toBe(200);
-    const listJson = await listRes.json();
+    const listJson = (await listRes.json()) as unknown[];
     expect(listJson.length).toBe(2);
 
     await rm(srvDir, { recursive: true, force: true });
@@ -135,7 +135,7 @@ describe("Elysia API Routes", () => {
     });
     const impRes = await app.handle(impReq);
     expect(impRes.status).toBe(200);
-    const impJson = await impRes.json();
+    const impJson = (await impRes.json()) as { ok: boolean; user: { id: number; isImpersonated: boolean } };
     expect(impJson.ok).toBe(true);
     expect(impJson.user.id).toBe(testerId);
     expect(impJson.user.isImpersonated).toBe(true);
@@ -147,7 +147,7 @@ describe("Elysia API Routes", () => {
     // Verify /api/auth/me returns impersonated state
     const meRes = await app.handle(new Request("http://localhost/api/auth/me", { headers: { Cookie: impCookie } }));
     expect(meRes.status).toBe(200);
-    const meJson = await meRes.json();
+    const meJson = (await meRes.json()) as { user: { id: number; isImpersonated: boolean; impersonatedBy?: string } };
     expect(meJson.user.id).toBe(testerId);
     expect(meJson.user.isImpersonated).toBe(true);
     expect(meJson.user.impersonatedBy).toBe("admin");
@@ -159,7 +159,7 @@ describe("Elysia API Routes", () => {
     });
     const stopRes = await app.handle(stopReq);
     expect(stopRes.status).toBe(200);
-    const stopJson = await stopRes.json();
+    const stopJson = (await stopRes.json()) as { ok: boolean; user: { username: string } };
     expect(stopJson.ok).toBe(true);
     expect(stopJson.user.username).toBe("admin");
 
@@ -168,7 +168,7 @@ describe("Elysia API Routes", () => {
     const restoredAdminCookie = `session_id=${adminMatch ? adminMatch[1] : ""}`;
 
     const finalMeRes = await app.handle(new Request("http://localhost/api/auth/me", { headers: { Cookie: restoredAdminCookie } }));
-    const finalMeJson = await finalMeRes.json();
+    const finalMeJson = (await finalMeRes.json()) as { user: { username: string; isImpersonated: boolean } };
     expect(finalMeJson.user.username).toBe("admin");
     expect(finalMeJson.user.isImpersonated).toBe(false);
 
@@ -216,7 +216,7 @@ describe("Elysia API Routes", () => {
       headers: { Cookie: testerCookie },
     }));
     expect(testerServersRes.status).toBe(200);
-    const testerServers = await testerServersRes.json();
+    const testerServers = (await testerServersRes.json()) as Array<{ slug: string }>;
     expect(testerServers.length).toBe(1);
     expect(testerServers[0].slug).toBe("route-test-srv");
 

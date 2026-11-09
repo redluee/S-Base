@@ -75,7 +75,7 @@ describe("resume routes error contract", () => {
   });
 
   it("rejects bad item kinds and disallowed uploads", async () => {
-    const created = await (await call(cookie, "POST", "/api/resume/resumes", { name: "CV", selectAll: true })).json();
+    const created = (await (await call(cookie, "POST", "/api/resume/resumes", { name: "CV", selectAll: true })).json()) as { id: number };
     const kind = await call(cookie, "PUT", `/api/resume/resumes/${created.id}/items`, { items: [{ kind: "x", refId: 1 }] });
     expect(kind.status).toBe(400);
     expect(await kind.json()).toEqual({ error: "resume.invalidItemKind" });
@@ -87,7 +87,7 @@ describe("resume routes error contract", () => {
       new Request("http://localhost/api/resume/profile/photo", { method: "POST", headers: { Cookie: cookie }, body: form }),
     );
     expect(upload.status).toBe(400);
-    expect((await upload.json()).error).toBe("upload.typeNotAllowed");
+    expect(((await upload.json()) as { error: string }).error).toBe("upload.typeNotAllowed");
   });
 
   it("maps schema violations to 400 common.invalidRequest", async () => {
@@ -114,13 +114,13 @@ describe("resume routes error contract", () => {
       sections: [{ id: "s1", title: "Talen", items: ["NL"] }],
     });
     expect(profile.status).toBe(200);
-    expect((await profile.json()).fullName).toBe("Jane Doe");
+    expect(((await profile.json()) as { fullName: string }).fullName).toBe("Jane Doe");
 
     const exp = await call(cookie, "POST", "/api/resume/experiences", {
       company: "Acme", jobTitle: "Dev", place: "", description: "", startMonth: 1, startYear: 2022, endMonth: null, endYear: null, isCurrent: true,
     });
     expect(exp.status).toBe(200);
-    const created = await exp.json();
+    const created = (await exp.json()) as { id: number; isCurrent: boolean };
     expect(created.isCurrent).toBe(true);
     expect((await call(cookie, "DELETE", `/api/resume/experiences/${created.id}`)).status).toBe(200);
   });

@@ -77,7 +77,7 @@ describe("minor routes error contract", () => {
       expect({ path, status: res.status, body: await res.json() }).toEqual({ path, status: 400, body: { error: key } });
     }
 
-    const sprint = await (await call(cookie, "POST", "/api/minor/sprints", { startDate: "2030-03-04" })).json();
+    const sprint = (await (await call(cookie, "POST", "/api/minor/sprints", { startDate: "2030-03-04" })).json()) as { id: number };
     const feedback = await call(cookie, "POST", `/api/minor/sprints/${sprint.id}/feedback`, { date: "2030-03-05", fromWhom: "", feedback: "x", action: "y" });
     expect(feedback.status).toBe(400);
     expect(await feedback.json()).toEqual({ error: "minor.feedbackFieldsRequired" });
@@ -108,13 +108,13 @@ describe("minor routes error contract", () => {
     form.append("file", new File(["x"], "evil.exe"));
     const bad = await app.handle(new Request("http://localhost/api/minor/upload", { method: "POST", headers: { Cookie: cookie }, body: form }));
     expect(bad.status).toBe(400);
-    expect((await bad.json()).error).toBe("upload.typeNotAllowed");
+    expect(((await bad.json()) as { error: string }).error).toBe("upload.typeNotAllowed");
   });
 
   it("keeps success shapes and unknown presentation fields through the schema", async () => {
     const sprintRes = await call(cookie, "POST", "/api/minor/sprints", { startDate: "2030-05-06", sprintNumber: "R1", name: "Route test" });
     expect(sprintRes.status).toBe(200);
-    const sprint = await sprintRes.json();
+    const sprint = (await sprintRes.json()) as { id: number; sprintNumber: string };
     expect(sprint.sprintNumber).toBe("R1");
 
     const storyRes = await call(cookie, "POST", `/api/minor/sprints/${sprint.id}/stories`, {
@@ -126,22 +126,22 @@ describe("minor routes error contract", () => {
       presentationData: { layout: "split", images: [{ url: "/a.png", caption: "c", extra: "kept" }], customField: 1 },
     });
     expect(storyRes.status).toBe(200);
-    const story = await storyRes.json();
+    const story = (await storyRes.json()) as { criteria: unknown[]; presentationData: { customField: number; images: Array<{ extra: string }> } };
     expect(story.criteria.length).toBe(1);
     expect(story.presentationData.customField).toBe(1);
     expect(story.presentationData.images[0].extra).toBe("kept");
 
-    const full = await (await call(cookie, "GET", `/api/minor/sprints/${sprint.id}`)).json();
+    const full = (await (await call(cookie, "GET", `/api/minor/sprints/${sprint.id}`)).json()) as { stories: Array<{ presentationData: { customField: number } }> };
     expect(full.stories[0].presentationData.customField).toBe(1);
 
-    const exported = await (await call(cookie, "GET", `/api/minor/sprints/${sprint.id}/export`)).json();
+    const exported = (await (await call(cookie, "GET", `/api/minor/sprints/${sprint.id}/export`)).json()) as Record<string, unknown>;
     const imported = await call(cookie, "POST", "/api/minor/sprints/import", { ...exported, customName: "Route import" });
     expect(imported.status).toBe(200);
-    const importedBody = await imported.json();
+    const importedBody = (await imported.json()) as { id: number; name: string; stories: unknown[] };
     expect(importedBody.name).toBe("Route import");
     expect(importedBody.stories.length).toBe(1);
 
-    const sprints = await (await call(cookie, "GET", "/api/minor/sprints/calculate-dates?startDate=2030-05-06&durationDays=14")).json();
+    const sprints = (await (await call(cookie, "GET", "/api/minor/sprints/calculate-dates?startDate=2030-05-06&durationDays=14")).json()) as { endDate: string };
     expect(sprints.endDate).toBe("2030-05-19");
 
     await call(cookie, "DELETE", `/api/minor/sprints/${sprint.id}`);

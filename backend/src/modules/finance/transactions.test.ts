@@ -6,6 +6,7 @@ import { setupTestDb } from "../../test-utils";
 import { FinanceService } from "./index";
 import { isSavingsTransfer } from "./transfer-detection";
 import { accountNumberKey } from "./transactions";
+import type { FinanceDashboard, FinanceSubscriptions } from "../../types/finance";
 import { app } from "../../index";
 import { financeSettings } from "../../db/schema/finance";
 import type { FinanceImportSelection } from "../../types/finance";
@@ -66,8 +67,8 @@ describe("Finance transaction imports and totals", () => {
     expect((await http(owner, "/budget/transactions?date=2025-01-03&page=0")).status).toBe(400);
     const response = await http(owner, "/budget/transactions?date=2025-01-03");
     expect(response.status).toBe(200);
-    expect((await response.json()).entries.map((entry: { amountCents: number }) => entry.amountCents)).toEqual([-1000]);
-    expect((await (await http(other, "/budget/transactions?date=2025-01-03")).json()).total).toBe(0);
+    expect(((await response.json()) as { entries: { amountCents: number }[] }).entries.map((entry) => entry.amountCents)).toEqual([-1000]);
+    expect(((await (await http(other, "/budget/transactions?date=2025-01-03")).json()) as { total: number }).total).toBe(0);
   });
   it("includes the missing side of untracked savings transfers without changing recorded balances", async () => {
     const content = [
@@ -82,9 +83,9 @@ describe("Finance transaction imports and totals", () => {
     const entries = service.imports.previewImport({ csv: content, order: "ascending" }).sources[0].balances.map((entry) => ({ date: entry.date, expectedCents: null }));
     service.imports.importBalances(owner, { csv: content, order: "ascending", selections: [{ sourceKey: "1", newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries }] });
     const before = service.accounts.data(owner);
-    const report = await (await http(owner, "/dashboard?period=all&date=2025-01-06")).json();
+    const report = (await (await http(owner, "/dashboard?period=all&date=2025-01-06")).json()) as FinanceDashboard;
     expect(report.history.every((point: object) => !("transferAdjustedTotalCents" in point))).toBe(true);
-    expect(report.history.map((point: { totalCents: number }) => point.totalCents)).toEqual([12000, 12000, 17000, 17000, 16500, 16550]);
+    expect(report.history.map((point) => point.totalCents)).toEqual([12000, 12000, 17000, 17000, 16500, 16550]);
     expect(report.end.totalCents).toBe(16550);
     expect(report.end.accounts.find((account: { inferred?: boolean }) => account.inferred)).toMatchObject({ balanceCents: 1000, inferred: true });
     expect(report.activity).toMatchObject({ incomeCents: 15050, spendingCents: 500, excludedCount: 2 });
@@ -97,7 +98,7 @@ describe("Finance transaction imports and totals", () => {
     const corrected = service.budget.dashboard(owner, "all", "2025-01-06");
     expect(corrected.history[1].totalCents! - corrected.history[0].totalCents!).toBe(2000);
     expect(corrected.history[3].totalCents).toBe(corrected.history[2].totalCents);
-    expect(corrected.activity.incomeCents).toBe(report.activity.incomeCents + 2000);
+    expect(corrected.activity.incomeCents).toBe(report.activity!.incomeCents + 2000);
     service.transactions.setTransfer(owner, incoming.id, { internalTransfer: null });
     expect(service.budget.dashboard(owner, "all", "2025-01-06").history).toEqual(report.history);
   });
@@ -229,7 +230,7 @@ describe("Finance transaction imports and totals", () => {
     expect((await http(forbidden, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(403);
     expect((await http(owner, "/settings/budget", "PUT", { monthlyBudgetCents: -1 })).status).toBe(400);
     expect((await http(owner, "/settings/budget", "PUT", { monthlyBudgetCents: 100 })).status).toBe(200);
-    expect((await (await http(owner, "/")).json()).monthlyBudgetCents).toBe(100);
+    expect(((await (await http(owner, "/")).json()) as { monthlyBudgetCents: number }).monthlyBudgetCents).toBe(100);
     service.budget.setMonthlyBudget(other, { monthlyBudgetCents: 200 });
     service.transactions.resetFinance(owner, { confirmation: "DELETE_FINANCE" });
     expect(service.accounts.data(owner).monthlyBudgetCents).toBeNull();
@@ -417,7 +418,7 @@ describe("Finance reset and HTTP isolation", () => {
     expect(service.transactions.transactionList(owner, {})).toEqual(before);
     const list = await http(owner, "/transactions");
     expect(list.headers.get("Cache-Control")).toBe("no-store");
-    expect((await list.json()).total).toBe(4);
+    expect(((await list.json()) as { total: number }).total).toBe(4);
   });
   it("scopes subscription spending to the authenticated user's accounts", async () => {
     initial(); initial(other);
@@ -431,7 +432,7 @@ describe("Finance reset and HTTP isolation", () => {
     const response = await http(owner, "/subscriptions");
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    const report = await response.json();
+    const report = (await response.json()) as FinanceSubscriptions;
     expect(report.totalCents).toBe(3600);
     expect(report.entries).toHaveLength(1);
     expect(report.entries[0].accountId).toBe(account.id);
@@ -450,7 +451,7 @@ describe("Finance reset and HTTP isolation", () => {
       selections: [{ sourceKey: source.sourceKey, newAccount: { name: "Sample current", type: "current" }, extendOpening: false, entries: source.balances.map((entry) => ({ date: entry.date, expectedCents: null })) }],
     };
     expect((await http(owner, "/import", "POST", body)).status).toBe(200);
-    const report = await (await http(owner, "/subscriptions")).json();
+    const report = (await (await http(owner, "/subscriptions")).json()) as FinanceSubscriptions;
     expect(report.entries).toHaveLength(1);
     expect(report.entries[0]).toMatchObject({ name: "Sample subscription", cadence: "monthly", monthlyCents: 1500, totalCents: 3900, paymentCount: 3 });
     const matched = service.imports.previewImport({ csv: content, order: "ascending" }, owner).sources[0];

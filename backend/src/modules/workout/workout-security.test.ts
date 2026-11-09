@@ -289,7 +289,7 @@ describe("measurement photo and upload security", () => {
       42,
     ];
     for (const p of bad) {
-      expect(() => measurements.addPhoto(mine.measurementId, adminId, p)).toThrow();
+      expect(() => measurements.addPhoto(mine.measurementId, adminId, p as string)).toThrow();
     }
     expect(measurements.getById(mine.measurementId)!.photos.length).toBe(0);
   });
@@ -327,7 +327,7 @@ describe("measurement photo and upload security", () => {
     expect(ok.status).toBe(200);
     const { filePath } = await ok.json() as { filePath: string };
     expect(filePath).toMatch(/^\/api\/uploads\/measurement_[0-9a-f-]{36}\.jpg$/);
-    createdFiles.push(filePath.split("/").pop());
+    createdFiles.push(filePath.split("/").pop()!);
 
     const doc = await uploadFile(cookie, "/api/cashflow/upload", "contract.html");
     expect(doc.status).toBe(400);
@@ -344,7 +344,7 @@ describe("measurement photo and upload security", () => {
         const res = await uploadFile(cookie, path, name);
         expect([path, name, res.status]).toEqual([path, name, 200]);
         const { filePath } = await res.json() as { filePath: string };
-        createdFiles.push(filePath.split("/").pop());
+        createdFiles.push(filePath.split("/").pop()!);
       }
       for (const bad of ["x.svg", "x.html", "x.js", "x.exe"]) {
         const res = await uploadFile(cookie, path, bad);
@@ -366,7 +366,7 @@ describe("measurement photo and upload security", () => {
 
     const zip = await uploadFile(cookie, "/api/minor/upload", "evidence.zip");
     const { filePath } = await zip.json() as { filePath: string };
-    createdFiles.push(filePath.split("/").pop());
+    createdFiles.push(filePath.split("/").pop()!);
     const served = await call(cookie, "GET", filePath);
     expect(served.status).toBe(200);
     expect(served.headers.get("content-type")).toBe("application/octet-stream");
@@ -374,7 +374,7 @@ describe("measurement photo and upload security", () => {
 
     const avif = await uploadFile(cookie, "/api/minor/upload", "slide.avif");
     const avifPath = (await avif.json() as { filePath: string }).filePath;
-    createdFiles.push(avifPath.split("/").pop());
+    createdFiles.push(avifPath.split("/").pop()!);
     const avifServed = await call(cookie, "GET", avifPath);
     expect(avifServed.headers.get("content-type")).toBe("image/avif");
     expect(avifServed.headers.get("content-disposition")).toBeNull();
@@ -384,7 +384,7 @@ describe("measurement photo and upload security", () => {
     const cookie = await login("admin");
     const res = await uploadFile(cookie, "/api/cashflow/upload", "invoice.jpg");
     const { filePath } = await res.json() as { filePath: string };
-    const name = filePath.split("/").pop();
+    const name = filePath.split("/").pop()!;
     createdFiles.push(name);
     expect(name).not.toStartWith("measurement_");
 

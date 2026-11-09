@@ -439,7 +439,7 @@ describe("Finance account icons", () => {
     for (const icon of financeAccountIcons) {
       const response = await request(owner, `/accounts/${account.id}/icon`, "PUT", { icon, name: "Ignored", openingBalanceCents: 0 });
       expect(response.status).toBe(200);
-      expect((await response.json()).icon).toBe(icon);
+      expect(((await response.json()) as { icon: string }).icon).toBe(icon);
       expect(service.accounts.data(owner).accounts[0]?.icon).toBe(icon);
       expect(service.budget.dashboard(owner, "all", "2025-02-01").end.accounts[0]?.icon).toBe(icon);
     }

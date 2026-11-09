@@ -43,8 +43,8 @@ describe("public snapshot", () => {
       qualityCriteria: [{ text: "Tested", isCompleted: false, indent: 0 }],
       evidence: [{ type: "document", title: "Doc", url: `/api/uploads/${ASSET}` }],
       presentationData: { enabled: true, notes: "presenter only", images: [{ url: `/api/uploads/${ASSET}` }] },
-    } as any);
-    minor.addFeedback(sprint.id, { date: "2031-03-05", fromWhom: SECRET_NAME, feedback: "Nice", action: "Continue" } as any);
+    } as Parameters<typeof minor.createStory>[2]);
+    minor.addFeedback(sprint.id, { date: "2031-03-05", fromWhom: SECRET_NAME, feedback: "Nice", action: "Continue" } as Parameters<typeof minor.addFeedback>[1]);
     minor.createPeerHelp(adminId, { sprintId: sprint.id, date: "2031-03-06", peerName: SECRET_NAME, description: "Explained git" });
     minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "Shown in story" }]);
     return sprint;
@@ -103,7 +103,7 @@ describe("public snapshot", () => {
     process.env.MINOR_PUBLISH_USERNAME = "admin";
     const ok = await app.handle(new Request(url, { headers: { Authorization: "Bearer test-token" } }));
     expect(ok.status).toBe(200);
-    const body = await ok.json();
+    const body = (await ok.json()) as { version: number };
     expect(body.version).toBe(1);
 
     const badAsset = await app.handle(
@@ -121,29 +121,29 @@ describe("public snapshot", () => {
     process.env.N8N_WEBHOOK_SECRET = "hook-secret";
     process.env.MINOR_PUBLISH_USERNAME = "admin";
 
-    globalThis.fetch = (async (url: any, init: any) => {
+    globalThis.fetch = (async (url: string | URL | Request, init: RequestInit) => {
       calls.push({ url: String(url), init });
       return new Response("ok");
-    }) as any;
+    }) as typeof fetch;
     try {
       minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "x" }]);
       expect(calls).toHaveLength(1);
       expect((calls[0].init.headers as Record<string, string>)["X-Webhook-Secret"]).toBe("hook-secret");
       expect(JSON.parse(calls[0].init.body as string).sprintId).toBe(sprint.id);
 
-      globalThis.fetch = (async () => {
+      globalThis.fetch = (async (_url: string | URL | Request, _init?: RequestInit): Promise<Response> => {
         throw new Error("n8n down");
-      }) as any;
+      }) as typeof fetch;
       expect(() =>
         minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "NV", argumentation: "y" }]),
       ).not.toThrow();
 
       delete process.env.N8N_WEBHOOK_URL;
       calls.length = 0;
-      globalThis.fetch = (async (url: any, init: any) => {
+      globalThis.fetch = (async (url: string | URL | Request, init: RequestInit) => {
         calls.push({ url: String(url), init });
         return new Response("ok");
-      }) as any;
+      }) as typeof fetch;
       minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "z" }]);
       expect(calls).toHaveLength(0);
     } finally {

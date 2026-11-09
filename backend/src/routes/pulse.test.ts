@@ -64,7 +64,7 @@ describe("pulse routes error contract", () => {
       password: "longenough",
     });
     expect(created.status).toBe(201);
-    expect((await created.json()).username).toBe("route-user");
+    expect(((await created.json()) as { username: string }).username).toBe("route-user");
 
     const dupe = await call(cookie, "POST", "/api/pulse/users", {
       username: "route-user",
