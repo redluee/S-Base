@@ -5,6 +5,13 @@ export interface PublishEvent {
   sprintId: number;
 }
 
+function errorMessage(err: unknown): unknown {
+  if (typeof err === "object" && err !== null && "message" in err && err.message != null) {
+    return err.message;
+  }
+  return err;
+}
+
 export class PublishNotifier {
   notify(userId: number, payload: PublishEvent): void {
     const url = process.env.N8N_WEBHOOK_URL;
@@ -24,8 +31,8 @@ export class PublishNotifier {
           if (!res.ok) console.warn(`Minor publish webhook responded ${res.status}`);
         })
         .catch((err) => console.warn("Minor publish webhook failed:", err?.message ?? err));
-    } catch (err: any) {
-      console.warn("Minor publish webhook failed:", err?.message ?? err);
+    } catch (err: unknown) {
+      console.warn("Minor publish webhook failed:", errorMessage(err));
     }
   }
 }

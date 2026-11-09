@@ -5,6 +5,13 @@ import { readdir } from "fs/promises";
 const LEGACY_BASELINE_END = "0040_add_set_edited_fields.sql";
 const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
+function errorMessage(err: unknown): string | undefined {
+  if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
+    return err.message;
+  }
+  return undefined;
+}
+
 export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS_DIR) {
   // 1. Ensure migrations tracking table exists
   sqlite.run(`
@@ -53,13 +60,14 @@ export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS
       appliedSet.add(file);
       migratedCount++;
       console.log(`MIGRATED: ${file}`);
-    } catch (fileErr: any) {
-      if (fileErr?.message?.includes("already exists") || fileErr?.message?.includes("duplicate column name")) {
+    } catch (fileErr: unknown) {
+      const message = errorMessage(fileErr);
+      if (message?.includes("already exists") || message?.includes("duplicate column name")) {
         sqlite.run("INSERT OR IGNORE INTO _migrations (name) VALUES (?)", [file]);
         appliedSet.add(file);
         console.log(`SKIPPED (already exists): ${file}`);
       } else {
-        console.error(`Migration failed for ${file}:`, fileErr?.message || fileErr);
+        console.error(`Migration failed for ${file}:`, message || fileErr);
         throw fileErr;
       }
     }
@@ -75,8 +83,9 @@ async function main() {
   try {
     const result = await runMigrations(sqlite);
     console.log(`Database migration complete (${result.applied} new applied).`);
-  } catch (err: any) {
-    console.error("Database migration error:", err?.message || err);
+  } catch (err: unknown) {
+    const message = errorMessage(err);
+    console.error("Database migration error:", message || err);
     process.exit(1);
   } finally {
     sqlite.close();

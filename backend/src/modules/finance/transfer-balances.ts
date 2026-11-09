@@ -17,7 +17,10 @@ export function transferBalances(
   for (const transfer of transfers) {
     if (transfer.accountId === transfer.counterpartyAccountId) continue;
     let changes = byAccount.get(transfer.counterpartyAccountId);
-    if (!changes) byAccount.set(transfer.counterpartyAccountId, changes = new Map());
+    if (!changes) {
+      changes = new Map();
+      byAccount.set(transfer.counterpartyAccountId, changes);
+    }
     changes.set(transfer.date, (changes.get(transfer.date) ?? 0) - transfer.amountCents);
   }
   for (const account of accounts) {

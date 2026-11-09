@@ -52,7 +52,7 @@ async function seed() {
 
   // 2. Setup users: admin and test
   const usernames = ["admin", "test"];
-  const userMap = new Map<string, any>();
+  const userMap = new Map<string, typeof users.$inferSelect>();
 
   for (const username of usernames) {
     // Delete existing user if exists to ensure clean idempotent seed
