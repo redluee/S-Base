@@ -9,8 +9,8 @@ export default async function ResumeEditorPage({ params }: { params: Promise<{ i
 
   const [full, experiences, educations] = await Promise.all([
     notFoundOn404(serverApi.resume.resumes.get(resumeId)),
-    serverApi.resume.experiences.list().catch(() => []),
-    serverApi.resume.educations.list().catch(() => []),
+    serverApi.resume.experiences.list(),
+    serverApi.resume.educations.list(),
   ]);
 
   return <ResumeEditorClient initial={full} experiences={experiences} educations={educations} />;
