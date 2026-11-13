@@ -9,35 +9,16 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { formatNumberNl } from "@/app/workouts/number-input";
 import { formatMinutesSeconds } from "@/app/workouts/duration";
 import { effectiveVolume } from "@backend/shared/workout";
+import type {
+  ExerciseProgressData as ProgressData,
+  ExerciseProgressSession as ProgressSession,
+  ExerciseProgressSet as ProgressSet,
+} from "@backend/types/workout";
 
 interface ExerciseHistoryModalProps {
   exerciseName: string;
   equipment?: string;
   onClose: () => void;
-}
-
-interface ProgressSet {
-  setNumber: number;
-  reps: number | null;
-  weight: number | null;
-  distance: number | null;
-  duration: number | null;
-  rpe: number | null;
-  heartRate: number | null;
-  completed: number;
-}
-
-interface ProgressSession {
-  sessionId: number;
-  startedAt: string;
-  sets: ProgressSet[];
-}
-
-interface ProgressData {
-  exerciseName: string;
-  category: string;
-  equipment: string | null;
-  sessions: ProgressSession[];
 }
 
 export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: ExerciseHistoryModalProps) {

@@ -1,6 +1,15 @@
 import { request as clientRequest, type Fetcher } from "./core";
 import type { FullWorkoutSession, PersonalRecord } from "@backend/types/shared";
-import type { FullWorkoutTemplate, WorkoutSession, WorkoutTemplate } from "@backend/types/workout";
+import type {
+  ExerciseListItem,
+  ExerciseProgressData,
+  ExerciseSuggestion,
+  FullWorkoutTemplate,
+  SearchSuggestion,
+  WorkoutSession,
+  WorkoutStatsSummary,
+  WorkoutTemplate,
+} from "@backend/types/workout";
 import type { SessionStatusFilter } from "@backend/shared/workout";
 
 export const createWorkoutsApi = (request: Fetcher) => ({
@@ -62,56 +71,14 @@ export const createWorkoutsApi = (request: Fetcher) => ({
   },
 
   exercises: {
-    list: () => request<{ name: string; equipment: string | null; equipments?: string[] }[]>("/workouts/exercises"),
+    list: () => request<ExerciseListItem[]>("/workouts/exercises"),
     suggest: (q: string) =>
-      request<{
-        type: string;
-        value: string;
-        category?: string;
-        defaultSets: number | null;
-        defaultReps: number | null;
-        defaultWeight?: number | null;
-        defaultDistance?: number | null;
-        defaultDuration?: number | null;
-        defaultRestTime?: number | null;
-        equipment: string | null;
-        perSide?: number | null;
-        isAssisted?: number | null;
-        lastSets?: Array<{
-          setNumber: number;
-          reps?: number | null;
-          weight?: number | null;
-          distance?: number | null;
-          duration?: number | null;
-          rpe?: number | null;
-          heartRate?: number | null;
-        }>;
-      }[]>(
+      request<ExerciseSuggestion[]>(
         `/workouts/exercises/suggest?q=${encodeURIComponent(q)}`,
       ),
 
     progress: (name: string, equipment?: string) =>
-      request<{
-        exerciseName: string;
-        category: string;
-        equipment: string | null;
-        availableEquipments?: string[];
-        sessions: {
-          sessionId: number;
-          startedAt: string;
-          equipment?: string | null;
-          sets: {
-            setNumber: number;
-            reps: number | null;
-            weight: number | null;
-            distance: number | null;
-            duration: number | null;
-            rpe: number | null;
-            heartRate: number | null;
-            completed: number;
-          }[];
-        }[];
-      }>(
+      request<ExerciseProgressData>(
         `/workouts/exercises/${encodeURIComponent(name)}/progress${
           equipment ? `?equipment=${encodeURIComponent(equipment)}` : ""
         }`,
@@ -124,17 +91,11 @@ export const createWorkoutsApi = (request: Fetcher) => ({
       }),
   },
   suggest: (q: string) =>
-    request<{
-      type: "exercise" | "template" | "history";
-      value: string;
-      rawValue?: string;
-      equipment?: string | null;
-      id?: number;
-    }[]>(
+    request<SearchSuggestion[]>(
       `/workouts/suggest?q=${encodeURIComponent(q)}`,
     ),
   stats: () =>
-    request<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
+    request<WorkoutStatsSummary>("/workouts/stats"),
 });
 
 export const workoutsApi = createWorkoutsApi(clientRequest);

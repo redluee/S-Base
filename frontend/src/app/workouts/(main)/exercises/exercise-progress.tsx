@@ -10,30 +10,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ExerciseMergeModal } from "@/app/workouts/(main)/exercises/exercise-merge-modal";
 import { effectiveVolume } from "@backend/shared/workout";
-
-interface SetItem {
-  setNumber: number;
-  reps: number | null;
-  weight: number | null;
-  duration?: number | null;
-  distance?: number | null;
-  completed: number;
-}
-
-interface WorkoutSession {
-  sessionId: number;
-  startedAt: string;
-  equipment?: string | null;
-  sets: SetItem[];
-}
-
-interface ExerciseProgressData {
-  exerciseName: string;
-  category?: string;
-  equipment?: string | null;
-  availableEquipments?: string[];
-  sessions: WorkoutSession[];
-}
+import type {
+  ExerciseProgressData,
+  ExerciseProgressSession as WorkoutSession,
+  ExerciseProgressSet as SetItem,
+} from "@backend/types/workout";
 
 export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   const { exerciseName, sessions } = data;
