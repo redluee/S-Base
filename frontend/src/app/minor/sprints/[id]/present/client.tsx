@@ -13,7 +13,7 @@ interface SprintPresentClientProps {
 export function SprintPresentClient({ initialSprint, initialStoryTypes }: SprintPresentClientProps) {
   const router = useRouter();
   const [sprint, setSprint] = useState<MinorSprintFull>(initialSprint);
-  const [storyTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
+  const storyTypes = initialStoryTypes ?? [];
 
   function handleStoryUpdated(updatedStory: MinorStory) {
     setSprint((prev) => ({

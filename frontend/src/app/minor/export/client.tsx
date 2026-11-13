@@ -30,11 +30,8 @@ interface SprintExportIssue {
   issues: string[];
 }
 
-export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
-  const [sprints] = useState<MinorSprint[]>(initialSprints);
-  const [selectedSprintIds, setSelectedSprintIds] = useState<number[]>(
-    initialSprints.map((s) => s.id)
-  );
+export function MinorExportClient({ initialSprints: sprints }: MinorExportClientProps) {
+  const [selectedSprintIds, setSelectedSprintIds] = useState<number[]>(() => sprints.map((s) => s.id));
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportIssues, setExportIssues] = useState<SprintExportIssue[]>([]);

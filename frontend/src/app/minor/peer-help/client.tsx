@@ -15,11 +15,10 @@ interface MinorPeerHelpClientProps {
   initialSprints: MinorSprint[];
 }
 
-export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPeerHelpClientProps) {
+export function MinorPeerHelpClient({ initialPeerHelp, initialSprints: sprints }: MinorPeerHelpClientProps) {
   const { error: actionError, report } = useActionError();
   const { confirm, dialog } = useConfirm();
   const [peerHelpList, setPeerHelpList] = useState<MinorPeerHelp[]>(initialPeerHelp);
-  const [sprints] = useState<MinorSprint[]>(initialSprints);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MinorPeerHelp | null>(null);
