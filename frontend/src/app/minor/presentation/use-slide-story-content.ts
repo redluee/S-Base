@@ -3,7 +3,6 @@ import { t } from "@/lib/lang";
 import type { MinorStory } from "@/lib/api";
 import { isImageUrl } from "@/app/minor/constants";
 
-export type SlideLayout = "auto" | "split" | "media" | "bullets" | "demo";
 
 export function useSlideStoryContent(story: MinorStory) {
   const presentationData = story.presentationData || {};

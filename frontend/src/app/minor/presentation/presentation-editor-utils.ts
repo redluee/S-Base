@@ -10,7 +10,7 @@ export type PresentationListStyle = "bullets" | "steps";
 export type PresentationImage = { url: string; caption?: string };
 export type EditorBlockKey = "bullets" | "websites" | "documents" | "images";
 
-export interface PresentationEditorState {
+interface PresentationEditorState {
   enabled: boolean;
   layout: PresentationLayout;
   listStyle: PresentationListStyle;

@@ -1,6 +1,6 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
-export const COLOR_CARMINE_RED = "#C00000";
+const COLOR_CARMINE_RED = "#C00000";
 export const COLOR_ODD_BANNER = "#E6302B";
 export const COLOR_ODD_SECTION = "#FACAC9";
 export const COLOR_ODD_CELL = "#FDF0F0";
@@ -9,12 +9,12 @@ export const COLOR_EVEN_BANNER = "#00A1E1";
 export const COLOR_EVEN_SECTION = "#B0DEF0";
 export const COLOR_EVEN_CELL = "#EDF7FD";
 
-export const COLOR_GREEN_AGENT = "#00A86B";
-export const COLOR_TEAL_LINK = "#00E3A4";
-export const COLOR_BORDER = "#D3D3D3";
+const COLOR_GREEN_AGENT = "#00A86B";
+const COLOR_TEAL_LINK = "#00E3A4";
+const COLOR_BORDER = "#D3D3D3";
 export const COLOR_TEXT_DARK = "#1A1A1A";
-export const COLOR_BLACK = "#000000";
-export const COLOR_WHITE = "#FFFFFF";
+const COLOR_BLACK = "#000000";
+const COLOR_WHITE = "#FFFFFF";
 
 export const styles = StyleSheet.create({
   page: {

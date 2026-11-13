@@ -9,7 +9,7 @@ import type {
   MinorStoryPresentationData,
 } from "../../types/shared";
 
-export type StoryRow = typeof minorStories.$inferSelect;
+type StoryRow = typeof minorStories.$inferSelect;
 export type CriterionRow = typeof minorStoryCriteria.$inferSelect;
 export type EvidenceRow = typeof minorStoryEvidence.$inferSelect;
 
@@ -22,7 +22,7 @@ export function parseLearningOutcomes(raw: string): number[] {
   }
 }
 
-export function parsePresentationData(raw: string | null): MinorStoryPresentationData | null {
+function parsePresentationData(raw: string | null): MinorStoryPresentationData | null {
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -31,7 +31,7 @@ export function parsePresentationData(raw: string | null): MinorStoryPresentatio
   }
 }
 
-export function toCriterion(row: CriterionRow): MinorStoryCriterion {
+function toCriterion(row: CriterionRow): MinorStoryCriterion {
   return {
     id: row.id,
     storyId: row.storyId,
@@ -43,7 +43,7 @@ export function toCriterion(row: CriterionRow): MinorStoryCriterion {
   };
 }
 
-export function toEvidence(row: EvidenceRow): MinorStoryEvidence {
+function toEvidence(row: EvidenceRow): MinorStoryEvidence {
   return {
     id: row.id,
     storyId: row.storyId,

@@ -127,7 +127,7 @@ export const LOGBOEK_TEMPLATE_MIN_ROW_PT: Record<number, number> = { 5: 43, 6: 4
 export const LOGBOEK_DEFAULT_ROW_PT = 15;
 export const LOGBOEK_MAX_SCALE = 55;
 export const EXCEL_MAX_ROW_PT = 409;
-export const LOGBOEK_CHARS_PER_COLUMN_UNIT = 1.2;
+const LOGBOEK_CHARS_PER_COLUMN_UNIT = 1.2;
 export const LOGBOEK_PAGE_HEIGHT_PT = (11.69 - 0.8) * 72 * 0.95;
 
 export function estimateWrappedLines(text: string, columnWidth: number): number {

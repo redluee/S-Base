@@ -55,7 +55,7 @@ Shared (stay in `lib/`): `lib/api/minor.ts` (client API, all requests via `lib/a
   - `api.minor.peerHelp.{list, create, update, delete}`
 - **Server API (`serverApi.minor.*` in `@/lib/server-api.ts`)**:
   - Used in SSR Next.js App Router `page.tsx` loaders for initial pre-rendering.
-- **Rules (`@backend/shared/minor`)**: learning outcome ids, sprint dates/status, local `today()`, the pass rule (`isProjectedPass`, `learningOutcomeLevel`) and the argumentation draft. Do not re-implement them here.
+- **Rules (`@backend/shared/minor`)**: learning outcome ids and pass targets (`LEARNING_OUTCOME_TARGETS`, `TOTAL_REQUIRED_PASSES`, `passProgress`), status/level vocabularies (`StoryStatus`, `SprintStatus`, `SelfEvaluationLevel`, `TeacherAssessment`), sprint dates/status, the pass rule (`isProjectedPass`, `learningOutcomeLevel`) and the argumentation draft. `today()` (Amsterdam calendar date) lives in `@backend/shared/dates`. Do not re-implement them here.
 - **Learning outcomes (`./learning-outcomes.ts`)**: `LEARNING_OUTCOME_INFO`, `learningOutcomeShort(lu)`, `TOTAL_REQUIRED_PASSES`, `SPRINT_NUMBERS`.
 - **Excel Export (`./excel/workbook.ts` / `excel/workbook.test.ts`)**:
   - Generates multi-tab Excel files via ExcelJS containing story backlog, criteria checklist, and LU matrix.

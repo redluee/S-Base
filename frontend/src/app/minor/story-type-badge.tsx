@@ -1,7 +1,7 @@
 import React from "react";
 import type { MinorStoryType } from "@/lib/api";
 
-export interface StoryTypeDetails {
+interface StoryTypeDetails {
   code: string;
   name: string;
   color: string;

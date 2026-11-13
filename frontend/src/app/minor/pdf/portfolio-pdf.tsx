@@ -8,12 +8,12 @@ import { SPRINT_NUMBERS } from "@/app/minor/learning-outcomes";
 import { DashboardPdfPage } from "./dashboard-page";
 import { SprintPdfPage } from "./sprint-page";
 
-export interface IntegraalSprintLogboekPdfDocumentProps {
+interface IntegraalSprintLogboekPdfDocumentProps {
   sprints: MinorSprintFull[];
   portfolioUrl?: string | null;
 }
 
-export function IntegraalSprintLogboekPdfDocument({ sprints, portfolioUrl }: IntegraalSprintLogboekPdfDocumentProps) {
+function IntegraalSprintLogboekPdfDocument({ sprints, portfolioUrl }: IntegraalSprintLogboekPdfDocumentProps) {
   return (
     <Document title="Integraal Sprint Logboek v4">
       <DashboardPdfPage sprints={sprints} portfolioUrl={portfolioUrl} />

@@ -13,13 +13,3 @@ export function isImageUrl(url: string | null | undefined): boolean {
   return /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(pathWithoutQuery);
 }
 
-export function getDomainFromUrl(rawUrl: string): string {
-  try {
-    const hasProtocol = rawUrl.startsWith("http://") || rawUrl.startsWith("https://");
-    const parsed = new URL(hasProtocol ? rawUrl : `https://${rawUrl}`);
-    return parsed.hostname.replace(/^www\./, "");
-  } catch {
-    return rawUrl;
-  }
-}
-

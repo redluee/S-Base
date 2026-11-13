@@ -7,7 +7,7 @@ import { DocumentLinkCard, PointsList, WebsiteLinkCard } from "./slide-story-car
 type Link = { url: string; title: string };
 type Img = { url: string; caption?: string };
 
-export interface SlideLayoutProps {
+interface SlideLayoutProps {
   story: MinorStory;
   storyColor: string;
   bullets: string[];
