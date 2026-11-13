@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { sessionExercises, sessionSets, templateExercises, workoutSessions, workoutTemplates } from "../../db/schema";
 import { orNotFound } from "../../utils/errors";
-import { normalizeSearchString } from "../../utils/search";
+import { normalizeSearchString } from "../../shared/search";
 import { exerciseKey } from "../../shared/workout";
 import { sessionMatchesQuery } from "./workout-helpers";
 

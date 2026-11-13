@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import db from "../db/client";
-import { normalizeSearchString, sqlNormalize } from "./search";
+import { normalizeSearchString } from "../shared/search";
+import { sqlNormalize } from "./search";
 
 const probe = sqliteTable("search_probe", { value: text("value") });
 

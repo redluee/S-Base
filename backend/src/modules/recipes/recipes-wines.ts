@@ -2,7 +2,8 @@ import { and, asc, desc, eq, like, or, type SQL } from "drizzle-orm";
 import db from "../../db/client";
 import { wines } from "../../db/schema";
 import { NotFoundError, ValidationError } from "../../utils/errors";
-import { normalizeSearchString, sqlNormalize } from "../../utils/search";
+import { normalizeSearchString } from "../../shared/search";
+import { sqlNormalize } from "../../utils/search";
 import { isPurchaseLocation, isRating, isWineType } from "../../shared/recipes";
 
 export interface WineInput {

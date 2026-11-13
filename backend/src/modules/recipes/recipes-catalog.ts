@@ -2,7 +2,8 @@ import { and, asc, desc, eq, like, or, type SQL, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { ingredients, recipeIngredients, recipeSteps, recipes } from "../../db/schema";
 import { NotFoundError, ValidationError } from "../../utils/errors";
-import { normalizeSearchString, sqlNormalize } from "../../utils/search";
+import { normalizeSearchString } from "../../shared/search";
+import { sqlNormalize } from "../../utils/search";
 import { isRating, isRecipeStatus } from "../../shared/recipes";
 import type { IngredientInput, RecipeIngredients, StepInput } from "./recipes-ingredients";
 

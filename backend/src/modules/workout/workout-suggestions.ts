@@ -9,7 +9,8 @@ import { parseDateString } from "../../shared/dates";
 import { eq, and, or, like, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
-import { normalizeSearchString, sqlNormalize } from "../../utils/search";
+import { normalizeSearchString } from "../../shared/search";
+import { sqlNormalize } from "../../utils/search";
 import { formatDutchDate, sessionMatchesQuery } from "./workout-helpers";
 
 export class WorkoutSuggestions {

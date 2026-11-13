@@ -2,7 +2,8 @@ import { eq, like } from "drizzle-orm";
 import db from "../../db/client";
 import { ingredients, recipeIngredients, recipeSteps } from "../../db/schema";
 import { ValidationError } from "../../utils/errors";
-import { normalizeSearchString, sqlNormalize } from "../../utils/search";
+import { normalizeSearchString } from "../../shared/search";
+import { sqlNormalize } from "../../utils/search";
 
 export interface IngredientInput {
   name: string;

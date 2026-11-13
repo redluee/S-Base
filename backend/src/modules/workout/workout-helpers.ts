@@ -1,6 +1,6 @@
 import { normalizeCategory, normalizeEquipment } from "../../shared/workout";
 import { parseDateString } from "../../shared/dates";
-import { normalizeSearchString } from "../../utils/search";
+import { normalizeSearchString } from "../../shared/search";
 import type { TemplateExerciseInput } from "./workout-schemas";
 
 export function templateExerciseValues(templateId: number, ex: TemplateExerciseInput, index: number) {
