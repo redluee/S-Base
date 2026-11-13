@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/lang";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -63,4 +64,37 @@ function ConfirmDialog({
   );
 }
 
-export { ConfirmDialog };
+interface ConfirmRequest {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  resolve: (confirmed: boolean) => void;
+}
+
+function useConfirm() {
+  const [request, setRequest] = React.useState<ConfirmRequest | null>(null);
+  const confirm = React.useCallback(
+    (title: string, { description = "", confirmLabel = t("Delete") } = {}) =>
+      new Promise<boolean>((resolve) => setRequest({ title, description, confirmLabel, resolve })),
+    [],
+  );
+  const settle = (confirmed: boolean) => {
+    request?.resolve(confirmed);
+    setRequest(null);
+  };
+  const dialog = (
+    <ConfirmDialog
+      open={request !== null}
+      title={request?.title ?? ""}
+      description={request?.description ?? ""}
+      confirmLabel={request?.confirmLabel ?? ""}
+      cancelLabel={t("Cancel")}
+      tone="destructive"
+      onConfirm={() => settle(true)}
+      onCancel={() => settle(false)}
+    />
+  );
+  return { confirm, dialog };
+}
+
+export { ConfirmDialog, useConfirm };

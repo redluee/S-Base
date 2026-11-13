@@ -6,13 +6,13 @@ import { t } from "@/lib/lang";
 import type { CashflowInvoiceSummary } from "@/lib/api";
 import { Check, Pencil, Trash2, Eye } from "lucide-react";
 import { CashflowPDFButton } from "@/app/cashflow/cashflow-pdf";
-import { formatEuro, formatDate, statusConfig, SortHeaderIcon, type SortField, type SortOrder } from "./invoice-utils";
+import { statusConfig, SortHeaderIcon, type SortField, type SortOrder } from "./invoice-utils";
+import { formatDate, formatEuro } from "../cashflow-format";
 
 export function InvoiceList({
   sorted,
   sortBy,
   sortOrder,
-  now,
   markingPaid,
   deleting,
   handleHeaderSort,
@@ -22,7 +22,6 @@ export function InvoiceList({
   sorted: CashflowInvoiceSummary[];
   sortBy: SortField;
   sortOrder: SortOrder;
-  now: number;
   markingPaid: number | null;
   deleting: number | null;
   handleHeaderSort: (field: SortField) => void;
@@ -78,9 +77,9 @@ export function InvoiceList({
       </div>
 
       {sorted.map(inv => {
-        const cfg = statusConfig[inv.status] ?? statusConfig.draft;
+        const cfg = statusConfig[inv.status];
         const StatusIcon = cfg.icon;
-        const isOverdue = inv.status !== "paid" && inv.status !== "draft" && Boolean(inv.paymentDueDate && inv.paymentDueDate < now);
+        const isOverdue = inv.status === "overdue";
 
         return (
           <div key={inv.id}>

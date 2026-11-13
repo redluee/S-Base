@@ -18,9 +18,13 @@ import {
   Search,
 } from "lucide-react";
 import { YearSelector } from "../year-selector";
-import { formatEuro, formatDate } from "./expense-utils";
+import { formatDate, formatEuro } from "../cashflow-format";
 import { ExpenseReceiptModal } from "./expense-receipt-modal";
 import { ExpenseForm } from "./expense-form";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { DEFAULT_EXPENSE_CATEGORY } from "@backend/shared/cashflow";
 
 export function ExpensesClient({
   initialItems,
@@ -31,6 +35,8 @@ export function ExpensesClient({
   initialYear: number;
   tradeNames: CashflowTradeName[];
 }) {
+  const { error: actionError, report } = useActionError();
+  const { confirm, dialog } = useConfirm();
   const [items, setItems] = useState<CashflowExpense[]>(initialItems);
   const [loading, setLoading] = useState(false);
   const skipInitialFetch = useRef(true);
@@ -79,21 +85,21 @@ export function ExpensesClient({
       }
       setShowForm(false);
       setEditing(null);
-    } catch {
-      // keep modal open on error
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm(t("Deze uitgave verwijderen?"))) return;
+    if (!(await confirm(t("Deze uitgave verwijderen?")))) return;
     setDeleting(id);
     try {
       await api.cashflow.expenses.delete(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
-    } catch {
-      // ignore
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
     } finally {
       setDeleting(null);
     }
@@ -116,10 +122,12 @@ export function ExpensesClient({
   });
 
   const totalFilteredAmount = filteredItems.reduce((s, i) => s + (i.amount || 0), 0);
-  const categoriesList = Array.from(new Set(items.map((i) => i.category || t("Overig"))));
+  const categoriesList = Array.from(new Set(items.map((i) => i.category || DEFAULT_EXPENSE_CATEGORY)));
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
+      {dialog}
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -281,7 +289,7 @@ export function ExpensesClient({
                     <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
                       <span className="flex items-center gap-1">
                         <Calendar className="size-3 text-zinc-500" />
-                        {formatDate(item.date)}
+                        {formatDate(item.date, "short", "-")}
                       </span>
                       {item.notes && (
                         <span className="text-zinc-500 truncate max-w-xs">• {item.notes}</span>

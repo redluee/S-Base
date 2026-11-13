@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import type { InvoiceLine, LineType, DiscountType } from "./invoice-form-utils";
-import { formatEuro } from "./invoice-form-utils";
+import { formatEuro } from "../../cashflow-format";
 
 export function LinesSection({
   addLine,

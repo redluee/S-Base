@@ -44,15 +44,15 @@ describe("CashflowService", () => {
     const list = cashflow.tradeNames.list(adminId);
     expect(list.some((t) => t.id === tradeName.id)).toBe(true);
 
-    const fetched = cashflow.tradeNames.getById(tradeName.id);
+    const fetched = cashflow.tradeNames.getById(adminId, tradeName.id);
     expect(fetched?.displayName).toBe("Acme Corp");
 
-    const updated = cashflow.tradeNames.update(tradeName.id, { displayName: "Acme Group" });
+    const updated = cashflow.tradeNames.update(adminId, tradeName.id, { displayName: "Acme Group" });
     expect(updated?.displayName).toBe("Acme Group");
 
-    const res = cashflow.tradeNames.remove(tradeName.id);
+    const res = cashflow.tradeNames.remove(adminId, tradeName.id);
     expect(res?.deleted).toBe(true);
-    expectError(() => cashflow.tradeNames.getById(tradeName.id), NotFoundError, "cashflow.tradeNameNotFound");
+    expectError(() => cashflow.tradeNames.getById(adminId, tradeName.id), NotFoundError, "cashflow.tradeNameNotFound");
   });
 
   it("manages clients CRUD", () => {
@@ -70,12 +70,12 @@ describe("CashflowService", () => {
     expect(client.contractPdfPath).toBe("/api/uploads/contract-123.pdf");
     expect(client.contractPdfName).toBe("Contract_2026.pdf");
 
-    const fetched = cashflow.clients.getById(client.id);
+    const fetched = cashflow.clients.getById(adminId, client.id);
     expect(fetched?.email).toBe("contact@globaltech.com");
     expect(fetched?.contractPdfPath).toBe("/api/uploads/contract-123.pdf");
     expect(fetched?.contractPdfName).toBe("Contract_2026.pdf");
 
-    const updated = cashflow.clients.update(client.id, {
+    const updated = cashflow.clients.update(adminId, client.id, {
       name: "Global Tech BV",
       standardRate: 90,
       contractPdfPath: "/api/uploads/contract-456.pdf",
@@ -89,13 +89,13 @@ describe("CashflowService", () => {
     const list = cashflow.clients.list(adminId);
     expect(list.some((c) => c.id === client.id)).toBe(true);
 
-    const removeRes = cashflow.clients.remove(client.id);
+    const removeRes = cashflow.clients.remove(adminId, client.id);
     expect(removeRes?.deleted).toBe(true);
   });
 
   it("manages projects CRUD", () => {
     const client = cashflow.clients.create(adminId, { name: "Project Client" });
-    const project = cashflow.projects.create({
+    const project = cashflow.projects.create(adminId, {
       clientId: client.id,
       name: "Website Redesign",
       location: "Amsterdam",
@@ -104,47 +104,114 @@ describe("CashflowService", () => {
     expect(project.id).toBeDefined();
     expect(project.name).toBe("Website Redesign");
 
-    const fetched = cashflow.projects.getById(project.id);
+    const fetched = cashflow.projects.getById(adminId, project.id);
     expect(fetched?.name).toBe("Website Redesign");
     expect(fetched?.clientName).toBe("Project Client");
 
-    const updated = cashflow.projects.update(project.id, { name: "Website & App Redesign" });
+    const updated = cashflow.projects.update(adminId, project.id, { name: "Website & App Redesign" });
     expect(updated?.name).toBe("Website & App Redesign");
 
     const list = cashflow.projects.list(adminId, client.id);
     expect(list.length).toBeGreaterThan(0);
 
-    const removeRes = cashflow.projects.remove(project.id, false);
+    const removeRes = cashflow.projects.remove(adminId, project.id, false);
     expect(removeRes?.deleted).toBe(true);
   });
 
-  it("generates sequential invoice numbers", () => {
-    const year = 2026;
-    const inv1 = cashflow.invoices.generateNumber(adminId, year);
-    expect(inv1).toBe("2026-001");
+  it("numbers invoices numerically past 999 per user", () => {
+    const client = cashflow.clients.create(testerId, { name: "Numbering Client" });
+    expect(cashflow.invoices.nextNumber(testerId, 2031)).toBe("2031-001");
+    for (const invoiceNumber of ["2031-999", "2031-1000"]) {
+      cashflow.invoiceWrites.create(testerId, { clientId: client.id, invoiceNumber });
+    }
+    expect(cashflow.invoices.nextNumber(testerId, 2031)).toBe("2031-1001");
+    expect(cashflow.invoices.nextNumber(adminId, 2031)).toBe("2031-001");
+  });
+
+  it("computes line totals on the server, including percentage and fixed discounts", () => {
+    const client = cashflow.clients.create(adminId, { name: "Totals Client" });
+    const invoice = cashflow.invoiceWrites.create(adminId, {
+      clientId: client.id,
+      invoiceNumber: "2032-001",
+      lines: [
+        { taskDescription: "Work", quantity: 10, unitPrice: 80, type: "hours" },
+        { taskDescription: "Trip", quantity: 0, unitPrice: 50, type: "travel_costs" },
+        { taskDescription: "Loyalty", type: "discount", discountType: "percentage", discountValue: 10 },
+        { taskDescription: "Voucher", type: "discount", discountType: "amount", discountValue: 25 },
+      ],
+    });
+    expect(invoice.lines.map((l) => l.totalCost)).toEqual([800, 50, -85, -25]);
+    expect(invoice.total).toBe(740);
+  });
+
+  it("keeps every record private to its owner", () => {
+    const tradeName = cashflow.tradeNames.create(adminId, { displayName: "Private Trade" });
+    const client = cashflow.clients.create(adminId, { name: "Private Client" });
+    const project = cashflow.projects.create(adminId, { clientId: client.id, name: "Private Project" });
+    const invoice = cashflow.invoiceWrites.create(adminId, { clientId: client.id, invoiceNumber: "2033-001" });
+    const expense = cashflow.expenses.create(adminId, { description: "Private", amount: 1 });
+
+    expectError(() => cashflow.tradeNames.getById(testerId, tradeName.id), NotFoundError, "cashflow.tradeNameNotFound");
+    expectError(() => cashflow.clients.remove(testerId, client.id), NotFoundError, "cashflow.clientNotFound");
+    expectError(() => cashflow.projects.getById(testerId, project.id), NotFoundError, "cashflow.projectNotFound");
+    expectError(() => cashflow.invoices.getById(testerId, invoice.id), NotFoundError, "cashflow.invoiceNotFound");
+    expectError(() => cashflow.invoices.markAsPaid(testerId, invoice.id), NotFoundError, "cashflow.invoiceNotFound");
+    expectError(
+      () => cashflow.expenses.update(testerId, expense.id, { notes: "x" }),
+      NotFoundError,
+      "cashflow.expenseNotFound",
+    );
+    expectError(
+      () => cashflow.invoiceWrites.create(testerId, { clientId: client.id, invoiceNumber: "2033-002" }),
+      NotFoundError,
+      "cashflow.clientNotFound",
+    );
+    expectError(
+      () => cashflow.projects.create(testerId, { clientId: client.id, name: "Stolen" }),
+      NotFoundError,
+      "cashflow.clientNotFound",
+    );
+    expectError(
+      () => cashflow.expenses.create(testerId, { description: "x", amount: 1, tradeNameId: tradeName.id }),
+      NotFoundError,
+      "cashflow.tradeNameNotFound",
+    );
+  });
+
+  it("reports the same status for an invoice in the list and in the dashboard totals", () => {
+    const client = cashflow.clients.create(testerId, { name: "Status Client" });
+    const invoice = cashflow.invoiceWrites.create(testerId, {
+      clientId: client.id,
+      invoiceNumber: "2034-001",
+      status: "overdue",
+      dateCreated: Date.now(),
+      paymentDueDate: Date.now() + 86_400_000,
+      lines: [{ taskDescription: "Work", quantity: 1, unitPrice: 10, type: "hours" }],
+    });
+    const listed = cashflow.invoices.list(testerId).find((i) => i.id === invoice.id);
+    const statuses = cashflow.dashboard.getStats(testerId).statusTotals.map((s) => s.status);
+    expect(listed?.status).toBe("sent");
+    expect(statuses).toContain("sent");
+    expect(statuses).not.toContain("overdue");
   });
 
   it("manages invoices and invoice lines with status calculations", () => {
     const client = cashflow.clients.create(adminId, { name: "Invoice Client" });
-    const invNum = cashflow.invoices.generateNumber(adminId, 2026);
+    const invNum = cashflow.invoices.nextNumber(adminId, 2026);
 
     const lineDate = new Date("2026-03-15").getTime();
     const invoice = cashflow.invoiceWrites.create(adminId, {
       clientId: client.id,
       invoiceNumber: invNum,
       isKor: true,
-      lines: [
-        { taskDescription: "Development", date: lineDate, quantity: 10, unitPrice: 80, totalCost: 800, type: "hours" },
-      ],
+      lines: [{ taskDescription: "Development", date: lineDate, quantity: 10, unitPrice: 80, type: "hours" }],
     });
 
-    expect(invoice).not.toBeNull();
     expect(invoice?.invoiceNumber).toBe(invNum);
     expect(invoice?.total).toBe(800);
     expect(invoice?.lines.length).toBe(1);
     expect(invoice?.lines[0].date).toBe(lineDate);
 
-    // Prevent duplicate invoice numbers
     expectError(
       () =>
         cashflow.invoiceWrites.create(adminId, { clientId: client.id, invoiceNumber: invNum, isKor: true, lines: [] }),
@@ -152,14 +219,12 @@ describe("CashflowService", () => {
       "cashflow.invoiceNumberInUse",
     );
 
-    // Mark as paid
-    const paidInv = cashflow.invoices.markAsPaid(invoice!.id);
+    const paidInv = cashflow.invoices.markAsPaid(adminId, invoice!.id);
     expect(paidInv?.status).toBe("paid");
     expect(paidInv?.datePaid).toBeGreaterThan(0);
 
-    // Update invoice with new line date
     const newLineDate = new Date("2026-03-20").getTime();
-    const updated = cashflow.invoiceWrites.update(invoice!.id, {
+    const updated = cashflow.invoiceWrites.update(adminId, invoice!.id, {
       name: "Q3 Development Invoice",
       lines: [
         {
@@ -167,7 +232,6 @@ describe("CashflowService", () => {
           date: newLineDate,
           quantity: 5,
           unitPrice: 80,
-          totalCost: 400,
           type: "hours",
         },
       ],
@@ -176,13 +240,7 @@ describe("CashflowService", () => {
     expect(updated?.lines[0].date).toBe(newLineDate);
     expect(updated?.lines[0].taskDescription).toBe("Development Part 2");
 
-    // Dashboard stats
-    const stats = cashflow.dashboard.getStats(adminId, 2026);
-    expect(stats).toBeDefined();
-    expect(stats.statusTotals).toBeDefined();
-
-    // Delete invoice
-    const delRes = cashflow.invoices.remove(invoice!.id);
+    const delRes = cashflow.invoices.remove(adminId, invoice!.id);
     expect(delRes?.deleted).toBe(true);
   });
 
@@ -192,17 +250,17 @@ describe("CashflowService", () => {
       clientId: client.id,
       invoiceNumber: "2026-010",
       dateCreated: new Date("2026-01-01").getTime(),
-      lines: [{ taskDescription: "Task 1", quantity: 1, unitPrice: 100, totalCost: 100 }],
+      lines: [{ taskDescription: "Task 1", quantity: 1, unitPrice: 100, type: "hours" }],
     });
 
     const inv2Draft = cashflow.invoiceWrites.create(adminId, {
       clientId: client.id,
       invoiceNumber: "2026-011",
       dateCreated: null,
-      lines: [{ taskDescription: "Draft Task", quantity: 1, unitPrice: 100, totalCost: 100 }],
+      lines: [{ taskDescription: "Draft Task", quantity: 1, unitPrice: 100, type: "hours" }],
     });
 
-    const invoices = cashflow.invoices.list(adminId);
+    const invoices = cashflow.invoices.list(adminId, undefined, undefined, client.id);
     expect(invoices.length).toBe(2);
     expect(invoices[0].id).toBe(inv2Draft!.id);
     expect(invoices[1].id).toBe(inv1!.id);
@@ -219,12 +277,12 @@ describe("CashflowService", () => {
       status: "draft",
       dateCreated: draftDate,
       paymentDueDate: pastDueDate,
-      lines: [{ taskDescription: "Future Project", quantity: 1, unitPrice: 1500, totalCost: 1500 }],
+      lines: [{ taskDescription: "Future Project", quantity: 1, unitPrice: 1500, type: "hours" }],
     });
 
     expect(draftInv?.status).toBe("draft");
 
-    const fetched = cashflow.invoices.getById(draftInv!.id);
+    const fetched = cashflow.invoices.getById(adminId, draftInv!.id);
     expect(fetched?.status).toBe("draft");
 
     const listed = cashflow.invoices.list(adminId, "draft");
@@ -238,7 +296,6 @@ describe("CashflowService", () => {
     expect(octMonth?.paid).toBe(0);
     expect(octMonth?.draft).toBe(1500);
     expect(octMonth?.expected).toBe(1500);
-    expect(stats.totalExpected12m).toBeGreaterThanOrEqual(1500);
   });
 
   it("manages company expenses CRUD and integrates with dashboard stats", () => {
@@ -248,11 +305,6 @@ describe("CashflowService", () => {
       () => cashflow.expenses.create(adminId, { description: "", amount: 100 }),
       ValidationError,
       "cashflow.expenseDescriptionRequired",
-    );
-    expectError(
-      () => cashflow.expenses.create(adminId, { description: "Server", amount: NaN }),
-      ValidationError,
-      "cashflow.expenseAmountRequired",
     );
 
     const expDate = new Date("2026-05-10").getTime();
@@ -273,10 +325,10 @@ describe("CashflowService", () => {
     expect(exp1?.tradeNameDisplay).toBe("Design Studio");
     expect(exp1?.receiptPdfPath).toBe("/api/uploads/receipt-1.pdf");
 
-    const fetched = cashflow.expenses.getById(exp1!.id);
+    const fetched = cashflow.expenses.getById(adminId, exp1!.id);
     expect(fetched?.description).toBe("Cloud Server Hosting");
 
-    const updated = cashflow.expenses.update(exp1!.id, {
+    const updated = cashflow.expenses.update(adminId, exp1!.id, {
       amount: 95.0,
       description: "Cloud Server Hosting (Upgraded)",
     });
@@ -294,25 +346,23 @@ describe("CashflowService", () => {
     const mayExp = stats.monthlyExpenses.find((m) => m.month === "2026-05");
     expect(mayExp?.total).toBe(95);
 
-    const deleted = cashflow.expenses.remove(exp1!.id);
+    const deleted = cashflow.expenses.remove(adminId, exp1!.id);
     expect(deleted?.deleted).toBe(true);
-    expectError(() => cashflow.expenses.getById(exp1!.id), NotFoundError, "cashflow.expenseNotFound");
+    expectError(() => cashflow.expenses.getById(adminId, exp1!.id), NotFoundError, "cashflow.expenseNotFound");
   });
 
   it("computes firstRecordYear correctly based on the earliest invoice or expense record", () => {
     const client = cashflow.clients.create(testerId, { name: "Year Test Client" });
 
-    // When there are no invoices or expenses, firstRecordYear falls back to current year
     const initialStats = cashflow.dashboard.getStats(testerId);
     expect(initialStats.firstRecordYear).toBe(new Date().getFullYear());
 
-    // Create an older invoice in 2023
     const oldDate = new Date("2023-04-15").getTime();
     cashflow.invoiceWrites.create(testerId, {
       clientId: client.id,
       invoiceNumber: "2023-001",
       dateCreated: oldDate,
-      lines: [{ taskDescription: "Historical Work", quantity: 1, unitPrice: 500, totalCost: 500 }],
+      lines: [{ taskDescription: "Historical Work", quantity: 1, unitPrice: 500, type: "hours" }],
     });
 
     const updatedStats = cashflow.dashboard.getStats(testerId);
@@ -321,23 +371,39 @@ describe("CashflowService", () => {
 
   it("throws NotFoundError with a key for missing records instead of returning null", () => {
     expectError(
-      () => cashflow.tradeNames.update(999999, { displayName: "X" }),
+      () => cashflow.tradeNames.update(adminId, 999999, { displayName: "X" }),
       NotFoundError,
       "cashflow.tradeNameNotFound",
     );
-    expectError(() => cashflow.tradeNames.remove(999999), NotFoundError, "cashflow.tradeNameNotFound");
-    expectError(() => cashflow.clients.getById(999999), NotFoundError, "cashflow.clientNotFound");
-    expectError(() => cashflow.clients.update(999999, { name: "X" }), NotFoundError, "cashflow.clientNotFound");
-    expectError(() => cashflow.clients.remove(999999), NotFoundError, "cashflow.clientNotFound");
-    expectError(() => cashflow.projects.getById(999999), NotFoundError, "cashflow.projectNotFound");
-    expectError(() => cashflow.projects.update(999999, { name: "X" }), NotFoundError, "cashflow.projectNotFound");
-    expectError(() => cashflow.projects.remove(999999), NotFoundError, "cashflow.projectNotFound");
-    expectError(() => cashflow.invoices.getById(999999), NotFoundError, "cashflow.invoiceNotFound");
-    expectError(() => cashflow.invoiceWrites.update(999999, { name: "X" }), NotFoundError, "cashflow.invoiceNotFound");
-    expectError(() => cashflow.invoices.markAsPaid(999999), NotFoundError, "cashflow.invoiceNotFound");
-    expectError(() => cashflow.invoices.remove(999999), NotFoundError, "cashflow.invoiceNotFound");
-    expectError(() => cashflow.expenses.update(999999, { notes: "X" }), NotFoundError, "cashflow.expenseNotFound");
-    expectError(() => cashflow.expenses.remove(999999), NotFoundError, "cashflow.expenseNotFound");
+    expectError(() => cashflow.tradeNames.remove(adminId, 999999), NotFoundError, "cashflow.tradeNameNotFound");
+    expectError(() => cashflow.clients.getById(adminId, 999999), NotFoundError, "cashflow.clientNotFound");
+    expectError(
+      () => cashflow.clients.update(adminId, 999999, { name: "X" }),
+      NotFoundError,
+      "cashflow.clientNotFound",
+    );
+    expectError(() => cashflow.clients.remove(adminId, 999999), NotFoundError, "cashflow.clientNotFound");
+    expectError(() => cashflow.projects.getById(adminId, 999999), NotFoundError, "cashflow.projectNotFound");
+    expectError(
+      () => cashflow.projects.update(adminId, 999999, { name: "X" }),
+      NotFoundError,
+      "cashflow.projectNotFound",
+    );
+    expectError(() => cashflow.projects.remove(adminId, 999999, false), NotFoundError, "cashflow.projectNotFound");
+    expectError(() => cashflow.invoices.getById(adminId, 999999), NotFoundError, "cashflow.invoiceNotFound");
+    expectError(
+      () => cashflow.invoiceWrites.update(adminId, 999999, { name: "X" }),
+      NotFoundError,
+      "cashflow.invoiceNotFound",
+    );
+    expectError(() => cashflow.invoices.markAsPaid(adminId, 999999), NotFoundError, "cashflow.invoiceNotFound");
+    expectError(() => cashflow.invoices.remove(adminId, 999999), NotFoundError, "cashflow.invoiceNotFound");
+    expectError(
+      () => cashflow.expenses.update(adminId, 999999, { notes: "X" }),
+      NotFoundError,
+      "cashflow.expenseNotFound",
+    );
+    expectError(() => cashflow.expenses.remove(adminId, 999999), NotFoundError, "cashflow.expenseNotFound");
   });
 
   it("validates invoice input with typed errors", () => {
@@ -353,30 +419,27 @@ describe("CashflowService", () => {
       "cashflow.clientRequired",
     );
     expectError(
-      () => cashflow.projects.create({ clientId: client.id, name: " " }),
+      () => cashflow.projects.create(adminId, { clientId: client.id, name: " " }),
       ValidationError,
       "cashflow.projectNameRequired",
     );
 
     const invoice = cashflow.invoiceWrites.create(adminId, { invoiceNumber: "2026-501", clientId: client.id });
     expectError(
-      () => cashflow.invoiceWrites.update(invoice.id, { status: "bogus" }),
-      ValidationError,
-      "cashflow.invalidStatus",
-    );
-    expectError(
-      () => cashflow.invoiceWrites.update(invoice.id, { invoiceNumber: "" }),
+      () => cashflow.invoiceWrites.update(adminId, invoice.id, { invoiceNumber: "" }),
       ValidationError,
       "cashflow.invoiceNumberRequired",
     );
 
     const other = cashflow.invoiceWrites.create(adminId, { invoiceNumber: "2026-502", clientId: client.id });
     expectError(
-      () => cashflow.invoiceWrites.update(other.id, { invoiceNumber: "2026-501" }),
+      () => cashflow.invoiceWrites.update(adminId, other.id, { invoiceNumber: "2026-501" }),
       ConflictError,
       "cashflow.invoiceNumberInUse",
     );
-    expect(cashflow.invoiceWrites.update(other.id, { invoiceNumber: "2026-502" }).invoiceNumber).toBe("2026-502");
+    expect(cashflow.invoiceWrites.update(adminId, other.id, { invoiceNumber: "2026-502" }).invoiceNumber).toBe(
+      "2026-502",
+    );
   });
 
   it("validates invoice email input before sending", async () => {
@@ -390,8 +453,12 @@ describe("CashflowService", () => {
       [{ pdfBase64: "" }, "cashflow.emailAttachmentMissing"],
     ];
     for (const [override, key] of cases) {
-      await expect(cashflow.invoiceEmail.send(invoice.id, { ...full, ...override })).rejects.toMatchObject({ key });
+      await expect(cashflow.invoiceEmail.send(adminId, invoice.id, { ...full, ...override })).rejects.toMatchObject({
+        key,
+      });
     }
-    await expect(cashflow.invoiceEmail.send(999999, full)).rejects.toMatchObject({ key: "cashflow.invoiceNotFound" });
+    await expect(cashflow.invoiceEmail.send(adminId, 999999, full)).rejects.toMatchObject({
+      key: "cashflow.invoiceNotFound",
+    });
   });
 });

@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { cashflowClients } from "../../db/schema";
-import { NotFoundError, ValidationError } from "../../utils/errors";
-import { trimOrNull } from "./cashflow-helpers";
+import { orNotFound, ValidationError } from "../../utils/errors";
+import { patch, patchText, trimOrNull } from "./cashflow-helpers";
 import type { ClientInput } from "./cashflow-types";
 
 export class CashflowClients {
@@ -10,10 +10,15 @@ export class CashflowClients {
     return db.select().from(cashflowClients).where(eq(cashflowClients.userId, userId)).all();
   }
 
-  getById(id: number) {
-    const row = db.select().from(cashflowClients).where(eq(cashflowClients.id, id)).get();
-    if (!row) throw new NotFoundError("cashflow.clientNotFound");
-    return row;
+  getById(userId: number, id: number) {
+    return orNotFound(
+      db
+        .select()
+        .from(cashflowClients)
+        .where(and(eq(cashflowClients.id, id), eq(cashflowClients.userId, userId)))
+        .get(),
+      "cashflow.clientNotFound",
+    );
   }
 
   create(userId: number, data: ClientInput) {
@@ -35,28 +40,26 @@ export class CashflowClients {
       .get();
   }
 
-  update(id: number, data: ClientInput) {
-    const existing = this.getById(id);
+  update(userId: number, id: number, data: ClientInput) {
+    const existing = this.getById(userId, id);
     return db
       .update(cashflowClients)
       .set({
-        name: data.name?.trim() ?? existing.name,
-        address: data.address !== undefined ? trimOrNull(data.address) : existing.address,
-        email: data.email !== undefined ? trimOrNull(data.email) : existing.email,
-        kvkNumber: data.kvkNumber !== undefined ? trimOrNull(data.kvkNumber) : existing.kvkNumber,
-        standardRate: data.standardRate !== undefined ? data.standardRate : existing.standardRate,
-        contractPdfPath:
-          data.contractPdfPath !== undefined ? trimOrNull(data.contractPdfPath) : existing.contractPdfPath,
-        contractPdfName:
-          data.contractPdfName !== undefined ? trimOrNull(data.contractPdfName) : existing.contractPdfName,
+        name: data.name?.trim() || existing.name,
+        address: patchText(data.address, existing.address),
+        email: patchText(data.email, existing.email),
+        kvkNumber: patchText(data.kvkNumber, existing.kvkNumber),
+        standardRate: patch(data.standardRate, existing.standardRate),
+        contractPdfPath: patchText(data.contractPdfPath, existing.contractPdfPath),
+        contractPdfName: patchText(data.contractPdfName, existing.contractPdfName),
       })
       .where(eq(cashflowClients.id, id))
       .returning()
       .get();
   }
 
-  remove(id: number) {
-    this.getById(id);
+  remove(userId: number, id: number) {
+    this.getById(userId, id);
     db.delete(cashflowClients).where(eq(cashflowClients.id, id)).run();
     return { deleted: true };
   }

@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { users } from "./auth";
+import { DISCOUNT_TYPES, INVOICE_LINE_TYPES, INVOICE_STATUSES } from "../../shared/cashflow";
 
 export const cashflowTradeNames = sqliteTable("cashflow_trade_names", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -55,7 +56,7 @@ export const cashflowInvoices = sqliteTable("cashflow_invoices", {
   dateService: integer("date_service"),
   paymentDueDate: integer("payment_due_date"),
   datePaid: integer("date_paid"),
-  status: text("status").notNull().default("draft"),
+  status: text("status", { enum: INVOICE_STATUSES }).notNull().default("draft"),
   isKor: integer("is_kor", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -70,8 +71,8 @@ export const cashflowInvoiceLines = sqliteTable("cashflow_invoice_lines", {
   quantity: real("quantity").notNull().default(1),
   unitPrice: real("unit_price").notNull().default(0),
   totalCost: real("total_cost").notNull().default(0),
-  type: text("type").notNull().default("hours"),
-  discountType: text("discount_type"),
+  type: text("type", { enum: INVOICE_LINE_TYPES }).notNull().default("hours"),
+  discountType: text("discount_type", { enum: DISCOUNT_TYPES }),
   discountValue: real("discount_value"),
 });
 

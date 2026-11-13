@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
 import { api, ApiError, apiErrorMessage } from "@/lib/api";
 import type { CashflowClient, CashflowInvoiceFull, CashflowProject, CashflowTradeName } from "@/lib/api";
+import type { InvoiceStatus } from "@backend/shared/cashflow";
 import { Button } from "@/components/ui/button";
 import {
   toTs,
   toDate,
   addDays,
   recalculateLines,
+  toLineInput,
   type InvoiceLine,
   type LineType,
   type DiscountType,
@@ -19,6 +21,8 @@ import { formatServicePeriod, getServicePeriod } from "../../cashflow-service-pe
 import { ClientSection } from "./client-section";
 import { DetailsSection } from "./details-section";
 import { LinesSection } from "./lines-section";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 function linesFromInvoice(inv: CashflowInvoiceFull): InvoiceLine[] {
   return recalculateLines(inv.lines.map(l => ({
@@ -28,8 +32,8 @@ function linesFromInvoice(inv: CashflowInvoiceFull): InvoiceLine[] {
     quantity: l.quantity,
     unitPrice: l.unitPrice,
     totalCost: l.totalCost,
-    type: (l.type as LineType) ?? "hours",
-    discountType: (l.discountType as DiscountType) ?? "percentage",
+    type: l.type,
+    discountType: l.discountType ?? "percentage",
     discountValue: l.discountValue ?? 0,
   })));
 }
@@ -65,6 +69,7 @@ export function NewInvoiceClient({
   tradeNames: CashflowTradeName[];
   nextInvoiceNumber: string;
 }) {
+  const { error: actionError, report } = useActionError();
   const router = useRouter();
   const inv = initialInvoice;
 
@@ -84,7 +89,7 @@ export function NewInvoiceClient({
   const [dateService, setDateService] = useState(inv ? toDate(inv.dateService) : "");
   const [automaticServicePeriod, setAutomaticServicePeriod] = useState(inv ? inv.dateService == null : true);
   const [paymentDueDate, setPaymentDueDate] = useState(inv ? toDate(inv.paymentDueDate) : "");
-  const [status, setStatus] = useState<string>(inv?.status ?? "draft");
+  const [status, setStatus] = useState<InvoiceStatus>(inv?.status ?? "draft");
   const [datePaid, setDatePaid] = useState<string>(inv ? toDate(inv.datePaid) : "");
   const [isKor, setIsKor] = useState(inv?.isKor ?? true);
   const [lines, setLines] = useState<InvoiceLine[]>(() => (inv ? linesFromInvoice(inv) : emptyLines()));
@@ -208,8 +213,9 @@ export function NewInvoiceClient({
       }
       setShowNewClient(false);
       setNewClientName(""); setNewClientEmail(""); setNewClientAddress(""); setNewClientKvk(""); setNewClientRate("");
-    } catch {
-    } finally {
+    } catch (err) {
+    report(err, "cashflow.actionFailed");
+  } finally {
       setCreatingClient(false);
     }
   }
@@ -232,7 +238,6 @@ export function NewInvoiceClient({
 
     setSaving(true);
     try {
-      const targetStatus = status || "draft";
       const body = {
         clientId: Number(clientId),
         projectId: projectId ? Number(projectId) : null,
@@ -242,19 +247,10 @@ export function NewInvoiceClient({
         dateCreated: toTs(dateCreated),
         dateService: automaticServicePeriod ? null : toTs(dateService),
         paymentDueDate: toTs(paymentDueDate),
-        datePaid: targetStatus === "paid" ? (datePaid ? toTs(datePaid) : Date.now()) : null,
-        status: targetStatus,
+        datePaid: status === "paid" ? (toTs(datePaid) ?? undefined) : null,
+        status,
         isKor,
-        lines: lines.map(l => ({
-          taskDescription: l.taskDescription,
-          date: toTs(l.date),
-          quantity: l.type === "discount" ? 1 : (l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity)),
-          unitPrice: l.type === "discount" ? 0 : (l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice)),
-          totalCost: l.totalCost,
-          type: l.type,
-          discountType: l.type === "discount" ? l.discountType : null,
-          discountValue: l.type === "discount" ? l.discountValue : null,
-        })),
+        lines: lines.map(toLineInput),
       };
       if (editId) {
         await api.cashflow.invoices.update(Number(editId), body);
@@ -279,6 +275,7 @@ export function NewInvoiceClient({
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
       <h1 className="text-xl font-bold text-white">{editId ? t("Factuur bewerken") : t("Nieuwe factuur")}</h1>
 
       {/* Client, Project & Trade Name */}

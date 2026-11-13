@@ -10,23 +10,16 @@ import type { CashflowInvoiceFull } from "@/lib/api";
 import { Check, Pencil, ArrowLeft, Building2, User, CreditCard, Hash, Trash2 } from "lucide-react";
 import { CashflowPDFButton } from "../../cashflow-pdf";
 import { CashflowEmailInvoiceButton } from "../../cashflow-email-modal";
+import { formatEuro, formatDate } from "../../cashflow-format";
+import { statusConfig } from "../invoice-utils";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
-function formatEuro(n: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
-}
-function formatDate(ts: number | null | undefined) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
-}
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-  draft: { label: t("Concept"), color: "bg-zinc-800 text-zinc-300 border-zinc-700" },
-  sent: { label: t("Verzonden"), color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  paid: { label: t("Betaald"), color: "bg-brand/10 text-brand border-brand/20" },
-  overdue: { label: t("Te laat"), color: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
-};
 
 export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: CashflowInvoiceFull }) {
+  const { error: actionError, report } = useActionError();
+  const { confirm, dialog } = useConfirm();
   const router = useRouter();
   const [invoice, setInvoice] = useState<CashflowInvoiceFull>(initialInvoice);
   const [markingPaid, setMarkingPaid] = useState(false);
@@ -38,12 +31,13 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
-    if (!confirm(t("Weet je zeker dat je deze factuur wilt verwijderen?"))) return;
+    if (!(await confirm(t("Weet je zeker dat je deze factuur wilt verwijderen?")))) return;
     setDeleting(true);
     try {
       await api.cashflow.invoices.delete(invoice.id);
       router.push("/cashflow/invoices");
-    } catch {
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
       setDeleting(false);
     }
   }
@@ -55,7 +49,9 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
       const updated = await api.cashflow.invoices.markAsPaid(invoice.id, ts);
       setInvoice(updated);
       setEditingPaidDate(false);
-    } catch {} finally { setMarkingPaid(false); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setMarkingPaid(false); }
   }
 
   async function handleUpdatePaidDate(dateStr: string) {
@@ -66,17 +62,18 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
       const updated = await api.cashflow.invoices.markAsPaid(invoice.id, ts);
       setInvoice(updated);
       setEditingPaidDate(false);
-    } catch {} finally { setMarkingPaid(false); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setMarkingPaid(false); }
   }
 
-  const [now] = useState(() => Date.now());
-
   const servicePeriod = getServicePeriod(invoice);
-  const cfg = statusConfig[invoice.status] ?? statusConfig.draft;
-  const isOverdue = invoice.status !== "paid" && invoice.status !== "draft" && Boolean(invoice.paymentDueDate && invoice.paymentDueDate < now);
+  const cfg = statusConfig[invoice.status];
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
+      {dialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
@@ -85,8 +82,8 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
           </Link>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-xl font-bold text-white font-mono">{invoice.invoiceNumber}</h1>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${isOverdue ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : cfg.color}`}>
-              {isOverdue ? t("Te laat") : cfg.label}
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.color}`}>
+              {cfg.label}
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-0.5">{invoice.clientName}{invoice.projectName ? ` · ${invoice.projectName}` : ""}</p>
@@ -140,7 +137,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
           <dl className="space-y-2">
             <div className="flex justify-between gap-2">
               <dt className="text-xs text-zinc-500">{t("Datum van facturering")}</dt>
-              <dd className="text-xs text-zinc-200 text-right">{formatDate(invoice.dateCreated)}</dd>
+              <dd className="text-xs text-zinc-200 text-right">{formatDate(invoice.dateCreated, "long")}</dd>
             </div>
             <div className="flex justify-between gap-2">
               <dt className="text-xs text-zinc-500">{t(!servicePeriod || servicePeriod.start === servicePeriod.end ? "Datum van dienstverlening" : "Periode van dienstverlening")}</dt>
@@ -148,7 +145,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
             </div>
             <div className="flex justify-between gap-2">
               <dt className="text-xs text-zinc-500">{t("Vervaldatum")}</dt>
-              <dd className="text-xs text-zinc-200 text-right">{formatDate(invoice.paymentDueDate)}</dd>
+              <dd className="text-xs text-zinc-200 text-right">{formatDate(invoice.paymentDueDate, "long")}</dd>
             </div>
 
             {(invoice.status === "paid" || invoice.datePaid) && (
@@ -175,7 +172,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
                       />
                     </div>
                   ) : (
-                    <span className="font-semibold text-brand">{formatDate(invoice.datePaid)}</span>
+                    <span className="font-semibold text-brand">{formatDate(invoice.datePaid, "long")}</span>
                   )}
                 </dd>
               </div>
@@ -233,7 +230,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
                 <div className="space-y-0.5">
                   {line.date && (
                     <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/60 inline-block mb-0.5">
-                      {formatDate(line.date)}
+                      {formatDate(line.date, "long")}
                     </span>
                   )}
                   <p className="text-xs text-zinc-200 font-medium">{line.taskDescription}</p>
@@ -278,7 +275,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
                   <div className="flex items-center gap-2 flex-wrap">
                     {line.date && (
                       <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/60 shrink-0">
-                        {formatDate(line.date)}
+                        {formatDate(line.date, "long")}
                       </span>
                     )}
                     <span>{line.taskDescription}</span>
@@ -329,7 +326,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
             {invoice.paymentDueDate && (
               <div>
                 <p className="text-xs text-zinc-500">{t("Te betalen vóór")}</p>
-                <p className="text-sm font-mono text-white">{formatDate(invoice.paymentDueDate)}</p>
+                <p className="text-sm font-mono text-white">{formatDate(invoice.paymentDueDate, "long")}</p>
               </div>
             )}
           </div>

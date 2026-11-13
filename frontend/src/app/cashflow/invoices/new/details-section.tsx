@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Dispatch, SetStateAction } from "react";
+import { INVOICE_STATUSES, type InvoiceStatus } from "@backend/shared/cashflow";
 
 export function DetailsSection({
   automaticServicePeriod,
@@ -44,8 +45,8 @@ export function DetailsSection({
   setInvoiceNumber: Dispatch<SetStateAction<string>>;
   setIsKor: Dispatch<SetStateAction<boolean>>;
   setPaymentDueDate: Dispatch<SetStateAction<string>>;
-  setStatus: Dispatch<SetStateAction<string>>;
-  status: string;
+  setStatus: Dispatch<SetStateAction<InvoiceStatus>>;
+  status: InvoiceStatus;
 }) {
   return (
         <div className="space-y-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
@@ -103,7 +104,7 @@ export function DetailsSection({
               <select
                 value={status}
                 onChange={e => {
-                  const newStatus = e.target.value;
+                  const newStatus = INVOICE_STATUSES.find((s) => s === e.target.value) ?? "draft";
                   setStatus(newStatus);
                   if (newStatus !== "paid") {
                     setDatePaid("");

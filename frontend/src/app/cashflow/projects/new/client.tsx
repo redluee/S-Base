@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, ChevronDown, ChevronUp } from "lucide-react";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 export function NewProjectClient({
   editId,
@@ -21,6 +23,7 @@ export function NewProjectClient({
   initialClients: CashflowClient[];
   tradeNames: CashflowTradeName[];
 }) {
+  const { error: actionError, report } = useActionError();
   const router = useRouter();
 
   const [clients, setClients] = useState<CashflowClient[]>(initialClients);
@@ -57,8 +60,9 @@ export function NewProjectClient({
       setClientId(created.id);
       setShowNewClient(false);
       setNewClientName(""); setNewClientEmail(""); setNewClientAddress(""); setNewClientKvk(""); setNewClientRate("");
-    } catch {
-    } finally {
+    } catch (err) {
+    report(err, "cashflow.actionFailed");
+  } finally {
       setCreatingClient(false);
     }
   }
@@ -92,6 +96,7 @@ export function NewProjectClient({
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-2xl mx-auto space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
       <h1 className="text-xl font-bold text-white">{editId ? t("Project bewerken") : t("Nieuw project")}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">

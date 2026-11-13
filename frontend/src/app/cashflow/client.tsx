@@ -16,10 +16,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { YearSelector } from "./year-selector";
+import { formatEuro } from "./cashflow-format";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
-function formatEuro(amount: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
-}
 
 function getMonthsForYear(year: number): string[] {
   const months: string[] = [];
@@ -39,44 +39,30 @@ function MonthLabel({ month, isCurrentMonth }: { month: string; isCurrentMonth?:
   );
 }
 
-export function CashflowDashboardClient({ stats: initialStats }: { stats: CashflowDashboardStats | null }) {
-  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
-  const [stats, setStats] = useState<CashflowDashboardStats | null>(initialStats);
-  const [loading, setLoading] = useState<boolean>(false);
+export function CashflowDashboardClient({ initialYear, initialStats }: { initialYear: number; initialStats: CashflowDashboardStats }) {
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+  const [statsByYear, setStatsByYear] = useState<Record<number, CashflowDashboardStats>>({ [initialYear]: initialStats });
+  const { error: loadError, report } = useActionError();
   const [activeMonthTooltip, setActiveMonthTooltip] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
   const maxYear = currentYear + 1;
-  const minYear = Math.min(stats?.firstRecordYear ?? currentYear, currentYear);
+  const minYear = Math.min(initialStats.firstRecordYear, currentYear);
   const activeYear = Math.max(minYear, Math.min(maxYear, selectedYear));
+  const stats = statsByYear[activeYear] ?? null;
+  const loading = !stats;
 
   const handleYearChange = (year: number) => {
     setSelectedYear(Math.max(minYear, Math.min(maxYear, year)));
   };
 
   useEffect(() => {
-    let isMounted = true;
-    async function fetchStats() {
-      setLoading(true);
-      try {
-        const res = await api.cashflow.dashboard(activeYear);
-        if (isMounted) {
-          setStats(res);
-        }
-      } catch {
-        // keep existing stats on error
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchStats();
-    return () => {
-      isMounted = false;
-    };
-  }, [activeYear]);
+    if (statsByYear[activeYear]) return;
+    api.cashflow
+      .dashboard(activeYear)
+      .then((res) => setStatsByYear((prev) => ({ ...prev, [activeYear]: res })))
+      .catch((err) => report(err, "cashflow.actionFailed"));
+  }, [activeYear, statsByYear, report]);
 
   useEffect(() => {
     function handleTouchOutside(e: TouchEvent) {
@@ -94,7 +80,7 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
     (stats?.monthlyIncome ?? []).map((m) => [
       m.month,
       {
-        paid: m.paid ?? m.total ?? 0,
+        paid: m.paid,
         expected: m.expected ?? 0,
         draft: m.draft ?? 0,
         open: m.open ?? 0,
@@ -123,12 +109,13 @@ export function CashflowDashboardClient({ stats: initialStats }: { stats: Cashfl
   const outstandingCount = (sent?.count ?? 0) + (overdue?.count ?? 0);
 
   const totalExpenses = stats?.totalExpenses12m ?? 0;
-  const netProfit = (stats?.totalPaid12m ?? 0) - totalExpenses;
+  const netProfit = stats?.netProfit12m ?? 0;
 
   const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-6">
+      <InlineAlert>{loadError}</InlineAlert>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -1,3 +1,5 @@
+import type { InvoiceStatus, PricedLine } from "../../shared/cashflow";
+
 export interface TradeNameInput {
   displayName?: string;
   address?: string | null;
@@ -24,15 +26,9 @@ export interface ProjectInput {
   location?: string | null;
 }
 
-export interface InvoiceLineInput {
+export interface InvoiceLineInput extends PricedLine {
   taskDescription: string;
   date?: number | null;
-  quantity?: number;
-  unitPrice?: number;
-  totalCost: number;
-  type?: string;
-  discountType?: string | null;
-  discountValue?: number | null;
 }
 
 export interface InvoiceInput {
@@ -45,7 +41,7 @@ export interface InvoiceInput {
   dateService?: number | null;
   paymentDueDate?: number | null;
   datePaid?: number | null;
-  status?: string;
+  status?: InvoiceStatus;
   isKor?: boolean;
   lines?: InvoiceLineInput[];
 }

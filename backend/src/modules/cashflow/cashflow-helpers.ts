@@ -1,11 +1,3 @@
-export const INVOICE_STATUSES = ["draft", "sent", "paid", "overdue"] as const;
-
-export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
-
-export function isInvoiceStatus(value: unknown): value is InvoiceStatus {
-  return typeof value === "string" && (INVOICE_STATUSES as readonly string[]).includes(value);
-}
-
 export const trimOrNull = (value: string | null | undefined) => value?.trim() || null;
 
 export function yearRange(year: number) {
@@ -15,14 +7,16 @@ export function yearRange(year: number) {
   };
 }
 
-export function computeInvoiceStatus(
-  status: string,
-  paymentDueDate: number | null,
-  dateCreated: number | null,
-  now: number,
-): string {
-  if (status === "paid" || status === "draft") return status;
-  if (paymentDueDate && paymentDueDate < now) return "overdue";
-  if (dateCreated) return "sent";
-  return status;
+export function periodStart(targetYear?: number): { start: number; end?: number } {
+  if (targetYear) return yearRange(targetYear);
+  const now = new Date();
+  return { start: new Date(now.getFullYear(), now.getMonth() - 11, 1).getTime() };
+}
+
+export function patch<T>(next: T | undefined, current: T): T {
+  return next === undefined ? current : next;
+}
+
+export function patchText(next: string | null | undefined, current: string | null): string | null {
+  return next === undefined ? current : trimOrNull(next);
 }

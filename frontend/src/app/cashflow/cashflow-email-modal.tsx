@@ -7,14 +7,9 @@ import { api, apiErrorMessage } from "@/lib/api";
 import type { CashflowInvoiceFull } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { buildInvoicePDFBlob } from "./cashflow-pdf";
+import { formatEuro, formatDate } from "./cashflow-format";
+import { textToHtml } from "@backend/shared/mail-html";
 
-function formatEuro(n: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
-}
-function formatDate(ts: number | null | undefined): string {
-  if (!ts) return "";
-  return new Date(ts).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
-}
 
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -28,37 +23,26 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-const URL_OR_DOMAIN_PATTERN = /(https?:\/\/[^\s<]+)|(\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b)/g;
-
-// Mirrors backend/src/lib/mailer.ts textToHtml() so the preview matches what actually gets sent.
-function linkifyMessageHtml(text: string): string {
-  const escaped = escapeHtml(text);
-  const linked = escaped.replace(URL_OR_DOMAIN_PATTERN, (match, httpUrl, bareDomain) => {
-    const href = httpUrl ?? `https://${bareDomain}`;
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-brand underline">${match}</a>`;
-  });
-  return linked.replace(/\n/g, "<br>");
-}
-
 function buildDefaultMessage(invoice: CashflowInvoiceFull): string {
-  const clientName = invoice.clientName || "";
-  const total = formatEuro(invoice.total);
-  const subject = invoice.projectName || invoice.name || "";
-  const dueDate = invoice.paymentDueDate ? formatDate(invoice.paymentDueDate) : "";
+  const subject = invoice.projectName || invoice.name;
+  const parts = [
+    t("cashflow.emailIntro", {
+      client: invoice.clientName,
+      number: invoice.invoiceNumber,
+      forSubject: subject ? t("cashflow.emailForSubject", { subject }) : "",
+      total: formatEuro(invoice.total),
+    }),
+  ];
+  if (invoice.paymentDueDate) parts.push(t("cashflow.emailDueDate", { date: formatDate(invoice.paymentDueDate, "long") }));
+  parts.push(t("cashflow.emailClosing", { sender: invoice.tradeNameDisplay ?? "" }));
+  return parts.join("");
+}
 
-  let msg = `Beste ${clientName},\n\nHierbij ontvangt u factuur ${invoice.invoiceNumber}`;
-  if (subject) msg += ` voor ${subject}`;
-  msg += ` ter waarde van ${total}.`;
-  if (dueDate) msg += `\nGraag ontvang ik de betaling voor ${dueDate}.`;
-  msg += `\n\nMet vriendelijke groet,\nSteven Heijn\nFotografie & Software/Website Development\nStevenHeijn.nl`;
-  return msg;
+function openPreviewLinkInNewTab(event: React.MouseEvent) {
+  const link = (event.target as HTMLElement).closest("a");
+  if (!link) return;
+  event.preventDefault();
+  window.open(link.href, "_blank", "noopener,noreferrer");
 }
 
 interface CashflowEmailInvoiceModalProps {
@@ -69,9 +53,9 @@ interface CashflowEmailInvoiceModalProps {
 
 function CashflowEmailInvoiceModal({ invoice, onClose, onSent }: CashflowEmailInvoiceModalProps) {
   const [to, setTo] = useState(invoice.clientEmail || "");
-  const [subject, setSubject] = useState(`Factuur ${invoice.invoiceNumber}`);
+  const [subject, setSubject] = useState(t("cashflow.emailSubject", { number: invoice.invoiceNumber }));
   const [message, setMessage] = useState(() => buildDefaultMessage(invoice));
-  const messageHtml = useMemo(() => linkifyMessageHtml(message), [message]);
+  const messageHtml = useMemo(() => textToHtml(message), [message]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -177,7 +161,8 @@ function CashflowEmailInvoiceModal({ invoice, onClose, onSent }: CashflowEmailIn
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-400">{t("Voorbeeld van bericht")}</label>
               <div
-                className="w-full text-sm bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-300 break-words"
+                className="w-full text-sm bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-300 break-words [&_a]:text-brand [&_a]:underline"
+                onClick={openPreviewLinkInNewTab}
                 dangerouslySetInnerHTML={{ __html: messageHtml }}
               />
             </div>

@@ -26,6 +26,9 @@ import {
   Eye,
   Loader2,
 } from "lucide-react";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 function ClientContractModal({
   client,
@@ -289,6 +292,8 @@ function ClientForm({
 }
 
 export function ClientsClient({ initialItems }: { initialItems: CashflowClient[] }) {
+  const { error: actionError, report } = useActionError();
+  const { confirm, dialog } = useConfirm();
   const [items, setItems] = useState<CashflowClient[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -308,20 +313,26 @@ export function ClientsClient({ initialItems }: { initialItems: CashflowClient[]
         setItems(prev => [...prev, created]);
       }
       setShowForm(false); setEditing(null);
-    } catch {} finally { setSaving(false); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setSaving(false); }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm(t("Deze klant verwijderen?"))) return;
+    if (!(await confirm(t("Deze klant verwijderen?")))) return;
     setDeleting(id);
     try {
       await api.cashflow.clients.delete(id);
       setItems(prev => prev.filter(i => i.id !== id));
-    } catch {} finally { setDeleting(null); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setDeleting(null); }
   }
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-5">
+      <InlineAlert>{actionError}</InlineAlert>
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2"><Users className="size-5 text-blue-400" />{t("Klanten")}</h1>

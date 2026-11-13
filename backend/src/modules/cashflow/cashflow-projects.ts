@@ -1,11 +1,18 @@
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import db from "../../db/client";
 import { cashflowClients, cashflowInvoices, cashflowProjects, cashflowTradeNames } from "../../db/schema";
-import { NotFoundError, ValidationError } from "../../utils/errors";
-import { trimOrNull } from "./cashflow-helpers";
+import { orNotFound, ValidationError } from "../../utils/errors";
+import type { CashflowClients } from "./cashflow-clients";
+import { patch, patchText, trimOrNull } from "./cashflow-helpers";
+import type { CashflowTradeNames } from "./cashflow-trade-names";
 import type { ProjectInput } from "./cashflow-types";
 
 export class CashflowProjects {
+  constructor(
+    private readonly clients: CashflowClients,
+    private readonly tradeNames: CashflowTradeNames,
+  ) {}
+
   list(userId: number, clientId?: number) {
     const conditions: SQL[] = [eq(cashflowClients.userId, userId)];
     if (clientId) conditions.push(eq(cashflowProjects.clientId, clientId));
@@ -33,7 +40,7 @@ export class CashflowProjects {
       .all();
   }
 
-  getById(id: number) {
+  getById(userId: number, id: number) {
     const row = db
       .select({
         id: cashflowProjects.id,
@@ -56,27 +63,30 @@ export class CashflowProjects {
       .from(cashflowProjects)
       .innerJoin(cashflowClients, eq(cashflowProjects.clientId, cashflowClients.id))
       .leftJoin(cashflowTradeNames, eq(cashflowProjects.tradeNameId, cashflowTradeNames.id))
-      .where(eq(cashflowProjects.id, id))
+      .where(and(eq(cashflowProjects.id, id), eq(cashflowClients.userId, userId)))
       .get();
-    if (!row) throw new NotFoundError("cashflow.projectNotFound");
-    return row;
+    return orNotFound(row, "cashflow.projectNotFound");
   }
 
-  findRow(id: number) {
-    const row = db.select().from(cashflowProjects).where(eq(cashflowProjects.id, id)).get();
-    if (!row) throw new NotFoundError("cashflow.projectNotFound");
-    return row;
+  private findRow(userId: number, id: number) {
+    const row = db
+      .select({ project: cashflowProjects })
+      .from(cashflowProjects)
+      .innerJoin(cashflowClients, eq(cashflowProjects.clientId, cashflowClients.id))
+      .where(and(eq(cashflowProjects.id, id), eq(cashflowClients.userId, userId)))
+      .get();
+    return orNotFound(row, "cashflow.projectNotFound").project;
   }
 
-  create(data: ProjectInput) {
+  create(userId: number, data: ProjectInput) {
     const name = data.name?.trim();
     if (!name) throw new ValidationError("cashflow.projectNameRequired");
     if (data.clientId === undefined) throw new ValidationError("cashflow.clientRequired");
     return db
       .insert(cashflowProjects)
       .values({
-        clientId: data.clientId,
-        tradeNameId: data.tradeNameId ?? null,
+        clientId: this.clients.getById(userId, data.clientId).id,
+        tradeNameId: this.tradeNames.ownedIdOrNull(userId, data.tradeNameId),
         name,
         description: trimOrNull(data.description),
         location: trimOrNull(data.location),
@@ -85,24 +95,27 @@ export class CashflowProjects {
       .get();
   }
 
-  update(id: number, data: ProjectInput) {
-    const existing = this.findRow(id);
+  update(userId: number, id: number, data: ProjectInput) {
+    const existing = this.findRow(userId, id);
     return db
       .update(cashflowProjects)
       .set({
-        clientId: data.clientId ?? existing.clientId,
-        tradeNameId: data.tradeNameId !== undefined ? data.tradeNameId : existing.tradeNameId,
-        name: data.name?.trim() ?? existing.name,
-        description: data.description !== undefined ? trimOrNull(data.description) : existing.description,
-        location: data.location !== undefined ? trimOrNull(data.location) : existing.location,
+        clientId: data.clientId === undefined ? existing.clientId : this.clients.getById(userId, data.clientId).id,
+        tradeNameId: patch(
+          data.tradeNameId === undefined ? undefined : this.tradeNames.ownedIdOrNull(userId, data.tradeNameId),
+          existing.tradeNameId,
+        ),
+        name: data.name?.trim() || existing.name,
+        description: patchText(data.description, existing.description),
+        location: patchText(data.location, existing.location),
       })
       .where(eq(cashflowProjects.id, id))
       .returning()
       .get();
   }
 
-  remove(id: number, deleteInvoices = false) {
-    this.findRow(id);
+  remove(userId: number, id: number, deleteInvoices: boolean) {
+    this.findRow(userId, id);
     if (deleteInvoices) {
       db.delete(cashflowInvoices).where(eq(cashflowInvoices.projectId, id)).run();
     } else {

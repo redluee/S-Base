@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { t } from "@/lib/lang";
@@ -14,14 +14,18 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { InvoiceList } from "./invoice-list";
+import { formatEuro } from "../cashflow-format";
 import {
-  formatEuro,
   getInvoiceCreationTimestamp,
   getInvoiceYear,
   type SortField,
   statusConfig,
   type SortOrder,
 } from "./invoice-utils";
+import { OPEN_INVOICE_STATUSES } from "@backend/shared/cashflow";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 
 export function InvoicesClient({
@@ -33,6 +37,8 @@ export function InvoicesClient({
   clients: CashflowClient[];
   projects: CashflowProject[];
 }) {
+  const { error: actionError, report } = useActionError();
+  const { confirm, dialog } = useConfirm();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -44,27 +50,9 @@ export function InvoicesClient({
   const sortOrder = (searchParams.get("sortOrder") as SortOrder) || "desc";
 
   const [invoices, setInvoices] = useState<CashflowInvoiceSummary[]>(initialInvoices);
-  const [loading, setLoading] = useState(false);
-  const skipInitialFetch = useRef(true);
   const [markingPaid, setMarkingPaid] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [now] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (skipInitialFetch.current) {
-      skipInitialFetch.current = false;
-      return;
-    }
-    async function loadInvoices() {
-      setLoading(true);
-      try {
-        setInvoices(await api.cashflow.invoices.list(undefined, selectedProjectId, selectedClientId));
-      } catch {} finally {
-        setLoading(false);
-      }
-    }
-    loadInvoices();
-  }, [selectedProjectId, selectedClientId]);
 
   function updateUrl(cId?: number, pId?: number, yr?: string, st?: string, sBy?: string, sOrder?: string) {
     const params = new URLSearchParams();
@@ -137,20 +125,24 @@ export function InvoicesClient({
     try {
       const updated = await api.cashflow.invoices.markAsPaid(id);
       setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: updated.status } : i));
-    } catch {} finally { setMarkingPaid(null); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setMarkingPaid(null); }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm(t("Deze factuur verwijderen?"))) return;
+    if (!(await confirm(t("Deze factuur verwijderen?")))) return;
     setDeleting(id);
     try {
       await api.cashflow.invoices.delete(id);
       setInvoices(prev => prev.filter(i => i.id !== id));
-    } catch {} finally { setDeleting(null); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setDeleting(null); }
   }
 
   const yearsInInvoices = Array.from(
-    new Set(invoices.map(i => getInvoiceYear(i, now)))
+    new Set(invoices.map(i => getInvoiceYear(i)))
   ).sort((a, b) => b - a);
 
   const currentYr = new Date(now).getFullYear();
@@ -163,14 +155,16 @@ export function InvoicesClient({
   }
 
   const filtered = invoices.filter(i => {
+    if (selectedClientId && i.clientId !== selectedClientId) return false;
+    if (selectedProjectId && i.projectId !== selectedProjectId) return false;
     if (filterStatus === "open") {
-      if (i.status !== "sent" && i.status !== "overdue") return false;
+      if (!OPEN_INVOICE_STATUSES.includes(i.status)) return false;
     } else if (filterStatus && i.status !== filterStatus) {
       return false;
     }
 
     if (selectedYear) {
-      const invYear = getInvoiceYear(i, now);
+      const invYear = getInvoiceYear(i);
       if (invYear !== Number(selectedYear)) return false;
     }
 
@@ -216,16 +210,14 @@ export function InvoicesClient({
   const hasActiveFilters = Boolean(selectedClientId || selectedProjectId || selectedYear || filterStatus);
 
   const statusPills = [
-    { value: "", label: t("Alle") },
-    { value: "open", label: t("Openstaand") },
-    { value: "paid", label: t("Betaald") },
-    { value: "sent", label: t("Verzonden") },
-    { value: "overdue", label: t("Te laat") },
-    { value: "draft", label: t("Concept") },
+    { value: "", label: t("Alle"), color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    ...(["open", "paid", "sent", "overdue", "draft"] as const).map((value) => ({ value, ...statusConfig[value] })),
   ];
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-5">
+      <InlineAlert>{actionError}</InlineAlert>
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -337,7 +329,7 @@ export function InvoicesClient({
               onClick={() => handleStatusChange(sp.value)}
               className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
                 filterStatus === sp.value
-                  ? sp.value && statusConfig[sp.value] ? statusConfig[sp.value].color : "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                  ? sp.color
                   : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
               }`}
             >
@@ -347,9 +339,7 @@ export function InvoicesClient({
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12"><div className="size-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" /></div>
-      ) : sorted.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="text-center py-16 text-zinc-500">
           <FileText className="size-8 mx-auto mb-3 opacity-30" />
           <p className="text-sm">{t("Geen facturen gevonden.")}</p>
@@ -360,7 +350,6 @@ export function InvoicesClient({
           sorted={sorted}
           sortBy={sortBy}
           sortOrder={sortOrder}
-          now={now}
           markingPaid={markingPaid}
           deleting={deleting}
           handleHeaderSort={handleHeaderSort}

@@ -1,15 +1,9 @@
 import { getServicePeriod, formatServicePeriod } from "./cashflow-service-period";
 import { t } from "@/lib/lang";
 import type { CashflowInvoiceFull } from "@/lib/api";
+import { formatEuro, formatDate } from "./cashflow-format";
 
-function formatEuro(n: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
-}
 
-function formatDate(ts: number | null | undefined): string {
-  if (!ts) return "";
-  return new Date(ts).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
-}
 
 // Lazy-loads @react-pdf/renderer only on click to avoid SSR issues
 export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise<Blob> {
@@ -300,7 +294,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
             <View key={line.id} style={styles.tableRow}>
               <View style={styles.colDesc}>
                 <Text style={styles.td}>{line.taskDescription}</Text>
-                {line.date ? <Text style={styles.tdMuted}>{formatDate(line.date)}</Text> : null}
+                {line.date ? <Text style={styles.tdMuted}>{formatDate(line.date, "long", "")}</Text> : null}
                 {line.type === "travel_costs" ? <Text style={styles.tdMuted}>Reiskosten</Text> : null}
                 {line.type === "discount" ? (
                   <Text style={[styles.tdMuted, { color: accentColor }]}>
@@ -343,7 +337,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Factuurdatum</Text>
-            <Text style={styles.metaValue}>{formatDate(invoice.dateCreated)}</Text>
+            <Text style={styles.metaValue}>{formatDate(invoice.dateCreated, "long", "")}</Text>
           </View>
           {servicePeriod ? (
             <View style={styles.metaRow}>
@@ -354,7 +348,7 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           {invoice.paymentDueDate ? (
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Te betalen vóór</Text>
-              <Text style={styles.metaValue}>{formatDate(invoice.paymentDueDate)}</Text>
+              <Text style={styles.metaValue}>{formatDate(invoice.paymentDueDate, "long", "")}</Text>
             </View>
           ) : null}
         </View>

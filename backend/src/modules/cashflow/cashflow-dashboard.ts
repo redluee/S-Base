@@ -1,117 +1,89 @@
-import { and, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
+import { and, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 import db from "../../db/client";
-import {
-  cashflowClients,
-  cashflowExpenses,
-  cashflowInvoiceLines,
-  cashflowInvoices,
-  cashflowProjects,
-} from "../../db/schema";
+import { cashflowClients, cashflowExpenses, cashflowInvoiceLines, cashflowInvoices } from "../../db/schema";
+import { computeInvoiceStatus, type InvoiceStatus } from "../../shared/cashflow";
+import { expenseDate } from "./cashflow-expenses";
+import { invoiceDate } from "./cashflow-invoices";
+import { periodStart } from "./cashflow-helpers";
+
+const monthOf = (timestamp: SQL<number>) =>
+  sql<string>`strftime('%Y-%m', datetime(${timestamp} / 1000, 'unixepoch', 'localtime'))`;
+const lineSum = (condition: SQL) =>
+  sql<number>`COALESCE(SUM(CASE WHEN ${condition} THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`;
+const isPaid = sql`${cashflowInvoices.status} = 'paid'`;
+const isOpen = sql`${cashflowInvoices.status} IN ('sent', 'overdue')`;
+const isDatedDraft = sql`${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL`;
+
+function within(timestamp: SQL<number>, targetYear?: number): SQL | undefined {
+  const { start, end } = periodStart(targetYear);
+  return end === undefined ? gte(timestamp, start) : and(gte(timestamp, start), lte(timestamp, end));
+}
+
+export type CashflowDashboardStats = ReturnType<CashflowDashboard["getStats"]>;
 
 export class CashflowDashboard {
   getStats(userId: number, targetYear?: number) {
-    const effectivePaidDate = sql<number>`COALESCE(${cashflowInvoices.datePaid}, ${cashflowInvoices.dateCreated}, ${cashflowInvoices.dateService}, CAST(strftime('%s', ${cashflowInvoices.createdAt}) AS INTEGER) * 1000)`;
-    const monthCol = sql<string>`strftime('%Y-%m', datetime(${effectivePaidDate} / 1000, 'unixepoch', 'localtime'))`;
-
-    let dateFilter: SQL | undefined;
-    if (targetYear) {
-      const startOfYear = new Date(targetYear, 0, 1).getTime();
-      const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999).getTime();
-      dateFilter = and(gte(effectivePaidDate, startOfYear), lte(effectivePaidDate, endOfYear));
-    } else {
-      const d = new Date();
-      const startOf12MonthsAgo = new Date(d.getFullYear(), d.getMonth() - 11, 1).getTime();
-      dateFilter = gte(effectivePaidDate, startOf12MonthsAgo);
-    }
-
+    const ownInvoice = and(eq(cashflowClients.userId, userId), within(invoiceDate, targetYear));
+    const incomeMonth = monthOf(invoiceDate);
     const monthlyIncome = db
       .select({
-        month: monthCol,
-        paid: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-        open: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-        draft: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-        expected: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} IN ('sent', 'overdue') OR (${cashflowInvoices.status} = 'draft' AND ${cashflowInvoices.dateCreated} IS NOT NULL) THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
-        total: sql<number>`COALESCE(SUM(CASE WHEN ${cashflowInvoices.status} = 'paid' THEN ${cashflowInvoiceLines.totalCost} ELSE 0 END), 0)`,
+        month: incomeMonth,
+        paid: lineSum(isPaid),
+        open: lineSum(isOpen),
+        draft: lineSum(isDatedDraft),
+        expected: lineSum(sql`(${isOpen}) OR (${isDatedDraft})`),
       })
       .from(cashflowInvoiceLines)
       .innerJoin(cashflowInvoices, eq(cashflowInvoiceLines.invoiceId, cashflowInvoices.id))
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
-      .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
       .where(
         and(
-          eq(cashflowClients.userId, userId),
+          ownInvoice,
           sql`(${cashflowInvoices.status} != 'draft' OR ${cashflowInvoices.dateCreated} IS NOT NULL OR ${cashflowInvoices.dateService} IS NOT NULL)`,
-          dateFilter,
         ),
       )
-      .groupBy(monthCol)
-      .orderBy(monthCol)
+      .groupBy(incomeMonth)
+      .orderBy(incomeMonth)
       .all();
 
-    const now = Date.now();
-    const computedStatusSql = sql<string>`
-      CASE
-        WHEN ${cashflowInvoices.status} != 'paid' AND ${cashflowInvoices.status} != 'draft' AND ${cashflowInvoices.paymentDueDate} IS NOT NULL AND ${cashflowInvoices.paymentDueDate} < ${now} THEN 'overdue'
-        ELSE ${cashflowInvoices.status}
-      END
-    `;
-
-    const statusTotals = db
+    const invoices = db
       .select({
-        status: computedStatusSql,
-        count: sql<number>`COUNT(DISTINCT ${cashflowInvoices.id})`,
+        status: cashflowInvoices.status,
+        paymentDueDate: cashflowInvoices.paymentDueDate,
+        dateCreated: cashflowInvoices.dateCreated,
         total: sql<number>`COALESCE(SUM(${cashflowInvoiceLines.totalCost}), 0)`,
       })
       .from(cashflowInvoices)
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
-      .leftJoin(cashflowProjects, eq(cashflowInvoices.projectId, cashflowProjects.id))
       .leftJoin(cashflowInvoiceLines, eq(cashflowInvoiceLines.invoiceId, cashflowInvoices.id))
-      .where(and(eq(cashflowClients.userId, userId), dateFilter))
-      .groupBy(computedStatusSql)
+      .where(ownInvoice)
+      .groupBy(cashflowInvoices.id)
       .all();
-
-    const effectiveExpenseDate = sql<number>`COALESCE(${cashflowExpenses.date}, CAST(strftime('%s', ${cashflowExpenses.createdAt}) AS INTEGER) * 1000)`;
-    const expenseMonthCol = sql<string>`strftime('%Y-%m', datetime(${effectiveExpenseDate} / 1000, 'unixepoch', 'localtime'))`;
-
-    let expenseDateFilter: SQL | undefined;
-    if (targetYear) {
-      const startOfYear = new Date(targetYear, 0, 1).getTime();
-      const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999).getTime();
-      expenseDateFilter = and(gte(effectiveExpenseDate, startOfYear), lte(effectiveExpenseDate, endOfYear));
-    } else {
-      const d = new Date();
-      const startOf12MonthsAgo = new Date(d.getFullYear(), d.getMonth() - 11, 1).getTime();
-      expenseDateFilter = gte(effectiveExpenseDate, startOf12MonthsAgo);
+    const now = Date.now();
+    const totalsByStatus = new Map<InvoiceStatus, { status: InvoiceStatus; count: number; total: number }>();
+    for (const inv of invoices) {
+      const status = computeInvoiceStatus(inv.status, inv.paymentDueDate, inv.dateCreated, now);
+      const entry = totalsByStatus.get(status) ?? { status, count: 0, total: 0 };
+      entry.count += 1;
+      entry.total += inv.total;
+      totalsByStatus.set(status, entry);
     }
 
+    const expenseMonth = monthOf(expenseDate);
     const monthlyExpenses = db
       .select({
-        month: expenseMonthCol,
+        month: expenseMonth,
         total: sql<number>`COALESCE(SUM(${cashflowExpenses.amount}), 0)`,
         count: sql<number>`COUNT(${cashflowExpenses.id})`,
       })
       .from(cashflowExpenses)
-      .where(and(eq(cashflowExpenses.userId, userId), expenseDateFilter))
-      .groupBy(expenseMonthCol)
-      .orderBy(expenseMonthCol)
-      .all();
-
-    const expensesByCategory = db
-      .select({
-        category: sql<string>`COALESCE(${cashflowExpenses.category}, 'Overig')`,
-        total: sql<number>`COALESCE(SUM(${cashflowExpenses.amount}), 0)`,
-        count: sql<number>`COUNT(${cashflowExpenses.id})`,
-      })
-      .from(cashflowExpenses)
-      .where(and(eq(cashflowExpenses.userId, userId), expenseDateFilter))
-      .groupBy(sql`COALESCE(${cashflowExpenses.category}, 'Overig')`)
-      .orderBy(desc(sql`SUM(${cashflowExpenses.amount})`))
+      .where(and(eq(cashflowExpenses.userId, userId), within(expenseDate, targetYear)))
+      .groupBy(expenseMonth)
+      .orderBy(expenseMonth)
       .all();
 
     const totalPaid12m = monthlyIncome.reduce((s, m) => s + m.paid, 0);
-    const totalExpected12m = monthlyIncome.reduce((s, m) => s + m.expected, 0);
     const totalExpenses12m = monthlyExpenses.reduce((s, m) => s + m.total, 0);
-    const netProfit12m = totalPaid12m - totalExpenses12m;
 
     const earliestRow = db.all<{ earliest_year: string | null }>(sql`
       SELECT MIN(strftime('%Y', datetime(val / 1000, 'unixepoch', 'localtime'))) as earliest_year FROM (
@@ -138,13 +110,11 @@ export class CashflowDashboard {
 
     return {
       monthlyIncome,
-      statusTotals,
+      statusTotals: [...totalsByStatus.values()],
       totalPaid12m,
-      totalExpected12m,
       monthlyExpenses,
-      expensesByCategory,
       totalExpenses12m,
-      netProfit12m,
+      netProfit12m: totalPaid12m - totalExpenses12m,
       firstRecordYear,
     };
   }

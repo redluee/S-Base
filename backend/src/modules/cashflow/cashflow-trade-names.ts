@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { cashflowTradeNames } from "../../db/schema";
-import { NotFoundError, ValidationError } from "../../utils/errors";
-import { trimOrNull } from "./cashflow-helpers";
+import { orNotFound, ValidationError } from "../../utils/errors";
+import { patchText, trimOrNull } from "./cashflow-helpers";
 import type { TradeNameInput } from "./cashflow-types";
 
 export class CashflowTradeNames {
@@ -10,10 +10,19 @@ export class CashflowTradeNames {
     return db.select().from(cashflowTradeNames).where(eq(cashflowTradeNames.userId, userId)).all();
   }
 
-  getById(id: number) {
-    const row = db.select().from(cashflowTradeNames).where(eq(cashflowTradeNames.id, id)).get();
-    if (!row) throw new NotFoundError("cashflow.tradeNameNotFound");
-    return row;
+  getById(userId: number, id: number) {
+    return orNotFound(
+      db
+        .select()
+        .from(cashflowTradeNames)
+        .where(and(eq(cashflowTradeNames.id, id), eq(cashflowTradeNames.userId, userId)))
+        .get(),
+      "cashflow.tradeNameNotFound",
+    );
+  }
+
+  ownedIdOrNull(userId: number, id: number | null | undefined): number | null {
+    return id ? this.getById(userId, id).id : null;
   }
 
   create(userId: number, data: TradeNameInput) {
@@ -33,24 +42,24 @@ export class CashflowTradeNames {
       .get();
   }
 
-  update(id: number, data: TradeNameInput) {
-    const existing = this.getById(id);
+  update(userId: number, id: number, data: TradeNameInput) {
+    const existing = this.getById(userId, id);
     return db
       .update(cashflowTradeNames)
       .set({
-        displayName: data.displayName?.trim() ?? existing.displayName,
-        address: data.address !== undefined ? trimOrNull(data.address) : existing.address,
-        iban: data.iban !== undefined ? trimOrNull(data.iban) : existing.iban,
-        kvkNumber: data.kvkNumber !== undefined ? trimOrNull(data.kvkNumber) : existing.kvkNumber,
-        vatNumber: data.vatNumber !== undefined ? trimOrNull(data.vatNumber) : existing.vatNumber,
+        displayName: data.displayName?.trim() || existing.displayName,
+        address: patchText(data.address, existing.address),
+        iban: patchText(data.iban, existing.iban),
+        kvkNumber: patchText(data.kvkNumber, existing.kvkNumber),
+        vatNumber: patchText(data.vatNumber, existing.vatNumber),
       })
       .where(eq(cashflowTradeNames.id, id))
       .returning()
       .get();
   }
 
-  remove(id: number) {
-    this.getById(id);
+  remove(userId: number, id: number) {
+    this.getById(userId, id);
     db.delete(cashflowTradeNames).where(eq(cashflowTradeNames.id, id)).run();
     return { deleted: true };
   }

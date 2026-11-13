@@ -8,12 +8,13 @@ import type { CashflowProject, CashflowClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { FolderOpen, Plus, Pencil, Trash2, FileText, Euro, AlertTriangle, X } from "lucide-react";
+import { formatEuro } from "../cashflow-format";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
-function formatEuro(amount: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
-}
 
 export function ProjectsClient({ initialProjects, initialClients }: { initialProjects: CashflowProject[]; initialClients: CashflowClient[] }) {
+  const { error: actionError, report } = useActionError();
   const [projects, setProjects] = useState<CashflowProject[]>(initialProjects);
   const clients = initialClients;
   const [filterClient, setFilterClient] = useState("");
@@ -37,7 +38,9 @@ export function ProjectsClient({ initialProjects, initialClients }: { initialPro
       await api.cashflow.projects.delete(projId, deleteInvoicesChoice);
       setProjects(prev => prev.filter(p => p.id !== projId));
       setDeleteModalProject(null);
-    } catch {} finally {
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally {
       setDeleting(null);
     }
   }
@@ -49,6 +52,7 @@ export function ProjectsClient({ initialProjects, initialClients }: { initialPro
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-5">
+      <InlineAlert>{actionError}</InlineAlert>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2"><FolderOpen className="size-5 text-blue-400" />{t("Projecten")}</h1>

@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { cashflow, cashflowAuth } from "../context";
+import { DISCOUNT_TYPES, INVOICE_LINE_TYPES, INVOICE_STATUSES } from "../shared/cashflow";
 import { ATTACHMENT_EXTENSIONS, saveUpload } from "../utils/uploads";
 
 const idParams = t.Object({ id: t.Numeric() });
@@ -28,14 +29,16 @@ const projectFields = {
   location: optionalText,
 };
 
+const literals = <T extends string>(values: readonly T[]) => t.Union(values.map((v) => t.Literal(v)));
+const invoiceStatus = literals(INVOICE_STATUSES);
+
 const invoiceLine = t.Object({
   taskDescription: t.String(),
   date: optionalNumber,
-  quantity: t.Optional(t.Number()),
-  unitPrice: t.Optional(t.Number()),
-  totalCost: t.Number(),
-  type: t.Optional(t.String()),
-  discountType: optionalText,
+  quantity: optionalNumber,
+  unitPrice: optionalNumber,
+  type: literals(INVOICE_LINE_TYPES),
+  discountType: t.Optional(t.Nullable(literals(DISCOUNT_TYPES))),
   discountValue: optionalNumber,
 });
 
@@ -47,7 +50,7 @@ const invoiceFields = {
   dateService: optionalNumber,
   paymentDueDate: optionalNumber,
   datePaid: optionalNumber,
-  status: t.Optional(t.String()),
+  status: t.Optional(invoiceStatus),
   isKor: t.Optional(t.Boolean()),
   lines: t.Optional(t.Array(invoiceLine)),
 };
@@ -68,11 +71,13 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
     .post("/trade-names", ({ userId, body }) => cashflow.tradeNames.create(userId, body), {
       body: t.Object({ displayName: t.String(), ...tradeNameFields }),
     })
-    .put("/trade-names/:id", ({ params: { id }, body }) => cashflow.tradeNames.update(id, body), {
+    .put("/trade-names/:id", ({ params: { id }, body, userId }) => cashflow.tradeNames.update(userId, id, body), {
       params: idParams,
       body: t.Object({ displayName: t.Optional(t.String()), ...tradeNameFields }),
     })
-    .delete("/trade-names/:id", ({ params: { id } }) => cashflow.tradeNames.remove(id), { params: idParams })
+    .delete("/trade-names/:id", ({ params: { id }, userId }) => cashflow.tradeNames.remove(userId, id), {
+      params: idParams,
+    })
     .get("/clients", ({ userId }) => cashflow.clients.list(userId))
     .post("/clients", ({ userId, body }) => cashflow.clients.create(userId, body), {
       body: t.Object({ name: t.String(), ...clientFields }),
@@ -85,40 +90,38 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
       },
       { body: t.Object({ file: t.File() }) },
     )
-    .get("/clients/:id", ({ params: { id } }) => cashflow.clients.getById(id), { params: idParams })
-    .put("/clients/:id", ({ params: { id }, body }) => cashflow.clients.update(id, body), {
+    .get("/clients/:id", ({ params: { id }, userId }) => cashflow.clients.getById(userId, id), { params: idParams })
+    .put("/clients/:id", ({ params: { id }, body, userId }) => cashflow.clients.update(userId, id, body), {
       params: idParams,
       body: t.Object({ name: t.Optional(t.String()), ...clientFields }),
     })
-    .delete("/clients/:id", ({ params: { id } }) => cashflow.clients.remove(id), { params: idParams })
+    .delete("/clients/:id", ({ params: { id }, userId }) => cashflow.clients.remove(userId, id), { params: idParams })
     .get("/projects", ({ userId, query }) => cashflow.projects.list(userId, query.clientId), {
       query: t.Object({ clientId: t.Optional(t.Numeric()) }),
     })
-    .post("/projects", ({ body }) => cashflow.projects.create(body), {
+    .post("/projects", ({ body, userId }) => cashflow.projects.create(userId, body), {
       body: t.Object({ clientId: t.Number(), name: t.String(), ...projectFields }),
     })
-    .get("/projects/:id", ({ params: { id } }) => cashflow.projects.getById(id), { params: idParams })
-    .put("/projects/:id", ({ params: { id }, body }) => cashflow.projects.update(id, body), {
+    .get("/projects/:id", ({ params: { id }, userId }) => cashflow.projects.getById(userId, id), { params: idParams })
+    .put("/projects/:id", ({ params: { id }, body, userId }) => cashflow.projects.update(userId, id, body), {
       params: idParams,
       body: t.Object({ clientId: t.Optional(t.Number()), name: t.Optional(t.String()), ...projectFields }),
     })
     .delete(
       "/projects/:id",
-      ({ params: { id }, query }) => cashflow.projects.remove(id, query.deleteInvoices === "true"),
+      ({ params: { id }, query, userId }) => cashflow.projects.remove(userId, id, query.deleteInvoices ?? false),
       {
         params: idParams,
-        query: t.Object({ deleteInvoices: t.Optional(t.String()) }),
+        query: t.Object({ deleteInvoices: t.Optional(t.BooleanString()) }),
       },
     )
-    .get("/invoices/next-number", ({ userId }) => ({
-      invoiceNumber: cashflow.invoices.generateNumber(userId, new Date().getFullYear()),
-    }))
+    .get("/invoices/next-number", ({ userId }) => ({ invoiceNumber: cashflow.invoices.nextNumber(userId) }))
     .get(
       "/invoices",
       ({ userId, query }) => cashflow.invoices.list(userId, query.status, query.projectId, query.clientId),
       {
         query: t.Object({
-          status: t.Optional(t.String()),
+          status: t.Optional(invoiceStatus),
           projectId: t.Optional(t.Numeric()),
           clientId: t.Optional(t.Numeric()),
         }),
@@ -131,8 +134,8 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
         ...invoiceFields,
       }),
     })
-    .get("/invoices/:id", ({ params: { id } }) => cashflow.invoices.getById(id), { params: idParams })
-    .put("/invoices/:id", ({ params: { id }, body }) => cashflow.invoiceWrites.update(id, body), {
+    .get("/invoices/:id", ({ params: { id }, userId }) => cashflow.invoices.getById(userId, id), { params: idParams })
+    .put("/invoices/:id", ({ params: { id }, body, userId }) => cashflow.invoiceWrites.update(userId, id, body), {
       params: idParams,
       body: t.Object({
         invoiceNumber: t.Optional(t.String()),
@@ -140,20 +143,28 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
         ...invoiceFields,
       }),
     })
-    .delete("/invoices/:id", ({ params: { id } }) => cashflow.invoices.remove(id), { params: idParams })
-    .patch("/invoices/:id/paid", ({ params: { id }, body }) => cashflow.invoices.markAsPaid(id, body?.datePaid), {
-      params: idParams,
-      body: t.Optional(t.Object({ datePaid: optionalNumber })),
-    })
-    .post("/invoices/:id/send-email", ({ params: { id }, body }) => cashflow.invoiceEmail.send(id, body), {
-      params: idParams,
-      body: t.Object({
-        to: t.String(),
-        subject: t.String(),
-        message: t.String(),
-        pdfBase64: t.String(),
-      }),
-    })
+    .delete("/invoices/:id", ({ params: { id }, userId }) => cashflow.invoices.remove(userId, id), { params: idParams })
+    .patch(
+      "/invoices/:id/paid",
+      ({ params: { id }, body, userId }) => cashflow.invoices.markAsPaid(userId, id, body?.datePaid),
+      {
+        params: idParams,
+        body: t.Optional(t.Object({ datePaid: optionalNumber })),
+      },
+    )
+    .post(
+      "/invoices/:id/send-email",
+      ({ params: { id }, body, userId }) => cashflow.invoiceEmail.send(userId, id, body),
+      {
+        params: idParams,
+        body: t.Object({
+          to: t.String(),
+          subject: t.String(),
+          message: t.String(),
+          pdfBase64: t.String(),
+        }),
+      },
+    )
     .get("/expenses", ({ userId, query }) => cashflow.expenses.list(userId, query), {
       query: t.Object({
         year: t.Optional(t.Numeric()),
@@ -164,12 +175,12 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
     .post("/expenses", ({ userId, body }) => cashflow.expenses.create(userId, body), {
       body: t.Object({ description: t.String(), amount: t.Number(), ...expenseFields }),
     })
-    .get("/expenses/:id", ({ params: { id } }) => cashflow.expenses.getById(id), { params: idParams })
-    .put("/expenses/:id", ({ params: { id }, body }) => cashflow.expenses.update(id, body), {
+    .get("/expenses/:id", ({ params: { id }, userId }) => cashflow.expenses.getById(userId, id), { params: idParams })
+    .put("/expenses/:id", ({ params: { id }, body, userId }) => cashflow.expenses.update(userId, id, body), {
       params: idParams,
       body: t.Object({ description: t.Optional(t.String()), amount: t.Optional(t.Number()), ...expenseFields }),
     })
-    .delete("/expenses/:id", ({ params: { id } }) => cashflow.expenses.remove(id), { params: idParams })
+    .delete("/expenses/:id", ({ params: { id }, userId }) => cashflow.expenses.remove(userId, id), { params: idParams })
     .get("/dashboard", ({ userId, query }) => cashflow.dashboard.getStats(userId, query.year), {
       query: t.Object({ year: t.Optional(t.Numeric()) }),
     }),

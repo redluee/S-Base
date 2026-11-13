@@ -7,30 +7,26 @@ import {
   cashflowProjects,
   cashflowTradeNames,
 } from "../../db/schema";
-import { NotFoundError } from "../../utils/errors";
-import { computeInvoiceStatus, isInvoiceStatus } from "./cashflow-helpers";
+import { computeInvoiceStatus, type InvoiceStatus } from "../../shared/cashflow";
+import { NotFoundError, orNotFound } from "../../utils/errors";
+
+export const invoiceDate = sql<number>`COALESCE(${cashflowInvoices.datePaid}, ${cashflowInvoices.dateCreated}, ${cashflowInvoices.dateService}, CAST(strftime('%s', ${cashflowInvoices.createdAt}) AS INTEGER) * 1000)`;
+const invoiceNumberSequence = sql<number>`MAX(CAST(SUBSTR(${cashflowInvoices.invoiceNumber}, 6) AS INTEGER))`;
 
 export class CashflowInvoices {
-  generateNumber(userId: number, year: number): string {
-    const yearStr = String(year);
+  nextNumber(userId: number, year = new Date().getFullYear()): string {
     const latest = db
-      .select({ invoiceNumber: cashflowInvoices.invoiceNumber })
+      .select({ sequence: invoiceNumberSequence })
       .from(cashflowInvoices)
       .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
-      .where(and(eq(cashflowClients.userId, userId), like(cashflowInvoices.invoiceNumber, `${yearStr}-%`)))
-      .orderBy(desc(cashflowInvoices.invoiceNumber))
-      .limit(1)
+      .where(and(eq(cashflowClients.userId, userId), like(cashflowInvoices.invoiceNumber, `${year}-%`)))
       .get();
-
-    if (!latest) return `${yearStr}-001`;
-    const parts = latest.invoiceNumber.split("-");
-    const num = parseInt(parts[1], 10) + 1;
-    return `${yearStr}-${String(num).padStart(3, "0")}`;
+    return `${year}-${String((latest?.sequence ?? 0) + 1).padStart(3, "0")}`;
   }
 
-  list(userId: number, status?: string, projectId?: number, clientId?: number) {
+  list(userId: number, status?: InvoiceStatus, projectId?: number, clientId?: number) {
     const conditions: SQL[] = [eq(cashflowClients.userId, userId)];
-    if (isInvoiceStatus(status)) conditions.push(eq(cashflowInvoices.status, status));
+    if (status) conditions.push(eq(cashflowInvoices.status, status));
     if (projectId) conditions.push(eq(cashflowInvoices.projectId, projectId));
     if (clientId) conditions.push(eq(cashflowInvoices.clientId, clientId));
 
@@ -51,6 +47,7 @@ export class CashflowInvoices {
         clientName: cashflowClients.name,
         tradeNameDisplay: cashflowTradeNames.displayName,
         createdAt: cashflowInvoices.createdAt,
+        bookedAt: invoiceDate,
         total: sql<number>`(SELECT COALESCE(SUM(total_cost), 0) FROM cashflow_invoice_lines WHERE invoice_id = ${cashflowInvoices.id})`,
       })
       .from(cashflowInvoices)
@@ -71,7 +68,7 @@ export class CashflowInvoices {
     }));
   }
 
-  getById(id: number) {
+  getById(userId: number, id: number) {
     const row = db
       .select({
         id: cashflowInvoices.id,
@@ -106,7 +103,7 @@ export class CashflowInvoices {
         cashflowTradeNames,
         eq(sql`COALESCE(${cashflowInvoices.tradeNameId}, ${cashflowProjects.tradeNameId})`, cashflowTradeNames.id),
       )
-      .where(eq(cashflowInvoices.id, id))
+      .where(and(eq(cashflowInvoices.id, id), eq(cashflowClients.userId, userId)))
       .get();
 
     if (!row) throw new NotFoundError("cashflow.invoiceNotFound");
@@ -117,24 +114,27 @@ export class CashflowInvoices {
     return { ...row, status, lines, total };
   }
 
-  findRow(id: number) {
-    const row = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, id)).get();
-    if (!row) throw new NotFoundError("cashflow.invoiceNotFound");
-    return row;
+  requireOwned(userId: number, id: number) {
+    const row = db
+      .select({ invoice: cashflowInvoices })
+      .from(cashflowInvoices)
+      .innerJoin(cashflowClients, eq(cashflowInvoices.clientId, cashflowClients.id))
+      .where(and(eq(cashflowInvoices.id, id), eq(cashflowClients.userId, userId)))
+      .get();
+    return orNotFound(row, "cashflow.invoiceNotFound").invoice;
   }
 
-  markAsPaid(id: number, datePaid?: number | null) {
-    const existing = this.findRow(id);
-    const finalDatePaid = datePaid !== undefined ? datePaid : (existing.datePaid ?? Date.now());
+  markAsPaid(userId: number, id: number, datePaid?: number | null) {
+    const existing = this.requireOwned(userId, id);
     db.update(cashflowInvoices)
-      .set({ status: "paid", datePaid: finalDatePaid })
+      .set({ status: "paid", datePaid: datePaid !== undefined ? datePaid : (existing.datePaid ?? Date.now()) })
       .where(eq(cashflowInvoices.id, id))
       .run();
-    return this.getById(id);
+    return this.getById(userId, id);
   }
 
-  remove(id: number) {
-    this.findRow(id);
+  remove(userId: number, id: number) {
+    this.requireOwned(userId, id);
     db.delete(cashflowInvoices).where(eq(cashflowInvoices.id, id)).run();
     return { deleted: true };
   }

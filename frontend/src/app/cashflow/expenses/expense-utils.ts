@@ -1,3 +1,5 @@
+import { DEFAULT_EXPENSE_CATEGORY } from "@backend/shared/cashflow";
+
 export const DEFAULT_CATEGORIES = [
   "Software & Abonnementen",
   "Hardware & Apparatuur",
@@ -5,19 +7,8 @@ export const DEFAULT_CATEGORIES = [
   "Reiskosten",
   "Marketing & Verkoop",
   "Administratie & Verzekeringen",
-  "Overig",
+  DEFAULT_EXPENSE_CATEGORY,
 ];
 
-export function formatEuro(amount: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
-}
 
-export function formatDate(timestamp: number | null | undefined) {
-  if (!timestamp) return "-";
-  return new Date(timestamp).toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 

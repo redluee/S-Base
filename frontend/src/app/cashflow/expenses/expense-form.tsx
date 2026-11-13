@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { DEFAULT_CATEGORIES } from "./expense-utils";
+import { DEFAULT_EXPENSE_CATEGORY } from "@backend/shared/cashflow";
 
 export function ExpenseForm({
   initial,
@@ -90,7 +91,7 @@ export function ExpenseForm({
     }
 
     setError("");
-    const finalCategory = isCustomCategory ? customCategory.trim() || t("Overig") : category;
+    const finalCategory = isCustomCategory ? customCategory.trim() || DEFAULT_EXPENSE_CATEGORY : category;
     const dateTimestamp = date ? new Date(date).getTime() : Date.now();
 
     onSave({

@@ -198,157 +198,16 @@ export interface Wine {
   createdAt: string;
 }
 
-export interface CashflowTradeName {
-  id: number;
-  userId: number;
-  displayName: string;
-  address: string | null;
-  iban: string | null;
-  kvkNumber: string | null;
-  vatNumber: string | null;
-  createdAt: string;
-}
-
-export interface CashflowClient {
-  id: number;
-  userId: number;
-  name: string;
-  address: string | null;
-  email: string | null;
-  kvkNumber: string | null;
-  standardRate: number | null;
-  contractPdfPath?: string | null;
-  contractPdfName?: string | null;
-  createdAt: string;
-}
-
-export interface CashflowProject {
-  id: number;
-  name: string;
-  description: string | null;
-  location: string | null;
-  createdAt: string;
-  clientId: number;
-  clientName: string;
-  clientEmail: string | null;
-  tradeNameId: number | null;
-  tradeNameDisplay: string | null;
-  invoiceCount: number;
-  totalBilled: number;
-}
-
-export interface CashflowProjectDetail {
-  id: number;
-  name: string;
-  description: string | null;
-  location: string | null;
-  createdAt: string;
-  clientId: number;
-  clientName: string;
-  clientAddress: string | null;
-  clientEmail: string | null;
-  clientKvk: string | null;
-  standardRate: number | null;
-  tradeNameId: number | null;
-  tradeNameDisplay: string | null;
-  tradeNameAddress: string | null;
-  tradeNameIban: string | null;
-  tradeNameKvk: string | null;
-}
-
-export interface CashflowInvoiceLine {
-  id: number;
-  invoiceId: number;
-  date?: number | null;
-  taskDescription: string;
-  quantity: number;
-  unitPrice: number;
-  totalCost: number;
-  type: "hours" | "service" | "travel_costs" | "discount";
-  discountType: "percentage" | "amount" | null;
-  discountValue: number | null;
-}
-
-export interface CashflowInvoiceSummary {
-  id: number;
-  invoiceNumber: string;
-  name?: string | null;
-  status: "draft" | "sent" | "paid" | "overdue";
-  dateCreated: number | null;
-  dateService: number | null;
-  paymentDueDate: number | null;
-  datePaid?: number | null;
-  isKor: boolean;
-  projectId: number | null;
-  projectName: string | null;
-  clientId: number;
-  clientName: string;
-  tradeNameDisplay: string | null;
-  total: number;
-  createdAt: string;
-}
-
-export interface CashflowInvoiceFull extends CashflowInvoiceSummary {
-  projectLocation: string | null;
-  clientAddress: string | null;
-  clientEmail: string | null;
-  clientKvk: string | null;
-  tradeNameId: number | null;
-  tradeNameAddress: string | null;
-  tradeNameIban: string | null;
-  tradeNameKvk: string | null;
-  tradeNameVat: string | null;
-  lines: CashflowInvoiceLine[];
-  total: number;
-  createdAt: string;
-}
-
-export interface CashflowExpense {
-  id: number;
-  userId: number;
-  description: string;
-  category: string | null;
-  amount: number;
-  date: number | null;
-  tradeNameId: number | null;
-  tradeNameDisplay: string | null;
-  receiptPdfPath: string | null;
-  receiptPdfName: string | null;
-  notes: string | null;
-  createdAt: string;
-}
-
-export interface CashflowMonthlyExpense {
-  month: string;
-  total: number;
-  count: number;
-}
-
-export interface CashflowExpenseCategory {
-  category: string;
-  total: number;
-  count: number;
-}
-
-export interface CashflowMonthlyIncome {
-  month: string;
-  total: number;
-  paid: number;
-  expected: number;
-  draft?: number;
-  open?: number;
-}
-
-export interface CashflowDashboardStats {
-  monthlyIncome: CashflowMonthlyIncome[];
-  statusTotals: { status: string; count: number; total: number }[];
-  totalPaid12m: number;
-  totalExpected12m?: number;
-  monthlyExpenses?: CashflowMonthlyExpense[];
-  expensesByCategory?: CashflowExpenseCategory[];
-  totalExpenses12m?: number;
-  netProfit12m?: number;
-  firstRecordYear?: number;
-}
 
 
+export type {
+  CashflowClient,
+  CashflowDashboardStats,
+  CashflowExpense,
+  CashflowInvoiceFull,
+  CashflowInvoiceLine,
+  CashflowInvoiceSummary,
+  CashflowProject,
+  CashflowProjectDetail,
+  CashflowTradeName,
+} from "@backend/types/cashflow";

@@ -7,15 +7,13 @@ import { CashflowInvoices } from "./cashflow-invoices";
 import { CashflowProjects } from "./cashflow-projects";
 import { CashflowTradeNames } from "./cashflow-trade-names";
 
-export { INVOICE_STATUSES } from "./cashflow-helpers";
-
 export class CashflowService {
   readonly tradeNames = new CashflowTradeNames();
   readonly clients = new CashflowClients();
-  readonly projects = new CashflowProjects();
+  readonly projects = new CashflowProjects(this.clients, this.tradeNames);
   readonly invoices = new CashflowInvoices();
-  readonly invoiceWrites = new CashflowInvoiceWrites(this.invoices, this.projects);
+  readonly invoiceWrites = new CashflowInvoiceWrites(this.invoices, this.clients, this.projects, this.tradeNames);
   readonly invoiceEmail = new CashflowInvoiceEmail(this.invoices);
-  readonly expenses = new CashflowExpenses();
+  readonly expenses = new CashflowExpenses(this.tradeNames);
   readonly dashboard = new CashflowDashboard();
 }

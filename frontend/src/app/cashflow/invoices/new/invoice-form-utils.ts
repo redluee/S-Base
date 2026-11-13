@@ -1,5 +1,7 @@
-export type LineType = "hours" | "service" | "travel_costs" | "discount";
-export type DiscountType = "percentage" | "amount";
+import { lineTotals, type DiscountType, type InvoiceLineType as LineType } from "@backend/shared/cashflow";
+import type { InvoiceLineInput } from "@backend/types/cashflow";
+
+export type { DiscountType, LineType };
 
 export interface InvoiceLine {
   localId: string;
@@ -30,33 +32,23 @@ export function addDays(dateStr: string, days: number): string {
   return d.toISOString().split("T")[0];
 }
 
-export function formatEuro(n: number) {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
+
+const numberOrNull = (value: number | "") => (value === "" ? null : Number(value));
+
+export function toLineInput(line: InvoiceLine): InvoiceLineInput {
+  const isDiscount = line.type === "discount";
+  return {
+    taskDescription: line.taskDescription,
+    date: toTs(line.date),
+    type: line.type,
+    quantity: isDiscount ? null : numberOrNull(line.quantity),
+    unitPrice: isDiscount ? null : numberOrNull(line.unitPrice),
+    discountType: isDiscount ? line.discountType : null,
+    discountValue: isDiscount ? numberOrNull(line.discountValue) : null,
+  };
 }
 
-export function recalculateLines(rawLines: InvoiceLine[]): InvoiceLine[] {
-  const nonDiscountSubtotal = rawLines
-    .filter(l => l.type !== "discount")
-    .reduce((sum, l) => {
-      const q = l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity);
-      const p = l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice);
-      return sum + (q * p);
-    }, 0);
-
-  return rawLines.map(l => {
-    if (l.type === "discount") {
-      let cost = 0;
-      const val = Number(l.discountValue) || 0;
-      if (l.discountType === "percentage") {
-        cost = -1 * (nonDiscountSubtotal * (val / 100));
-      } else {
-        cost = -1 * Math.abs(val);
-      }
-      return { ...l, totalCost: cost };
-    } else {
-      const q = l.quantity === "" || l.quantity === 0 || l.quantity === undefined ? 1 : Number(l.quantity);
-      const p = l.unitPrice === "" || l.unitPrice === undefined ? 0 : Number(l.unitPrice);
-      return { ...l, totalCost: q * p };
-    }
-  });
+export function recalculateLines(lines: InvoiceLine[]): InvoiceLine[] {
+  const totals = lineTotals(lines.map(toLineInput));
+  return lines.map((line, i) => ({ ...line, totalCost: totals[i] }));
 }

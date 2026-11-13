@@ -55,7 +55,7 @@ describe("cashflow routes error contract", () => {
       invoiceNumber: "2026-901",
       status: "draft",
       isKor: true,
-      lines: [{ taskDescription: "Work", totalCost: 10 }],
+      lines: [{ taskDescription: "Work", quantity: 1, unitPrice: 10, type: "hours" }],
     };
     const created = await call(cookie, "POST", "/api/cashflow/invoices", invoice);
     expect(created.status).toBe(200);
@@ -67,7 +67,7 @@ describe("cashflow routes error contract", () => {
     const id = ((await created.json()) as { id: number }).id;
     const badStatus = await call(cookie, "PUT", `/api/cashflow/invoices/${id}`, { status: "bogus" });
     expect(badStatus.status).toBe(400);
-    expect(await badStatus.json()).toEqual({ error: "cashflow.invalidStatus" });
+    expect(await badStatus.json()).toEqual({ error: "common.invalidRequest" });
 
     const email = await call(cookie, "POST", `/api/cashflow/invoices/${id}/send-email`, {
       to: "",
@@ -139,7 +139,6 @@ describe("cashflow routes error contract", () => {
           date: null,
           quantity: 1,
           unitPrice: 0,
-          totalCost: -5,
           type: "discount",
           discountType: "amount",
           discountValue: 5,

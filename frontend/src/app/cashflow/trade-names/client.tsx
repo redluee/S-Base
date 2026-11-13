@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Plus, Pencil, Trash2, X, Check, CreditCard, Hash } from "lucide-react";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 function TradeNameForm({
   initial,
@@ -73,6 +75,7 @@ function TradeNameForm({
 }
 
 export function TradeNamesClient({ initialItems }: { initialItems: CashflowTradeName[] }) {
+  const { error: actionError, report } = useActionError();
   const [items, setItems] = useState<CashflowTradeName[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -91,7 +94,9 @@ export function TradeNamesClient({ initialItems }: { initialItems: CashflowTrade
         setItems(prev => [...prev, created]);
       }
       setShowForm(false); setEditing(null);
-    } catch {} finally { setSaving(false); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setSaving(false); }
   }
 
   async function handleDelete(id: number) {
@@ -99,11 +104,14 @@ export function TradeNamesClient({ initialItems }: { initialItems: CashflowTrade
     try {
       await api.cashflow.tradeNames.delete(id);
       setItems(prev => prev.filter(i => i.id !== id));
-    } catch {} finally { setDeleting(null); }
+    } catch (err) {
+      report(err, "cashflow.actionFailed");
+    } finally { setDeleting(null); }
   }
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-5">
+      <InlineAlert>{actionError}</InlineAlert>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2"><Building2 className="size-5 text-blue-400" />{t("Handelsnamen")}</h1>

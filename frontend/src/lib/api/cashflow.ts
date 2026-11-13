@@ -1,4 +1,5 @@
 import { request, requestForm } from "./core";
+import type { InvoiceStatus } from "@backend/shared/cashflow";
 import type {
   CashflowClient,
   CashflowDashboardStats,
@@ -9,19 +10,26 @@ import type {
   CashflowProjectDetail,
   CashflowTradeName,
 } from "./types";
+import type {
+  ClientInput,
+  ExpenseInput,
+  InvoiceInput,
+  ProjectInput,
+  TradeNameInput,
+} from "@backend/types/cashflow";
 
 export const cashflowApi = {
   tradeNames: {
     list: () => request<CashflowTradeName[]>("/cashflow/trade-names"),
-    create: (data: unknown) => request<CashflowTradeName>("/cashflow/trade-names", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: unknown) => request<CashflowTradeName>(`/cashflow/trade-names/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: TradeNameInput) => request<CashflowTradeName>("/cashflow/trade-names", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: TradeNameInput) => request<CashflowTradeName>(`/cashflow/trade-names/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/trade-names/${id}`, { method: "DELETE" }),
   },
   clients: {
     list: () => request<CashflowClient[]>("/cashflow/clients"),
     get: (id: number) => request<CashflowClient>(`/cashflow/clients/${id}`),
-    create: (data: unknown) => request<CashflowClient>("/cashflow/clients", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: unknown) => request<CashflowClient>(`/cashflow/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: ClientInput) => request<CashflowClient>("/cashflow/clients", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: ClientInput) => request<CashflowClient>(`/cashflow/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/clients/${id}`, { method: "DELETE" }),
   },
   upload: async (file: File | Blob, fileName?: string) => {
@@ -37,12 +45,12 @@ export const cashflowApi = {
       return request<CashflowProject[]>(`/cashflow/projects${qs ? `?${qs}` : ""}`);
     },
     get: (id: number) => request<CashflowProjectDetail>(`/cashflow/projects/${id}`),
-    create: (data: unknown) => request<CashflowProject>("/cashflow/projects", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: unknown) => request<CashflowProject>(`/cashflow/projects/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: ProjectInput) => request<CashflowProject>("/cashflow/projects", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: ProjectInput) => request<CashflowProject>(`/cashflow/projects/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number, deleteInvoices?: boolean) => request<{ deleted: boolean }>(`/cashflow/projects/${id}${deleteInvoices ? "?deleteInvoices=true" : ""}`, { method: "DELETE" }),
   },
   invoices: {
-    list: (status?: string, projectId?: number, clientId?: number) => {
+    list: (status?: InvoiceStatus, projectId?: number, clientId?: number) => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (projectId) params.set("projectId", String(projectId));
@@ -52,8 +60,8 @@ export const cashflowApi = {
     },
     get: (id: number) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}`),
     nextNumber: () => request<{ invoiceNumber: string }>("/cashflow/invoices/next-number"),
-    create: (data: unknown) => request<CashflowInvoiceFull>("/cashflow/invoices", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: unknown) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: InvoiceInput) => request<CashflowInvoiceFull>("/cashflow/invoices", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: InvoiceInput) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/invoices/${id}`, { method: "DELETE" }),
     markAsPaid: (id: number, datePaid?: number) => request<CashflowInvoiceFull>(`/cashflow/invoices/${id}/paid`, { method: "PATCH", body: datePaid !== undefined ? JSON.stringify({ datePaid }) : undefined }),
     sendEmail: (id: number, data: { to: string; subject: string; message: string; pdfBase64: string }) =>
@@ -69,8 +77,8 @@ export const cashflowApi = {
       return request<CashflowExpense[]>(`/cashflow/expenses${qs ? `?${qs}` : ""}`);
     },
     get: (id: number) => request<CashflowExpense>(`/cashflow/expenses/${id}`),
-    create: (data: unknown) => request<CashflowExpense>("/cashflow/expenses", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: unknown) => request<CashflowExpense>(`/cashflow/expenses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: ExpenseInput) => request<CashflowExpense>("/cashflow/expenses", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: ExpenseInput) => request<CashflowExpense>(`/cashflow/expenses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/expenses/${id}`, { method: "DELETE" }),
   },
   dashboard: (year?: number) => request<CashflowDashboardStats>(year ? `/cashflow/dashboard?year=${year}` : "/cashflow/dashboard"),
