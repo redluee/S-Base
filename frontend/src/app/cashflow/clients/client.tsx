@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import type { CashflowClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,8 +139,8 @@ function ClientForm({
       const res = await api.cashflow.upload(file, file.name);
       setContractPdfPath(res.filePath);
       setContractPdfName(file.name || res.originalName || t("Contract.pdf"));
-    } catch {
-      setError(t("PDF uploaden mislukt"));
+    } catch (err) {
+      setError(apiErrorMessage(err, "PDF uploaden mislukt"));
     } finally {
       setUploadingContract(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

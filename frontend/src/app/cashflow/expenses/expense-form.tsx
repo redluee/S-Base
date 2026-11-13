@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { t } from "@/lib/lang";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import type { CashflowExpense, CashflowTradeName } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,8 +65,8 @@ export function ExpenseForm({
       const res = await api.cashflow.upload(file, file.name);
       setReceiptPdfPath(res.filePath);
       setReceiptPdfName(file.name || res.originalName || t("Bon.pdf"));
-    } catch {
-      setError(t("Bestand uploaden mislukt"));
+    } catch (err) {
+      setError(apiErrorMessage(err, "Bestand uploaden mislukt"));
     } finally {
       setUploadingReceipt(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
