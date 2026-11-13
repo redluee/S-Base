@@ -47,7 +47,7 @@ export const GC_PROFILES: GcProfile[] = [
     label: "Aikar's Flags (G1GC)",
     badge: "Aanbevolen",
     badgeType: "brand",
-    description: "Geoptimaliseerd voor Minecraft tick-consistentie en minimale GC-pauzes.",
+    description: "Optimized for Minecraft tick consistency and low GC latency.",
     flags: AIKAR_FLAGS_STRING,
   },
   {
@@ -55,21 +55,21 @@ export const GC_PROFILES: GcProfile[] = [
     label: "Generational ZGC",
     badge: "Java 21+",
     badgeType: "info",
-    description: "Ultra-lage latentie (<1ms GC-pauzes) voor consistente tick-tijden op Java 21+.",
+    description: "Ultra-low latency garbage collection (<1ms) on Java 21+.",
     flags: ZGC_FLAGS_STRING,
   },
   {
     id: "standard",
-    label: "Standaard JVM",
+    label: "Standard JVM",
     badgeType: "neutral",
-    description: "Standaard JVM garbage collection zonder specifieke Minecraft-optimalisaties.",
+    description: "Standard JVM garbage collection without Minecraft-specific tuning.",
     flags: "",
   },
   {
     id: "custom",
-    label: "Aangepast",
+    label: "Custom",
     badgeType: "neutral",
-    description: "Volledige handmatige controle over alle JVM- en GC-parameters.",
+    description: "Full manual control over all JVM and GC parameters.",
     flags: "",
   },
 ];
@@ -329,7 +329,7 @@ export function JavaMemorySelector({
               {t("Garbage Collector & Performance")}
             </Label>
             <span className="text-[11px] text-zinc-400 font-mono">
-              {currentGc?.label ?? t("Custom")}
+              {t(currentGc?.label ?? "Custom")}
             </span>
           </div>
           <p className="text-xs text-zinc-400">
@@ -418,12 +418,12 @@ export function JavaMemorySelector({
           </div>
           {selectedGc === "aikar" && (
             <span className="text-[10px] text-brand/80 font-mono flex items-center gap-1">
-              <ShieldCheck className="size-3" /> Aikar Flags Active
+              <ShieldCheck className="size-3" /> {t("Aikar Flags Active")}
             </span>
           )}
           {selectedGc === "zgc" && (
             <span className="text-[10px] text-sky-400/80 font-mono flex items-center gap-1">
-              <Zap className="size-3" /> GenZGC Active
+              <Zap className="size-3" /> {t("GenZGC Active")}
             </span>
           )}
         </div>
