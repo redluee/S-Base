@@ -4,20 +4,19 @@ import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { WorkoutTemplate } from "@backend/types/shared";
+import type { WorkoutTemplate } from "@backend/types/workout";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, ChevronRight } from "lucide-react";
 
-type TemplateListItem = WorkoutTemplate & { exerciseCount?: number };
 
-export function WorkoutTemplateList({ templates: initialTemplates, actions }: { templates: TemplateListItem[]; actions: ReactNode }) {
+export function WorkoutTemplateList({ templates: initialTemplates, actions }: { templates: WorkoutTemplate[]; actions: ReactNode }) {
   const router = useRouter();
   const [templates, setTemplates] = useState(initialTemplates);
   const [reordering, setReordering] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
 
-  async function saveOrder(next: TemplateListItem[]) {
+  async function saveOrder(next: WorkoutTemplate[]) {
     setSavingOrder(true);
     try {
       await api.workouts.templates.reorder(next.map((tpl) => tpl.templateId));

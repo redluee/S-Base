@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { t } from "@/lib/lang";
 import { compressImage } from "@/lib/image";
 import { api, type AuthUser } from "@/lib/api";
-import type { WorkoutSession } from "@backend/types/shared";
+import type { WorkoutSession } from "@backend/types/workout";
 import { RunningWorkoutCard } from "@/app/workouts/running-workout-card";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { InlineAlert } from "@/components/ui/inline-alert";

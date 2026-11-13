@@ -12,7 +12,7 @@ import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { DumbbellIcon } from "@/components/icons";
 import { Play, CheckCircle2, Trash2, Timer } from "lucide-react";
-import type { WorkoutSession } from "@backend/types/shared";
+import type { WorkoutSession } from "@backend/types/workout";
 import { formatClock } from "@/app/workouts/duration";
 import { parseDateString } from "@backend/shared/dates";
 

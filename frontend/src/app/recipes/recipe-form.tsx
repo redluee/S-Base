@@ -12,7 +12,7 @@ import { KitchenCombobox } from "./kitchen-combobox";
 import { RecipeIngredientList, IngredientRow } from "./recipe-ingredient-list";
 import { RecipeStepList, StepRow } from "./recipe-step-list";
 import { Loader2 } from "lucide-react";
-import type { FullRecipe } from "@backend/types/shared";
+import type { FullRecipe } from "@backend/types/recipes";
 import { RECIPE_STATUSES, STATUS_IDLE, STATUS_SELECTED } from "./recipe-status";
 
 export function RecipeForm({

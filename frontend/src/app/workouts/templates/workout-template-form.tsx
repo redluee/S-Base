@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { FullWorkoutTemplate } from "@backend/types/shared";
+import type { FullWorkoutTemplate } from "@backend/types/workout";
 import { t } from "@/lib/lang";
 import {
   formSignature,

@@ -18,7 +18,7 @@ import {
 import { getFlag } from "@/lib/kitchens";
 import Link from "next/link";
 import { ArrowLeft, CircleDashed } from "lucide-react";
-import type { FullRecipe } from "@backend/types/shared";
+import type { FullRecipe } from "@backend/types/recipes";
 import { RECIPE_STATUSES, STATUS_SELECTED, statusBadge } from "./recipe-status";
 
 const unitLabels: Record<string, string> = {

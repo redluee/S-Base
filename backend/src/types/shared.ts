@@ -1,68 +1,4 @@
-export interface Recipe {
-  recipeId: number;
-  name: string;
-  cookingTime: number | null;
-  kitchen: string | null;
-  status: string;
-  description: string | null;
-  rating: number | null;
-  createdAt: string;
-}
-
-export interface RecipeIngredient {
-  ingredientId: number;
-  name: string;
-  quantity: number;
-  unit: string | null;
-  isOptional: boolean;
-}
-
-export interface RecipeStep {
-  stepId: number;
-  stepNumber: number;
-  description: string;
-}
-
-export interface FullRecipe extends Recipe {
-  ingredients: RecipeIngredient[];
-  steps: RecipeStep[];
-}
-
-export interface WorkoutTemplate {
-  templateId: number;
-  userId: number;
-  name: string;
-  description: string | null;
-  targetMuscleGroups: string | null;
-  estimatedTime: number | null;
-  sortOrder: number;
-  createdAt: string;
-}
-
-export interface TemplateExercise {
-  templateExerciseId: number;
-  templateId: number;
-  exerciseName: string;
-  sortOrder: number;
-  category: string;
-  defaultSets: number;
-  defaultReps: number;
-  defaultWeight: number | null;
-  defaultDistance: number | null;
-  defaultDuration: number | null;
-  defaultRpe: number | null;
-  defaultHeartRate: number | null;
-  defaultRestTime: number | null;
-  equipment: string | null;
-  perSide?: number | null;
-  isAssisted?: number | null;
-}
-
-export interface FullWorkoutTemplate extends WorkoutTemplate {
-  exercises: TemplateExercise[];
-}
-
-export interface WorkoutSession {
+export interface WorkoutSessionSummary {
   sessionId: number;
   templateId: number | null;
   userId: number;
@@ -116,7 +52,7 @@ export interface SessionExercise {
   } | null;
 }
 
-export interface FullWorkoutSession extends WorkoutSession {
+export interface FullWorkoutSession extends WorkoutSessionSummary {
   exercises: SessionExercise[];
 }
 

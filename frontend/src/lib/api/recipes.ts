@@ -1,8 +1,5 @@
 import { request as clientRequest, type Fetcher } from "./core";
-import type {
-  Recipe,
-  FullRecipe,
-} from "@backend/types/shared";
+import type { FullRecipe, Recipe } from "@backend/types/recipes";
 
 export const createRecipesApi = (request: Fetcher) => ({
   list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getFlag } from "@/lib/kitchens";
 import { t } from "@/lib/lang";
-import type { Recipe } from "@backend/types/shared";
+import type { Recipe } from "@backend/types/recipes";
 import { RECIPE_STATUSES, statusBadge } from "./recipe-status";
 
 const sortFields = [

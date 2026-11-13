@@ -1,11 +1,6 @@
 import { request as clientRequest, type Fetcher } from "./core";
-import type {
-  WorkoutTemplate,
-  FullWorkoutTemplate,
-  WorkoutSession,
-  FullWorkoutSession,
-  PersonalRecord,
-} from "@backend/types/shared";
+import type { FullWorkoutSession, PersonalRecord } from "@backend/types/shared";
+import type { FullWorkoutTemplate, WorkoutSession, WorkoutTemplate } from "@backend/types/workout";
 
 export const createWorkoutsApi = (request: Fetcher) => ({
   templates: {
