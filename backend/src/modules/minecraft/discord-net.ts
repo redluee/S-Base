@@ -8,6 +8,13 @@ export const startCooldowns = new Map<string, number>();
 export const COOLDOWN_SECONDS = 60;
 export const emojiCache = new Map<string, string>();
 
+const HANDSHAKE_PACKET_ID = Buffer.from([0x00]);
+const PROTOCOL_VERSION_UNKNOWN = Buffer.from([0xff, 0xff, 0xff, 0xff, 0x0f]);
+const NEXT_STATE_STATUS = Buffer.from([0x01]);
+const STATUS_REQUEST_PACKET = Buffer.from([0x01, 0x00]);
+const AVATAR_FALLBACK = "👤";
+const MAX_EMOJI_BYTES = 256 * 1024;
+
 interface PingResult {
   online: boolean;
   onlineCount: number;
@@ -38,16 +45,16 @@ export function pingMinecraftServer(host: string, port: number, timeoutMs = 800)
       portBuf.writeUInt16BE(port, 0);
 
       const handshakeData = Buffer.concat([
-        Buffer.from([0x00]), // packet id 0
-        Buffer.from([0xff, 0xff, 0xff, 0xff, 0x0f]), // protocol -1 as 5-byte varint
+        HANDSHAKE_PACKET_ID,
+        PROTOCOL_VERSION_UNKNOWN,
         hostLen,
         hostBuf,
         portBuf,
-        Buffer.from([0x01]), // state 1 (status)
+        NEXT_STATE_STATUS,
       ]);
 
       const handshake = Buffer.concat([Buffer.from([handshakeData.length]), handshakeData]);
-      const statusReq = Buffer.from([0x01, 0x00]);
+      const statusReq = STATUS_REQUEST_PACKET;
 
       socket.write(handshake);
       socket.write(statusReq);
@@ -126,9 +133,8 @@ export async function getPlayerAvatarEmoji(client: Client, playerName: string): 
   }
 
   try {
-    if (!client.application) return "👤";
+    if (!client.application) return AVATAR_FALLBACK;
 
-    // Check if application already has this emoji cached
     const existing = client.application.emojis.cache.find((e) => e.name === emojiName);
     if (existing) {
       const emojiStr = `<:${existing.name}:${existing.id}>`;
@@ -136,14 +142,13 @@ export async function getPlayerAvatarEmoji(client: Client, playerName: string): 
       return emojiStr;
     }
 
-    // Fetch avatar from mc-heads
     const res = await fetch(`https://mc-heads.net/avatar/${encodeURIComponent(playerName)}/32.png`, {
       signal: AbortSignal.timeout(3000),
     });
 
     if (res.ok) {
       const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > 0 && buf.length < 256 * 1024) {
+      if (buf.length > 0 && buf.length < MAX_EMOJI_BYTES) {
         const created = await client.application.emojis.create({
           attachment: buf,
           name: emojiName,
@@ -157,5 +162,5 @@ export async function getPlayerAvatarEmoji(client: Client, playerName: string): 
     console.error(`[Discord Bot] Kon avatar emoji niet aanmaken voor ${playerName}:`, err);
   }
 
-  return "👤";
+  return AVATAR_FALLBACK;
 }

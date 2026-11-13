@@ -3,18 +3,12 @@ import { copyFile, mkdir, readdir, rm, stat, unlink, writeFile } from "fs/promis
 import { join } from "path";
 import db from "../../db/client";
 import { mc_template_files, mc_templates } from "../../db/schema/minecraft";
+import { FOLDER_TYPES } from "../../shared/minecraft";
 import { ConflictError, orNotFound } from "../../utils/errors";
 import { listDirectory, validateUploads } from "./minecraft-files";
-import type { MinecraftParts } from "./minecraft-parts";
+import type { MinecraftService } from "./index";
 import { TEMPLATES_DIR } from "./paths";
-import {
-  FOLDER_TYPES,
-  requireText,
-  validateEngine,
-  validateFilename,
-  validateFolderType,
-  validateSlug,
-} from "./validation";
+import { requireText, validateEngine, validateFilename, validateFolderType, validateSlug } from "./validation";
 
 export interface CustomTemplateInput {
   name: string;
@@ -31,7 +25,7 @@ export interface CreateTemplateInput extends Partial<CustomTemplateInput> {
 }
 
 export class MinecraftTemplates {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   list() {
     return db.select().from(mc_templates).all();

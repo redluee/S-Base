@@ -3,6 +3,8 @@ import type { MinecraftService } from "./index";
 import { emojiCache } from "./discord-net";
 import { createDiscordCommands } from "./discord-commands";
 
+const PRESENCE_INTERVAL_MS = 45000;
+
 export function createDiscordBot(minecraft: MinecraftService) {
   const token = process.env.DISCORD_BOT_TOKEN?.trim();
   const defaultServerSlug = (process.env.DISCORD_BOT_DEFAULT_SERVER || "hangout").trim().toLowerCase();
@@ -21,16 +23,17 @@ export function createDiscordBot(minecraft: MinecraftService) {
   const { getServerStatusAndPlayers, handleStatusCommand, handleStartCommand } = createDiscordCommands({
     minecraft,
     client,
-    defaultServerSlug,
+    serverSlug: defaultServerSlug,
     updatePresence: () => updatePresence(),
   });
 
   async function updatePresence() {
     try {
       if (!client.user) return;
-      const server = minecraft.servers.findBySlug(defaultServerSlug);
-      const serverName = server?.displayName || defaultServerSlug;
-      const { isOnline, playerCount } = await getServerStatusAndPlayers(defaultServerSlug);
+      const serverName = minecraft.servers.exists(defaultServerSlug)
+        ? minecraft.servers.get(defaultServerSlug).displayName
+        : defaultServerSlug;
+      const { isOnline, playerCount } = await getServerStatusAndPlayers();
 
       if (isOnline) {
         client.user.setPresence({
@@ -61,7 +64,6 @@ export function createDiscordBot(minecraft: MinecraftService) {
   client.once(Events.ClientReady, async () => {
     console.log(`[Discord Bot] Ingelogd als ${client.user?.tag}`);
 
-    // Pre-cache application emojis
     try {
       const existingEmojis = await client.application?.emojis.fetch();
       if (existingEmojis) {
@@ -75,7 +77,6 @@ export function createDiscordBot(minecraft: MinecraftService) {
       console.error("[Discord Bot] Kon bestaande application emojis niet ophalen:", err);
     }
 
-    // Register slash commands globally
     try {
       const statusCommand = new SlashCommandBuilder()
         .setName("status")
@@ -91,9 +92,8 @@ export function createDiscordBot(minecraft: MinecraftService) {
       console.error("[Discord Bot] Kon slash commands niet registreren:", err);
     }
 
-    // Initial presence update and periodic interval every 45s
     await updatePresence();
-    presenceInterval = setInterval(updatePresence, 45000);
+    presenceInterval = setInterval(updatePresence, PRESENCE_INTERVAL_MS);
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
@@ -102,13 +102,12 @@ export function createDiscordBot(minecraft: MinecraftService) {
     const { commandName } = interaction;
 
     if (commandName === "status") {
-      await handleStatusCommand(interaction, defaultServerSlug);
+      await handleStatusCommand(interaction);
     } else if (commandName === "start") {
-      await handleStartCommand(interaction, defaultServerSlug);
+      await handleStartCommand(interaction);
     }
   });
 
-  // Connect bot asynchronously
   client.login(token).catch((err) => {
     console.error("[Discord Bot] Inloggen mislukt (controleer token of netwerkverbinding):", err.message);
   });

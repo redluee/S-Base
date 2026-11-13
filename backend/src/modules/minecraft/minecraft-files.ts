@@ -2,9 +2,10 @@ import { existsSync } from "fs";
 import { copyFile, readdir, stat, unlink, writeFile } from "fs/promises";
 import { join } from "path";
 import { NotFoundError, ValidationError } from "../../utils/errors";
+import { MAX_UPLOAD_BYTES, UPLOAD_EXTENSIONS } from "../../shared/minecraft";
 import { resolveUploadExtension } from "../../utils/uploads";
-import type { MinecraftParts } from "./minecraft-parts";
-import { MAX_UPLOAD_BYTES, UPLOAD_EXTENSIONS, validateFilename, validateFolderType, validateSlug } from "./validation";
+import type { MinecraftService } from "./index";
+import { validateFilename, validateFolderType, validateSlug } from "./validation";
 
 export interface McFileInfo {
   name: string;
@@ -30,13 +31,13 @@ export async function listDirectory(dirPath: string): Promise<McFileInfo[]> {
 export async function validateUploads(files: File[]) {
   if (files.length === 0) throw new ValidationError("upload.noFile");
   for (const file of files) {
-    resolveUploadExtension(file, UPLOAD_EXTENSIONS, MAX_UPLOAD_BYTES);
+    resolveUploadExtension(file, [...UPLOAD_EXTENSIONS], MAX_UPLOAD_BYTES);
     validateFilename(file.name);
   }
 }
 
 export class MinecraftFiles {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   private async reloadDatapacks(slug: string, type: string) {
     if (type === "datapacks" && this.parts.lifecycle.isRunning(slug)) {

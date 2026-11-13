@@ -1,10 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { existsSync } from "fs";
 import { readFile, writeFile } from "fs/promises";
-import { join } from "path";
 import db from "../../db/client";
 import { mc_player_sessions, mc_player_stats } from "../../db/schema/minecraft";
-import type { MinecraftParts } from "./minecraft-parts";
+import type { MinecraftService } from "./index";
+import { bannedPlayersPath } from "./server-layout";
 
 type PlayerStat = typeof mc_player_stats.$inferSelect;
 
@@ -28,7 +28,7 @@ async function readBanList(path: string): Promise<BannedPlayer[]> {
 }
 
 export class MinecraftPlayers {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   private statByUuid(serverId: number, uuid: string) {
     return db
@@ -39,8 +39,7 @@ export class MinecraftPlayers {
   }
 
   parseEvent(slug: string, line: string) {
-    const server = this.parts.servers.findBySlug(slug);
-    if (!server) return;
+    const server = this.parts.servers.get(slug);
 
     const joinMatch = line.match(/UUID of player (\S+) is ([0-9a-fA-F-]+)/);
     if (joinMatch) {
@@ -73,48 +72,44 @@ export class MinecraftPlayers {
         .from(mc_player_stats)
         .where(and(eq(mc_player_stats.serverId, server.serverId), eq(mc_player_stats.playerName, leaveMatch[1])))
         .get();
-      if (stat) this.closeSessions(slug, server.serverId, stat);
+      if (stat) {
+        this.closeOpenSessions(server.serverId, stat.playerUuid);
+        if (this.getOnline(slug).length === 0) this.parts.idle.markEmpty(slug);
+      }
     }
   }
 
-  private closeSessions(slug: string, serverId: number, stat: PlayerStat) {
+  closeOpenSessions(serverId: number, playerUuid?: string) {
+    const filters = [eq(mc_player_sessions.serverId, serverId), isNull(mc_player_sessions.leftAt)];
+    if (playerUuid) filters.push(eq(mc_player_sessions.playerUuid, playerUuid));
     const open = db
       .select()
       .from(mc_player_sessions)
-      .where(
-        and(
-          eq(mc_player_sessions.serverId, serverId),
-          eq(mc_player_sessions.playerUuid, stat.playerUuid),
-          isNull(mc_player_sessions.leftAt),
-        ),
-      )
+      .where(and(...filters))
       .all();
     const leftAt = new Date().toISOString();
     for (const session of open) {
       db.update(mc_player_sessions).set({ leftAt }).where(eq(mc_player_sessions.sessionId, session.sessionId)).run();
-      const seconds = Math.max(
-        0,
-        Math.floor((new Date(leftAt).getTime() - new Date(session.joinedAt).getTime()) / 1000),
-      );
+      const stat = this.statByUuid(serverId, session.playerUuid);
+      if (!stat) continue;
+      const seconds = Math.max(0, Math.floor((Date.parse(leftAt) - Date.parse(session.joinedAt)) / 1000));
       db.update(mc_player_stats)
         .set({ lastSeen: leftAt, totalPlaytime: (stat.totalPlaytime || 0) + seconds })
         .where(eq(mc_player_stats.statId, stat.statId))
         .run();
     }
-    if (this.getOnline(slug).length === 0) this.parts.idle.markEmpty(slug);
   }
 
   async list(slug: string) {
     const server = this.parts.servers.get(slug);
     const online = this.getOnline(slug);
     const history = db.select().from(mc_player_stats).where(eq(mc_player_stats.serverId, server.serverId)).all();
-    const banned = await this.getBanned(slug);
+    const banned = await readBanList(bannedPlayersPath(server.serverDir));
     return { online, history, banned };
   }
 
   getOnline(slug: string): PlayerStat[] {
-    const server = this.parts.servers.findBySlug(slug);
-    if (!server) return [];
+    const server = this.parts.servers.get(slug);
 
     const activeSessions = db
       .select()
@@ -153,12 +148,6 @@ export class MinecraftPlayers {
     });
   }
 
-  async getBanned(slug: string): Promise<BannedPlayer[]> {
-    const server = this.parts.servers.findBySlug(slug);
-    if (!server) return [];
-    return readBanList(join(server.serverDir, "banned-players.json"));
-  }
-
   private resolveName(slug: string, uuid: string) {
     const server = this.parts.servers.get(slug);
     return this.statByUuid(server.serverId, uuid)?.playerName || uuid;
@@ -187,24 +176,22 @@ export class MinecraftPlayers {
       await this.parts.lifecycle.sendCommand(slug, `ban ${playerName} ${reason || ""}`);
     }
 
-    try {
-      const bannedPath = join(server.serverDir, "banned-players.json");
-      const list = await readBanList(bannedPath);
-      const alreadyBanned = list.some(
-        (item) => item.name?.toLowerCase() === playerName.toLowerCase() || item.uuid === uuid,
-      );
-      if (!alreadyBanned) {
-        list.push({
-          uuid,
-          name: playerName,
-          created: new Date().toISOString(),
-          expires: "forever",
-          reason: reason || "Banned by an operator.",
-          source: "Server",
-        });
-        await writeFile(bannedPath, JSON.stringify(list, null, 2));
-      }
-    } catch {}
+    const bannedPath = bannedPlayersPath(server.serverDir);
+    const list = await readBanList(bannedPath);
+    const alreadyBanned = list.some(
+      (item) => item.name?.toLowerCase() === playerName.toLowerCase() || item.uuid === uuid,
+    );
+    if (!alreadyBanned) {
+      list.push({
+        uuid,
+        name: playerName,
+        created: new Date().toISOString(),
+        expires: "forever",
+        reason: reason || "Banned by an operator.",
+        source: "Server",
+      });
+      await writeFile(bannedPath, JSON.stringify(list, null, 2));
+    }
     return { ok: true };
   }
 
@@ -216,15 +203,13 @@ export class MinecraftPlayers {
       await this.parts.lifecycle.sendCommand(slug, `pardon ${playerName}`);
     }
 
-    try {
-      const bannedPath = join(server.serverDir, "banned-players.json");
-      if (existsSync(bannedPath)) {
-        const updated = (await readBanList(bannedPath)).filter(
-          (item) => item.uuid !== uuid && item.name?.toLowerCase() !== playerName.toLowerCase(),
-        );
-        await writeFile(bannedPath, JSON.stringify(updated, null, 2));
-      }
-    } catch {}
+    const bannedPath = bannedPlayersPath(server.serverDir);
+    if (existsSync(bannedPath)) {
+      const updated = (await readBanList(bannedPath)).filter(
+        (item) => item.uuid !== uuid && item.name?.toLowerCase() !== playerName.toLowerCase(),
+      );
+      await writeFile(bannedPath, JSON.stringify(updated, null, 2));
+    }
     return { ok: true };
   }
 }

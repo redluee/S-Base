@@ -24,6 +24,7 @@ export const minecraftNl: Record<string, string> = {
   "minecraft.fabricLoaderUnavailable": "Fabric-loader niet beschikbaar.",
   "minecraft.fabricInstallerUnavailable": "Fabric-installer niet beschikbaar.",
   "minecraft.fabricInstallFailed": "Fabric-installer mislukt.",
+  "minecraft.downloadFailed": "Downloaden van Minecraft-bestanden mislukt. Probeer het later opnieuw.",
   "minecraft.serverForbidden": "Geen toegang tot deze server.",
   "minecraft.fullAccessRequired": "Volledige toegang vereist.",
   "minecraft.proxyUnavailable": "Backend niet bereikbaar.",

@@ -19,12 +19,18 @@ interface FabricInstaller {
   url: string;
 }
 
+async function download(url: string): Promise<Response> {
+  const res = await fetch(url);
+  if (!res.ok) throw new AppError(502, "minecraft.downloadFailed");
+  return res;
+}
+
 async function getJson<T>(url: string): Promise<T> {
-  return (await (await fetch(url)).json()) as T;
+  return (await (await download(url)).json()) as T;
 }
 
 async function fetchBytes(url: string, destFile: string) {
-  const buf = await fetch(url).then((r) => r.arrayBuffer());
+  const buf = await (await download(url)).arrayBuffer();
   await mkdir(join(destFile, ".."), { recursive: true });
   await writeFile(destFile, Buffer.from(buf));
 }

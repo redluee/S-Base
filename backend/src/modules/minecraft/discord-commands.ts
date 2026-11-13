@@ -1,122 +1,87 @@
 import { type ChatInputCommandInteraction, type Client, EmbedBuilder } from "discord.js";
-import type { MinecraftService } from "./index";
+import { DEFAULT_SERVER_PORT } from "../../shared/minecraft";
+import { NotFoundError } from "../../utils/errors";
 import {
+  COOLDOWN_SECONDS,
+  getPlayerAvatarEmoji,
+  pingMinecraftServer,
+  pingTcpPort,
   SIGNAL_GREEN,
   SIGNAL_RED,
   startCooldowns,
-  COOLDOWN_SECONDS,
-  pingMinecraftServer,
-  pingTcpPort,
-  getPlayerAvatarEmoji,
 } from "./discord-net";
+import type { MinecraftService } from "./index";
+
+const LOCALHOST = "127.0.0.1";
+const DEFAULT_MAX_PLAYERS = "20";
+const PRESENCE_REFRESH_AFTER_START_MS = 15000;
+const FOOTER = { text: "S-Base Minecraft Monitor" };
 
 interface DiscordCommandContext {
   minecraft: MinecraftService;
   client: Client;
-  defaultServerSlug: string;
+  serverSlug: string;
   updatePresence: () => Promise<void>;
 }
 
 export function createDiscordCommands(ctx: DiscordCommandContext) {
-  const { minecraft, client, defaultServerSlug, updatePresence } = ctx;
+  const { minecraft, client, serverSlug, updatePresence } = ctx;
 
-  async function getServerPort(slug: string): Promise<number> {
-    try {
-      const props = await minecraft.properties.read(slug);
-      if (props["server-port"]) {
-        const p = parseInt(props["server-port"], 10);
-        if (!Number.isNaN(p) && p > 0) return p;
-      }
-    } catch {}
-    return 25565;
+  function serverPort(props: Record<string, string>): number {
+    const port = Number.parseInt(props["server-port"] ?? "", 10);
+    return Number.isNaN(port) || port <= 0 ? DEFAULT_SERVER_PORT : port;
   }
 
-  async function getServerStatusAndPlayers(slug: string) {
-    const port = await getServerPort(slug);
-    const slp = await pingMinecraftServer("127.0.0.1", port);
-    const processRunning = minecraft.lifecycle.isRunning(slug);
-    const portOpen = slp?.online ?? (await pingTcpPort("127.0.0.1", port));
+  async function getServerStatusAndPlayers() {
+    const props = minecraft.servers.exists(serverSlug) ? await minecraft.properties.read(serverSlug) : {};
+    const port = serverPort(props);
+    const slp = await pingMinecraftServer(LOCALHOST, port);
+    const processRunning = minecraft.lifecycle.isRunning(serverSlug);
+    const portOpen = slp?.online ?? (await pingTcpPort(LOCALHOST, port));
     const isOnline = processRunning || portOpen;
+    const maxPlayers = props["max-players"] || (slp ? String(slp.maxCount) : DEFAULT_MAX_PLAYERS);
 
-    let maxPlayers = slp ? String(slp.maxCount) : "20";
-    try {
-      const props = await minecraft.properties.read(slug);
-      if (props["max-players"]) {
-        maxPlayers = props["max-players"];
-      }
-    } catch {}
-
-    const trackedPlayers = isOnline ? minecraft.players.getOnline(slug).map((p) => p.playerName) : [];
-    const slpPlayers = slp?.players ?? [];
-    const playerNames = Array.from(new Set([...trackedPlayers, ...slpPlayers]));
+    const trackedPlayers =
+      isOnline && minecraft.servers.exists(serverSlug)
+        ? minecraft.players.getOnline(serverSlug).map((p) => p.playerName)
+        : [];
+    const playerNames = Array.from(new Set([...trackedPlayers, ...(slp?.players ?? [])]));
     const playerCount = Math.max(playerNames.length, slp?.onlineCount ?? 0);
 
-    return {
-      isOnline,
-      maxPlayers,
-      playerNames,
-      playerCount,
-    };
+    return { isOnline, maxPlayers, playerNames, playerCount };
   }
 
-  async function handleStatusCommand(interaction: ChatInputCommandInteraction, slug: string) {
+  async function playerList(names: string[]): Promise<string[]> {
+    return Promise.all(names.map(async (name) => `${await getPlayerAvatarEmoji(client, name)} **${name}**`));
+  }
+
+  async function replyError(interaction: ChatInputCommandInteraction, content: string) {
+    if (interaction.deferred || interaction.replied) await interaction.editReply({ content });
+    else await interaction.reply({ content, ephemeral: true });
+  }
+
+  function notFoundText() {
+    return `❌ Server \`${serverSlug}\` is niet gevonden in S-Base.`;
+  }
+
+  async function handleStatusCommand(interaction: ChatInputCommandInteraction) {
     try {
-      if (slug !== defaultServerSlug) {
-        await interaction.reply({
-          content: `❌ Alleen de status van server **${defaultServerSlug}** mag via Discord worden opgevraagd.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      const server = minecraft.servers.findBySlug(slug);
-      if (!server) {
-        await interaction.reply({
-          content: `❌ Server \`${slug}\` is niet gevonden in S-Base.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
+      const server = minecraft.servers.get(serverSlug);
       await interaction.deferReply();
 
-      const { isOnline, maxPlayers, playerNames, playerCount } = await getServerStatusAndPlayers(slug);
-
-      const playerListItems = await Promise.all(
-        playerNames.map(async (name) => {
-          const avatar = await getPlayerAvatarEmoji(client, name);
-          return `${avatar} **${name}**`;
-        }),
-      );
-
-      const playerListText =
-        playerListItems.length > 0
-          ? playerListItems.join("\n")
-          : isOnline
-            ? "*Geen spelers momenteel online*"
-            : "*Server is offline*";
+      const { isOnline, maxPlayers, playerNames, playerCount } = await getServerStatusAndPlayers();
+      const players = await playerList(playerNames);
+      const emptyText = isOnline ? "*Geen spelers momenteel online*" : "*Server is offline*";
 
       const embed = new EmbedBuilder()
         .setTitle(`⛏️ Minecraft Server: ${server.displayName}`)
         .setColor(isOnline ? SIGNAL_GREEN : SIGNAL_RED)
         .addFields(
-          {
-            name: "Status",
-            value: isOnline ? "🟢 **Online**" : "🔴 **Offline**",
-            inline: true,
-          },
-          {
-            name: "Spelers",
-            value: isOnline ? `👥 **${playerCount} / ${maxPlayers}**` : "—",
-            inline: true,
-          },
-          {
-            name: "Online Spelers",
-            value: playerListText,
-            inline: false,
-          },
+          { name: "Status", value: isOnline ? "🟢 **Online**" : "🔴 **Offline**", inline: true },
+          { name: "Spelers", value: isOnline ? `👥 **${playerCount} / ${maxPlayers}**` : "—", inline: true },
+          { name: "Online Spelers", value: players.length > 0 ? players.join("\n") : emptyText, inline: false },
         )
-        .setFooter({ text: "S-Base Minecraft Monitor" })
+        .setFooter(FOOTER)
         .setTimestamp();
 
       if (!isOnline) {
@@ -125,52 +90,20 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
 
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {
-      console.error(`[Discord Bot] Fout bij /status voor ${slug}:`, err);
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({ content: "Er is een fout opgetreden bij het ophalen van de status." });
-      } else {
-        await interaction.reply({
-          content: "Er is een fout opgetreden bij het ophalen van de status.",
-          ephemeral: true,
-        });
-      }
+      if (err instanceof NotFoundError) return replyError(interaction, notFoundText());
+      console.error(`[Discord Bot] Fout bij /status voor ${serverSlug}:`, err);
+      await replyError(interaction, "Er is een fout opgetreden bij het ophalen van de status.");
     }
   }
 
-  async function handleStartCommand(interaction: ChatInputCommandInteraction, slug: string) {
+  async function handleStartCommand(interaction: ChatInputCommandInteraction) {
     try {
-      if (slug !== defaultServerSlug) {
-        await interaction.reply({
-          content: `❌ Alleen de server **${defaultServerSlug}** mag via Discord worden gestart.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      const server = minecraft.servers.findBySlug(slug);
-      if (!server) {
-        await interaction.reply({
-          content: `❌ Server \`${slug}\` is niet gevonden in S-Base.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
+      const server = minecraft.servers.get(serverSlug);
       await interaction.deferReply();
 
-      // Check if already running using both process and live network check
-      const status = await getServerStatusAndPlayers(slug);
+      const status = await getServerStatusAndPlayers();
       if (status.isOnline) {
-        const playerListItems = await Promise.all(
-          status.playerNames.map(async (name) => {
-            const avatar = await getPlayerAvatarEmoji(client, name);
-            return `${avatar} **${name}**`;
-          }),
-        );
-
-        const playerListText =
-          playerListItems.length > 0 ? playerListItems.join("\n") : "*Geen spelers momenteel online*";
-
+        const players = await playerList(status.playerNames);
         const alreadyOnEmbed = new EmbedBuilder()
           .setTitle(`🟢 Server Draait Al: ${server.displayName}`)
           .setColor(SIGNAL_GREEN)
@@ -178,29 +111,22 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
             `De server **${server.displayName}** staat al aan!\n\nGebruik \`/status\` om de volledige status te bekijken.`,
           )
           .addFields(
-            {
-              name: "Spelers",
-              value: `👥 **${status.playerCount} / ${status.maxPlayers}**`,
-              inline: true,
-            },
+            { name: "Spelers", value: `👥 **${status.playerCount} / ${status.maxPlayers}**`, inline: true },
             {
               name: "Online Spelers",
-              value: playerListText,
+              value: players.length > 0 ? players.join("\n") : "*Geen spelers momenteel online*",
               inline: false,
             },
           )
-          .setFooter({ text: "S-Base Minecraft Monitor" })
+          .setFooter(FOOTER)
           .setTimestamp();
 
         await interaction.editReply({ embeds: [alreadyOnEmbed] });
         return;
       }
 
-      // Check cooldown
       const now = Date.now();
-      const lastStarted = startCooldowns.get(slug) || 0;
-      const elapsedSeconds = Math.floor((now - lastStarted) / 1000);
-
+      const elapsedSeconds = Math.floor((now - (startCooldowns.get(serverSlug) || 0)) / 1000);
       if (elapsedSeconds < COOLDOWN_SECONDS) {
         const remaining = COOLDOWN_SECONDS - elapsedSeconds;
         await interaction.editReply({
@@ -209,11 +135,8 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
         return;
       }
 
-      // Record start timestamp
-      startCooldowns.set(slug, now);
-
-      // Trigger start
-      await minecraft.lifecycle.startServer(slug);
+      startCooldowns.set(serverSlug, now);
+      await minecraft.lifecycle.startServer(serverSlug);
 
       const embed = new EmbedBuilder()
         .setTitle(`🚀 Server Wordt Opgestart: ${server.displayName}`)
@@ -221,26 +144,16 @@ export function createDiscordCommands(ctx: DiscordCommandContext) {
         .setDescription(
           `De server **${server.displayName}** wordt nu opgestart.\n\nGebruik \`/status\` om de status en online spelers te bekijken.`,
         )
-        .setFooter({ text: "S-Base Minecraft Monitor" })
+        .setFooter(FOOTER)
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
-
-      // Trigger an immediate presence check update soon
-      setTimeout(updatePresence, 15000);
+      setTimeout(updatePresence, PRESENCE_REFRESH_AFTER_START_MS);
     } catch (err) {
-      console.error(`[Discord Bot] Fout bij /start voor ${slug}:`, err);
+      if (err instanceof NotFoundError) return replyError(interaction, notFoundText());
+      console.error(`[Discord Bot] Fout bij /start voor ${serverSlug}:`, err);
       const errMsg = err instanceof Error && err.message ? `Fout: ${err.message}` : "Onbekende fout.";
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({
-          content: `❌ Kon server **${slug}** niet starten. ${errMsg}`,
-        });
-      } else {
-        await interaction.reply({
-          content: `❌ Kon server **${slug}** niet starten. ${errMsg}`,
-          ephemeral: true,
-        });
-      }
+      await replyError(interaction, `❌ Kon server **${serverSlug}** niet starten. ${errMsg}`);
     }
   }
 

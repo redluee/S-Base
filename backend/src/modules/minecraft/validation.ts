@@ -1,14 +1,15 @@
+import {
+  ENGINES,
+  type Engine,
+  FOLDER_TYPES,
+  type FolderType,
+  isValidSlug,
+  UPLOAD_EXTENSIONS,
+} from "../../shared/minecraft";
 import { ValidationError } from "../../utils/errors";
 
-export const FOLDER_TYPES = ["mods", "datapacks", "resourcepacks"] as const;
-export type FolderType = (typeof FOLDER_TYPES)[number];
-export const ENGINES = ["vanilla", "fabric"] as const;
-export type Engine = (typeof ENGINES)[number];
-export const UPLOAD_EXTENSIONS = ["jar", "zip"];
-export const MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
-
 export function validateSlug(slug: string): void {
-  if (!/^[a-z0-9-]{3,32}$/.test(slug)) throw new ValidationError("minecraft.invalidSlug");
+  if (!isValidSlug(slug)) throw new ValidationError("minecraft.invalidSlug");
 }
 
 export function validateFolderType(type: string): FolderType {

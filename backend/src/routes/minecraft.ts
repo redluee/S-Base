@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { auth, minecraft, minecraftAuth, requireFullMinecraftAccess } from "../context";
-import { ForbiddenError } from "../utils/errors";
+import { auth, minecraft, minecraftAuth } from "../context";
+import type { MinecraftAction } from "../modules/minecraft/minecraft-access";
 import type { MapFile } from "../modules/minecraft/minecraft-map";
 
 const slugParams = t.Object({ slug: t.String() });
@@ -18,6 +18,13 @@ function uploadedFiles(body: { files?: File | File[]; file?: File | File[] }): F
   return [body.files, body.file].flat().filter((f): f is File => !!f);
 }
 
+const START_ROUTE = "/api/minecraft/servers/:slug/start";
+
+function actionFor(method: string, route: string): MinecraftAction {
+  if (method === "GET") return "read";
+  return route === START_ROUTE ? "start" : "manage";
+}
+
 function mapResponse(file: MapFile) {
   return new Response(file.data, { status: file.status, headers: file.headers });
 }
@@ -25,19 +32,14 @@ function mapResponse(file: MapFile) {
 export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
   app
     .use(minecraftAuth)
-    .onBeforeHandle(({ request, userId }) => {
-      const path = new URL(request.url).pathname;
-      const hasFullAccess = auth.moduleAccessCheck(userId, "minecraft");
-
-      const serverMatch = path.match(/\/api\/minecraft\/servers\/([^/]+)/);
-      if (serverMatch && !minecraft.servers.canAccess(userId, serverMatch[1], hasFullAccess)) {
-        throw new ForbiddenError("minecraft.serverForbidden");
-      }
-
-      if (request.method === "GET") return;
-      if (path.match(/\/servers\/[^/]+\/start$/)) return;
-      return requireFullMinecraftAccess({ userId });
-    })
+    .onBeforeHandle(({ request, route, params, userId }) =>
+      minecraft.access.authorize({
+        userId,
+        hasFullAccess: auth.moduleAccessCheck(userId, "minecraft"),
+        slug: (params as { slug?: string } | undefined)?.slug,
+        action: actionFor(request.method, route),
+      }),
+    )
     .get("/versions", () => minecraft.downloads.listVersions())
     .get("/import/scan", () => minecraft.importer.scan())
     .post("/import/inspect", ({ body }) => minecraft.importer.inspect(body.serverDir), {

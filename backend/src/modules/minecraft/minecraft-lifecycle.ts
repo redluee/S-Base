@@ -1,38 +1,48 @@
-import { and, eq, isNull } from "drizzle-orm";
-import { join } from "path";
-import db from "../../db/client";
-import { mc_player_sessions, mc_player_stats } from "../../db/schema/minecraft";
 import { ValidationError } from "../../utils/errors";
+import type { MinecraftService } from "./index";
 import { formatJavaLaunchCommand } from "./launch";
 import { readLogTail } from "./log-tail";
-import type { MinecraftParts } from "./minecraft-parts";
+import { latestLogPath, tmuxSession } from "./server-layout";
 import { sanitizeCommand, validateSlug } from "./validation";
 
 const GRACEFUL_STOP_MS = 20000;
+const STOP_POLL_MS = 400;
+const KILL_GRACE_MS = 1000;
+const RESTART_PAUSE_MS = 1000;
+
+function shutdownWarning(minutesLeft: number): string {
+  return minutesLeft === 1
+    ? "say [Server] Belangrijk: De server sluit af over 1 minuut! Sla je voortgang op."
+    : `say [Server] Waarschuwing: Automatische serverafsluiting over ${minutesLeft} minuten!`;
+}
+
+const SHUTDOWN_NOTICE = "say [Server] De server wordt nu afgesloten...";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class MinecraftLifecycle {
   private readonly trackingProcesses = new Map<string, ReturnType<typeof Bun.spawn>>();
 
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
-  private tmuxAlive(sessionName: string): boolean {
-    return Bun.spawnSync(["tmux", "has-session", "-t", sessionName]).exitCode === 0;
+  private tmuxAlive(slug: string): boolean {
+    return Bun.spawnSync(["tmux", "has-session", "-t", tmuxSession(slug)]).exitCode === 0;
+  }
+
+  private killTmux(slug: string) {
+    if (this.tmuxAlive(slug)) Bun.spawnSync(["tmux", "kill-session", "-t", tmuxSession(slug)]);
   }
 
   async startServer(slug: string) {
     validateSlug(slug);
     const server = this.parts.servers.get(slug);
 
-    const sessionName = `mc-${slug}`;
-    if (this.tmuxAlive(sessionName)) {
-      Bun.spawnSync(["tmux", "kill-session", "-t", sessionName]);
-    }
-
+    this.killTmux(slug);
     this.parts.processes.kill(this.parts.processes.findPids(server.serverDir), "SIGKILL");
     await this.parts.dirs.ensureDatapacksDir(server.serverDir);
 
     const cmdStr = formatJavaLaunchCommand(server.engine, server.serverDir, server.javaArgs);
-    Bun.spawnSync(["tmux", "new-session", "-d", "-s", sessionName, "-c", server.serverDir, cmdStr]);
+    Bun.spawnSync(["tmux", "new-session", "-d", "-s", tmuxSession(slug), "-c", server.serverDir, cmdStr]);
 
     this.startPlayerTracking(slug, server.serverDir);
     this.parts.idle.markEmpty(slug);
@@ -42,12 +52,9 @@ export class MinecraftLifecycle {
 
   startPlayerTracking(slug: string, serverDir: string) {
     this.stopTracking(slug);
-    const logPath = join(serverDir, "logs", "latest.log");
-    try {
-      const proc = Bun.spawn(["tail", "-F", "-n", "0", logPath], { stdout: "pipe", stderr: "ignore" });
-      this.trackingProcesses.set(slug, proc);
-      void this.consumeLog(slug, proc);
-    } catch {}
+    const proc = Bun.spawn(["tail", "-F", "-n", "0", latestLogPath(serverDir)], { stdout: "pipe", stderr: "ignore" });
+    this.trackingProcesses.set(slug, proc);
+    void this.consumeLog(slug, proc);
   }
 
   private async consumeLog(slug: string, proc: ReturnType<typeof Bun.spawn>) {
@@ -66,7 +73,9 @@ export class MinecraftLifecycle {
           if (line.trim()) this.parts.players.parseEvent(slug, line);
         }
       }
-    } catch {}
+    } catch (err) {
+      console.error(`[Minecraft] Log tracking for "${slug}" stopped:`, err);
+    }
   }
 
   private stopTracking(slug: string) {
@@ -76,70 +85,36 @@ export class MinecraftLifecycle {
     this.trackingProcesses.delete(slug);
   }
 
-  private closeOpenSessions(serverId: number) {
-    const now = new Date().toISOString();
-    const open = db
-      .select()
-      .from(mc_player_sessions)
-      .where(and(eq(mc_player_sessions.serverId, serverId), isNull(mc_player_sessions.leftAt)))
-      .all();
-    for (const session of open) {
-      db.update(mc_player_sessions)
-        .set({ leftAt: now })
-        .where(eq(mc_player_sessions.sessionId, session.sessionId))
-        .run();
-      const stat = db
-        .select()
-        .from(mc_player_stats)
-        .where(and(eq(mc_player_stats.serverId, serverId), eq(mc_player_stats.playerUuid, session.playerUuid)))
-        .get();
-      if (stat) {
-        const seconds = Math.max(
-          0,
-          Math.floor((new Date(now).getTime() - new Date(session.joinedAt).getTime()) / 1000),
-        );
-        db.update(mc_player_stats)
-          .set({ lastSeen: now, totalPlaytime: (stat.totalPlaytime || 0) + seconds })
-          .where(eq(mc_player_stats.statId, stat.statId))
-          .run();
-      }
-    }
-  }
-
   async stopServer(slug: string) {
     validateSlug(slug);
     const server = this.parts.servers.get(slug);
     this.parts.idle.clearEmpty(slug);
     this.stopTracking(slug);
-    this.closeOpenSessions(server.serverId);
+    this.parts.players.closeOpenSessions(server.serverId);
 
-    const sessionName = `mc-${slug}`;
-    if (this.tmuxAlive(sessionName)) {
-      Bun.spawnSync(["tmux", "send-keys", "-t", sessionName, "stop", "C-m"]);
+    if (this.tmuxAlive(slug)) {
+      Bun.spawnSync(["tmux", "send-keys", "-t", tmuxSession(slug), "stop", "C-m"]);
     }
 
     const startTime = Date.now();
     while (Date.now() - startTime < GRACEFUL_STOP_MS) {
-      if (!this.tmuxAlive(sessionName) && this.parts.processes.findPids(server.serverDir).length === 0) {
+      if (!this.tmuxAlive(slug) && this.parts.processes.findPids(server.serverDir).length === 0) {
         return { ok: true };
       }
-      await new Promise((r) => setTimeout(r, 400));
+      await sleep(STOP_POLL_MS);
     }
 
     this.parts.processes.kill(this.parts.processes.findPids(server.serverDir), "SIGTERM");
-    await new Promise((r) => setTimeout(r, 1000));
+    await sleep(KILL_GRACE_MS);
     this.parts.processes.kill(this.parts.processes.findPids(server.serverDir), "SIGKILL");
-
-    if (this.tmuxAlive(sessionName)) {
-      Bun.spawnSync(["tmux", "kill-session", "-t", sessionName]);
-    }
+    this.killTmux(slug);
 
     return { ok: true };
   }
 
   async restartServer(slug: string) {
     await this.stopServer(slug);
-    await new Promise((r) => setTimeout(r, 1000));
+    await sleep(RESTART_PAUSE_MS);
     return this.startServer(slug);
   }
 
@@ -151,14 +126,33 @@ export class MinecraftLifecycle {
 
   isRunning(slug: string): boolean {
     validateSlug(slug);
-    if (this.tmuxAlive(`mc-${slug}`)) return true;
-    const server = this.parts.servers.findBySlug(slug);
-    return !!server?.serverDir && this.parts.processes.findPids(server.serverDir).length > 0;
+    if (this.tmuxAlive(slug)) return true;
+    if (!this.parts.servers.exists(slug)) return false;
+    return this.parts.processes.findPids(this.parts.servers.get(slug).serverDir).length > 0;
+  }
+
+  runningSlugs(): string[] {
+    return this.parts.servers
+      .rows()
+      .map((s) => s.slug)
+      .filter((slug) => this.isRunning(slug));
+  }
+
+  async broadcastShutdownWarning(minutesLeft: number) {
+    for (const slug of this.runningSlugs()) {
+      if (this.parts.players.getOnline(slug).length > 0) await this.sendCommand(slug, shutdownWarning(minutesLeft));
+    }
+  }
+
+  async stopAll() {
+    const running = this.runningSlugs();
+    for (const slug of running) await this.sendCommand(slug, SHUTDOWN_NOTICE);
+    await Promise.allSettled(running.map((slug) => this.stopServer(slug)));
   }
 
   async getConsoleLogs(slug: string, lines = 100) {
     const server = this.parts.servers.get(slug);
-    return readLogTail(join(server.serverDir, "logs", "latest.log"), lines);
+    return readLogTail(latestLogPath(server.serverDir), lines);
   }
 
   async runConsoleCommand(slug: string, command: string) {
@@ -170,6 +164,6 @@ export class MinecraftLifecycle {
 
   async sendCommand(slug: string, command: string) {
     validateSlug(slug);
-    Bun.spawnSync(["tmux", "send-keys", "-t", `mc-${slug}`, sanitizeCommand(command), "C-m"]);
+    Bun.spawnSync(["tmux", "send-keys", "-t", tmuxSession(slug), sanitizeCommand(command), "C-m"]);
   }
 }

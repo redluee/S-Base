@@ -37,7 +37,6 @@ describe("Minecraft importer", () => {
       "[10:00:00] [Server thread/INFO]: Starting minecraft server version 1.21.1\n",
     );
 
-    // Inspect
     const inspection = await minecraft.importer.inspect(existingDir);
     expect(inspection.isValid).toBe(true);
     expect(inspection.detectedEngine).toBe("fabric");
@@ -47,7 +46,6 @@ describe("Minecraft importer", () => {
     expect(inspection.hasWorld).toBe(true);
     expect(inspection.properties.difficulty).toBe("hard");
 
-    // Import
     const imported = await minecraft.importer.import({
       slug: "my-cool-smp",
       displayName: "My Cool SMP",
@@ -62,11 +60,9 @@ describe("Minecraft importer", () => {
     expect(imported?.engine).toBe("fabric");
     expect(imported?.mcVersion).toBe("1.21.1");
 
-    // Check that eula.txt was updated to true
     const eulaContent = await Bun.file(join(existingDir, "eula.txt")).text();
     expect(eulaContent).toContain("eula=true");
 
-    // Check duplicate slug validation
     await expect(
       minecraft.importer.import({
         slug: "my-cool-smp",
@@ -77,7 +73,6 @@ describe("Minecraft importer", () => {
       }),
     ).rejects.toMatchObject({ key: "minecraft.slugExists", status: 409 });
 
-    // Clean up
     await rm(existingDir, { recursive: true, force: true });
     db.delete(mc_servers).where(eq(mc_servers.slug, "my-cool-smp")).run();
   });

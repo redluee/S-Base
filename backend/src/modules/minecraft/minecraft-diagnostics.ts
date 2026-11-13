@@ -2,7 +2,8 @@ import { existsSync } from "fs";
 import { readdir, readFile, stat } from "fs/promises";
 import { join } from "path";
 import { readLogTail } from "./log-tail";
-import type { MinecraftParts } from "./minecraft-parts";
+import { latestLogPath } from "./server-layout";
+import type { MinecraftService } from "./index";
 
 const CLEAN_SHUTDOWN =
   /(Stopping\s+(the\s+)?server|Closing\s+Server|All\s+dimensions\s+are\s+saved|Saving\s+chunks|Server\s+empty\s+for\s+\d+\s+seconds,\s+pausing)/i;
@@ -10,11 +11,11 @@ const ERROR_LINE =
   /ERROR|FATAL|Exception in thread|Encountered an unexpected exception|FAILED TO BIND|Address already in use|You need to agree to the EULA/i;
 
 export class MinecraftDiagnostics {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   async startupError(slug: string): Promise<{ lines: string[]; crashReport?: string }> {
     const server = this.parts.servers.get(slug);
-    const logPath = join(server.serverDir, "logs", "latest.log");
+    const logPath = latestLogPath(server.serverDir);
 
     try {
       if (!existsSync(logPath)) return { lines: [] };

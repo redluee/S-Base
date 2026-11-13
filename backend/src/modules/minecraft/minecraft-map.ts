@@ -3,7 +3,7 @@ import { readFile, stat } from "fs/promises";
 import { join, resolve, sep } from "path";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { MIME_TYPES } from "./mime";
-import type { MinecraftParts } from "./minecraft-parts";
+import type { MinecraftService } from "./index";
 
 export interface MapFile {
   data: Buffer;
@@ -22,7 +22,7 @@ function anyFileContains(dir: string, needle: string): boolean {
 }
 
 export class MinecraftMap {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   getWebDir(serverDir: string): string | null {
     const candidates = [

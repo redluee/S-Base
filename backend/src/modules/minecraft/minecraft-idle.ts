@@ -1,14 +1,14 @@
-import type { MinecraftParts } from "./minecraft-parts";
+import type { MinecraftService } from "./index";
 
-export const DEFAULT_AUTO_SHUTDOWN_MINUTES = 15;
-export const DEFAULT_IDLE_CHECK_INTERVAL_MS = 15000;
+const DEFAULT_AUTO_SHUTDOWN_MINUTES = 15;
+const DEFAULT_IDLE_CHECK_INTERVAL_MS = 15000;
 
 export class MinecraftIdle {
   autoShutdownMinutes: number = Number(process.env.MC_EMPTY_SHUTDOWN_MINUTES) || DEFAULT_AUTO_SHUTDOWN_MINUTES;
   private readonly emptySince = new Map<string, number>();
   private interval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   start(intervalMs = DEFAULT_IDLE_CHECK_INTERVAL_MS) {
     if (this.interval) return;

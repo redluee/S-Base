@@ -1,31 +1,15 @@
 import { readFile, writeFile } from "fs/promises";
-import { join } from "path";
+import { defaultMotd, liveCommands } from "../../shared/minecraft";
 import { ValidationError } from "../../utils/errors";
-import type { MinecraftParts } from "./minecraft-parts";
-
-function parseLine(line: string): [string, string] | null {
-  if (line.trim().startsWith("#") || !line.trim()) return null;
-  const idx = line.indexOf("=");
-  if (idx < 0) return null;
-  return [line.substring(0, idx).trim(), line.substring(idx + 1).trim()];
-}
+import type { MinecraftService } from "./index";
+import { propertiesPath } from "./server-layout";
+import { mergeProperties, readPropertiesFile } from "./server-properties";
 
 export class MinecraftProperties {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
-  async read(slug: string) {
-    const server = this.parts.servers.get(slug);
-    const props: Record<string, string> = {};
-    try {
-      const content = await readFile(join(server.serverDir, "server.properties"), "utf-8");
-      for (const line of content.split("\n")) {
-        const entry = parseLine(line);
-        if (entry) props[entry[0]] = entry[1];
-      }
-    } catch {
-      return {};
-    }
-    return props;
+  read(slug: string) {
+    return readPropertiesFile(this.parts.servers.get(slug).serverDir);
   }
 
   async update(slug: string, props: Record<string, string>) {
@@ -39,31 +23,9 @@ export class MinecraftProperties {
         throw new ValidationError("minecraft.invalidProperty", { property: key });
       }
     }
-    const serverDir = srvDir || this.parts.servers.get(slug).serverDir;
-
-    let existingLines: string[] = [];
-    try {
-      existingLines = (await readFile(join(serverDir, "server.properties"), "utf-8")).split("\n");
-    } catch {
-      existingLines = [];
-    }
-
-    const pending = { ...props };
-    const outLines: string[] = [];
-    for (const line of existingLines) {
-      const entry = parseLine(line);
-      if (entry && entry[0] in pending) {
-        outLines.push(`${entry[0]}=${pending[entry[0]]}`);
-        delete pending[entry[0]];
-      } else {
-        outLines.push(line);
-      }
-    }
-    for (const [k, v] of Object.entries(pending)) {
-      outLines.push(`${k}=${v}`);
-    }
-
-    await writeFile(join(serverDir, "server.properties"), outLines.join("\n"));
+    const path = propertiesPath(srvDir || this.parts.servers.get(slug).serverDir);
+    const existing = await readFile(path, "utf-8").catch(() => "");
+    await writeFile(path, mergeProperties(existing, props));
 
     if (this.parts.lifecycle.isRunning(slug)) {
       await this.applyLive(slug, props);
@@ -71,30 +33,14 @@ export class MinecraftProperties {
   }
 
   private async applyLive(slug: string, props: Record<string, string>) {
-    const send = (cmd: string) => this.parts.lifecycle.sendCommand(slug, cmd);
-    if (props.difficulty) await send(`difficulty ${props.difficulty}`);
-    if (props.gamemode) await send(`defaultgamemode ${props.gamemode}`);
-    if (props["white-list"] !== undefined) {
-      const mode = props["white-list"] === "true" ? "on" : "off";
-      await send(`whitelist ${mode}`);
-      if (mode === "on") await send("whitelist reload");
-    }
-    if (props["player-idle-timeout"] !== undefined) {
-      await send(`setidletimeout ${props["player-idle-timeout"] || "0"}`);
-    }
-    if (props["do-fire-tick"] !== undefined || props.doFireTick !== undefined) {
-      const val = props["do-fire-tick"] ?? props.doFireTick;
-      await send(`gamerule doFireTick ${val === "false" ? "false" : "true"}`);
-    }
+    for (const command of liveCommands(props)) await this.parts.lifecycle.sendCommand(slug, command);
   }
 
-  defaults(serverName: string, seed?: string) {
-    const p: Record<string, string> = {
+  defaults(serverName: string) {
+    return {
       "server-name": serverName,
-      motd: `A Minecraft Server: ${serverName}`,
+      motd: defaultMotd(serverName),
       "enforce-secure-profile": "false",
     };
-    if (seed) p["level-seed"] = seed;
-    return p;
   }
 }

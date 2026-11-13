@@ -1,19 +1,22 @@
 import { and, eq } from "drizzle-orm";
-import { mkdir, rm, writeFile } from "fs/promises";
+import { rm } from "fs/promises";
 import { join } from "path";
 import db from "../../db/client";
 import { mc_server_permissions, mc_servers, mc_templates } from "../../db/schema/minecraft";
 import { ConflictError, orNotFound } from "../../utils/errors";
-import type { MinecraftParts } from "./minecraft-parts";
+import type { MinecraftService } from "./index";
 import { BASE_DIR } from "./paths";
 import { requireText, validateEngine, validateSlug } from "./validation";
 
-export interface CreateServerInput {
+export interface NewServerInput {
   slug: string;
   displayName: string;
   engine: string;
   mcVersion: string;
   javaArgs?: string | null;
+}
+
+export interface CreateServerInput extends NewServerInput {
   templateId?: number | null;
 }
 
@@ -24,15 +27,17 @@ export interface UpdateServerInput {
   mcVersion?: string;
 }
 
-export class MinecraftServers {
-  constructor(private readonly parts: MinecraftParts) {}
+export type ServerRow = typeof mc_servers.$inferSelect;
 
-  findBySlug(slug: string) {
-    return db.select().from(mc_servers).where(eq(mc_servers.slug, slug)).get() ?? null;
+export class MinecraftServers {
+  constructor(private readonly parts: MinecraftService) {}
+
+  exists(slug: string): boolean {
+    return !!db.select({ slug: mc_servers.slug }).from(mc_servers).where(eq(mc_servers.slug, slug)).get();
   }
 
-  get(slug: string) {
-    return orNotFound(this.findBySlug(slug), "minecraft.serverNotFound");
+  get(slug: string): ServerRow {
+    return orNotFound(db.select().from(mc_servers).where(eq(mc_servers.slug, slug)).get(), "minecraft.serverNotFound");
   }
 
   rows() {
@@ -114,41 +119,32 @@ export class MinecraftServers {
     return this.get(slug);
   }
 
-  async create(data: CreateServerInput) {
+  validateNew(data: NewServerInput) {
     validateSlug(data.slug);
     const displayName = requireText(data.displayName, "minecraft.displayNameRequired");
     const mcVersion = requireText(data.mcVersion, "minecraft.versionRequired");
     const engine = validateEngine(data.engine);
-    if (this.findBySlug(data.slug)) throw new ConflictError("minecraft.slugExists");
+    if (this.exists(data.slug)) throw new ConflictError("minecraft.slugExists");
+    return { slug: data.slug, displayName, mcVersion, engine, javaArgs: data.javaArgs || null };
+  }
+
+  register(data: ReturnType<MinecraftServers["validateNew"]> & { serverDir: string; templateId?: number | null }) {
+    db.insert(mc_servers)
+      .values({ ...data, templateId: data.templateId || null })
+      .run();
+    return this.get(data.slug);
+  }
+
+  async create(data: CreateServerInput) {
+    const server = this.validateNew(data);
     if (data.templateId) this.parts.templates.get(data.templateId);
 
-    const serverDir = join(BASE_DIR, data.slug);
-    await mkdir(serverDir, { recursive: true });
-    await writeFile(join(serverDir, "eula.txt"), "eula=true\n");
+    const serverDir = join(BASE_DIR, server.slug);
+    await this.parts.dirs.scaffold(serverDir);
+    await this.parts.downloads.installJar(server.engine, server.mcVersion, serverDir);
+    await this.parts.properties.write(server.slug, this.parts.properties.defaults(server.displayName), serverDir);
 
-    for (const dir of ["mods", "resourcepacks", "logs", "world"]) {
-      await mkdir(join(serverDir, dir), { recursive: true });
-    }
-    await this.parts.dirs.ensureDatapacksDir(serverDir);
-
-    await this.parts.downloads.installJar(engine, mcVersion, serverDir);
-
-    const props = this.parts.properties.defaults(displayName);
-    await this.parts.properties.write(data.slug, props, serverDir);
-
-    db.insert(mc_servers)
-      .values({
-        slug: data.slug,
-        displayName,
-        engine,
-        mcVersion,
-        javaArgs: data.javaArgs || null,
-        templateId: data.templateId || null,
-        serverDir,
-      })
-      .run();
-
-    return this.get(data.slug);
+    return this.register({ ...server, serverDir, templateId: data.templateId });
   }
 
   async remove(slug: string, deleteDisk = false) {

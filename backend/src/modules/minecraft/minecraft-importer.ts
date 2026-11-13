@@ -1,12 +1,15 @@
 import { existsSync } from "fs";
-import { mkdir, readdir, readFile, stat, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, stat } from "fs/promises";
 import { basename, join, resolve } from "path";
-import db from "../../db/client";
-import { mc_servers } from "../../db/schema/minecraft";
-import { ConflictError, ValidationError } from "../../utils/errors";
-import type { MinecraftParts } from "./minecraft-parts";
+import { DEFAULT_MOTD_PREFIX, toServerSlug } from "../../shared/minecraft";
+import { ValidationError } from "../../utils/errors";
+import type { MinecraftService } from "./index";
 import { BASE_DIR } from "./paths";
-import { requireText, validateEngine, validateSlug } from "./validation";
+import { DEFAULT_LEVEL_NAME, latestLogPath } from "./server-layout";
+import { readPropertiesFile } from "./server-properties";
+import { requireText } from "./validation";
+
+const DEFAULT_MOTD = new RegExp(`^${DEFAULT_MOTD_PREFIX}:\\s*`, "i");
 
 export interface ServerInspection {
   isValid: boolean;
@@ -51,21 +54,8 @@ function invalidInspection(serverDir: string, folderName: string, error: string)
   };
 }
 
-async function readProperties(path: string): Promise<Record<string, string>> {
-  const properties: Record<string, string> = {};
-  try {
-    for (const line of (await readFile(path, "utf-8")).split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const idx = trimmed.indexOf("=");
-      if (idx > -1) properties[trimmed.substring(0, idx).trim()] = trimmed.substring(idx + 1).trim();
-    }
-  } catch {}
-  return properties;
-}
-
 async function detectVersion(dir: string, files: string[], jarFiles: string[]): Promise<string | undefined> {
-  const logPath = join(dir, "logs", "latest.log");
+  const logPath = latestLogPath(dir);
   if (files.includes("logs") && existsSync(logPath)) {
     try {
       const head = (await readFile(logPath, "utf-8")).slice(0, 10000);
@@ -84,7 +74,7 @@ async function detectVersion(dir: string, files: string[], jarFiles: string[]): 
 }
 
 export class MinecraftImporter {
-  constructor(private readonly parts: MinecraftParts) {}
+  constructor(private readonly parts: MinecraftService) {}
 
   async inspect(targetPath: string): Promise<ServerInspection> {
     const dir = resolve(targetPath);
@@ -100,24 +90,18 @@ export class MinecraftImporter {
       const hasProperties = files.includes("server.properties");
       const hasEula = files.includes("eula.txt");
 
-      let eulaAccepted = false;
-      if (hasEula) {
-        try {
-          eulaAccepted = /eula\s*=\s*true/i.test(await readFile(join(dir, "eula.txt"), "utf-8"));
-        } catch {}
-      }
-
-      const properties = hasProperties ? await readProperties(join(dir, "server.properties")) : {};
-      const levelName = properties["level-name"] || "world";
+      const eulaAccepted = hasEula && (await this.parts.dirs.eulaAccepted(dir));
+      const properties = hasProperties ? await readPropertiesFile(dir) : {};
+      const levelName = properties["level-name"] || DEFAULT_LEVEL_NAME;
       const isFabric = jarFiles.some((j) => j.toLowerCase().includes("fabric")) || files.includes(".fabric");
-      const motdName = properties.motd?.replace(/^A Minecraft Server:\s*/i, "");
+      const motdName = properties.motd?.replace(DEFAULT_MOTD, "");
 
       return {
         isValid: true,
         serverDir: dir,
         folderName,
         hasProperties,
-        hasWorld: files.includes(levelName) || files.includes("world"),
+        hasWorld: files.includes(levelName) || files.includes(DEFAULT_LEVEL_NAME),
         hasEula,
         eulaAccepted,
         hasJar: jarFiles.length > 0,
@@ -148,11 +132,7 @@ export class MinecraftImporter {
         const inspection = await this.inspect(fullPath);
         if (!inspection.isValid) continue;
 
-        const suggestedSlug = entry
-          .toLowerCase()
-          .replace(/[^a-z0-9-]/g, "-")
-          .replace(/-+/g, "-")
-          .slice(0, 32);
+        const suggestedSlug = toServerSlug(entry);
         unlinked.push({
           serverDir: fullPath,
           folderName: entry,
@@ -167,37 +147,12 @@ export class MinecraftImporter {
   }
 
   async import(data: ImportServerInput) {
-    validateSlug(data.slug);
-    const displayName = requireText(data.displayName, "minecraft.displayNameRequired");
-    const mcVersion = requireText(data.mcVersion, "minecraft.versionRequired");
-    const engine = validateEngine(data.engine);
-    if (this.parts.servers.findBySlug(data.slug)) throw new ConflictError("minecraft.slugExists");
-
+    const server = this.parts.servers.validateNew(data);
     const dir = resolve(requireText(data.serverDir, "minecraft.directoryNotFound"));
     if (!existsSync(dir)) throw new ValidationError("minecraft.directoryNotFound");
     if (!(await stat(dir)).isDirectory()) throw new ValidationError("minecraft.notADirectory");
 
-    const eulaPath = join(dir, "eula.txt");
-    try {
-      if (!existsSync(eulaPath)) {
-        await writeFile(eulaPath, "eula=true\n");
-      } else {
-        const content = await readFile(eulaPath, "utf-8");
-        if (!/eula\s*=\s*true/i.test(content)) {
-          await writeFile(eulaPath, content.replace(/eula\s*=\s*false/i, "eula=true"));
-        }
-      }
-    } catch {}
-
-    for (const sub of ["mods", "resourcepacks", "logs", "world"]) {
-      await mkdir(join(dir, sub), { recursive: true });
-    }
-    await this.parts.dirs.ensureDatapacksDir(dir);
-
-    db.insert(mc_servers)
-      .values({ slug: data.slug, displayName, engine, mcVersion, javaArgs: data.javaArgs || null, serverDir: dir })
-      .run();
-
-    return this.parts.servers.get(data.slug);
+    await this.parts.dirs.scaffold(dir);
+    return this.parts.servers.register({ ...server, serverDir: dir });
   }
 }
