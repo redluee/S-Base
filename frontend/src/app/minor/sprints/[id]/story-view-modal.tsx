@@ -2,9 +2,8 @@
 
 import { Trash2, Edit3, Presentation, Copy, Check } from "lucide-react";
 import { t } from "@/lib/lang";
-import { api, type MinorStory, type MinorStoryType } from "@/lib/api";
+import type { MinorStory, MinorStoryType } from "@/lib/api";
 import { StoryViewModal as BaseStoryViewModal } from "@/app/minor/story-view-modal";
-import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";
 
 interface StoryViewModalProps {
@@ -12,22 +11,17 @@ interface StoryViewModalProps {
   viewingStory: MinorStory;
   setViewingStoryId: (id: number | null) => void;
   setEditingPresentationStory: (story: MinorStory | null) => void;
-  data: ReturnType<typeof useSprintData>;
   editor: ReturnType<typeof useStoryEditor>;
 }
 
-export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, setEditingPresentationStory, data, editor }: StoryViewModalProps) {
-  const { reloadSprint } = data;
-  const { copiedExport, openEditStoryModal, handleDeleteStory, handleExportStoryDirect, handleToggleCriterion } = editor;
+export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, setEditingPresentationStory, editor }: StoryViewModalProps) {
+  const { copiedExport, openEditStoryModal, handleDeleteStory, handleStatusChange, handleExportStoryDirect, handleToggleCriterion } = editor;
   return (
     <BaseStoryViewModal
       storyTypes={storyTypes}
       viewingStory={viewingStory}
       handleToggleCriterion={handleToggleCriterion}
-      handleStatusChange={async (id, status) => {
-        await api.minor.stories.update(id, { status });
-        await reloadSprint();
-      }}
+      handleStatusChange={handleStatusChange}
       onClose={() => setViewingStoryId(null)}
       footer={
         <div className="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-white/10">

@@ -4,9 +4,11 @@ import type { StoryStatus } from "@backend/shared/minor";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import { useState } from "react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { MinorSprintFull, MinorStory, MinorStoryType } from "@/lib/api";
 
 export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatch<React.SetStateAction<MinorSprintFull>>, storyTypes: MinorStoryType[], reloadSprint: (keepLocalEvals?: boolean) => Promise<void>, setViewingStoryId: (id: number | null) => void, report: (err: unknown, fallbackKey: string) => void) {
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
 
   const [editingStory, setEditingStory] = useState<MinorStory | null>(null);
@@ -139,12 +141,21 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
   }
 
   async function handleDeleteStory(storyId: number) {
-    if (!confirm(t("Weet je zeker dat je deze story wilt verwijderen?"))) return;
+    if (!(await confirm(t("Weet je zeker dat je deze story wilt verwijderen?")))) return;
     try {
       await api.minor.stories.delete(storyId);
       await reloadSprint();
       setIsStoryModalOpen(false);
       setViewingStoryId(null);
+    } catch (err) {
+      report(err, "minor.actionFailed");
+    }
+  }
+
+  async function handleStatusChange(storyId: number, status: StoryStatus) {
+    try {
+      await api.minor.stories.update(storyId, { status });
+      await reloadSprint();
     } catch (err) {
       report(err, "minor.actionFailed");
     }
@@ -288,6 +299,8 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
     addQualityCriterion,
     handleSaveStory,
     handleDeleteStory,
+    handleStatusChange,
+    confirmDialog,
     handleExportStoryDirect,
     handleToggleCriterion,
     handleFileUpload,

@@ -141,7 +141,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
           viewingStory={viewingStory}
           setViewingStoryId={setViewingStoryId}
           setEditingPresentationStory={setEditingPresentationStory}
-          data={data}
           editor={editor}
         />
       )}
@@ -189,6 +188,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
           onClose={() => setEditingPresentationStory(null)}
         />
       )}
+      {editor.confirmDialog}
     </div>
   );
 }
