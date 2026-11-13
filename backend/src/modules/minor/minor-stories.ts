@@ -1,5 +1,6 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
+import { requireOwnedSprint } from "./minor-ownership";
 import { minorSprints, minorStories, minorStoryCriteria, minorStoryEvidence } from "../../db/schema";
 import type { MinorStory, MinorStoryPresentationData, MinorStoryWithSprint } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
@@ -82,7 +83,7 @@ export class MinorStories {
 
     let validSprintId: number | null = null;
     if (sprintId && sprintId > 0) {
-      this.requireSprint(sprintId, userId);
+      requireOwnedSprint(sprintId, userId);
       validSprintId = sprintId;
     }
 
@@ -147,7 +148,7 @@ export class MinorStories {
       if (data.sprintId === null || data.sprintId <= 0) {
         newSprintId = null;
       } else {
-        this.requireSprint(data.sprintId, userId);
+        requireOwnedSprint(data.sprintId, userId);
         newSprintId = data.sprintId;
       }
     }
@@ -215,7 +216,7 @@ export class MinorStories {
   }
 
   reorder(sprintId: number, userId: number, storyIds: number[]) {
-    this.requireSprint(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
 
     db.transaction((tx) => {
       storyIds.forEach((id, index) => {
@@ -229,9 +230,14 @@ export class MinorStories {
     return { success: true };
   }
 
-  toggleCriterion(criterionId: number, isCompleted: boolean) {
+  toggleCriterion(userId: number, criterionId: number, isCompleted: boolean) {
     orNotFound(
-      db.select().from(minorStoryCriteria).where(eq(minorStoryCriteria.id, criterionId)).get(),
+      db
+        .select({ id: minorStoryCriteria.id })
+        .from(minorStoryCriteria)
+        .innerJoin(minorStories, eq(minorStoryCriteria.storyId, minorStories.id))
+        .where(and(eq(minorStoryCriteria.id, criterionId), eq(minorStories.userId, userId)))
+        .get(),
       "minor.criterionNotFound",
     );
     return db
@@ -296,17 +302,6 @@ export class MinorStories {
         .where(and(eq(minorStories.id, storyId), eq(minorStories.userId, userId)))
         .get(),
       "minor.storyNotFound",
-    );
-  }
-
-  private requireSprint(sprintId: number, userId: number) {
-    return orNotFound(
-      db
-        .select()
-        .from(minorSprints)
-        .where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId)))
-        .get(),
-      "minor.sprintNotFound",
     );
   }
 }

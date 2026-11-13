@@ -32,7 +32,7 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ## Service Methods (`MinorService` in `index.ts` composes topic classes as readonly properties; the file per topic is `minor-<topic>.ts`)
 
-Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `ValidationError`; schemas for every route live in `minor-schemas.ts`. `MinorService` also keeps flat delegates (`listSprints`, `getSprintById`, `createSprint`, `createStory`, `addFeedback`, `saveSelfEvaluations`, `listPeerHelp`, `createPeerHelp`, `listVacations`) only because `public-snapshot.ts` and its tests call them.
+Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `ValidationError`; schemas for every route live in `minor-schemas.ts`. Sprint ownership is checked once in `minor-ownership.ts` (`requireOwnedSprint`, `ownedSprintIdOrNull`). Pure rules shared with the frontend (learning outcomes, sprint dates/status, pass rule, argumentation draft) live in `backend/src/shared/minor.ts`; the frontend imports them via `@backend/shared/minor`.
 
 | Property (file)                                                      | Methods                                                                                                                                                                                 |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -90,7 +90,7 @@ Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `Validati
 
 1. **Passes & Prognosis**:
    - Official pass (`officialPasses`): Teacher assessment `V` on an LU (at most 1 per sprint per LU). Official passes awarded by the teacher always count regardless of reflection state (reflection completeness is checked during export validation).
-   - Prognosis (`projectedPasses`): For finished sprints, only actual teacher `V`s count. For active/planned sprints, stories planned in that sprint project a `V` for each covered LU unless assessed with `O` (at most 1 projected pass per LU per sprint).
+   - Prognosis (`projectedPasses`): a teacher `V`, or a self-evaluation `V` unless the teacher assessed `O` (`isProjectedPass` in `shared/minor.ts`). The Excel/PDF export uses the same rule (`learningOutcomeLevel`).
 2. **Vacations**: Overlapping vacations extend sprint duration automatically and adjust the Show & Grow date (Wednesday in the last week).
 3. **Dual Criteria**: Each story has two criteria groups: `acceptance` criteria (story specific) and `quality` criteria (process/DoD related, often pre-filled from story type). Both support 1-level indentation (`indent: 1`).
 4. **Presentation Data**: `presentationData` in `minor_stories` stores JSON for Show & Grow slides (custom title, notes, demo URLs, screenshots, bullet points).

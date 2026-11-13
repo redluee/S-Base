@@ -46,10 +46,10 @@ describe("MinorStories", () => {
     expect(story.criteria?.[1].indent).toBe(1);
     expect(story.evidence?.length).toBe(2);
 
-    // Toggle criterion
     const firstCrit = story.criteria![0];
-    const toggled = minor.stories.toggleCriterion(firstCrit.id, false);
+    const toggled = minor.stories.toggleCriterion(adminId, firstCrit.id, false);
     expect(toggled?.isCompleted).toBe(false);
+    expect(() => minor.stories.toggleCriterion(testerId, firstCrit.id, true)).toThrow("minor.criterionNotFound");
 
     // Update story status
     const updated = minor.stories.update(story.id, adminId, {

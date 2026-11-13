@@ -3,7 +3,7 @@ import db from "../../db/client";
 import { minorVacations } from "../../db/schema";
 import type { MinorVacation } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
-import { addDays, formatDate, parseDate } from "./minor-helpers";
+import { addDays, DEFAULT_SPRINT_DAYS, formatDate, parseDate } from "../../shared/minor";
 
 export interface VacationInput {
   name?: string;
@@ -61,7 +61,7 @@ export class MinorSchedule {
   calculateSprintDates(userId: number, startDateStr?: string, durationDays?: number) {
     const startInput = startDateStr || new Date().toISOString().slice(0, 10);
     if (!DATE_PATTERN.test(startInput)) throw new ValidationError("minor.invalidDate");
-    const duration = durationDays || 14;
+    const duration = durationDays || DEFAULT_SPRINT_DAYS;
     const vacations = this.listVacations(userId);
     const start = parseDate(startInput);
     let extendedDays = 0;
@@ -117,7 +117,7 @@ export class MinorSchedule {
     return {
       startDate: formatDate(start),
       endDate: formatDate(currentEnd),
-      durationDays: durationDays ?? 14,
+      durationDays: durationDays || DEFAULT_SPRINT_DAYS,
       extendedDays,
       extensionReason: overlappingVacationNames.length > 0 ? overlappingVacationNames.join(", ") : null,
       showAndGrowDate: formatDate(showAndGrow),

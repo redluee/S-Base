@@ -67,33 +67,3 @@ export function parseDefaultQualityCriteria(raw: string | null | undefined): Min
   } catch {}
   return [];
 }
-
-export function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-export function parseDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d, 12, 0, 0);
-}
-
-export function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-export function calculateSprintStatus(
-  startDate: string,
-  endDate: string,
-  today: string = formatDate(new Date()),
-  currentStatus?: "planned" | "active" | "completed",
-): "planned" | "active" | "completed" {
-  if (startDate > today) return "planned";
-  if (endDate < today) return "completed";
-  if (currentStatus === "completed") return "completed";
-  return "active";
-}

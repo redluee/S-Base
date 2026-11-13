@@ -98,7 +98,7 @@ export const minorRoutes = new Elysia()
       })
       .patch(
         "/criteria/:id/toggle",
-        ({ params: { id }, body }) => minor.stories.toggleCriterion(id, body.isCompleted),
+        ({ params: { id }, body, userId }) => minor.stories.toggleCriterion(userId, id, body.isCompleted),
         {
           params: schema.idParams,
           body: schema.toggleBody,

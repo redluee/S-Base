@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { minorSelfEvaluations } from "../../db/schema";
 import type { MinorSelfEvaluation } from "../../types/shared";
+import { draftArgumentation, LEARNING_OUTCOMES, noStoriesArgumentation } from "../../shared/minor";
 import type { MinorSprints } from "./minor-sprints";
 
 export class MinorEvaluationDrafts {
@@ -11,39 +12,10 @@ export class MinorEvaluationDrafts {
     const sprint = this.sprints.getById(sprintId, userId);
     const result: MinorSelfEvaluation[] = [];
 
-    for (let lu = 1; lu <= 5; lu++) {
-      const storiesForLu = sprint.stories.filter((s) => s.learningOutcomes.includes(lu));
-      const defaultLevel = storiesForLu.length > 0 ? "V" : "-";
-
-      const completedStories = storiesForLu.filter((s) => s.status === "done");
-      const inProgressStories = storiesForLu.filter((s) => s.status !== "done");
-
-      const lines: string[] = [];
-      if (completedStories.length > 0) {
-        lines.push(`Voltooide stories voor LU ${lu}:`);
-        for (const st of completedStories) {
-          const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
-          lines.push(`• ${prefix}${st.title}`);
-          for (const ev of st.evidence ?? []) {
-            lines.push(`   - Bewijs (${ev.type}): ${ev.title} (${ev.url})`);
-          }
-        }
-      }
-
-      if (inProgressStories.length > 0) {
-        if (lines.length > 0) lines.push("");
-        lines.push(`In uitvoering:`);
-        for (const st of inProgressStories) {
-          const prefix = st.storyNumber ? `[${st.storyNumber}] ` : "";
-          lines.push(`• ${prefix}${st.title}`);
-        }
-      }
-
-      if (lines.length === 0) {
-        lines.push(`Geen stories gekoppeld aan LU ${lu} in deze sprint.`);
-      }
-
-      const argumentation = lines.join("\n");
+    for (const lu of LEARNING_OUTCOMES) {
+      const draft = draftArgumentation(lu, sprint.stories);
+      const defaultLevel = draft ? "V" : "-";
+      const argumentation = draft ?? noStoriesArgumentation(lu);
 
       const existing = db
         .select()

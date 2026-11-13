@@ -1,5 +1,5 @@
 import type { MinorStoryPresentationData } from "../../types/shared";
-import { formatDate } from "./minor-helpers";
+import { formatDate } from "../../shared/minor";
 import type { EvidenceInput, StoryInput } from "./minor-stories";
 
 export type JsonRecord = Record<string, unknown>;

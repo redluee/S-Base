@@ -1,5 +1,6 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
+import { requireOwnedSprint } from "./minor-ownership";
 import {
   minorFeedbackEntries,
   minorReflections,
@@ -16,9 +17,8 @@ import type {
   MinorSprintFull,
   MinorTeacherAssessment,
 } from "../../types/shared";
-import { orNotFound } from "../../utils/errors";
 import type { MinorEvaluations } from "./minor-evaluations";
-import { calculateSprintStatus, formatDate } from "./minor-helpers";
+import { calculateSprintStatus, DEFAULT_SPRINT_DAYS, formatDate } from "../../shared/minor";
 import type { MinorSchedule } from "./minor-schedule";
 import { loadStoryChildren, toStory } from "./minor-story-mapper";
 
@@ -71,7 +71,7 @@ export class MinorSprints {
   }
 
   getById(id: number, userId: number): MinorSprintFull {
-    const sprint = this.withComputedStatus(this.requireOwned(id, userId));
+    const sprint = this.withComputedStatus(requireOwnedSprint(id, userId));
 
     const storiesRaw = db
       .select()
@@ -81,15 +81,6 @@ export class MinorSprints {
       .all();
     const { criteria, evidence } = loadStoryChildren(storiesRaw.map((s) => s.id));
     const stories = storiesRaw.map((s) => toStory(s, criteria, evidence));
-
-    const selfEvaluations = this.loadSelfEvaluations(id);
-    if (selfEvaluations.length === 0) this.evaluations.initDefaults(id);
-
-    let teacherAssessments = this.loadTeacherAssessments(id);
-    if (teacherAssessments.length === 0) {
-      this.evaluations.initDefaults(id);
-      teacherAssessments = this.loadTeacherAssessments(id);
-    }
 
     const feedback = db
       .select()
@@ -107,14 +98,14 @@ export class MinorSprints {
       ...sprint,
       stories,
       selfEvaluations: this.loadSelfEvaluations(id),
-      teacherAssessments,
+      teacherAssessments: this.loadTeacherAssessments(id),
       feedback,
       reflection,
     };
   }
 
   create(userId: number, data: SprintInput & { startDate: string }): MinorSprint {
-    const calc = this.schedule.calculateSprintDates(userId, data.startDate, data.durationDays ?? 14);
+    const calc = this.schedule.calculateSprintDates(userId, data.startDate, data.durationDays ?? DEFAULT_SPRINT_DAYS);
     const nextInfo = this.getNextNumber(userId);
 
     const sprintNumber = data.sprintNumber?.trim() || nextInfo.nextNumber;
@@ -144,7 +135,7 @@ export class MinorSprints {
   }
 
   update(id: number, userId: number, data: SprintInput): MinorSprint {
-    const existing = this.requireOwned(id, userId);
+    const existing = requireOwnedSprint(id, userId);
 
     let extendedDays = data.extendedDays ?? existing.extendedDays;
     let extensionReason = data.extensionReason !== undefined ? data.extensionReason : existing.extensionReason;
@@ -186,20 +177,9 @@ export class MinorSprints {
   }
 
   remove(id: number, userId: number) {
-    this.requireOwned(id, userId);
+    requireOwnedSprint(id, userId);
     db.delete(minorSprints).where(eq(minorSprints.id, id)).run();
     return { success: true };
-  }
-
-  requireOwned(id: number, userId: number): SprintRow {
-    return orNotFound(
-      db
-        .select()
-        .from(minorSprints)
-        .where(and(eq(minorSprints.id, id), eq(minorSprints.userId, userId)))
-        .get(),
-      "minor.sprintNotFound",
-    );
   }
 
   private withComputedStatus(row: SprintRow): MinorSprint {

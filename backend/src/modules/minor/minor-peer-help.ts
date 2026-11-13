@@ -1,9 +1,10 @@
 import { and, desc, eq } from "drizzle-orm";
 import db from "../../db/client";
+import { ownedSprintIdOrNull } from "./minor-ownership";
 import { minorPeerHelp } from "../../db/schema";
 import type { MinorPeerHelp } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
-import { formatDate } from "./minor-helpers";
+import { formatDate } from "../../shared/minor";
 
 export interface PeerHelpInput {
   sprintId?: number | null;
@@ -29,7 +30,7 @@ export class MinorPeerHelpLog {
       .insert(minorPeerHelp)
       .values({
         userId,
-        sprintId: data.sprintId ?? null,
+        sprintId: ownedSprintIdOrNull(data.sprintId, userId),
         date: data.date || formatDate(new Date()),
         peerName: data.peerName.trim(),
         description: data.description.trim(),
@@ -44,7 +45,7 @@ export class MinorPeerHelpLog {
     return db
       .update(minorPeerHelp)
       .set({
-        sprintId: data.sprintId !== undefined ? data.sprintId : existing.sprintId,
+        sprintId: data.sprintId !== undefined ? ownedSprintIdOrNull(data.sprintId, userId) : existing.sprintId,
         date: data.date ?? existing.date,
         peerName: data.peerName?.trim() ?? existing.peerName,
         description: data.description?.trim() ?? existing.description,

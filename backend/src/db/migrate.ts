@@ -4,7 +4,7 @@ import { readdir } from "fs/promises";
 import { DB_PATH } from "./paths";
 
 export const LEGACY_BASELINE_END = "0040_add_set_edited_fields.sql";
-const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
+export const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
 function errorMessage(err: unknown): string | undefined {
   if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
+import { untrackedLegacyDatabase } from "./legacy-fixture";
 import { LEGACY_BASELINE_END, runMigrations } from "./migrate";
 
 const recorded = (sqlite: Database) =>
@@ -19,19 +20,15 @@ describe("runMigrations", () => {
   });
 
   it("baselines an untracked legacy database and applies only newer migrations", async () => {
-    const sqlite = new Database(":memory:");
-    sqlite.run("CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT);");
-    sqlite.run(
-      "CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT);",
-    );
-    sqlite.run("INSERT INTO users (username) VALUES ('admin');");
+    const sqlite = await untrackedLegacyDatabase();
+    const usersBefore = sqlite.query("SELECT * FROM users").all();
 
     const result = await runMigrations(sqlite);
     expect(result.baselined).toBeGreaterThan(0);
     expect(result.applied.length).toBeGreaterThan(0);
     expect(result.applied.every((file) => file > LEGACY_BASELINE_END)).toBe(true);
     expect(recorded(sqlite)).toHaveLength(result.total);
-    expect(sqlite.query("SELECT username FROM users").all()).toEqual([{ username: "admin" }]);
+    expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
     sqlite.close();
   });
 });

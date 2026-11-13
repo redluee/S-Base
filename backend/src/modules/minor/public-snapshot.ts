@@ -135,8 +135,8 @@ export function buildPublicSnapshot(
 ): PublicSnapshot {
   const found = new Set<string>();
 
-  const sprintRows = minor
-    .listSprints(userId)
+  const sprintRows = minor.sprints
+    .list(userId)
     .slice()
     .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.id - b.id);
 
@@ -144,8 +144,8 @@ export function buildPublicSnapshot(
   const sprints: PublicSnapshotSprint[] = [];
 
   for (const row of sprintRows) {
-    const full = minor.getSprintById(row.id, userId);
-    if (!full || !isPublished(full)) continue;
+    const full = minor.sprints.getById(row.id, userId);
+    if (!isPublished(full)) continue;
     publishedNumbers.set(full.id, full.sprintNumber);
 
     const stories: PublicSnapshotStory[] = (full.stories || []).map((s) => {
@@ -213,8 +213,8 @@ export function buildPublicSnapshot(
     });
   }
 
-  const peerHelp = minor
-    .listPeerHelp(userId)
+  const peerHelp = minor.peerHelp
+    .list(userId)
     .filter((p) => p.sprintId === null || publishedNumbers.has(p.sprintId))
     .map((p) => ({
       date: p.date,
@@ -224,7 +224,7 @@ export function buildPublicSnapshot(
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const vacations = minor.listVacations(userId).map((v) => ({
+  const vacations = minor.schedule.listVacations(userId).map((v) => ({
     name: v.name,
     startDate: v.startDate,
     endDate: v.endDate,

@@ -1,10 +1,10 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
+import { requireOwnedSprint } from "./minor-ownership";
 import { minorFeedbackEntries, minorReflections, minorSprints } from "../../db/schema";
 import type { MinorFeedbackEntry, MinorReflection } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
-import { formatDate } from "./minor-helpers";
-import type { MinorSprints } from "./minor-sprints";
+import { formatDate } from "../../shared/minor";
 import type { PublishNotifier } from "./publish-notifier";
 
 export interface FeedbackInput {
@@ -23,13 +23,10 @@ export interface ReflectionInput {
 }
 
 export class MinorFeedback {
-  constructor(
-    private readonly sprints: MinorSprints,
-    private readonly notifier: PublishNotifier,
-  ) {}
+  constructor(private readonly notifier: PublishNotifier) {}
 
   list(sprintId: number, userId: number): MinorFeedbackEntry[] {
-    this.sprints.requireOwned(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
     return db
       .select()
       .from(minorFeedbackEntries)
@@ -39,7 +36,7 @@ export class MinorFeedback {
   }
 
   add(sprintId: number, userId: number, data: FeedbackInput) {
-    this.sprints.requireOwned(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
     if (!data.fromWhom?.trim() || !data.feedback?.trim() || !data.action?.trim()) {
       throw new ValidationError("minor.feedbackFieldsRequired");
     }
@@ -80,7 +77,7 @@ export class MinorFeedback {
   }
 
   getReflection(sprintId: number, userId: number): MinorReflection | null {
-    this.sprints.requireOwned(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
     return db
       .select()
       .from(minorReflections)
@@ -89,7 +86,7 @@ export class MinorFeedback {
   }
 
   saveReflection(sprintId: number, userId: number, data: ReflectionInput): MinorReflection {
-    this.sprints.requireOwned(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
     const saved = this.upsertReflection(sprintId, data);
     this.notifier.notify(userId, { event: "self_evaluations_saved", sprintId });
     return saved;

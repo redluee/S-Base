@@ -32,12 +32,12 @@ describe("public snapshot", () => {
   });
 
   function seedPublishedSprint(number: string) {
-    const sprint = minor.createSprint(adminId, {
+    const sprint = minor.sprints.create(adminId, {
       sprintNumber: number,
       name: `Snapshot ${number}`,
       startDate: "2031-03-03",
     });
-    minor.createStory(adminId, sprint.id, {
+    minor.stories.create(adminId, sprint.id, {
       storyTypeCode: "US",
       storyNumber: `US ${number}.1`,
       title: "Snapshot story",
@@ -47,20 +47,20 @@ describe("public snapshot", () => {
       qualityCriteria: [{ text: "Tested", isCompleted: false, indent: 0 }],
       evidence: [{ type: "document", title: "Doc", url: `/api/uploads/${ASSET}` }],
       presentationData: { enabled: true, notes: "presenter only", images: [{ url: `/api/uploads/${ASSET}` }] },
-    } as Parameters<typeof minor.createStory>[2]);
-    minor.addFeedback(sprint.id, adminId, {
+    } as Parameters<typeof minor.stories.create>[2]);
+    minor.feedback.add(sprint.id, adminId, {
       date: "2031-03-05",
       fromWhom: SECRET_NAME,
       feedback: "Nice",
       action: "Continue",
-    } as Parameters<typeof minor.addFeedback>[2]);
-    minor.createPeerHelp(adminId, {
+    } as Parameters<typeof minor.feedback.add>[2]);
+    minor.peerHelp.create(adminId, {
       sprintId: sprint.id,
       date: "2031-03-06",
       peerName: SECRET_NAME,
       description: "Explained git",
     });
-    minor.saveSelfEvaluations(sprint.id, adminId, [
+    minor.evaluations.saveSelfEvaluations(sprint.id, adminId, [
       { learningOutcome: 1, level: "V", argumentation: "Shown in story" },
     ]);
     return sprint;
@@ -87,7 +87,7 @@ describe("public snapshot", () => {
   });
 
   it("excludes sprints without a saved self-evaluation", () => {
-    minor.createSprint(adminId, { sprintNumber: "902", name: "Empty", startDate: "2031-04-07" });
+    minor.sprints.create(adminId, { sprintNumber: "902", name: "Empty", startDate: "2031-04-07" });
     const snapshot = buildPublicSnapshot(minor, adminId, uploadsDir);
     expect(snapshot.sprints.some((s) => s.sprintNumber === "902")).toBe(false);
   });
@@ -98,7 +98,9 @@ describe("public snapshot", () => {
     const second = buildPublicSnapshot(minor, adminId, uploadsDir);
     expect(second.contentHash).toBe(first.contentHash);
 
-    minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "NV", argumentation: "Changed" }]);
+    minor.evaluations.saveSelfEvaluations(sprint.id, adminId, [
+      { learningOutcome: 1, level: "NV", argumentation: "Changed" },
+    ]);
     const third = buildPublicSnapshot(minor, adminId, uploadsDir);
     expect(third.contentHash).not.toBe(first.contentHash);
   });
@@ -129,7 +131,7 @@ describe("public snapshot", () => {
   });
 
   it("notifies the webhook once after saving self-evaluations and never fails the save", async () => {
-    const sprint = minor.createSprint(adminId, { sprintNumber: "904", name: "Notify", startDate: "2031-05-05" });
+    const sprint = minor.sprints.create(adminId, { sprintNumber: "904", name: "Notify", startDate: "2031-05-05" });
     const calls: Array<{ url: string; init: RequestInit }> = [];
     const realFetch = globalThis.fetch;
 
@@ -142,7 +144,9 @@ describe("public snapshot", () => {
       return new Response("ok");
     }) as typeof fetch;
     try {
-      minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "x" }]);
+      minor.evaluations.saveSelfEvaluations(sprint.id, adminId, [
+        { learningOutcome: 1, level: "V", argumentation: "x" },
+      ]);
       expect(calls).toHaveLength(1);
       expect((calls[0].init.headers as Record<string, string>)["X-Webhook-Secret"]).toBe("hook-secret");
       expect(JSON.parse(calls[0].init.body as string).sprintId).toBe(sprint.id);
@@ -151,7 +155,9 @@ describe("public snapshot", () => {
         throw new Error("n8n down");
       }) as typeof fetch;
       expect(() =>
-        minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "NV", argumentation: "y" }]),
+        minor.evaluations.saveSelfEvaluations(sprint.id, adminId, [
+          { learningOutcome: 1, level: "NV", argumentation: "y" },
+        ]),
       ).not.toThrow();
 
       delete process.env.N8N_WEBHOOK_URL;
@@ -160,7 +166,9 @@ describe("public snapshot", () => {
         calls.push({ url: String(url), init });
         return new Response("ok");
       }) as typeof fetch;
-      minor.saveSelfEvaluations(sprint.id, adminId, [{ learningOutcome: 1, level: "V", argumentation: "z" }]);
+      minor.evaluations.saveSelfEvaluations(sprint.id, adminId, [
+        { learningOutcome: 1, level: "V", argumentation: "z" },
+      ]);
       expect(calls).toHaveLength(0);
     } finally {
       globalThis.fetch = realFetch;

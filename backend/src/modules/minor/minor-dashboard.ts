@@ -1,23 +1,29 @@
 import { eq, inArray } from "drizzle-orm";
 import db from "../../db/client";
-import { minorStories, minorTeacherAssessments } from "../../db/schema";
+import { minorSelfEvaluations, minorStories, minorTeacherAssessments } from "../../db/schema";
 import type { MinorDashboardStats, MinorSprint } from "../../types/shared";
-import { formatDate, parseDate } from "./minor-helpers";
+import {
+  FEW_LEARNING_OUTCOMES,
+  isLearningOutcome,
+  isOfficialPass,
+  isProjectedPass,
+  LEARNING_OUTCOMES,
+  parseDate,
+  today as localToday,
+} from "../../shared/minor";
 import type { MinorPeerHelpLog } from "./minor-peer-help";
 import type { MinorSprints } from "./minor-sprints";
 import { parseLearningOutcomes } from "./minor-story-mapper";
 
-const LU_NUMBERS = [1, 2, 3, 4, 5];
-
 function emptyCounts(): Record<number, number> {
-  return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  return Object.fromEntries(LEARNING_OUTCOMES.map((lu) => [lu, 0]));
 }
 
 function coveredLearningOutcomes(sprintId: number): Set<number> {
   const covered = new Set<number>();
   for (const story of db.select().from(minorStories).where(eq(minorStories.sprintId, sprintId)).all()) {
     for (const lu of parseLearningOutcomes(story.learningOutcomes)) {
-      if (typeof lu === "number" && lu >= 1 && lu <= 5) covered.add(lu);
+      if (isLearningOutcome(lu)) covered.add(lu);
     }
   }
   return covered;
@@ -45,7 +51,7 @@ export class MinorDashboard {
 
   getStats(userId: number): MinorDashboardStats {
     const sprints = this.sprints.list(userId);
-    const today = formatDate(new Date());
+    const today = localToday();
     const activeSprint = pickActiveSprint(sprints, today);
 
     let nextShowAndGrowDate: string | null = null;
@@ -61,30 +67,22 @@ export class MinorDashboard {
     const sprintIds = sprints.map((s) => s.id);
 
     if (sprintIds.length > 0) {
-      const allAssessments = db
+      const assessments = db
         .select()
         .from(minorTeacherAssessments)
         .where(inArray(minorTeacherAssessments.sprintId, sprintIds))
         .all();
-
-      for (const s of sprints) {
-        const isFinished = s.status === "completed" || s.endDate < today;
-        const assessments = allAssessments.filter((a) => a.sprintId === s.id);
-        const passed = new Set<number>();
-
-        for (const a of assessments) {
-          if (a.assessment === "V" && LU_NUMBERS.includes(a.learningOutcome)) {
-            officialPasses[a.learningOutcome] += 1;
-            projectedPasses[a.learningOutcome] += 1;
-            passed.add(a.learningOutcome);
-          }
-        }
-
-        if (isFinished) continue;
-
-        for (const lu of coveredLearningOutcomes(s.id)) {
-          const assessedO = assessments.some((a) => a.learningOutcome === lu && a.assessment === "O");
-          if (!passed.has(lu) && !assessedO) projectedPasses[lu] += 1;
+      const selfEvaluations = db
+        .select()
+        .from(minorSelfEvaluations)
+        .where(inArray(minorSelfEvaluations.sprintId, sprintIds))
+        .all();
+      for (const sprintId of sprintIds) {
+        for (const lu of LEARNING_OUTCOMES) {
+          const teacher = assessments.find((a) => a.sprintId === sprintId && a.learningOutcome === lu)?.assessment;
+          const self = selfEvaluations.find((e) => e.sprintId === sprintId && e.learningOutcome === lu)?.level;
+          if (isOfficialPass(teacher)) officialPasses[lu] += 1;
+          if (isProjectedPass(self, teacher)) projectedPasses[lu] += 1;
         }
       }
     }
@@ -93,7 +91,7 @@ export class MinorDashboard {
     if (activeSprint) {
       const uniqueLUs = coveredLearningOutcomes(activeSprint.id);
       activeSprintWarnings = {
-        fewLearningOutcomes: uniqueLUs.size < 3,
+        fewLearningOutcomes: uniqueLUs.size < FEW_LEARNING_OUTCOMES,
         missingLU5: !uniqueLUs.has(5),
         uniqueLUsCount: uniqueLUs.size,
       };

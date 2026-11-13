@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
+import { untrackedLegacyDatabase } from "../../db/legacy-fixture";
 import { LEGACY_BASELINE_END, runMigrations } from "../../db/migrate";
 import { mkdtemp, readdir, copyFile, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -67,13 +68,11 @@ describe("Finance production migration on disposable databases", () => {
     }
   });
   it("applies finance on an untracked legacy database without changing existing records", async () => {
-    const sqlite = new Database(":memory:");
+    const sqlite = await untrackedLegacyDatabase();
     try {
-      sqlite.exec(
-        "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1, 'synthetic-legacy');",
-      );
+      const usersBefore = sqlite.query("SELECT * FROM users").all();
       expect((await runMigrations(sqlite)).applied.every((file) => file > LEGACY_BASELINE_END)).toBe(true);
-      expect(sqlite.query("SELECT * FROM users").all()).toEqual([{ user_id: 1, username: "synthetic-legacy" }]);
+      expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
       expect(sqlite.query("SELECT name FROM sqlite_master WHERE name = 'finance_accounts'").get()).toBeTruthy();
       expect((await runMigrations(sqlite)).applied).toEqual([]);
     } finally {

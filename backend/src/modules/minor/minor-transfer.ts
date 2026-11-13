@@ -1,11 +1,12 @@
 import { eq, sql } from "drizzle-orm";
 import db from "../../db/client";
+import { requireOwnedSprint } from "./minor-ownership";
 import { minorFeedbackEntries, minorSprints, minorStories } from "../../db/schema";
 import type { MinorSprint, MinorSprintExportData, MinorSprintExportStory, MinorSprintFull } from "../../types/shared";
 import { NotFoundError } from "../../utils/errors";
 import type { MinorEvaluations } from "./minor-evaluations";
 import type { MinorFeedback } from "./minor-feedback";
-import { calculateSprintStatus, formatDate } from "./minor-helpers";
+import { calculateSprintStatus, DEFAULT_SPRINT_DAYS, formatDate } from "../../shared/minor";
 import {
   isRecord,
   type JsonRecord,
@@ -119,7 +120,7 @@ export class MinorTransfer {
 
   private requireTarget(id: number, userId: number) {
     try {
-      return this.sprints.requireOwned(id, userId);
+      return requireOwnedSprint(id, userId);
     } catch (error) {
       if (error instanceof NotFoundError) throw new NotFoundError("minor.targetSprintNotFound");
       throw error;
@@ -168,7 +169,7 @@ export class MinorTransfer {
 
   private createImportedSprint(userId: number, data: JsonRecord, name: string, number: string): MinorSprint {
     const next = this.sprints.getNextNumber(userId);
-    const dates = this.resolveDates(userId, data, formatDate(new Date()), 14);
+    const dates = this.resolveDates(userId, data, formatDate(new Date()), DEFAULT_SPRINT_DAYS);
     const created = db
       .insert(minorSprints)
       .values({

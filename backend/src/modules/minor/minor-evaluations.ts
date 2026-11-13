@@ -1,9 +1,9 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
-import { minorReflections, minorSelfEvaluations, minorSprints, minorTeacherAssessments } from "../../db/schema";
+import { requireOwnedSprint } from "./minor-ownership";
+import { minorReflections, minorSelfEvaluations, minorTeacherAssessments } from "../../db/schema";
 import type { MinorSelfEvaluation, MinorTeacherAssessment } from "../../types/shared";
-import { orNotFound } from "../../utils/errors";
-import { formatDate } from "./minor-helpers";
+import { formatDate, LEARNING_OUTCOMES } from "../../shared/minor";
 import type { PublishNotifier } from "./publish-notifier";
 
 export interface SelfEvaluationInput {
@@ -23,7 +23,7 @@ export class MinorEvaluations {
   constructor(private readonly notifier: PublishNotifier) {}
 
   initDefaults(sprintId: number) {
-    for (let lu = 1; lu <= 5; lu++) {
+    for (const lu of LEARNING_OUTCOMES) {
       const existingEval = db
         .select()
         .from(minorSelfEvaluations)
@@ -81,7 +81,7 @@ export class MinorEvaluations {
   }
 
   saveSelfEvaluations(sprintId: number, userId: number, items: SelfEvaluationInput[]): MinorSelfEvaluation[] {
-    this.requireSprint(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
 
     for (const item of items) {
       const existing = db
@@ -126,7 +126,7 @@ export class MinorEvaluations {
   }
 
   saveTeacherAssessments(sprintId: number, userId: number, items: TeacherAssessmentInput[]): MinorTeacherAssessment[] {
-    this.requireSprint(sprintId, userId);
+    requireOwnedSprint(sprintId, userId);
 
     for (const item of items) {
       const existing = db
@@ -167,16 +167,5 @@ export class MinorEvaluations {
       .where(eq(minorTeacherAssessments.sprintId, sprintId))
       .orderBy(asc(minorTeacherAssessments.learningOutcome))
       .all() as MinorTeacherAssessment[];
-  }
-
-  private requireSprint(sprintId: number, userId: number) {
-    return orNotFound(
-      db
-        .select()
-        .from(minorSprints)
-        .where(and(eq(minorSprints.id, sprintId), eq(minorSprints.userId, userId)))
-        .get(),
-      "minor.sprintNotFound",
-    );
   }
 }
