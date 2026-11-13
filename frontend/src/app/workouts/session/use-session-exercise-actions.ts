@@ -12,7 +12,7 @@ import {
   type HistorySetInput,
 } from "@/app/workouts/session/workout-session-helpers";
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
-import { DEFAULT_REST_SECONDS } from "@backend/shared/workout";
+import { DEFAULT_CATEGORY, DEFAULT_REST_SECONDS } from "@backend/shared/workout";
 import { parseClock } from "@/app/workouts/duration";
 
 interface ExerciseActionsArgs {
@@ -75,8 +75,8 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
     const name = nameOverride || newExerciseName.trim();
     if (!session || !name) return;
     const exercises = [...(session.exercises ?? [])];
-    const cat = categoryOverride || "resistance";
-    const eq = equipmentOverride || (cat === "resistance" ? "dumbbell" : "none");
+    const cat = categoryOverride || DEFAULT_CATEGORY;
+    const eq = equipmentOverride || (!categoryOverride || categoryOverride === "resistance" ? "dumbbell" : "none");
 
     let historySessionSets: SessionSet[] | null = (lastSets as unknown as SessionSet[]) || null;
 
@@ -238,7 +238,7 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
     }
 
     // Exercise IS known: take over settings from last time executed or default template settings
-    const cat = category || historyCategory || "resistance";
+    const cat = category || historyCategory || DEFAULT_CATEGORY;
     const eq = equipment || historyEquipment || "none";
     const isPerSide = perSide ? 1 : 0;
 

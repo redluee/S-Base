@@ -6,29 +6,10 @@ import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
 
 import { cn } from "@/lib/utils";
+import type { ExerciseSuggestion } from "@backend/types/workout";
+import type { HistorySetInput } from "@/app/workouts/session/workout-session-helpers";
 
-interface Suggestion {
-  value: string;
-  category?: string;
-  defaultSets: number | null;
-  defaultReps: number | null;
-  equipment?: string | null;
-  defaultRestTime?: number | null;
-  defaultWeight?: number | null;
-  defaultDistance?: number | null;
-  defaultDuration?: number | null;
-  perSide?: number | null;
-  isAssisted?: number | null;
-  lastSets?: Array<{
-    setNumber: number;
-    reps?: number | null;
-    weight?: number | null;
-    distance?: number | null;
-    duration?: number | null;
-    rpe?: number | null;
-    heartRate?: number | null;
-  }>;
-}
+type Suggestion = ExerciseSuggestion;
 
 export function ExerciseAutocomplete({
   value,
@@ -50,15 +31,7 @@ export function ExerciseAutocomplete({
     defaultDuration?: number,
     perSide?: boolean,
     isAssisted?: boolean,
-    lastSets?: Array<{
-      setNumber: number;
-      reps?: number | null;
-      weight?: number | null;
-      distance?: number | null;
-      duration?: number | null;
-      rpe?: number | null;
-      heartRate?: number | null;
-    }>,
+    lastSets?: HistorySetInput[],
   ) => void;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -80,7 +53,7 @@ export function ExerciseAutocomplete({
     }
     try {
       const results = await api.workouts.exercises.suggest(q);
-      setSuggestions(results as unknown as Suggestion[]);
+      setSuggestions(results);
       setActiveIndex(-1);
     } catch {
       setSuggestions([]);
@@ -112,7 +85,7 @@ export function ExerciseAutocomplete({
     };
   }, []);
 
-  function select(suggestion: Suggestion) {
+  function select(suggestion: Partial<Suggestion> & { value: string }) {
     onChange(suggestion.value);
     onSelect?.(
       suggestion.value,
@@ -168,13 +141,6 @@ export function ExerciseAutocomplete({
               value: value.trim(),
               defaultSets: 1,
               defaultReps: 10,
-              category: undefined,
-              equipment: undefined,
-              defaultRestTime: undefined,
-              defaultWeight: undefined,
-              defaultDistance: undefined,
-              defaultDuration: undefined,
-              perSide: undefined,
             });
           }
         }

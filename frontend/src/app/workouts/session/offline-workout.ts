@@ -1,4 +1,5 @@
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
+import { DEFAULT_CATEGORY } from "@backend/shared/workout";
 import { api, ApiError } from "@/lib/api";
 
 const STORAGE_KEY_PREFIX = "sbase_offline_session_";
@@ -89,7 +90,7 @@ export function buildSessionExercisesPayload(exercises: SessionExercise[] | unde
       sessionExerciseId: isTempExerciseId(ex.sessionExerciseId) ? undefined : ex.sessionExerciseId,
       exerciseName: ex.exerciseName,
       sortOrder: ex.sortOrder,
-      category: ex.category ?? "resistance",
+      category: ex.category ?? DEFAULT_CATEGORY,
       equipment: ex.equipment ?? "none",
       perSide: ex.perSide != null ? (ex.perSide ? 1 : 0) : (ex.templateExercise?.perSide ? 1 : 0),
       isAssisted: assisted ? 1 : 0,
