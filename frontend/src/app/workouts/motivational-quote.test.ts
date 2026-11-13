@@ -8,4 +8,9 @@ describe("quoteOfTheDay", () => {
     expect(quoteOfTheDay(new Date(2026, 7, 13))).not.toBe(quoteOfTheDay(new Date(2026, 7, 12)));
     expect(quoteOfTheDay(new Date(2026, 0, 1))).toBe(quotes[0]);
   });
+
+  it("counts calendar days, so the quote changes exactly at local midnight in summer time", () => {
+    expect(quoteOfTheDay(new Date(2026, 7, 13, 0, 30))).toBe(quoteOfTheDay(new Date(2026, 7, 13, 12)));
+    expect(quoteOfTheDay(new Date(2026, 7, 13, 0, 30))).not.toBe(quoteOfTheDay(new Date(2026, 7, 12, 12)));
+  });
 });

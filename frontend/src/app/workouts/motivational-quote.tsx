@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import quotes from "@/app/workouts/workout-quotes.json";
 
 export function quoteOfTheDay(date: Date): string {
-  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000);
+  const dayOfYear = (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(date.getFullYear(), 0, 0)) / 86_400_000;
   return quotes[(dayOfYear - 1) % quotes.length];
 }
 
