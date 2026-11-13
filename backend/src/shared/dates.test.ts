@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isCalendarDate, parseDateString, today } from "./dates";
+import { daysBetween, isCalendarDate, parseDateString, today } from "./dates";
 
 describe("parseDateString", () => {
   it("reads SQLite CURRENT_TIMESTAMP values as UTC and keeps ISO strings as they are", () => {
@@ -30,5 +30,11 @@ describe("isCalendarDate", () => {
     expect(isCalendarDate("2026-01-01T00:00:00Z")).toBe(false);
     expect(isCalendarDate(20260101)).toBe(false);
     expect(isCalendarDate(null)).toBe(false);
+  });
+
+  it("counts calendar days between two dates across a clock change", () => {
+    expect(daysBetween("2026-10-20", "2026-10-27")).toBe(7);
+    expect(daysBetween("2026-03-27", "2026-03-30")).toBe(3);
+    expect(daysBetween("2026-05-02", "2026-05-01")).toBe(-1);
   });
 });

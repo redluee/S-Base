@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import db from "../../db/client";
 import { minorSelfEvaluations, minorStories, minorTeacherAssessments } from "../../db/schema";
-import { today as localToday } from "../../shared/dates";
+import { daysBetween, today as localToday } from "../../shared/dates";
 import type { MinorDashboardStats, MinorSprint } from "../../types/shared";
 import {
   FEW_LEARNING_OUTCOMES,
@@ -9,7 +9,6 @@ import {
   isOfficialPass,
   isProjectedPass,
   LEARNING_OUTCOMES,
-  parseDate,
 } from "../../shared/minor";
 import type { MinorPeerHelpLog } from "./minor-peer-help";
 import type { MinorSprints } from "./minor-sprints";
@@ -58,8 +57,7 @@ export class MinorDashboard {
     let daysUntilShowAndGrow: number | null = null;
     if (activeSprint) {
       nextShowAndGrowDate = activeSprint.showAndGrowDate;
-      const diff = parseDate(activeSprint.showAndGrowDate).getTime() - parseDate(today).getTime();
-      daysUntilShowAndGrow = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      daysUntilShowAndGrow = daysBetween(today, activeSprint.showAndGrowDate);
     }
 
     const officialPasses = emptyCounts();
