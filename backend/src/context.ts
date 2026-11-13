@@ -8,10 +8,7 @@ import { MinecraftService } from "./modules/minecraft";
 import { MinorService } from "./modules/minor";
 import { FinanceService } from "./modules/finance";
 import { ResumeService } from "./modules/resume";
-import { join } from "path";
-import { mkdir } from "fs/promises";
-import { resolveUploadExtension } from "./utils/uploads";
-import { ForbiddenError, ValidationError } from "./utils/errors";
+import { ForbiddenError } from "./utils/errors";
 import { readSessionId } from "./auth/session-cookie";
 import type { ModuleName } from "./auth/modules";
 
@@ -56,17 +53,6 @@ export const minecraftAuth = createAuthPlugin("minecraft", "minecraft:monitor");
 export const minorAuth = createAuthPlugin("minor");
 export const resumeAuth = createAuthPlugin("resume");
 export const financeAuth = createAuthPlugin("finance");
-
-export async function saveUpload(body: unknown, prefix: string, allowed: string[], maxBytes?: number) {
-  const file = (body as { file?: File } | null | undefined)?.file;
-  if (!file) throw new ValidationError("upload.noFile");
-  const ext = resolveUploadExtension(file, allowed, maxBytes);
-  const uploadsDir = join(import.meta.dir, "../uploads");
-  await mkdir(uploadsDir, { recursive: true });
-  const filename = `${prefix}${crypto.randomUUID()}.${ext}`;
-  await Bun.write(join(uploadsDir, filename), file);
-  return { filename, originalName: typeof file.name === "string" ? file.name : filename };
-}
 
 export const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
   if (!auth.moduleAccessCheck(userId, "minecraft")) throw new ForbiddenError("minecraft.fullAccessRequired");

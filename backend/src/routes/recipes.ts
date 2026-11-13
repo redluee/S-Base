@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { recipeAuth, recipes, saveUpload } from "../context";
-import { IMAGE_EXTENSIONS } from "../utils/uploads";
+import { recipeAuth, recipes } from "../context";
+import { IMAGE_EXTENSIONS, saveUpload } from "../utils/uploads";
 
 const idParams = t.Object({ id: t.Numeric() });
 const searchQuery = t.Object({ q: t.Optional(t.String()) });
@@ -91,8 +91,8 @@ export const recipeRoutes = new Elysia()
       .post(
         "/upload",
         async ({ body }) => {
-          const { filename } = await saveUpload(body, "wine_", IMAGE_EXTENSIONS);
-          return { filePath: `/api/uploads/${filename}` };
+          const { filePath } = await saveUpload(body, "recipes", IMAGE_EXTENSIONS);
+          return { filePath };
         },
         { body: t.Object({ file: t.File() }) },
       ),

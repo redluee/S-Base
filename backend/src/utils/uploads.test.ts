@@ -3,8 +3,9 @@ import {
   ATTACHMENT_EXTENSIONS,
   DOWNLOAD_ONLY_EXTENSIONS,
   IMAGE_EXTENSIONS,
-  MEASUREMENT_PHOTO_PATTERN,
   resolveUploadExtension,
+  uploadFilenameOf,
+  uploadOwnerOf,
   uploadResponseHeaders,
 } from "./uploads";
 
@@ -41,13 +42,13 @@ describe("upload allow-lists", () => {
     }
   });
 
-  it("only matches prefixed measurement photo paths", () => {
+  it("reads the owning module from the filename prefix and rejects unsafe upload urls", () => {
     const uuid = "123e4567-e89b-12d3-a456-426614174000";
-    expect(MEASUREMENT_PHOTO_PATTERN.test(`/api/uploads/measurement_${uuid}.jpg`)).toBe(true);
-    expect(MEASUREMENT_PHOTO_PATTERN.test(`/api/uploads/measurement_${uuid}.avif`)).toBe(true);
-    expect(MEASUREMENT_PHOTO_PATTERN.test(`/api/uploads/${uuid}.jpg`)).toBe(false);
-    expect(MEASUREMENT_PHOTO_PATTERN.test(`/api/uploads/minor_${uuid}.jpg`)).toBe(false);
-    expect(MEASUREMENT_PHOTO_PATTERN.test(`/api/uploads/measurement_${uuid}.zip`)).toBe(false);
-    expect(MEASUREMENT_PHOTO_PATTERN.test(`x/api/uploads/measurement_${uuid}.jpg`)).toBe(false);
+    expect(uploadOwnerOf(`measurement_${uuid}.jpg`)).toBe("workout");
+    expect(uploadOwnerOf(`minor_${uuid}.pdf`)).toBe("minor");
+    expect(uploadOwnerOf(`${uuid}.jpg`)).toBeNull();
+    expect(uploadFilenameOf(`/api/uploads/minor_${uuid}.pdf`)).toBe(`minor_${uuid}.pdf`);
+    expect(uploadFilenameOf(`/api/uploads/../sbase.db`)).toBeNull();
+    expect(uploadFilenameOf(`x/api/uploads/minor_${uuid}.pdf`)).toBeNull();
   });
 });

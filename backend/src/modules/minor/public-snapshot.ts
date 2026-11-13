@@ -4,16 +4,17 @@ import { join } from "path";
 import { eq } from "drizzle-orm";
 import db from "../../db/client";
 import { users } from "../../db/schema";
+import { UPLOADS_DIR } from "../../db/paths";
+import { UPLOAD_PREFIXES } from "../../utils/uploads";
 import type { MinorService } from "./index";
 import type { MinorStoryPresentationData } from "../../types/shared";
 
 export const SNAPSHOT_VERSION = 1;
 export const MAX_ASSET_BYTES = 5 * 1024 * 1024;
-export const ASSET_NAME_PATTERN = /^minor_[0-9a-f-]+\.[a-z0-9]+$/i;
+const ASSET_NAME = `${UPLOAD_PREFIXES.minor}[0-9a-f-]+\\.[a-z0-9]+`;
+export const ASSET_NAME_PATTERN = new RegExp(`^${ASSET_NAME}$`, "i");
 
-const UPLOAD_URL_PATTERN = /(?:https?:\/\/[^\s"'<>]+)?\/api\/uploads\/(minor_[0-9a-f-]+\.[a-z0-9]+)/gi;
-
-export const defaultUploadsDir = join(import.meta.dir, "../../../uploads");
+const UPLOAD_URL_PATTERN = new RegExp(`(?:https?:\\/\\/[^\\s"'<>]+)?\\/api\\/uploads\\/(${ASSET_NAME})`, "gi");
 
 export interface PublicSnapshotCriterion {
   text: string;
@@ -130,7 +131,7 @@ export function resolvePublishUserId(): number | null {
 export function buildPublicSnapshot(
   minor: MinorService,
   userId: number,
-  uploadsDir: string = defaultUploadsDir,
+  uploadsDir: string = UPLOADS_DIR,
 ): PublicSnapshot {
   const found = new Set<string>();
 

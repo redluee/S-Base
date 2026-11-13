@@ -1,3 +1,4 @@
+import { UPLOADS_DIR } from "../../db/paths";
 import { describe, expect, it, beforeEach, afterAll } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
@@ -10,7 +11,7 @@ import db from "../../db/client";
 import { workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
 import { eq, sql } from "drizzle-orm";
 
-const uploadsDir = join(import.meta.dir, "../../../uploads");
+const uploadsDir = UPLOADS_DIR;
 const createdFiles: string[] = [];
 
 async function uploadFile(cookie: string, path: string, name: string, content = "data") {

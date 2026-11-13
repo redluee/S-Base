@@ -1,9 +1,6 @@
 import { Elysia, t } from "elysia";
-import { join } from "path";
-import { NotFoundError } from "../utils/errors";
-import { readSessionId } from "../auth/session-cookie";
-import { IMAGE_EXTENSIONS, UPLOAD_NAME_PATTERN, uploadResponseHeaders } from "../utils/uploads";
-import { auth, saveUpload, workout, workoutAuth } from "../context";
+import { IMAGE_EXTENSIONS, saveUpload } from "../utils/uploads";
+import { workout, workoutAuth } from "../context";
 import {
   idParams,
   measurementSaveBody,
@@ -102,8 +99,8 @@ export const workoutRoutes = new Elysia()
       .post(
         "/upload",
         async ({ body }) => {
-          const { filename } = await saveUpload(body, "measurement_", IMAGE_EXTENSIONS);
-          return { filePath: `/api/uploads/${filename}` };
+          const { filePath } = await saveUpload(body, "workout", IMAGE_EXTENSIONS);
+          return { filePath };
         },
         { body: t.Object({ file: t.File() }) },
       )
@@ -114,16 +111,4 @@ export const workoutRoutes = new Elysia()
           params: t.Object({ photoId: t.Numeric() }),
         },
       ),
-  )
-  .get(
-    "/api/uploads/:filename",
-    async ({ params: { filename }, cookie: { session_id }, request }) => {
-      const sessionInfo = auth.sessionUser(readSessionId(session_id, request));
-      if (!UPLOAD_NAME_PATTERN.test(filename) || filename.startsWith("resume_")) throw new NotFoundError();
-      if (workout.measurements.isForeignPhoto(sessionInfo.userId, filename)) throw new NotFoundError();
-      const file = Bun.file(join(import.meta.dir, "../../uploads", filename));
-      if (!(await file.exists())) throw new NotFoundError();
-      return new Response(file, { headers: uploadResponseHeaders(filename) });
-    },
-    { params: t.Object({ filename: t.String() }) },
   );

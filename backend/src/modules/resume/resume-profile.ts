@@ -1,4 +1,4 @@
-import { join } from "path";
+import { removeUpload, uploadPath } from "../../utils/uploads";
 import { eq } from "drizzle-orm";
 import db from "../../db/client";
 import { resumeProfiles } from "../../db/schema";
@@ -9,7 +9,6 @@ import { EMPTY_PROFILE, type ProfileInput } from "./resume-constants";
 
 const PHOTO_URL_PREFIX = "/api/resume/photo/";
 const PHOTO_NAME = /^resume_[0-9a-f-]+\.(jpg|jpeg|png|webp)$/;
-const UPLOADS_DIR = join(import.meta.dir, "../../../uploads");
 
 export const PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 export const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
@@ -77,10 +76,7 @@ export class ResumeProfiles {
     const { profile, previousPath } = this.setPhoto(userId, filename ? `${PHOTO_URL_PREFIX}${filename}` : null);
     if (previousPath?.startsWith(PHOTO_URL_PREFIX)) {
       const previousName = previousPath.slice(PHOTO_URL_PREFIX.length);
-      if (PHOTO_NAME.test(previousName))
-        await Bun.file(join(UPLOADS_DIR, previousName))
-          .delete()
-          .catch(() => {});
+      if (PHOTO_NAME.test(previousName)) await removeUpload(previousName);
     }
     return profile;
   }
@@ -94,7 +90,7 @@ export class ResumeProfiles {
     if (!PHOTO_NAME.test(filename) || !this.ownsPhoto(userId, `${PHOTO_URL_PREFIX}${filename}`)) {
       throw new NotFoundError("resume.photoNotFound");
     }
-    const file = Bun.file(join(UPLOADS_DIR, filename));
+    const file = Bun.file(uploadPath(filename));
     if (!(await file.exists())) throw new NotFoundError("resume.photoNotFound");
     return file;
   }

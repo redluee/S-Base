@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
-import { resume, resumeAuth, saveUpload } from "../context";
+import { resume, resumeAuth } from "../context";
+import { saveUpload } from "../utils/uploads";
 import { PHOTO_EXTENSIONS, PHOTO_MAX_BYTES } from "../modules/resume";
 import { ensureGoogleFont, resolveFontFile } from "../modules/resume/fonts";
 import { NotFoundError } from "../utils/errors";
@@ -65,7 +66,7 @@ export const resumeRoutes = new Elysia().group("/api/resume", (app) =>
     .post(
       "/profile/photo",
       async ({ userId, body }) => {
-        const { filename } = await saveUpload(body, "resume_", PHOTO_EXTENSIONS, PHOTO_MAX_BYTES);
+        const { filename } = await saveUpload(body, "resume", PHOTO_EXTENSIONS, PHOTO_MAX_BYTES);
         return resume.profile.replacePhoto(userId, filename);
       },
       { body: t.Object({ file: t.File() }) },

@@ -3,12 +3,10 @@ import {
   ASSET_NAME_PATTERN,
   bearerTokenCheck,
   buildPublicSnapshot,
-  defaultUploadsDir,
   resolvePublishUserId,
 } from "../modules/minor/public-snapshot";
-import { join } from "path";
-import { ATTACHMENT_EXTENSIONS } from "../utils/uploads";
-import { minor, minorAuth, saveUpload } from "../context";
+import { ATTACHMENT_EXTENSIONS, saveUpload, uploadPath } from "../utils/uploads";
+import { minor, minorAuth } from "../context";
 import * as schema from "../modules/minor/minor-schemas";
 
 export const minorRoutes = new Elysia()
@@ -28,7 +26,7 @@ export const minorRoutes = new Elysia()
     const denied = bearerTokenCheck(request, "MINOR_SNAPSHOT_TOKEN");
     if (denied) return denied;
     if (!ASSET_NAME_PATTERN.test(filename)) return new Response("Not Found", { status: 404 });
-    const file = Bun.file(join(defaultUploadsDir, filename));
+    const file = Bun.file(uploadPath(filename));
     if (!(await file.exists())) return new Response("Not Found", { status: 404 });
     return new Response(file);
   })
@@ -190,8 +188,8 @@ export const minorRoutes = new Elysia()
       .post(
         "/upload",
         async ({ body }) => {
-          const { filename, originalName } = await saveUpload(body, "minor_", ATTACHMENT_EXTENSIONS);
-          return { filePath: `/api/uploads/${filename}`, originalName };
+          const { filePath, originalName } = await saveUpload(body, "minor", ATTACHMENT_EXTENSIONS);
+          return { filePath, originalName };
         },
         { body: schema.uploadBody },
       ),

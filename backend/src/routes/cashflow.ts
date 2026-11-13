@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { cashflow, cashflowAuth, saveUpload } from "../context";
-import { ATTACHMENT_EXTENSIONS } from "../utils/uploads";
+import { cashflow, cashflowAuth } from "../context";
+import { ATTACHMENT_EXTENSIONS, saveUpload } from "../utils/uploads";
 
 const idParams = t.Object({ id: t.Numeric() });
 const optionalText = t.Optional(t.Nullable(t.String()));
@@ -80,8 +80,8 @@ export const cashflowRoutes = new Elysia().group("/api/cashflow", (app) =>
     .post(
       "/upload",
       async ({ body }) => {
-        const { filename, originalName } = await saveUpload(body, "", ATTACHMENT_EXTENSIONS);
-        return { filePath: `/api/uploads/${filename}`, originalName };
+        const { filePath, originalName } = await saveUpload(body, "cashflow", ATTACHMENT_EXTENSIONS);
+        return { filePath, originalName };
       },
       { body: t.Object({ file: t.File() }) },
     )

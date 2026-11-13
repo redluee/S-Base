@@ -1,10 +1,8 @@
 import { eq, and, desc, sql } from "drizzle-orm";
-import { join } from "path";
-import { unlink } from "fs/promises";
 import db from "../../db/client";
 import { measurements, measurementPhotos } from "../../db/schema";
 import { ConflictError, ValidationError, orNotFound } from "../../utils/errors";
-import { MEASUREMENT_PHOTO_PATTERN, UPLOAD_NAME_PATTERN } from "../../utils/uploads";
+import { IMAGE_EXTENSIONS, removeUpload, uploadFilenameOf, uploadOwnerOf } from "../../utils/uploads";
 import type { MeasurementSaveInput, MeasurementUpdateInput } from "./workout-schemas";
 import { invalidRequest, requireId, requireObject } from "./workout-validation";
 
@@ -23,8 +21,6 @@ const MEASUREMENT_FIELDS = [
   "neck",
   "calves",
 ] as const;
-
-const uploadsDir = join(import.meta.dir, "../../../uploads");
 
 function requireMeasurementDate(value: unknown): string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -56,13 +52,14 @@ function referencedElsewhere(filePath: string, excludePhotoIds: number[]) {
 }
 
 async function removeUploadedFile(filePath: string) {
-  const match = /^\/api\/uploads\/([^/]+)$/.exec(filePath);
-  if (!match || !UPLOAD_NAME_PATTERN.test(match[1])) return;
-  try {
-    await unlink(join(uploadsDir, match[1]));
-  } catch (err) {
-    console.error("Failed to delete physical photo file:", err);
-  }
+  const filename = uploadFilenameOf(filePath);
+  if (filename) await removeUpload(filename);
+}
+
+function isMeasurementUpload(filePath: string): boolean {
+  const filename = uploadFilenameOf(filePath);
+  const ext = filename?.slice(filename.lastIndexOf(".") + 1).toLowerCase() ?? "";
+  return !!filename && uploadOwnerOf(filename) === "workout" && IMAGE_EXTENSIONS.includes(ext);
 }
 
 export class WorkoutMeasurements {
@@ -185,7 +182,7 @@ export class WorkoutMeasurements {
 
   addPhoto(measurementIdRaw: unknown, userId: number, filePath: string) {
     const measurementId = requireId(measurementIdRaw);
-    if (!MEASUREMENT_PHOTO_PATTERN.test(filePath)) throw new ValidationError("workout.invalidPhotoPath");
+    if (!isMeasurementUpload(filePath)) throw new ValidationError("workout.invalidPhotoPath");
     this.requireOwned(measurementId, userId);
     const inUse = db
       .select({ id: measurementPhotos.photoId })

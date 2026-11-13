@@ -1,6 +1,7 @@
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import type { ResumeGoogleFont } from "../../types/shared";
+import { UPLOADS_DIR } from "../../db/paths";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 
 export const CURATED_FONTS = [
@@ -16,7 +17,7 @@ export const CURATED_FONTS = [
 
 const GOOGLE_PREFIX = "google:";
 const FAMILY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ]{1,58}$/;
-const FONTS_DIR = join(import.meta.dir, "../../../uploads/fonts");
+const FONTS_DIR = join(UPLOADS_DIR, "fonts");
 
 export function isValidFontValue(value: unknown): value is string {
   if (typeof value !== "string") return false;

@@ -1,3 +1,4 @@
+import { UPLOADS_DIR } from "../../db/paths";
 import { describe, expect, it, beforeEach } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -9,7 +10,7 @@ import { measurementPhotos, measurements as measurementsTable } from "../../db/s
 import { WorkoutService } from "./index";
 import { call, login } from "./workout-test-utils";
 
-const uploadsDir = join(import.meta.dir, "../../../uploads");
+const uploadsDir = UPLOADS_DIR;
 
 describe("WorkoutService measurements", () => {
   let measurements: WorkoutService["measurements"];

@@ -14,6 +14,7 @@ import { financeRoutes } from "./routes/finance";
 import { resumeRoutes } from "./routes/resume";
 import { pulseRoutes } from "./routes/pulse";
 import { minecraftRoutes } from "./routes/minecraft";
+import { uploadRoutes } from "./routes/uploads";
 import { PORT, HOST, auth, minecraft } from "./context";
 import { ensureDefaultModules } from "./auth/modules";
 import { AppError, errorResponse, NotFoundError, ValidationError } from "./utils/errors";
@@ -68,7 +69,8 @@ export const app = new Elysia()
   .use(resumeRoutes)
   .use(financeRoutes)
   .use(pulseRoutes)
-  .use(minecraftRoutes);
+  .use(minecraftRoutes)
+  .use(uploadRoutes);
 
 if (process.env.NODE_ENV !== "test") {
   ensureDefaultModules();
