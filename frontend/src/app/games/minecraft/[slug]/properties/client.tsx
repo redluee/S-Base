@@ -2,20 +2,23 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api, apiErrorMessage } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { t } from "@/lib/lang";
 import { Loader2, Save, FileText, ArrowLeft, Search, Plus, Trash2, Settings, Swords, Globe, Gauge, Sliders, CheckCircle2, X, Lock, AlertTriangle, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { LIVE_PROPERTIES, KNOWN_KEYS, type TabKey } from "./constants";
+import { LIVE_PROPERTY_SET, KNOWN_KEYS, type TabKey } from "./constants";
 import { GeneralSection } from "./sections/GeneralSection";
 import { GameplaySection } from "./sections/GameplaySection";
 import { WorldSection } from "./sections/WorldSection";
 import { PerformanceSection } from "./sections/PerformanceSection";
 import { CustomSection } from "./sections/CustomSection";
 
-export default function PropertiesPage() {
+export default function PropertiesPage({ hasFullAccess }: { hasFullAccess: boolean }) {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";
   const router = useRouter();
@@ -30,26 +33,21 @@ export default function PropertiesPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [hasFullAccess, setHasFullAccess] = useState(true);
-
-  // Custom key/value inputs
   const [newKey, setNewKey] = useState("");
   const [newVal, setNewVal] = useState("");
-
-  useEffect(() => {
-    api.me().then(res => setHasFullAccess(res?.user?.modules?.includes("minecraft") ?? false)).catch(() => {});
-  }, []);
+  const { error, report, clear } = useActionError();
+  const { confirm, dialog } = useConfirm();
 
   const handleDeleteServer = async () => {
     if (!slug) return;
-    const alsoDisk = confirm(t("Also delete files from disk") + "?");
-    if (!confirm(t("Delete Server") + " " + slug + "?")) return;
+    if (!(await confirm(t("Delete Server") + " " + slug + "?"))) return;
+    const alsoDisk = await confirm(t("Also delete files from disk") + "?");
     setDeleting(true);
     try {
       await api.minecraft.servers.delete(slug, alsoDisk);
       router.push("/games/minecraft");
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
       setDeleting(false);
     }
   };
@@ -58,32 +56,27 @@ export default function PropertiesPage() {
     if (!slug) return;
     Promise.all([
       api.minecraft.servers.properties.get(slug),
-      api.minecraft.servers.get(slug).catch(() => null),
-      api.minecraft.servers.status(slug).catch(() => ({ online: false })),
+      api.minecraft.servers.get(slug),
+      api.minecraft.servers.status(slug),
     ])
       .then(([propsRes, serverRes, statusRes]) => {
-        setProps(propsRes || {});
-        if (serverRes) {
-          setJavaArgs(serverRes.javaArgs || "");
-          setServerEngine(serverRes.engine || "vanilla");
-        }
-        setIsRunning(Boolean(statusRes?.online));
-        setLoading(false);
+        setProps(propsRes);
+        setJavaArgs(serverRes.javaArgs || "");
+        setServerEngine(serverRes.engine);
+        setIsRunning(statusRes.online);
       })
-      .catch((e) => {
-        console.error(e);
-        setLoading(false);
-      });
-  }, [slug]);
+      .catch((e) => report(e, "minecraft.loadFailed"))
+      .finally(() => setLoading(false));
+  }, [slug, report]);
 
   const handleChange = (key: string, val: string) => {
-    if (isRunning && !LIVE_PROPERTIES.has(key)) return;
+    if (isRunning && !LIVE_PROPERTY_SET.has(key)) return;
     setProps((prev) => ({ ...prev, [key]: val }));
     setSaveSuccess(false);
   };
 
   const handleToggle = async (key: string, val: string) => {
-    if (isRunning && !LIVE_PROPERTIES.has(key)) return;
+    if (isRunning && !LIVE_PROPERTY_SET.has(key)) return;
     const nextProps = { ...props, [key]: val };
     setProps(nextProps);
     setSaveSuccess(false);
@@ -93,8 +86,7 @@ export default function PropertiesPage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (e: unknown) {
-      console.error(e);
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
     }
   };
 
@@ -122,6 +114,7 @@ export default function PropertiesPage() {
     if (!slug) return;
     setSaving(true);
     setSaveSuccess(false);
+    clear();
     try {
       await Promise.all([
         api.minecraft.servers.properties.update(slug, props),
@@ -130,7 +123,7 @@ export default function PropertiesPage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
     } finally {
       setSaving(false);
     }
@@ -147,7 +140,7 @@ export default function PropertiesPage() {
   };
 
   const renderStatusBadge = (key: string) => {
-    if (LIVE_PROPERTIES.has(key)) {
+    if (LIVE_PROPERTY_SET.has(key)) {
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
           <Radio className="size-3 animate-pulse" />
@@ -177,7 +170,8 @@ export default function PropertiesPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
+      {dialog}
+      <InlineAlert>{error}</InlineAlert>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link
@@ -212,8 +206,6 @@ export default function PropertiesPage() {
           </Button>
         </div>
       </div>
-
-      {/* Running server notice */}
       {isRunning && (
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs leading-relaxed">
           <AlertTriangle className="size-5 shrink-0 text-amber-400 mt-0.5" />
@@ -225,8 +217,6 @@ export default function PropertiesPage() {
           </div>
         </div>
       )}
-
-      {/* Navigation & Search toolbar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-2 bg-zinc-900 rounded-2xl border border-white/10">
         <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button
@@ -322,25 +312,12 @@ export default function PropertiesPage() {
           )}
         </div>
       </div>
-
-      {/* Sections */}
       <div className="space-y-6">
-        {/* Section 1: General & Network */}
         <GeneralSection activeTab={activeTab} props={props} isRunning={isRunning} handleChange={handleChange} handleToggle={handleToggle} matchesSearch={matchesSearch} renderStatusBadge={renderStatusBadge} />
-
-        {/* Section 2: Gameplay & Rules */}
         <GameplaySection activeTab={activeTab} props={props} isRunning={isRunning} handleChange={handleChange} handleToggle={handleToggle} matchesSearch={matchesSearch} renderStatusBadge={renderStatusBadge} />
-
-        {/* Section 3: World & Generation */}
         <WorldSection activeTab={activeTab} props={props} isRunning={isRunning} handleChange={handleChange} handleToggle={handleToggle} matchesSearch={matchesSearch} renderStatusBadge={renderStatusBadge} />
-
-        {/* Section 4: Performance & Memory */}
         <PerformanceSection activeTab={activeTab} props={props} isRunning={isRunning} handleChange={handleChange} matchesSearch={matchesSearch} renderStatusBadge={renderStatusBadge} javaArgs={javaArgs} setJavaArgs={setJavaArgs} setSaveSuccess={setSaveSuccess} serverEngine={serverEngine} />
-
-        {/* Section 5: Custom Properties */}
         <CustomSection activeTab={activeTab} props={props} isRunning={isRunning} handleChange={handleChange} matchesSearch={matchesSearch} renderStatusBadge={renderStatusBadge} customKeys={customKeys} handleAddCustom={handleAddCustom} handleRemoveKey={handleRemoveKey} newKey={newKey} setNewKey={setNewKey} newVal={newVal} setNewVal={setNewVal} />
-
-        {/* Section: Danger Zone */}
         {hasFullAccess && (
           <div className="p-6 rounded-2xl bg-rose-950/20 border border-rose-500/30 space-y-4">
             <div className="flex items-center gap-2.5 pb-3 border-b border-rose-500/20">

@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
-import { SettingsStep } from "./SettingsStep";
+import { defaultMotd, type Engine, type FolderType, UPLOAD_EXTENSIONS } from "@backend/shared/minecraft";
+import { ServerSettingsStep } from "../../components/ServerSettingsStep";
+import { settingsToProperties, useServerSettings } from "../../components/useServerSettings";
 import { FilesStep } from "./FilesStep";
-import { useTemplateSettings } from "./useTemplateSettings";
 import type { StagedFile } from "./staged-files";
 
 const emptySubscribe = () => () => {};
@@ -28,39 +29,30 @@ export default function NewTemplatePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [versions, setVersions] = useState<string[]>([]);
-
-  // Step 1: Basis
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
-
-  // Step 2: Engine & Version & Memory
   const [mcVersion, setMcVersion] = useState("");
-  const [engine, setEngine] = useState<"vanilla" | "fabric">("fabric");
+  const [engine, setEngine] = useState<Engine>("fabric");
   const [javaArgs, setJavaArgs] = useState<string>("-Xms1G -Xmx2G");
 
-  const settings = useTemplateSettings();
-  const { motd, setMotd, serverPort, maxPlayers, onlineMode, whiteList, gamemode, difficulty, pvp, hardcore, allowFlight, enableCommandBlock, doFireTick, levelName, levelType, generateStructures, allowNether, spawnMonsters, spawnAnimals, viewDistance, simulationDistance } = settings;
-
-  // Step 4: Mods & Files
+  const settings = useServerSettings();
+  const { motd, setMotd } = settings;
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
-  const [fileTab, setFileTab] = useState<"mods" | "datapacks" | "resourcepacks">("mods");
+  const [fileTab, setFileTab] = useState<FolderType>("mods");
 
   useEffect(() => {
-    api.minecraft.versions().then((res) => {
-      const vList = Array.isArray(res)
-        ? res.map((item: string | { id?: string }) => (typeof item === "string" ? item : item?.id || String(item)))
-        : [];
+    api.minecraft.versions().then((vList) => {
       setVersions(vList);
       if (vList.length > 0) setMcVersion(vList[0]);
-    }).catch(console.error);
+    }).catch((err) => setError(apiErrorMessage(err, "minecraft.loadFailed")));
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "mods" | "datapacks" | "resourcepacks") => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: FolderType) => {
     if (!e.target.files) return;
     const incoming = Array.from(e.target.files);
     const valid = incoming.filter((f) => {
-      const ext = f.name.slice(f.name.lastIndexOf(".")).toLowerCase();
-      return ext === ".jar" || ext === ".zip";
+      const ext = f.name.slice(f.name.lastIndexOf(".") + 1).toLowerCase();
+      return UPLOAD_EXTENSIONS.includes(ext);
     });
 
     setStagedFiles((prev) => {
@@ -71,7 +63,7 @@ export default function NewTemplatePage() {
     e.target.value = "";
   };
 
-  const removeStagedFile = (filename: string, type: "mods" | "datapacks" | "resourcepacks") => {
+  const removeStagedFile = (filename: string, type: FolderType) => {
     setStagedFiles((prev) => prev.filter((f) => !(f.file.name === filename && f.type === type)));
   };
 
@@ -86,28 +78,7 @@ export default function NewTemplatePage() {
     setError("");
 
     try {
-      const properties: Record<string, string> = {
-        "motd": motd || `A Minecraft Server: ${name}`,
-        "server-port": serverPort || "25565",
-        "max-players": maxPlayers || "20",
-        "online-mode": onlineMode ? "true" : "false",
-        "white-list": whiteList ? "true" : "false",
-        "gamemode": gamemode,
-        "difficulty": difficulty,
-        "pvp": pvp ? "true" : "false",
-        "hardcore": hardcore ? "true" : "false",
-        "allow-flight": allowFlight ? "true" : "false",
-        "enable-command-block": enableCommandBlock ? "true" : "false",
-        "do-fire-tick": doFireTick ? "true" : "false",
-        "level-name": levelName || "world",
-        "level-type": levelType,
-        "generate-structures": generateStructures ? "true" : "false",
-        "allow-nether": allowNether ? "true" : "false",
-        "spawn-monsters": spawnMonsters ? "true" : "false",
-        "spawn-animals": spawnAnimals ? "true" : "false",
-        "view-distance": viewDistance || "10",
-        "simulation-distance": simulationDistance || "10",
-      };
+      const properties = settingsToProperties(settings, name, { includeSeed: false });
 
       const created = await api.minecraft.templates.createCustom({
         name,
@@ -126,7 +97,7 @@ export default function NewTemplatePage() {
 
       router.push("/games/minecraft/templates");
     } catch (err: unknown) {
-      setError(apiErrorMessage(err, "Failed to save template."));
+      setError(apiErrorMessage(err, "minecraft.templateSaveFailed"));
       setLoading(false);
     }
   };
@@ -164,7 +135,6 @@ export default function NewTemplatePage() {
           </div>
         )}
 
-        {/* STAP 1: BASIS */}
         {step === 1 && (
           <div className="space-y-4 animate-in fade-in">
             <div className="space-y-2">
@@ -173,7 +143,7 @@ export default function NewTemplatePage() {
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
-                  if (!motd) setMotd(`A Minecraft Server: ${e.target.value}`);
+                  if (!motd) setMotd(defaultMotd(e.target.value));
                 }}
                 placeholder={t("bijv. Survival Multiplayer, Speedrun Base")}
                 maxLength={64}
@@ -193,7 +163,6 @@ export default function NewTemplatePage() {
           </div>
         )}
 
-        {/* STAP 2: VERSIE & ENGINE */}
         {step === 2 && (
           <div className="space-y-4 animate-in fade-in">
             <div className="space-y-2">
@@ -234,7 +203,7 @@ export default function NewTemplatePage() {
           </div>
         )}
 
-        {step === 3 && <SettingsStep settings={settings} name={name} javaArgs={javaArgs} setJavaArgs={setJavaArgs} engine={engine} />}
+        {step === 3 && <ServerSettingsStep settings={settings} serverName={name} javaArgs={javaArgs} setJavaArgs={setJavaArgs} engine={engine} idPrefix="template" showSeed={false} />}
 
         {step === 4 && (
           <FilesStep stagedFiles={stagedFiles} fileTab={fileTab} setFileTab={setFileTab} handleFileUpload={handleFileUpload} removeStagedFile={removeStagedFile} />

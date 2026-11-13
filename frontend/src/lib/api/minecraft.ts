@@ -1,20 +1,25 @@
 import { t } from "../lang";
 import { request, requestForm } from "./core";
+import type { FolderType } from "@backend/shared/minecraft";
 import type {
   McBannedPlayer,
+  McFileInfo,
+  McMapStatus,
   McPlayerStat,
   McServer,
+  McServerDetail,
   McServerInspection,
   McServerStatus,
   McTemplate,
   McUnregisteredServerScan,
+  McUploadResult,
 } from "./types";
 
 export const minecraftApi = {
   versions: () => request<string[]>("/minecraft/versions"),
   servers: {
     list: () => request<McServer[]>("/minecraft/servers"),
-    get: (slug: string) => request<McServer>(`/minecraft/servers/${slug}`),
+    get: (slug: string) => request<McServerDetail>(`/minecraft/servers/${slug}`),
     create: (data: { slug: string; displayName: string; engine: string; mcVersion: string; javaArgs?: string; templateId?: number }) =>
       request<McServer>("/minecraft/servers", { method: "POST", body: JSON.stringify(data) }),
     update: (slug: string, data: { displayName?: string; javaArgs?: string | null }) =>
@@ -35,13 +40,13 @@ export const minecraftApi = {
         request<{ ok: boolean }>(`/minecraft/servers/${slug}/properties`, { method: "PATCH", body: JSON.stringify(props) }),
     },
     map: {
-      status: (slug: string) => request<{ hasMap: boolean; webExists: boolean }>(`/minecraft/servers/${slug}/map/status`),
+      status: (slug: string) => request<McMapStatus>(`/minecraft/servers/${slug}/map/status`),
     },
     files: {
-      list: (slug: string, type: string) => request<{ name: string; size: number; modified: string }[]>(`/minecraft/servers/${slug}/files/${type}`),
+      list: (slug: string, type: FolderType) => request<McFileInfo[]>(`/minecraft/servers/${slug}/files/${type}`),
       upload: async (
         slug: string,
-        type: string,
+        type: FolderType,
         files: File | File[] | FileList,
         onProgress?: (current: number, total: number) => void
       ) => {
@@ -87,18 +92,17 @@ export const minecraftApi = {
           if (errors.length === fileList.length) {
             throw new Error(errors.map((e) => `${e.file}: ${e.error}`).join("\n"));
           }
-          console.warn("Some files failed to upload:", errors);
         }
 
         return { ok: true, count: completed - errors.length, errors };
       },
-      delete: (slug: string, type: string, filename: string) =>
+      delete: (slug: string, type: FolderType, filename: string) =>
         request<{ ok: boolean }>(`/minecraft/servers/${slug}/files/${type}/${encodeURIComponent(filename)}`, { method: "DELETE" }),
-      copy: (slug: string, type: string, sourceSlug: string, filename: string) =>
+      copy: (slug: string, type: FolderType, sourceSlug: string, filename: string) =>
         request<{ ok: boolean }>(`/minecraft/servers/${slug}/files/${type}/copy`, { method: "POST", body: JSON.stringify({ sourceSlug, filename }) }),
     },
     players: {
-      list: (slug: string) => request<{ online: McPlayerStat[]; history: McPlayerStat[]; banned?: McBannedPlayer[] }>(`/minecraft/servers/${slug}/players`),
+      list: (slug: string) => request<{ online: McPlayerStat[]; history: McPlayerStat[]; banned: McBannedPlayer[] }>(`/minecraft/servers/${slug}/players`),
       op: (slug: string, uuid: string) => request<{ ok: boolean }>(`/minecraft/servers/${slug}/players/${uuid}/op`, { method: "POST" }),
       deop: (slug: string, uuid: string) => request<{ ok: boolean }>(`/minecraft/servers/${slug}/players/${uuid}/deop`, { method: "POST" }),
       kick: (slug: string, uuid: string, reason?: string) =>
@@ -125,14 +129,13 @@ export const minecraftApi = {
     }) => request<McTemplate>("/minecraft/templates", { method: "POST", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ ok: boolean }>(`/minecraft/templates/${id}`, { method: "DELETE" }),
     files: {
-      list: (id: number, type: "mods" | "datapacks" | "resourcepacks") =>
-        request<{ name: string; size: number; modified: string }[]>(`/minecraft/templates/${id}/files/${type}`),
-      upload: async (id: number, type: "mods" | "datapacks" | "resourcepacks", file: File) => {
+      list: (id: number, type: FolderType) => request<McFileInfo[]>(`/minecraft/templates/${id}/files/${type}`),
+      upload: async (id: number, type: FolderType, file: File) => {
         const form = new FormData();
         form.append("files", file);
-        return requestForm<{ ok: boolean }>(`/minecraft/templates/${id}/files/${type}`, form);
+        return requestForm<McUploadResult>(`/minecraft/templates/${id}/files/${type}`, form);
       },
-      delete: (id: number, type: "mods" | "datapacks" | "resourcepacks", filename: string) =>
+      delete: (id: number, type: FolderType, filename: string) =>
         request<{ ok: boolean }>(`/minecraft/templates/${id}/files/${type}/${encodeURIComponent(filename)}`, {
           method: "DELETE",
         }),

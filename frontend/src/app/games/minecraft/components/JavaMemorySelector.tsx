@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { t } from "@/lib/lang";
+import { AIKAR_FLAGS, DEFAULT_JAVA_ARGS, FABRIC_LAUNCH_JAR, VANILLA_JAR, ZGC_FLAGS } from "@backend/shared/minecraft";
 import { Cpu, Terminal, Sparkles, Zap, ShieldCheck } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,10 +27,8 @@ export const STANDARD_RAM_PRESETS: RamPreset[] = [
   { id: "16G", label: "16 GB", xms: "16G", xmx: "16G" },
 ];
 
-export const AIKAR_FLAGS_STRING =
-  "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true";
-
-export const ZGC_FLAGS_STRING = "-XX:+UseZGC -XX:+ZGenerational -XX:+AlwaysPreTouch";
+const AIKAR_FLAGS_STRING = AIKAR_FLAGS.join(" ");
+const ZGC_FLAGS_STRING = ZGC_FLAGS.join(" ");
 
 export type GcProfileId = "aikar" | "zgc" | "standard" | "custom";
 
@@ -118,11 +117,11 @@ function parseExistingArgs(rawArgs?: string | null): ParsedArgs {
 
   if (isZgc) {
     detectedProfile = "zgc";
-    const zgcSet = new Set(ZGC_FLAGS_STRING.split(/\s+/));
+    const zgcSet = new Set(ZGC_FLAGS);
     cleanExtraTokens = nonMemTokens.filter((tok) => !zgcSet.has(tok));
   } else if (isAikar) {
     detectedProfile = "aikar";
-    const aikarSet = new Set(AIKAR_FLAGS_STRING.split(/\s+/));
+    const aikarSet = new Set(AIKAR_FLAGS);
     cleanExtraTokens = nonMemTokens.filter((tok) => !aikarSet.has(tok));
   } else if (nonMemTokens.some((t) => /^-XX:/i.test(t))) {
     detectedProfile = "custom";
@@ -187,7 +186,7 @@ export function JavaMemorySelector({
     if (presetId === "custom" || gcId === "custom") {
       return custom.trim();
     }
-    const preset = STANDARD_RAM_PRESETS.find((p) => p.id === presetId) || STANDARD_RAM_PRESETS[3]; // default 4G
+    const preset = STANDARD_RAM_PRESETS.find((p) => p.id === presetId) || STANDARD_RAM_PRESETS[3];
     const memFlags = `-Xms${preset.xms} -Xmx${preset.xmx}`;
     const gcProfile = GC_PROFILES.find((p) => p.id === gcId);
     const gcFlags = gcProfile?.flags || "";
@@ -241,14 +240,13 @@ export function JavaMemorySelector({
 
   const previewArgs =
     selectedPreset === "custom" || selectedGc === "custom"
-      ? customArgs.trim() || "-Xms2G -Xmx2G"
+      ? customArgs.trim() || DEFAULT_JAVA_ARGS
       : buildCombinedArgs(selectedPreset, selectedGc, extraFlags, "");
 
-  const jarName = engine === "fabric" ? "fabric-server-launch.jar" : "server.jar";
+  const jarName = engine === "fabric" ? FABRIC_LAUNCH_JAR : VANILLA_JAR;
 
   return (
     <div className="space-y-6">
-      {/* 1. RAM Allocation */}
       <div className="space-y-3">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
@@ -266,8 +264,6 @@ export function JavaMemorySelector({
             {t("Select standard memory allocation or customize Java arguments for optimal server performance.")}
           </p>
         </div>
-
-        {/* Preset Chips */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {STANDARD_RAM_PRESETS.map((preset) => {
             const isSelected = selectedPreset === preset.id;
@@ -305,8 +301,6 @@ export function JavaMemorySelector({
               </button>
             );
           })}
-
-          {/* Custom RAM Button */}
           <button
             type="button"
             disabled={disabled}
@@ -327,8 +321,6 @@ export function JavaMemorySelector({
           </button>
         </div>
       </div>
-
-      {/* 2. GC Profile Selection */}
       <div className="space-y-3">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
@@ -387,8 +379,6 @@ export function JavaMemorySelector({
           })}
         </div>
       </div>
-
-      {/* 3. Inputs depending on custom or preset selection */}
       {selectedPreset === "custom" || selectedGc === "custom" ? (
         <div className="space-y-2">
           <Label className="text-xs text-zinc-300">{t("Custom Java Arguments")}</Label>
@@ -420,8 +410,6 @@ export function JavaMemorySelector({
           </p>
         </div>
       )}
-
-      {/* 4. Live Launch Preview */}
       <div className="p-3 rounded-xl bg-black/50 border border-white/5 space-y-1.5">
         <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400">
           <div className="flex items-center gap-1.5">

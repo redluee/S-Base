@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { api, apiErrorMessage, McServer, McServerStatus, McPlayerStat, McBannedPlayer } from "@/lib/api";
+import { api, ApiError, type McServerDetail, type McServerStatus, type McPlayerStat, type McBannedPlayer } from "@/lib/api";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { t } from "@/lib/lang";
 import Link from "next/link";
 import { Play, Square, RotateCw, Terminal, Users, FileText, Folder, Loader2, Gamepad2, Shield, UserMinus, Ban, ShieldCheck, AlertTriangle, ArrowLeft, Copy, Check, Map } from "lucide-react";
@@ -22,11 +25,11 @@ function formatPlaytime(seconds?: number | null) {
   return "< 1 min";
 }
 
-export default function ServerDashboardPage() {
+export default function ServerDashboardPage({ hasFullAccess }: { hasFullAccess: boolean }) {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";
 
-  const [server, setServer] = useState<McServer | null>(null);
+  const [server, setServer] = useState<McServerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [status, setStatus] = useState<McServerStatus>({ online: false, playerCount: 0 });
@@ -36,11 +39,10 @@ export default function ServerDashboardPage() {
   const [errorLines, setErrorLines] = useState<string[]>([]);
   const [loadingAction, setLoadingAction] = useState("");
   const [copiedPath, setCopiedPath] = useState(false);
-  const [hasFullAccess, setHasFullAccess] = useState(true);
-
-  useEffect(() => {
-    api.me().then(res => setHasFullAccess(res?.user?.modules?.includes("minecraft") ?? false)).catch(() => {});
-  }, []);
+  const actionError = useActionError();
+  const reportActionError = actionError.report;
+  const { error: pollError, report: reportPollError, clear: clearPollError } = useActionError();
+  const { confirm, dialog } = useConfirm();
 
   const consoleRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -65,7 +67,7 @@ export default function ServerDashboardPage() {
         setCopiedPath(false);
       }, 2000);
     } catch (err) {
-      console.error("Failed to copy server path:", err);
+      actionError.report(err, "minecraft.copyFailed");
     }
   };
 
@@ -94,10 +96,11 @@ export default function ServerDashboardPage() {
       if (c && Array.isArray(c.lines)) {
         setConsoleLines(c.lines);
       }
-    } catch {
-      // Ignored during background polling
+      clearPollError();
+    } catch (err) {
+      reportPollError(err, "minecraft.statusFailed");
     }
-  }, [slug, notFound]);
+  }, [slug, notFound, clearPollError, reportPollError]);
 
   useEffect(() => {
     if (!slug) return;
@@ -112,8 +115,9 @@ export default function ServerDashboardPage() {
           refreshStatus();
         }
       })
-      .catch(() => {
-        setNotFound(true);
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) setNotFound(true);
+        else reportActionError(err, "minecraft.loadFailed");
       })
       .finally(() => {
         setLoading(false);
@@ -123,7 +127,7 @@ export default function ServerDashboardPage() {
     return () => {
       clearInterval(interval);
     };
-  }, [slug, refreshStatus]);
+  }, [slug, refreshStatus, reportActionError]);
 
   useEffect(() => {
     if (consoleRef.current && isNearBottomRef.current) {
@@ -141,11 +145,12 @@ export default function ServerDashboardPage() {
   const handleAction = async (action: "start" | "stop" | "restart") => {
     if (!slug) return;
     setLoadingAction(action);
+    actionError.clear();
     try {
       await api.minecraft.servers[action](slug);
       await refreshStatus();
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      actionError.report(e, "minecraft.actionFailed");
     } finally {
       setLoadingAction("");
     }
@@ -158,7 +163,7 @@ export default function ServerDashboardPage() {
       await api.minecraft.servers.console.send(slug, cmd);
       setCmd("");
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      actionError.report(e, "minecraft.actionFailed");
     }
   };
 
@@ -170,18 +175,18 @@ export default function ServerDashboardPage() {
       await api.minecraft.servers.players.ban(slug, playerUuid, reason);
       refreshStatus();
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      actionError.report(e, "minecraft.actionFailed");
     }
   };
 
   const handleUnban = async (uuidOrName: string) => {
     if (!slug) return;
-    if (!confirm(t("Unban this player?"))) return;
+    if (!(await confirm(t("Unban this player?"), { confirmLabel: t("Unban") }))) return;
     try {
       await api.minecraft.servers.players.unban(slug, uuidOrName);
       refreshStatus();
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      actionError.report(e, "minecraft.actionFailed");
     }
   };
 
@@ -224,7 +229,8 @@ export default function ServerDashboardPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
+      {dialog}
+      <InlineAlert>{actionError.error ?? pollError}</InlineAlert>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-900 border border-white/10">
         <div className="flex items-center gap-4">
           <div className="size-12 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shadow-[0_0_1.5rem_-0.25rem_rgba(14,165,233,0.4)]">
@@ -301,8 +307,6 @@ export default function ServerDashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Nav */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
         <Link href={`/games/minecraft/${slug}`} className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-100 text-sm font-semibold whitespace-nowrap">
           {t("Server Dashboard")}
@@ -323,8 +327,6 @@ export default function ServerDashboardPage() {
           </Link>
         )}
       </div>
-
-      {/* Crash report alert */}
       {!status.online && errorLines.length > 0 && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
           <div className="flex items-center gap-2 text-red-400 font-bold mb-2">
@@ -338,7 +340,6 @@ export default function ServerDashboardPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Console */}
         <div className="lg:col-span-2 flex flex-col h-[500px] rounded-2xl bg-[#0c0c0c] border border-white/10 overflow-hidden shadow-xl">
           <div className="p-3 bg-zinc-900 border-b border-white/10 flex items-center gap-2 text-zinc-400 font-semibold text-sm">
             <Terminal className="size-4" />
@@ -362,8 +363,6 @@ export default function ServerDashboardPage() {
             />
           </form>
         </div>
-
-        {/* Players */}
         <div className="flex flex-col h-[500px] rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden">
           <div className="p-3 bg-zinc-900 border-b border-white/10 flex items-center justify-between text-zinc-400 font-semibold text-sm">
             <div className="flex items-center gap-2">

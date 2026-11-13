@@ -1,14 +1,16 @@
 import { Trash2, Puzzle, Upload as UploadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/lang";
-import { StagedFile, formatFileSize } from "./staged-files";
+import type { FolderType } from "@backend/shared/minecraft";
+import type { StagedFile } from "./staged-files";
+import { formatFileSize } from "../../file-size";
 
 interface FilesStepProps {
   stagedFiles: StagedFile[];
-  fileTab: "mods" | "datapacks" | "resourcepacks";
-  setFileTab: (v: "mods" | "datapacks" | "resourcepacks") => void;
-  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, type: "mods" | "datapacks" | "resourcepacks") => void;
-  removeStagedFile: (filename: string, type: "mods" | "datapacks" | "resourcepacks") => void;
+  fileTab: FolderType;
+  setFileTab: (v: FolderType) => void;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, type: FolderType) => void;
+  removeStagedFile: (filename: string, type: FolderType) => void;
 }
 
 export function FilesStep({ stagedFiles, fileTab, setFileTab, handleFileUpload, removeStagedFile }: FilesStepProps) {
@@ -61,7 +63,6 @@ export function FilesStep({ stagedFiles, fileTab, setFileTab, handleFileUpload, 
                 <p className="text-xs text-zinc-500 mt-1">{t("Sleep bestanden hierheen of klik om te uploaden")}</p>
               </div>
 
-              {/* Bestandenlijst van actieve fileTab */}
               <div className="space-y-2">
                 <div className="text-xs font-bold uppercase text-zinc-500 tracking-wider">
                   {t("Files")} ({stagedFiles.filter((f) => f.type === fileTab).length})

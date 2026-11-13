@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { api, apiErrorMessage, McServer, McServerStatus } from "@/lib/api";
+import { api, ApiError, type McMapStatus, type McServerDetail, type McServerStatus } from "@/lib/api";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { t } from "@/lib/lang";
 import Link from "next/link";
 import {
@@ -20,63 +22,55 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function WorldMapPage() {
+export default function WorldMapPage({ hasFullAccess }: { hasFullAccess: boolean }) {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";
 
-  const [server, setServer] = useState<McServer | null>(null);
+  const [server, setServer] = useState<McServerDetail | null>(null);
   const [status, setStatus] = useState<McServerStatus>({ online: false, playerCount: 0 });
-  const [mapStatus, setMapStatus] = useState<{ hasMap: boolean; webExists: boolean } | null>(null);
+  const [mapStatus, setMapStatus] = useState<McMapStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [hasFullAccess, setHasFullAccess] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [iframeLoading, setIframeLoading] = useState(true);
   const [startingServer, setStartingServer] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    api.me()
-      .then((res) => setHasFullAccess(res?.user?.modules?.includes("minecraft") ?? false))
-      .catch(() => {});
-  }, []);
+  const { error, report, clear } = useActionError();
 
   const refreshStatus = useCallback(async () => {
     if (!slug || notFound) return;
     try {
       const [st, mSt] = await Promise.all([
-        api.minecraft.servers.status(slug).catch(() => null),
-        api.minecraft.servers.map.status(slug).catch(() => null),
+        api.minecraft.servers.status(slug),
+        api.minecraft.servers.map.status(slug),
       ]);
-      if (st) setStatus(st);
-      if (mSt) setMapStatus(mSt);
-    } catch {
-      // Ignored during background polling
+      setStatus(st);
+      setMapStatus(mSt);
+      clear();
+    } catch (err) {
+      report(err, "minecraft.statusFailed");
     }
-  }, [slug, notFound]);
+  }, [slug, notFound, clear, report]);
 
   useEffect(() => {
     if (!slug) return;
 
     Promise.all([
-      api.minecraft.servers.get(slug).catch(() => null),
-      api.minecraft.servers.status(slug).catch(() => ({ online: false, playerCount: 0 })),
-      api.minecraft.servers.map.status(slug).catch(() => ({ hasMap: false, webExists: false })),
+      api.minecraft.servers.get(slug),
+      api.minecraft.servers.status(slug),
+      api.minecraft.servers.map.status(slug),
     ])
       .then(([srv, st, mSt]) => {
-        if (!srv) {
-          setNotFound(true);
-        } else {
-          setServer(srv);
-          setStatus(st);
-          setMapStatus(mSt);
-          setNotFound(false);
-        }
+        setServer(srv);
+        setStatus(st);
+        setMapStatus(mSt);
+        setNotFound(false);
       })
-      .catch(() => {
-        setNotFound(true);
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) setNotFound(true);
+        else report(err, "minecraft.loadFailed");
       })
       .finally(() => {
         setLoading(false);
@@ -84,7 +78,7 @@ export default function WorldMapPage() {
 
     const interval = setInterval(refreshStatus, 5000);
     return () => clearInterval(interval);
-  }, [slug, refreshStatus]);
+  }, [slug, refreshStatus, report]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -108,7 +102,7 @@ export default function WorldMapPage() {
       await api.minecraft.servers.start(slug);
       await refreshStatus();
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
     } finally {
       setStartingServer(false);
     }
@@ -151,7 +145,7 @@ export default function WorldMapPage() {
 
   return (
     <div className={`space-y-4 ${isFullscreen ? "fixed inset-0 z-50 bg-black p-0 m-0 overflow-hidden" : "p-4 sm:p-6 max-w-7xl mx-auto"}`}>
-      {/* Top Bar / Header */}
+      {!isFullscreen && <InlineAlert>{error}</InlineAlert>}
       {!isFullscreen && (
         <>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-900 border border-white/10">
@@ -221,8 +215,6 @@ export default function WorldMapPage() {
               )}
             </div>
           </div>
-
-          {/* Nav */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             <Link
               href={`/games/minecraft/${slug}`}
@@ -255,8 +247,6 @@ export default function WorldMapPage() {
           </div>
         </>
       )}
-
-      {/* Main Map Viewer Area */}
       <div
         ref={containerRef}
         className={
@@ -265,7 +255,6 @@ export default function WorldMapPage() {
             : "relative w-full rounded-2xl overflow-hidden border border-white/10 bg-[#0c0c0c] flex flex-col h-[calc(100vh-210px)] min-h-[550px]"
         }
       >
-        {/* Floating controls in fullscreen mode */}
         {isFullscreen && (
           <div className="absolute top-3 right-3 z-30 flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md border border-white/10 p-1.5 rounded-xl shadow-2xl">
             <Button

@@ -1,3 +1,4 @@
+import { DEFAULT_MOTD_PREFIX, DEFAULT_SERVER_PORT } from "@backend/shared/minecraft";
 import { Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,7 @@ export function GeneralSection({ activeTab, props, isRunning, handleChange, hand
                     {renderStatusBadge("motd")}
                   </div>
                   <Input
-                    value={props["motd"] ?? "A Minecraft Server"}
+                    value={props["motd"] ?? DEFAULT_MOTD_PREFIX}
                     onChange={(e) => handleChange("motd", e.target.value)}
                     disabled={isRunning}
                     maxLength={128}
@@ -55,7 +56,7 @@ export function GeneralSection({ activeTab, props, isRunning, handleChange, hand
                     max={65535}
                     step={1}
                     inputMode="numeric"
-                    value={props["server-port"] ?? "25565"}
+                    value={props["server-port"] ?? String(DEFAULT_SERVER_PORT)}
                     onChange={(e) => handleChange("server-port", e.target.value)}
                     disabled={isRunning}
                     className="bg-black/40 border-white/10 disabled:opacity-50"

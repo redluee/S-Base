@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, apiErrorMessage, McUnregisteredServerScan, McServerInspection } from "@/lib/api";
+import { type Engine, SLUG_MAX_LENGTH, SLUG_PATTERN, toServerSlug } from "@backend/shared/minecraft";
+import { api, apiErrorMessage, type McServerInspection, type McUnregisteredServerScan } from "@/lib/api";
 import { t } from "@/lib/lang";
 import {
   FolderDown,
@@ -34,12 +35,10 @@ export default function ImportServerPage() {
   const [serverDir, setServerDir] = useState("");
   const [inspecting, setInspecting] = useState(false);
   const [inspection, setInspection] = useState<McServerInspection | null>(null);
-
-  // Form fields
   const [displayName, setDisplayName] = useState("");
   const [slug, setSlug] = useState("");
   const [mcVersion, setMcVersion] = useState("");
-  const [engine, setEngine] = useState<"vanilla" | "fabric">("vanilla");
+  const [engine, setEngine] = useState<Engine>("vanilla");
   const [javaArgs, setJavaArgs] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +47,7 @@ export default function ImportServerPage() {
   const applyInspectionData = useCallback((insp: McServerInspection, fallbackSlug?: string) => {
     const name = insp.detectedDisplayName || insp.folderName;
     setDisplayName(name);
-    const calculatedSlug = fallbackSlug || name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 32);
+    const calculatedSlug = fallbackSlug || toServerSlug(name);
     setSlug(calculatedSlug);
     setEngine(insp.detectedEngine || "vanilla");
     if (insp.detectedVersion) {
@@ -63,16 +62,10 @@ export default function ImportServerPage() {
   }, [applyInspectionData]);
 
   useEffect(() => {
-    // Load available versions
-    api.minecraft.versions().then((res) => {
-      const vList = Array.isArray(res)
-        ? res.map((item: string | { id?: string }) => (typeof item === "string" ? item : item?.id || String(item)))
-        : [];
+    api.minecraft.versions().then((vList) => {
       setVersions(vList);
       setMcVersion((prev) => prev || (vList.length > 0 ? vList[0] : ""));
-    }).catch(console.error);
-
-    // Scan for unlinked folders in base servers directory
+    }).catch((err) => setError(apiErrorMessage(err, "minecraft.loadFailed")));
     api.minecraft.import.scan()
       .then((res) => {
         setUnlinked(res);
@@ -83,7 +76,7 @@ export default function ImportServerPage() {
         }
       })
       .catch((err) => {
-        console.error("Scan failed", err);
+        setError(apiErrorMessage(err, "minecraft.scanFailed"));
         setMode("custom");
       })
       .finally(() => {
@@ -106,7 +99,7 @@ export default function ImportServerPage() {
         setError(res.error ? t(res.error) : t("Invalid server folder"));
       }
     } catch (err: unknown) {
-      setError(apiErrorMessage(err, "Invalid server folder"));
+      setError(apiErrorMessage(err, "minecraft.inspectFailed"));
       setInspection(null);
     } finally {
       setInspecting(false);
@@ -134,14 +127,13 @@ export default function ImportServerPage() {
 
       router.push(`/games/minecraft/${slug}`);
     } catch (err: unknown) {
-      setError(apiErrorMessage(err, "Server failed to start"));
+      setError(apiErrorMessage(err, "minecraft.importFailed"));
       setSubmitting(false);
     }
   };
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand">
@@ -163,8 +155,6 @@ export default function ImportServerPage() {
           {t("Lobby Control")}
         </Link>
       </div>
-
-      {/* Mode Selection Tabs */}
       <div className="flex items-center gap-2 p-1 bg-zinc-900 border border-white/10 rounded-xl max-w-md">
         <button
           type="button"
@@ -192,8 +182,6 @@ export default function ImportServerPage() {
           {t("Custom path")}
         </button>
       </div>
-
-      {/* Discovered / Scan list */}
       {mode === "scan" && (
         <div className="p-5 rounded-2xl bg-zinc-900 border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
@@ -272,8 +260,6 @@ export default function ImportServerPage() {
           )}
         </div>
       )}
-
-      {/* Custom Path Input */}
       {mode === "custom" && (
         <div className="p-5 rounded-2xl bg-zinc-900 border border-white/10 space-y-4">
           <div className="space-y-2">
@@ -310,8 +296,6 @@ export default function ImportServerPage() {
           </div>
         </div>
       )}
-
-      {/* Inspection Indicators */}
       {inspection && (
         <div className={`p-4 rounded-2xl border space-y-3 ${inspection.isValid ? "bg-emerald-950/20 border-emerald-500/30" : "bg-red-950/20 border-red-500/30"}`}>
           <div className="flex items-center justify-between">
@@ -352,8 +336,6 @@ export default function ImportServerPage() {
           )}
         </div>
       )}
-
-      {/* Main Configuration Form */}
       <form onSubmit={handleSubmit} className="p-6 rounded-2xl bg-zinc-900 border border-white/10 space-y-6">
         <h2 className="text-sm font-bold text-zinc-100 border-b border-white/5 pb-3">
           {t("Configure & Import")}
@@ -373,7 +355,7 @@ export default function ImportServerPage() {
               onChange={(e) => {
                 setDisplayName(e.target.value);
                 if (!slug) {
-                  setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 32));
+                  setSlug(toServerSlug(e.target.value));
                 }
               }}
               placeholder={t("Mijn Minecraft Server")}
@@ -386,9 +368,9 @@ export default function ImportServerPage() {
             <Label>{t("Server slug")}</Label>
             <Input
               value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32))}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, SLUG_MAX_LENGTH))}
               placeholder={t("mijn-server")}
-              pattern="^[a-z0-9-]{3,32}$"
+              pattern={SLUG_PATTERN}
               minLength={3}
               maxLength={32}
               autoComplete="off"

@@ -1,9 +1,10 @@
+import { LIVE_PROPERTIES } from "@backend/shared/minecraft";
+
 export type TabKey = "all" | "general" | "gameplay" | "world" | "performance" | "custom";
 
-export const LIVE_PROPERTIES = new Set(["difficulty", "gamemode", "white-list", "player-idle-timeout", "do-fire-tick", "doFireTick"]);
+export const LIVE_PROPERTY_SET: ReadonlySet<string> = new Set(LIVE_PROPERTIES);
 
 export const KNOWN_KEYS = new Set([
-  // General
   "motd",
   "server-port",
   "max-players",
@@ -13,7 +14,6 @@ export const KNOWN_KEYS = new Set([
   "hide-online-players",
   "server-ip",
   "enable-status",
-  // Gameplay
   "gamemode",
   "force-gamemode",
   "difficulty",
@@ -23,7 +23,6 @@ export const KNOWN_KEYS = new Set([
   "enable-command-block",
   "do-fire-tick",
   "doFireTick",
-  // World
   "level-name",
   "level-seed",
   "level-type",
@@ -34,7 +33,6 @@ export const KNOWN_KEYS = new Set([
   "spawn-npcs",
   "spawn-protection",
   "max-world-size",
-  // Performance
   "view-distance",
   "simulation-distance",
   "player-idle-timeout",

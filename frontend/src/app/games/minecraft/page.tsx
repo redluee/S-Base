@@ -1,4 +1,5 @@
-import { serverApi, getCurrentUser } from "@/lib/server-api";
+import { serverApi } from "@/lib/server-api";
+import { hasFullMinecraftAccess } from "./access";
 import { type McServer } from "@/lib/api";
 import { t } from "@/lib/lang";
 import Link from "next/link";
@@ -7,10 +8,9 @@ import { Gamepad2, Plus, Box, FolderDown } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function MinecraftPage() {
-  const servers: McServer[] = await serverApi.minecraft.servers.list().catch(() => []);
+  const servers: McServer[] = await serverApi.minecraft.servers.list();
 
-  const user = await getCurrentUser();
-  const hasFullAccess = user?.modules?.includes("minecraft") ?? false;
+  const hasFullAccess = await hasFullMinecraftAccess();
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -83,7 +83,6 @@ export default async function MinecraftPage() {
                     <p className="text-xs text-zinc-400">{server.slug}</p>
                   </div>
                 </div>
-                {/* Status indicator */}
                 <div
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold border ${
                     server.online

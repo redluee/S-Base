@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, apiErrorMessage, McTemplate } from "@/lib/api";
+import { toServerSlug } from "@backend/shared/minecraft";
+import { api, type McTemplate } from "@/lib/api";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { t } from "@/lib/lang";
 import { ArrowLeft, Box, Loader2, Zap, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,44 +19,42 @@ export default function TemplatesPage({ initialTemplates }: { initialTemplates: 
   const router = useRouter();
   const [templates, setTemplates] = useState<McTemplate[]>(initialTemplates);
   const [loading, setLoading] = useState(false);
-
-  // Speedrun modal state
+  const { error, report, clear } = useActionError();
+  const { confirm, dialog } = useConfirm();
   const [showSpeedrunModal, setShowSpeedrunModal] = useState<number | null>(null);
   const [speedrunName, setSpeedrunName] = useState("");
   const [speedrunLoading, setSpeedrunLoading] = useState(false);
 
   const refreshTemplates = () => {
     setLoading(true);
-    api.minecraft.templates.list().then((res) => {
-      setTemplates(Array.isArray(res) ? res : []);
-    }).catch(console.error).finally(() => {
+    api.minecraft.templates.list().then(setTemplates).catch((e) => report(e, "minecraft.loadFailed")).finally(() => {
       setLoading(false);
     });
   };
 
 
   const handleDelete = async (id: number) => {
-    if (!confirm(t("Delete this template?"))) return;
+    if (!(await confirm(t("Delete this template?")))) return;
+    clear();
     try {
       await api.minecraft.templates.delete(id);
       refreshTemplates();
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
     }
   };
 
   const handleSpeedrun = async (e: React.FormEvent) => {
     e.preventDefault();
     if (showSpeedrunModal === null || !speedrunName) return;
-    
-    const slug = speedrunName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 32);
-    
+    const slug = toServerSlug(speedrunName);
     setSpeedrunLoading(true);
+    clear();
     try {
       await api.minecraft.templates.speedrun(showSpeedrunModal, slug, speedrunName);
       router.push(`/games/minecraft/${slug}`);
     } catch (err: unknown) {
-      alert(apiErrorMessage(err, "minecraft.actionFailed"));
+      report(err, "minecraft.actionFailed");
       setSpeedrunLoading(false);
     }
   };
@@ -61,6 +63,8 @@ export default function TemplatesPage({ initialTemplates }: { initialTemplates: 
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {dialog}
+      <InlineAlert>{error}</InlineAlert>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/games/minecraft" className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 transition-colors">
@@ -133,6 +137,7 @@ export default function TemplatesPage({ initialTemplates }: { initialTemplates: 
           label={t("1-Click Speedrun")}
         >
           <form onSubmit={handleSpeedrun} className="bg-zinc-900 rounded-2xl p-6 border border-white/10 w-full max-w-md space-y-6">
+            <InlineAlert>{error}</InlineAlert>
             <div>
               <h2 className="text-xl font-bold flex items-center gap-2 mb-2">
                 <Zap className="text-brand size-5" />

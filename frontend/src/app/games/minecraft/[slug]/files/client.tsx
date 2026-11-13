@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { api, apiErrorMessage, McServer } from "@/lib/api";
+import { FOLDER_TYPES, type FolderType } from "@backend/shared/minecraft";
+import { api, type McFileInfo, type McServer } from "@/lib/api";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { formatFileSize } from "../../file-size";
 import { t } from "@/lib/lang";
 import { Loader2, ArrowLeft, Upload as UploadIcon, Trash2, Folder, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,22 +22,13 @@ import {
   AlertDialogClose,
 } from "@/components/ui/alert-dialog";
 
-type FileTab = "mods" | "datapacks" | "resourcepacks";
-type FileInfo = { name: string; size: number; modified: string };
-
-function formatFileSize(bytes: number): string {
-  if (typeof bytes !== "number" || isNaN(bytes)) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
 
 export default function FileManagerPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";
 
-  const [tab, setTab] = useState<FileTab>("mods");
-  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [tab, setTab] = useState<FolderType>("mods");
+  const [files, setFiles] = useState<McFileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
@@ -43,17 +39,18 @@ export default function FileManagerPage() {
   } | null>(null);
   const [servers, setServers] = useState<McServer[]>([]);
   const [sourceSlug, setSourceSlug] = useState("");
-  const [sourceFiles, setSourceFiles] = useState<FileInfo[]>([]);
+  const [sourceFiles, setSourceFiles] = useState<McFileInfo[]>([]);
   const [selectedSourceFile, setSelectedSourceFile] = useState("");
   const [copying, setCopying] = useState(false);
+  const { error, report, clear } = useActionError();
+  const [notice, setNotice] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
 
-  const refreshFiles = (tName: FileTab) => {
+  const refreshFiles = (tName: FolderType) => {
     if (!slug) return;
     setLoading(true);
-    api.minecraft.servers.files.list(slug, tName).then((res) => {
-      setFiles(Array.isArray(res) ? res : []);
-    }).catch((e) => {
-      console.error(e);
+    api.minecraft.servers.files.list(slug, tName).then(setFiles).catch((e) => {
+      report(e, "minecraft.loadFailed");
       setFiles([]);
     }).finally(() => {
       setLoading(false);
@@ -61,33 +58,32 @@ export default function FileManagerPage() {
   };
 
   useEffect(() => {
-    api.minecraft.servers.list().then(setServers).catch(console.error);
-  }, []);
+    api.minecraft.servers.list().then(setServers).catch((e) => report(e, "minecraft.loadFailed"));
+  }, [report]);
 
   useEffect(() => {
     if (!slug) return;
-    api.minecraft.servers.files.list(slug, tab).then((res) => {
-      setFiles(Array.isArray(res) ? res : []);
-    }).catch((e) => {
-      console.error(e);
+    api.minecraft.servers.files.list(slug, tab).then(setFiles).catch((e) => {
+      report(e, "minecraft.loadFailed");
       setFiles([]);
     }).finally(() => {
       setLoading(false);
     });
-  }, [slug, tab]);
+  }, [slug, tab, report]);
 
   useEffect(() => {
     if (!sourceSlug) {
       return;
     }
     api.minecraft.servers.files.list(sourceSlug, tab).then((res) => {
-      setSourceFiles(Array.isArray(res) ? res : []);
+      setSourceFiles(res);
       setSelectedSourceFile("");
-    }).catch(() => {
+    }).catch((e) => {
+      report(e, "minecraft.loadFailed");
       setSourceFiles([]);
       setSelectedSourceFile("");
     });
-  }, [sourceSlug, tab]);
+  }, [sourceSlug, tab, report]);
 
   const handleSourceSlugChange = (val: string) => {
     setSourceSlug(val);
@@ -101,6 +97,8 @@ export default function FileManagerPage() {
     if (fileList.length === 0 || !slug) return;
     setUploading(true);
     setUploadProgress({ current: 0, total: fileList.length });
+    clear();
+    setNotice(null);
     try {
       const res = await api.minecraft.servers.files.upload(
         slug,
@@ -109,14 +107,14 @@ export default function FileManagerPage() {
         (current, total) => setUploadProgress({ current, total })
       );
       if (res.errors && res.errors.length > 0) {
-        alert(
-          `${t("Uploaded")} ${res.count}/${fileList.length}. ${res.errors.length} ${t("failed")}:\n` +
-          res.errors.map(err => `${err.file}: ${err.error}`).join("\n")
+        setNotice(
+          `${t("Uploaded")} ${res.count}/${fileList.length}. ${res.errors.length} ${t("failed")}: ` +
+            res.errors.map((err) => `${err.file}: ${err.error}`).join(", ")
         );
       }
       refreshFiles(tab);
     } catch (err: unknown) {
-      alert(apiErrorMessage(err, "minecraft.actionFailed"));
+      report(err, "minecraft.actionFailed");
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -156,19 +154,19 @@ export default function FileManagerPage() {
     const filesToUpload = duplicateDialogState.nonDuplicates;
     setDuplicateDialogState(null);
     if (filesToUpload.length === 0) {
-      alert(t("No new files to upload."));
+      setNotice(t("No new files to upload."));
       return;
     }
     executeUpload(filesToUpload);
   };
 
   const handleDelete = async (filename: string) => {
-    if (!slug || !confirm(t("Delete") + " " + filename + "?")) return;
+    if (!slug || !(await confirm(t("Delete") + " " + filename + "?"))) return;
     try {
       await api.minecraft.servers.files.delete(slug, tab, filename);
       refreshFiles(tab);
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
     }
   };
 
@@ -180,7 +178,7 @@ export default function FileManagerPage() {
       setSelectedSourceFile("");
       refreshFiles(tab);
     } catch (e: unknown) {
-      alert(apiErrorMessage(e, "minecraft.actionFailed"));
+      report(e, "minecraft.actionFailed");
     } finally {
       setCopying(false);
     }
@@ -188,6 +186,8 @@ export default function FileManagerPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {dialog}
+      <InlineAlert>{error ?? notice}</InlineAlert>
       <div className="flex items-center gap-4 mb-6">
         <Link href={`/games/minecraft/${slug}`} className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 transition-colors">
           <ArrowLeft className="size-5" />
@@ -202,7 +202,7 @@ export default function FileManagerPage() {
       </div>
 
       <div className="flex items-center gap-2 border-b border-white/10 pb-4">
-        {(["mods", "datapacks", "resourcepacks"] as FileTab[]).map((tName) => (
+        {FOLDER_TYPES.map((tName) => (
           <button
             key={tName}
             onClick={() => setTab(tName)}

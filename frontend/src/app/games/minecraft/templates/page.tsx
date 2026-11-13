@@ -5,6 +5,6 @@ import TemplatesPage from "./client";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const templates: McTemplate[] = await serverApi.minecraft.templates.list().catch(() => []);
+  const templates: McTemplate[] = await serverApi.minecraft.templates.list();
   return <TemplatesPage initialTemplates={templates} />;
 }

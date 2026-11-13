@@ -1,5 +1,6 @@
+import { hasFullMinecraftAccess } from "@/app/games/minecraft/access";
 import WorldMapPage from "./client";
 
-export default function Page() {
-  return <WorldMapPage />;
+export default async function Page() {
+  return <WorldMapPage hasFullAccess={await hasFullMinecraftAccess()} />;
 }

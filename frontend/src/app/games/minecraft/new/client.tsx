@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SettingsStep } from "./SettingsStep";
-import { useServerSettings } from "./useServerSettings";
+import { defaultMotd, SLUG_MAX_LENGTH, SLUG_PATTERN, toServerSlug, type Engine } from "@backend/shared/minecraft";
+import { ServerSettingsStep } from "../components/ServerSettingsStep";
+import { settingsToProperties, useServerSettings } from "../components/useServerSettings";
 
 export default function NewServerPage({ initialTemplates }: { initialTemplates: McTemplate[] }) {
   const router = useRouter();
@@ -19,36 +20,29 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
   const [error, setError] = useState("");
   const [versions, setVersions] = useState<string[]>([]);
   const [templates] = useState<McTemplate[]>(initialTemplates);
-
-  // Step 1: Basis
   const [displayName, setDisplayName] = useState("");
   const [slug, setSlug] = useState("");
-
-  // Step 2: Engine & Version & Memory
   const [mcVersion, setMcVersion] = useState("");
-  const [engine, setEngine] = useState<"vanilla" | "fabric">("vanilla");
+  const [engine, setEngine] = useState<Engine>("vanilla");
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [javaArgs, setJavaArgs] = useState<string>("-Xms1G -Xmx2G");
 
   const settings = useServerSettings();
-  const { motd, setMotd, serverPort, maxPlayers, setMaxPlayers, onlineMode, setOnlineMode, whiteList, gamemode, setGamemode, difficulty, setDifficulty, pvp, setPvp, hardcore, allowFlight, enableCommandBlock, doFireTick, setDoFireTick, levelName, levelSeed, levelType, generateStructures, allowNether, spawnMonsters, spawnAnimals, viewDistance, setViewDistance, simulationDistance } = settings;
+  const { motd, setMotd, setMaxPlayers, setOnlineMode, setGamemode, setDifficulty, setPvp, setDoFireTick, setViewDistance } = settings;
 
   useEffect(() => {
-    api.minecraft.versions().then((res) => {
-      const vList = Array.isArray(res)
-        ? res.map((item: string | { id?: string }) => (typeof item === "string" ? item : item?.id || String(item)))
-        : [];
+    api.minecraft.versions().then((vList) => {
       setVersions(vList);
       if (vList.length > 0) setMcVersion(vList[0]);
-    }).catch(console.error);
+    }).catch((err) => setError(apiErrorMessage(err, "minecraft.loadFailed")));
   }, []);
 
   const handleNameChange = (val: string) => {
     setDisplayName(val);
     if (step === 1) {
-      setSlug(val.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 32));
+      setSlug(toServerSlug(val));
       if (!motd) {
-        setMotd(`A Minecraft Server: ${val}`);
+        setMotd(defaultMotd(val));
       }
     }
   };
@@ -62,24 +56,22 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
       const tmpl = templates.find((t) => t.templateId === id);
       if (tmpl) {
         setMcVersion(tmpl.mcVersion);
-        setEngine(tmpl.engine as "vanilla" | "fabric");
+        setEngine(tmpl.engine as Engine);
         if (tmpl.javaArgs) {
           setJavaArgs(tmpl.javaArgs);
         }
-        try {
-          if (tmpl.propertiesJson) {
-            const parsed = JSON.parse(tmpl.propertiesJson);
-            if (parsed.gamemode) setGamemode(parsed.gamemode);
-            if (parsed.difficulty) setDifficulty(parsed.difficulty);
-            if (parsed.pvp !== undefined) setPvp(parsed.pvp !== "false");
-            if (parsed["online-mode"] !== undefined) setOnlineMode(parsed["online-mode"] !== "false");
-            if (parsed["max-players"]) setMaxPlayers(parsed["max-players"]);
-            if (parsed["view-distance"]) setViewDistance(parsed["view-distance"]);
-            if (parsed["do-fire-tick"] !== undefined || parsed["doFireTick"] !== undefined) {
-              setDoFireTick((parsed["do-fire-tick"] ?? parsed["doFireTick"]) !== "false");
-            }
+        if (tmpl.propertiesJson) {
+          const parsed: Record<string, string> = JSON.parse(tmpl.propertiesJson);
+          if (parsed.gamemode) setGamemode(parsed.gamemode);
+          if (parsed.difficulty) setDifficulty(parsed.difficulty);
+          if (parsed.pvp !== undefined) setPvp(parsed.pvp !== "false");
+          if (parsed["online-mode"] !== undefined) setOnlineMode(parsed["online-mode"] !== "false");
+          if (parsed["max-players"]) setMaxPlayers(parsed["max-players"]);
+          if (parsed["view-distance"]) setViewDistance(parsed["view-distance"]);
+          if (parsed["do-fire-tick"] !== undefined || parsed["doFireTick"] !== undefined) {
+            setDoFireTick((parsed["do-fire-tick"] ?? parsed["doFireTick"]) !== "false");
           }
-        } catch {}
+        }
       }
     }
   };
@@ -103,36 +95,12 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
         templateId: templateId || undefined,
       });
 
-      // Update customized properties
-      const propsToUpdate: Record<string, string> = {
-        "motd": motd || `A Minecraft Server: ${displayName}`,
-        "server-port": serverPort || "25565",
-        "max-players": maxPlayers || "20",
-        "online-mode": onlineMode ? "true" : "false",
-        "white-list": whiteList ? "true" : "false",
-        "gamemode": gamemode,
-        "difficulty": difficulty,
-        "pvp": pvp ? "true" : "false",
-        "hardcore": hardcore ? "true" : "false",
-        "allow-flight": allowFlight ? "true" : "false",
-        "enable-command-block": enableCommandBlock ? "true" : "false",
-        "do-fire-tick": doFireTick ? "true" : "false",
-        "level-name": levelName || "world",
-        "level-seed": levelSeed || "",
-        "level-type": levelType,
-        "generate-structures": generateStructures ? "true" : "false",
-        "allow-nether": allowNether ? "true" : "false",
-        "spawn-monsters": spawnMonsters ? "true" : "false",
-        "spawn-animals": spawnAnimals ? "true" : "false",
-        "view-distance": viewDistance || "10",
-        "simulation-distance": simulationDistance || "10",
-      };
-
+      const propsToUpdate = settingsToProperties(settings, displayName, { includeSeed: true });
       await api.minecraft.servers.properties.update(slug, propsToUpdate);
 
       router.push(`/games/minecraft/${slug}`);
     } catch (err: unknown) {
-      setError(apiErrorMessage(err, "Server failed to start"));
+      setError(apiErrorMessage(err, "minecraft.createFailed"));
       setLoading(false);
     }
   };
@@ -162,8 +130,6 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
             {error}
           </div>
         )}
-
-        {/* STEP 1: BASIS */}
         {step === 1 && (
           <div className="space-y-4 animate-in fade-in">
             <div className="space-y-2">
@@ -180,9 +146,9 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
               <Label>{t("Server slug")}</Label>
               <Input
                 value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32))}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, SLUG_MAX_LENGTH))}
                 placeholder={t("mijn-server")}
-                pattern="^[a-z0-9-]{3,32}$"
+                pattern={SLUG_PATTERN}
                 minLength={3}
                 maxLength={32}
                 autoComplete="off"
@@ -193,8 +159,6 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
             </div>
           </div>
         )}
-
-        {/* STEP 2: VERSIE & ENGINE */}
         {step === 2 && (
           <div className="space-y-4 animate-in fade-in">
             <div className="space-y-2">
@@ -252,7 +216,7 @@ export default function NewServerPage({ initialTemplates }: { initialTemplates: 
           </div>
         )}
 
-        {step === 3 && <SettingsStep settings={settings} displayName={displayName} javaArgs={javaArgs} setJavaArgs={setJavaArgs} engine={engine} />}
+        {step === 3 && <ServerSettingsStep settings={settings} serverName={displayName} javaArgs={javaArgs} setJavaArgs={setJavaArgs} engine={engine} idPrefix="server" showSeed />}
 
         <div className="flex justify-between pt-4 border-t border-white/5">
           {step > 1 ? (

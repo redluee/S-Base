@@ -5,20 +5,21 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { JavaMemorySelector } from "@/app/games/minecraft/components/JavaMemorySelector";
 import { t } from "@/lib/lang";
-import type { useTemplateSettings } from "./useTemplateSettings";
+import { defaultMotd } from "@backend/shared/minecraft";
+import type { ServerSettings } from "./useServerSettings";
 
-type Settings = ReturnType<typeof useTemplateSettings>;
-
-interface SettingsStepProps {
-  settings: Settings;
-  name: string;
+interface ServerSettingsStepProps {
+  settings: ServerSettings;
+  serverName: string;
   javaArgs: string;
   setJavaArgs: (v: string) => void;
   engine: string;
+  idPrefix: string;
+  showSeed: boolean;
 }
 
-export function SettingsStep({ settings, name, javaArgs, setJavaArgs, engine }: SettingsStepProps) {
-  const { activeSettingsTab, setActiveSettingsTab, motd, setMotd, serverPort, setServerPort, maxPlayers, setMaxPlayers, onlineMode, setOnlineMode, whiteList, setWhiteList, gamemode, setGamemode, difficulty, setDifficulty, pvp, setPvp, hardcore, setHardcore, allowFlight, setAllowFlight, enableCommandBlock, setEnableCommandBlock, doFireTick, setDoFireTick, levelName, setLevelName, levelType, setLevelType, generateStructures, setGenerateStructures, allowNether, setAllowNether, spawnMonsters, setSpawnMonsters, spawnAnimals, setSpawnAnimals, viewDistance, setViewDistance, simulationDistance, setSimulationDistance } = settings;
+export function ServerSettingsStep({ settings, serverName, javaArgs, setJavaArgs, engine, idPrefix, showSeed }: ServerSettingsStepProps) {
+  const { activeSettingsTab, setActiveSettingsTab, motd, setMotd, serverPort, setServerPort, maxPlayers, setMaxPlayers, onlineMode, setOnlineMode, whiteList, setWhiteList, gamemode, setGamemode, difficulty, setDifficulty, pvp, setPvp, hardcore, setHardcore, allowFlight, setAllowFlight, enableCommandBlock, setEnableCommandBlock, doFireTick, setDoFireTick, levelName, setLevelName, levelSeed, setLevelSeed, levelType, setLevelType, generateStructures, setGenerateStructures, allowNether, setAllowNether, spawnMonsters, setSpawnMonsters, spawnAnimals, setSpawnAnimals, viewDistance, setViewDistance, simulationDistance, setSimulationDistance } = settings;
 
   return (
           <div className="space-y-6 animate-in fade-in">
@@ -64,7 +65,6 @@ export function SettingsStep({ settings, name, javaArgs, setJavaArgs, engine }: 
                 {t("Performance")}
               </button>
             </div>
-
             {activeSettingsTab === "general" && (
               <div className="space-y-4 animate-in fade-in">
                 <div className="space-y-2">
@@ -73,7 +73,7 @@ export function SettingsStep({ settings, name, javaArgs, setJavaArgs, engine }: 
                     value={motd}
                     onChange={(e) => setMotd(e.target.value)}
                     maxLength={128}
-                    placeholder={`A Minecraft Server: ${name || "Server"}`}
+                    placeholder={defaultMotd(serverName || "Server")}
                   />
                 </div>
 
@@ -106,22 +106,21 @@ export function SettingsStep({ settings, name, javaArgs, setJavaArgs, engine }: 
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-offline-mode" className="cursor-pointer">{t("Offline mode")}</Label>
+                    <Label htmlFor={`${idPrefix}-offline-mode`} className="cursor-pointer">{t("Offline mode")}</Label>
                     <p className="text-xs text-zinc-500">{t("Allow cracked clients")}</p>
                   </div>
-                  <Switch id="template-offline-mode" checked={!onlineMode} onCheckedChange={(v) => setOnlineMode(!v)} />
+                  <Switch id={`${idPrefix}-offline-mode`} checked={!onlineMode} onCheckedChange={(v) => setOnlineMode(!v)} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-whitelist" className="cursor-pointer">{t("Whitelist")}</Label>
+                    <Label htmlFor={`${idPrefix}-whitelist`} className="cursor-pointer">{t("Whitelist")}</Label>
                     <p className="text-xs text-zinc-500">{t("Whitelist")}</p>
                   </div>
-                  <Switch id="template-whitelist" checked={whiteList} onCheckedChange={setWhiteList} />
+                  <Switch id={`${idPrefix}-whitelist`} checked={whiteList} onCheckedChange={setWhiteList} />
                 </div>
               </div>
             )}
-
             {activeSettingsTab === "gameplay" && (
               <div className="space-y-4 animate-in fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -154,55 +153,67 @@ export function SettingsStep({ settings, name, javaArgs, setJavaArgs, engine }: 
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-pvp" className="cursor-pointer">{t("PvP Combat")}</Label>
+                    <Label htmlFor={`${idPrefix}-pvp`} className="cursor-pointer">{t("PvP Combat")}</Label>
                     <p className="text-xs text-zinc-500">{t("PvP Combat")}</p>
                   </div>
-                  <Switch id="template-pvp" checked={pvp} onCheckedChange={setPvp} />
+                  <Switch id={`${idPrefix}-pvp`} checked={pvp} onCheckedChange={setPvp} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-hardcore" className="cursor-pointer">{t("Hardcore Mode")}</Label>
+                    <Label htmlFor={`${idPrefix}-hardcore`} className="cursor-pointer">{t("Hardcore Mode")}</Label>
                     <p className="text-xs text-zinc-500">{t("One life only, players cannot respawn in survival")}</p>
                   </div>
-                  <Switch id="template-hardcore" checked={hardcore} onCheckedChange={setHardcore} />
+                  <Switch id={`${idPrefix}-hardcore`} checked={hardcore} onCheckedChange={setHardcore} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-allow-flight" className="cursor-pointer">{t("Allow Flight")}</Label>
+                    <Label htmlFor={`${idPrefix}-allow-flight`} className="cursor-pointer">{t("Allow Flight")}</Label>
                     <p className="text-xs text-zinc-500">{t("Allow Flight")}</p>
                   </div>
-                  <Switch id="template-allow-flight" checked={allowFlight} onCheckedChange={setAllowFlight} />
+                  <Switch id={`${idPrefix}-allow-flight`} checked={allowFlight} onCheckedChange={setAllowFlight} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-command-blocks" className="cursor-pointer">{t("Enable Command Blocks")}</Label>
+                    <Label htmlFor={`${idPrefix}-command-blocks`} className="cursor-pointer">{t("Enable Command Blocks")}</Label>
                     <p className="text-xs text-zinc-500">{t("Enable Command Blocks")}</p>
                   </div>
-                  <Switch id="template-command-blocks" checked={enableCommandBlock} onCheckedChange={setEnableCommandBlock} />
+                  <Switch id={`${idPrefix}-command-blocks`} checked={enableCommandBlock} onCheckedChange={setEnableCommandBlock} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-fire-tick" className="cursor-pointer">{t("Fire tick")}</Label>
+                    <Label htmlFor={`${idPrefix}-fire-tick`} className="cursor-pointer">{t("Fire tick")}</Label>
                     <p className="text-xs text-zinc-500">{t("Vuur verspreidt zich en dooft uit (doFireTick)")}</p>
                   </div>
-                  <Switch id="template-fire-tick" checked={doFireTick} onCheckedChange={setDoFireTick} />
+                  <Switch id={`${idPrefix}-fire-tick`} checked={doFireTick} onCheckedChange={setDoFireTick} />
                 </div>
               </div>
             )}
-
             {activeSettingsTab === "world" && (
               <div className="space-y-4 animate-in fade-in">
-                <div className="space-y-2">
-                  <Label>{t("World Name")}</Label>
-                  <Input
-                    value={levelName}
-                    maxLength={64}
-                    onChange={(e) => setLevelName(e.target.value)}
-                  />
+                <div className={showSeed ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-2"}>
+                  <div className="space-y-2">
+                    <Label>{t("World Name")}</Label>
+                    <Input
+                      value={levelName}
+                      maxLength={64}
+                      onChange={(e) => setLevelName(e.target.value)}
+                    />
+                  </div>
+                  {showSeed && (
+                  <div className="space-y-2">
+                    <Label>{t("World Seed")}</Label>
+                    <Input
+                      value={levelSeed}
+                      maxLength={64}
+                      onChange={(e) => setLevelSeed(e.target.value)}
+                      placeholder={t("Willekeurig (Random)")}
+                    />
+                  </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -221,38 +232,37 @@ export function SettingsStep({ settings, name, javaArgs, setJavaArgs, engine }: 
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-generate-structures" className="cursor-pointer">{t("Generate Structures")}</Label>
+                    <Label htmlFor={`${idPrefix}-generate-structures`} className="cursor-pointer">{t("Generate Structures")}</Label>
                     <p className="text-xs text-zinc-500">{t("Generate Structures")}</p>
                   </div>
-                  <Switch id="template-generate-structures" checked={generateStructures} onCheckedChange={setGenerateStructures} />
+                  <Switch id={`${idPrefix}-generate-structures`} checked={generateStructures} onCheckedChange={setGenerateStructures} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-allow-nether" className="cursor-pointer">{t("Allow Nether")}</Label>
+                    <Label htmlFor={`${idPrefix}-allow-nether`} className="cursor-pointer">{t("Allow Nether")}</Label>
                     <p className="text-xs text-zinc-500">{t("Allow Nether")}</p>
                   </div>
-                  <Switch id="template-allow-nether" checked={allowNether} onCheckedChange={setAllowNether} />
+                  <Switch id={`${idPrefix}-allow-nether`} checked={allowNether} onCheckedChange={setAllowNether} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-spawn-monsters" className="cursor-pointer">{t("Spawn Monsters")}</Label>
+                    <Label htmlFor={`${idPrefix}-spawn-monsters`} className="cursor-pointer">{t("Spawn Monsters")}</Label>
                     <p className="text-xs text-zinc-500">{t("Spawn Monsters")}</p>
                   </div>
-                  <Switch id="template-spawn-monsters" checked={spawnMonsters} onCheckedChange={setSpawnMonsters} />
+                  <Switch id={`${idPrefix}-spawn-monsters`} checked={spawnMonsters} onCheckedChange={setSpawnMonsters} />
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/20 border border-white/5">
                   <div>
-                    <Label htmlFor="template-spawn-animals" className="cursor-pointer">{t("Spawn Animals")}</Label>
+                    <Label htmlFor={`${idPrefix}-spawn-animals`} className="cursor-pointer">{t("Spawn Animals")}</Label>
                     <p className="text-xs text-zinc-500">{t("Spawn Animals")}</p>
                   </div>
-                  <Switch id="template-spawn-animals" checked={spawnAnimals} onCheckedChange={setSpawnAnimals} />
+                  <Switch id={`${idPrefix}-spawn-animals`} checked={spawnAnimals} onCheckedChange={setSpawnAnimals} />
                 </div>
               </div>
             )}
-
             {activeSettingsTab === "performance" && (
               <div className="space-y-6 animate-in fade-in">
                 <JavaMemorySelector value={javaArgs} onChange={setJavaArgs} engine={engine} />
