@@ -273,13 +273,43 @@ describe("workout volume and PR math", () => {
       expect(workout.stats.sessionPRs(id, adminId).find((p) => p.type === "session_volume")).toBeUndefined();
     });
 
-    it("rejects an invalid duration query value gracefully", async () => {
+    it("rejects an invalid duration query value", async () => {
       const cookie = await login("admin");
       const id = finishedSession(workout, adminId, [
         { exerciseName: "Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] },
       ]);
-      const res = await call(cookie, "GET", `/api/workouts/sessions/${id}/prs?duration=abc`);
-      expect(res.status).toBe(200);
+      for (const duration of ["abc", "-5"]) {
+        const res = await call(cookie, "GET", `/api/workouts/sessions/${id}/prs?duration=${duration}`);
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "common.invalidRequest" });
+      }
+      expect((await call(cookie, "GET", `/api/workouts/sessions/${id}/prs?duration=90.5`)).status).toBe(200);
+      expect((await call(cookie, "GET", `/api/workouts/sessions/${id}/prs`)).status).toBe(200);
+    });
+
+    it("uses a numeric duration query as the current session duration", async () => {
+      const cookie = await login("admin");
+      finishedSession(
+        workout,
+        adminId,
+        [{ exerciseName: "Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] }],
+        600,
+      );
+      const id = finishedSession(
+        workout,
+        adminId,
+        [{ exerciseName: "Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, completed: 1 }] }],
+        300,
+      );
+      const res = await call(cookie, "GET", `/api/workouts/sessions/${id}/prs?duration=900`);
+      const prs = (await res.json()) as { type: string; newValue: number }[];
+      expect(prs.find((p) => p.type === "session_duration")).toMatchObject({ newValue: 900 });
+    });
+
+    it("rejects an unknown session status filter", async () => {
+      const cookie = await login("admin");
+      expect((await call(cookie, "GET", "/api/workouts/sessions?status=paused")).status).toBe(400);
+      expect((await call(cookie, "GET", "/api/workouts/sessions?status=completed")).status).toBe(200);
     });
   });
 

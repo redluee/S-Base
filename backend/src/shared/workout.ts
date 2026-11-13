@@ -4,6 +4,9 @@ export const EXERCISE_CATEGORIES = ["Free Weights", "Machines", "Bodyweight", "C
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 export const DEFAULT_CATEGORY: ExerciseCategory = "Free Weights";
 
+export const SESSION_STATUS_FILTERS = ["active", "completed"] as const;
+export type SessionStatusFilter = (typeof SESSION_STATUS_FILTERS)[number];
+
 export type TrackingKind = "resistance" | "bodyweight" | "cardio" | "isometric";
 
 export const DEFAULT_SETS = 3;

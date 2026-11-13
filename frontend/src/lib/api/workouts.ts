@@ -1,6 +1,7 @@
 import { request as clientRequest, type Fetcher } from "./core";
 import type { FullWorkoutSession, PersonalRecord } from "@backend/types/shared";
 import type { FullWorkoutTemplate, WorkoutSession, WorkoutTemplate } from "@backend/types/workout";
+import type { SessionStatusFilter } from "@backend/shared/workout";
 
 export const createWorkoutsApi = (request: Fetcher) => ({
   templates: {
@@ -25,7 +26,7 @@ export const createWorkoutsApi = (request: Fetcher) => ({
   },
 
   sessions: {
-    list: (status?: string, q?: string) => {
+    list: (status?: SessionStatusFilter, q?: string) => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (q) params.set("q", q);

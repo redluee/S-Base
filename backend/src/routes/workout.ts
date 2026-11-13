@@ -1,5 +1,7 @@
 import { Elysia, t } from "elysia";
 import { IMAGE_EXTENSIONS, saveUpload } from "../utils/uploads";
+import { literals } from "../utils/schema";
+import { SESSION_STATUS_FILTERS } from "../shared/workout";
 import { workout, workoutAuth } from "../context";
 import {
   idParams,
@@ -32,17 +34,13 @@ export const workoutRoutes = new Elysia()
         params: idParams,
       })
       .get("/sessions", ({ query, userId }) => workout.sessions.list(userId, query.status, query.q), {
-        query: t.Object({ status: t.Optional(t.String()), q: t.Optional(t.String()) }),
+        query: t.Object({ status: t.Optional(literals(SESSION_STATUS_FILTERS)), q: t.Optional(t.String()) }),
       })
       .get("/sessions/:id", ({ params: { id }, userId }) => workout.sessions.get(id, userId), { params: idParams })
       .get(
         "/sessions/:id/prs",
-        ({ params: { id }, query, userId }) => {
-          const parsed = query.duration ? Number(query.duration) : undefined;
-          const duration = parsed !== undefined && Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-          return workout.stats.sessionPRs(id, userId, duration);
-        },
-        { params: idParams, query: t.Object({ duration: t.Optional(t.String()) }) },
+        ({ params: { id }, query, userId }) => workout.stats.sessionPRs(id, userId, query.duration),
+        { params: idParams, query: t.Object({ duration: t.Optional(t.Numeric({ minimum: 0 })) }) },
       )
       .post(
         "/sessions",

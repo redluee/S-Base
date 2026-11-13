@@ -3,7 +3,7 @@ import db from "../../db/client";
 import { sessionExercises, sessionSets, templateExercises, workoutSessions, workoutTemplates } from "../../db/schema";
 import { orNotFound } from "../../utils/errors";
 import { normalizeSearchString } from "../../shared/search";
-import { exerciseKey } from "../../shared/workout";
+import { exerciseKey, type SessionStatusFilter } from "../../shared/workout";
 import { sessionMatchesQuery } from "./workout-helpers";
 
 type TemplateDefaults = typeof templateExercises.$inferSelect;
@@ -25,7 +25,7 @@ function templateExerciseSummary(templateEx: Partial<TemplateDefaults> | undefin
 }
 
 export class WorkoutSessionReader {
-  list(userId: number, status?: string, q?: string) {
+  list(userId: number, status?: SessionStatusFilter, q?: string) {
     const conditions = [eq(workoutSessions.userId, userId)];
 
     if (status === "active") {

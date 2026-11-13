@@ -3,7 +3,7 @@ import db from "../../db/client";
 import { sessionExercises, sessionSets, workoutSessions, workoutTemplates } from "../../db/schema";
 import { ConflictError, orNotFound } from "../../utils/errors";
 import { lastExerciseWeight } from "./workout-history";
-import { activeSeconds, normalizeCategory, normalizeEquipment } from "../../shared/workout";
+import { activeSeconds, normalizeCategory, normalizeEquipment, type SessionStatusFilter } from "../../shared/workout";
 import { parseDateString } from "../../shared/dates";
 import { WorkoutSessionReader } from "./workout-session-reader";
 import type { SessionSetInput, SessionUpdateInput } from "./workout-schemas";
@@ -16,7 +16,7 @@ export class WorkoutSessions {
 
   constructor(private readonly templates: WorkoutTemplates) {}
 
-  list(userId: number, status?: string, q?: string) {
+  list(userId: number, status?: SessionStatusFilter, q?: string) {
     return this.reader.list(userId, status, q);
   }
 
