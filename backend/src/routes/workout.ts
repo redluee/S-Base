@@ -10,7 +10,7 @@ import {
   sessionUpdateBody,
   templateCreateBody,
   templateUpdateBody,
-} from "../modules/workout/workout-schemas";
+} from "../modules/workout";
 
 const searchQuery = t.Object({ q: t.Optional(t.String()) });
 

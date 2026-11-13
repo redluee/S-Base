@@ -5,6 +5,17 @@ import { WorkoutStats } from "./workout-stats";
 import { WorkoutSuggestions } from "./workout-suggestions";
 import { WorkoutTemplates } from "./workout-templates";
 
+export {
+  idParams,
+  measurementSaveBody,
+  measurementUpdateBody,
+  sessionCompleteBody,
+  sessionCreateBody,
+  sessionUpdateBody,
+  templateCreateBody,
+  templateUpdateBody,
+} from "./workout-schemas";
+
 export class WorkoutService {
   readonly templates = new WorkoutTemplates();
   readonly sessions = new WorkoutSessions(this.templates);

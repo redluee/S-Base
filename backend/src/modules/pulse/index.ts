@@ -7,6 +7,7 @@ import { type PulseServerPermissions, PulseUsers } from "./pulse-users";
 export type { PulseModuleInfo, PulseStats, PulseUser } from "./pulse-users";
 export type { ShutdownScheduleConfig, ShutdownScheduleStatus } from "./pulse-shutdown";
 export type { SystemUpdateState, UpdatePhase } from "./pulse-system-update";
+export { inertPower } from "./pulse-power";
 
 export interface PulseMinecraft {
   lifecycle: ShutdownTarget;

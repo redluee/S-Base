@@ -14,6 +14,10 @@ import { MinecraftProperties } from "./minecraft-properties";
 import { MinecraftServers } from "./minecraft-servers";
 import { MinecraftTemplates } from "./minecraft-templates";
 
+export { createDiscordBot } from "./discord-bot";
+export type { MinecraftAction } from "./minecraft-access";
+export type { MapFile } from "./minecraft-map";
+
 export class MinecraftService {
   readonly dirs: MinecraftDirs = new MinecraftDirs();
   readonly processes: MinecraftProcesses = new MinecraftProcesses();

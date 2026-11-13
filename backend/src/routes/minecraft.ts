@@ -1,7 +1,6 @@
 import { Elysia, t } from "elysia";
 import { auth, minecraft, minecraftAuth } from "../context";
-import type { MinecraftAction } from "../modules/minecraft/minecraft-access";
-import type { MapFile } from "../modules/minecraft/minecraft-map";
+import type { MapFile, MinecraftAction } from "../modules/minecraft";
 
 const slugParams = t.Object({ slug: t.String() });
 const folderParams = t.Object({ slug: t.String(), type: t.String() });

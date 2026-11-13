@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { createDiscordBot } from "./modules/minecraft/discord-bot";
+import { createDiscordBot } from "./modules/minecraft";
 import { closeDatabase, sqlite } from "./db/client";
 import { IN_MEMORY_DB } from "./db/paths";
 import { isProduction, resolveCorsOrigin, securityHeaders } from "./security";

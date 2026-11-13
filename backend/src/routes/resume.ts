@@ -2,7 +2,6 @@ import { Elysia, t } from "elysia";
 import { resume, resumeAuth } from "../context";
 import { saveUpload } from "../utils/uploads";
 import { PHOTO_EXTENSIONS, PHOTO_MAX_BYTES } from "../modules/resume";
-import { ensureGoogleFont, resolveFontFile } from "../modules/resume/fonts";
 import { NotFoundError } from "../utils/errors";
 
 const idParams = t.Object({ id: t.Numeric() });
@@ -119,13 +118,13 @@ export const resumeRoutes = new Elysia().group("/api/resume", (app) =>
       params: idParams,
       body: itemsBody,
     })
-    .get("/fonts/google", ({ query: { family } }) => ensureGoogleFont(family.trim()), {
+    .get("/fonts/google", ({ query: { family } }) => resume.fonts.ensureGoogle(family.trim()), {
       query: t.Object({ family: t.String() }),
     })
     .get(
       "/fonts/file/:name",
       async ({ params: { name } }) => {
-        const path = resolveFontFile(name);
+        const path = resume.fonts.resolveFile(name);
         const file = path ? Bun.file(path) : null;
         if (!file || !(await file.exists())) throw new NotFoundError("resume.fontNotFound");
         return new Response(file, {
