@@ -1,5 +1,5 @@
 import type { MinorStoryPresentationData } from "../../types/shared";
-import { formatDate } from "../../shared/minor";
+import { today } from "../../shared/dates";
 import type { EvidenceInput, StoryInput } from "./minor-stories";
 
 export type JsonRecord = Record<string, unknown>;
@@ -102,7 +102,7 @@ export function parseFeedback(raw: unknown, index: number) {
   const action = text(raw.action);
   if (!fromWhom || (!feedback && !action)) return null;
   return {
-    date: raw.date ? String(raw.date).trim() : formatDate(new Date()),
+    date: raw.date ? String(raw.date).trim() : today(),
     fromWhom,
     feedback,
     action,
@@ -144,7 +144,7 @@ export function parseTeacherAssessments(raw: unknown) {
 export function parseReflection(raw: unknown) {
   if (!isRecord(raw)) return null;
   return {
-    date: raw.date ? String(raw.date) : formatDate(new Date()),
+    date: raw.date ? String(raw.date) : today(),
     whatLearned: raw.whatLearned ? String(raw.whatLearned) : "",
     whatRetained: raw.whatRetained ? String(raw.whatRetained) : "",
     whatChange: raw.whatChange ? String(raw.whatChange) : "",

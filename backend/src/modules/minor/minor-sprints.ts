@@ -18,7 +18,8 @@ import type {
   MinorTeacherAssessment,
 } from "../../types/shared";
 import type { MinorEvaluations } from "./minor-evaluations";
-import { calculateSprintStatus, DEFAULT_SPRINT_DAYS, formatDate } from "../../shared/minor";
+import { today } from "../../shared/dates";
+import { calculateSprintStatus, DEFAULT_SPRINT_DAYS } from "../../shared/minor";
 import type { MinorSchedule } from "./minor-schedule";
 import { loadStoryChildren, toStory } from "./minor-story-mapper";
 
@@ -183,12 +184,7 @@ export class MinorSprints {
   }
 
   private withComputedStatus(row: SprintRow): MinorSprint {
-    const status = calculateSprintStatus(
-      row.startDate,
-      row.endDate,
-      formatDate(new Date()),
-      row.status as SprintStatus,
-    );
+    const status = calculateSprintStatus(row.startDate, row.endDate, today(), row.status as SprintStatus);
     if (row.status !== status) {
       db.update(minorSprints)
         .set({ status, updatedAt: sql`CURRENT_TIMESTAMP` })

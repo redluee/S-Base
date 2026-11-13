@@ -4,7 +4,7 @@ import { requireOwnedSprint } from "./minor-ownership";
 import { minorFeedbackEntries, minorReflections, minorSprints } from "../../db/schema";
 import type { MinorFeedbackEntry, MinorReflection } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
-import { formatDate } from "../../shared/minor";
+import { today } from "../../shared/dates";
 import type { PublishNotifier } from "./publish-notifier";
 
 export interface FeedbackInput {
@@ -44,7 +44,7 @@ export class MinorFeedback {
       .insert(minorFeedbackEntries)
       .values({
         sprintId,
-        date: data.date || formatDate(new Date()),
+        date: data.date || today(),
         fromWhom: data.fromWhom.trim(),
         feedback: data.feedback.trim(),
         action: data.action.trim(),
@@ -112,7 +112,7 @@ export class MinorFeedback {
       .insert(minorReflections)
       .values({
         sprintId,
-        date: data.date || formatDate(new Date()),
+        date: data.date || today(),
         whatLearned: data.whatLearned || "",
         whatRetained: data.whatRetained || "",
         whatChange: data.whatChange || "",

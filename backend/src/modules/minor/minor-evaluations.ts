@@ -3,7 +3,8 @@ import db from "../../db/client";
 import { requireOwnedSprint } from "./minor-ownership";
 import { minorReflections, minorSelfEvaluations, minorTeacherAssessments } from "../../db/schema";
 import type { MinorSelfEvaluation, MinorTeacherAssessment } from "../../types/shared";
-import { formatDate, LEARNING_OUTCOMES } from "../../shared/minor";
+import { today } from "../../shared/dates";
+import { LEARNING_OUTCOMES } from "../../shared/minor";
 import type { PublishNotifier } from "./publish-notifier";
 
 export interface SelfEvaluationInput {
@@ -48,7 +49,7 @@ export class MinorEvaluations {
       db.insert(minorReflections)
         .values({
           sprintId,
-          date: formatDate(new Date()),
+          date: today(),
           whatLearned: "",
           whatRetained: "",
           whatChange: "",
@@ -144,7 +145,7 @@ export class MinorEvaluations {
           .set({
             assessment: item.assessment,
             notes: item.notes !== undefined ? item.notes : existing.notes,
-            evaluatedAt: item.evaluatedAt ?? existing.evaluatedAt ?? formatDate(new Date()),
+            evaluatedAt: item.evaluatedAt ?? existing.evaluatedAt ?? today(),
           })
           .where(eq(minorTeacherAssessments.id, existing.id))
           .run();
@@ -155,7 +156,7 @@ export class MinorEvaluations {
             learningOutcome: item.learningOutcome,
             assessment: item.assessment,
             notes: item.notes || "",
-            evaluatedAt: item.evaluatedAt || formatDate(new Date()),
+            evaluatedAt: item.evaluatedAt || today(),
           })
           .run();
       }

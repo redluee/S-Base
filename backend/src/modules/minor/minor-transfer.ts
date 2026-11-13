@@ -6,7 +6,8 @@ import type { MinorSprint, MinorSprintExportData, MinorSprintExportStory, MinorS
 import { NotFoundError } from "../../utils/errors";
 import type { MinorEvaluations } from "./minor-evaluations";
 import type { MinorFeedback } from "./minor-feedback";
-import { calculateSprintStatus, DEFAULT_SPRINT_DAYS, formatDate } from "../../shared/minor";
+import { today } from "../../shared/dates";
+import { calculateSprintStatus, DEFAULT_SPRINT_DAYS } from "../../shared/minor";
 import {
   isRecord,
   type JsonRecord,
@@ -169,7 +170,7 @@ export class MinorTransfer {
 
   private createImportedSprint(userId: number, data: JsonRecord, name: string, number: string): MinorSprint {
     const next = this.sprints.getNextNumber(userId);
-    const dates = this.resolveDates(userId, data, formatDate(new Date()), DEFAULT_SPRINT_DAYS);
+    const dates = this.resolveDates(userId, data, today(), DEFAULT_SPRINT_DAYS);
     const created = db
       .insert(minorSprints)
       .values({

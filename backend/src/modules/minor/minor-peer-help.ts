@@ -4,7 +4,7 @@ import { ownedSprintIdOrNull } from "./minor-ownership";
 import { minorPeerHelp } from "../../db/schema";
 import type { MinorPeerHelp } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
-import { formatDate } from "../../shared/minor";
+import { today } from "../../shared/dates";
 
 export interface PeerHelpInput {
   sprintId?: number | null;
@@ -31,7 +31,7 @@ export class MinorPeerHelpLog {
       .values({
         userId,
         sprintId: ownedSprintIdOrNull(data.sprintId, userId),
-        date: data.date || formatDate(new Date()),
+        date: data.date || today(),
         peerName: data.peerName.trim(),
         description: data.description.trim(),
         links: data.links?.trim() || null,
