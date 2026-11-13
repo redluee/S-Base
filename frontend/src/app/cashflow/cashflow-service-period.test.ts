@@ -42,15 +42,14 @@ describe("invoice service period", () => {
   });
 
   it("formats calendar dates independently of the browser or server time zone", () => {
-    const previous = process.env.TZ;
+    const previous = process.env.TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
     try {
       for (const zone of ["America/Los_Angeles", "Europe/Amsterdam", "Pacific/Auckland"]) {
         process.env.TZ = zone;
         expect(formatServicePeriod(getServicePeriod({ lines: [line("2026-10-25")] }))).toBe("25 oktober 2026");
       }
     } finally {
-      if (previous === undefined) delete process.env.TZ;
-      else process.env.TZ = previous;
+      process.env.TZ = previous;
     }
   });
 });
