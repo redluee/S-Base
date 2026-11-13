@@ -127,7 +127,17 @@ describe("public snapshot", () => {
         headers: { Authorization: "Bearer test-token" },
       }),
     );
-    expect(badAsset.status).toBe(404);
+    expect(badAsset.status).toBe(400);
+    expect(await badAsset.json()).toEqual({ error: "common.invalidRequest" });
+
+    const assetUrl = `http://localhost/api/minor/public/assets/${ASSET}`;
+    expect((await app.handle(new Request(assetUrl))).status).toBe(401);
+    const missing = await app.handle(
+      new Request("http://localhost/api/minor/public/assets/minor_0000.png", {
+        headers: { Authorization: "Bearer test-token" },
+      }),
+    );
+    expect(missing.status).toBe(404);
   });
 
   it("notifies the webhook once after saving self-evaluations and never fails the save", async () => {

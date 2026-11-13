@@ -7,6 +7,7 @@ import {
   mayReadUpload,
   registerUploadReadPolicy,
   resolveUploadExtension,
+  savedUploadNameSource,
   uploadFilenameOf,
   uploadOwnerOf,
   uploadResponseHeaders,
@@ -53,6 +54,13 @@ describe("upload allow-lists", () => {
     expect(uploadFilenameOf(`/api/uploads/minor_${uuid}.pdf`)).toBe(`minor_${uuid}.pdf`);
     expect(uploadFilenameOf(`/api/uploads/../sbase.db`)).toBeNull();
     expect(uploadFilenameOf(`x/api/uploads/minor_${uuid}.pdf`)).toBeNull();
+  });
+
+  it("describes the names saveUpload generates for one owner", () => {
+    const minorName = new RegExp(`^${savedUploadNameSource("minor")}$`);
+    expect(minorName.test(`minor_${crypto.randomUUID()}.png`)).toBe(true);
+    expect(minorName.test(`wine_${crypto.randomUUID()}.png`)).toBe(false);
+    expect(minorName.test("minor_../sbase.db")).toBe(false);
   });
 });
 

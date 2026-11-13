@@ -1,6 +1,6 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
-  ASSET_NAME_PATTERN,
+  ASSET_NAME_SOURCE,
   bearerTokenCheck,
   buildPublicSnapshot,
   resolvePublishUserId,
@@ -22,14 +22,17 @@ export const minorRoutes = new Elysia()
     }
     return buildPublicSnapshot(minor, ownerId);
   })
-  .get("/api/minor/public/assets/:filename", async ({ params: { filename }, request }) => {
-    const denied = bearerTokenCheck(request, "MINOR_SNAPSHOT_TOKEN");
-    if (denied) return denied;
-    if (!ASSET_NAME_PATTERN.test(filename)) return new Response("Not Found", { status: 404 });
-    const file = Bun.file(uploadPath(filename));
-    if (!(await file.exists())) return new Response("Not Found", { status: 404 });
-    return new Response(file);
-  })
+  .get(
+    "/api/minor/public/assets/:filename",
+    async ({ params: { filename }, request }) => {
+      const denied = bearerTokenCheck(request, "MINOR_SNAPSHOT_TOKEN");
+      if (denied) return denied;
+      const file = Bun.file(uploadPath(filename));
+      if (!(await file.exists())) return new Response("Not Found", { status: 404 });
+      return new Response(file);
+    },
+    { params: t.Object({ filename: t.String({ pattern: ASSET_NAME_SOURCE }) }) },
+  )
 
   .group("/api/minor", (app) =>
     app

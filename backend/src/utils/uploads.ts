@@ -40,7 +40,7 @@ export function mayReadUpload(
   return policy ? policy(userId, filename) : true;
 }
 
-const UPLOAD_URL_PREFIX = "/api/uploads/";
+export const UPLOAD_URL_PREFIX = "/api/uploads/";
 
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif", "bmp"];
 const DOCUMENT_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "md"];
@@ -61,6 +61,10 @@ const INLINE_TYPES: Record<string, string> = {
 };
 
 export const UPLOAD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.[A-Za-z0-9]{1,5}$/;
+
+export function savedUploadNameSource(owner: UploadOwner): string {
+  return `${UPLOAD_PREFIXES[owner]}[0-9a-fA-F-]+\\.[a-zA-Z0-9]+`;
+}
 
 function uploadUrl(filename: string): string {
   return `${UPLOAD_URL_PREFIX}${filename}`;
