@@ -1,3 +1,12 @@
+import type {
+  CriterionType,
+  EvidenceType,
+  SelfEvaluationLevel,
+  SprintStatus,
+  StoryStatus,
+  TeacherAssessment,
+} from "../shared/minor";
+
 export interface WorkoutSessionSummary {
   sessionId: number;
   templateId: number | null;
@@ -103,7 +112,7 @@ export interface MinorStoryType {
 export interface MinorStoryCriterion {
   id: number;
   storyId: number;
-  type: "acceptance" | "quality";
+  type: CriterionType;
   orderIndex: number;
   indent?: number;
   text: string;
@@ -113,7 +122,7 @@ export interface MinorStoryCriterion {
 export interface MinorStoryEvidence {
   id: number;
   storyId: number;
-  type: "link" | "github" | "document" | "app";
+  type: EvidenceType;
   title: string;
   url: string;
   createdAt: string;
@@ -161,7 +170,7 @@ export interface MinorStory {
   iWant: string | null;
   soThat: string | null;
   learningOutcomes: number[];
-  status: "todo" | "in_progress" | "done";
+  status: StoryStatus;
   orderIndex: number;
   presentationData?: MinorStoryPresentationData | null;
   createdAt: string;
@@ -179,7 +188,7 @@ export interface MinorSelfEvaluation {
   id: number;
   sprintId: number;
   learningOutcome: number;
-  level: "V" | "NV" | "-";
+  level: SelfEvaluationLevel;
   argumentation: string | null;
   updatedAt: string;
 }
@@ -188,7 +197,7 @@ export interface MinorTeacherAssessment {
   id: number;
   sprintId: number;
   learningOutcome: number;
-  assessment: "V" | "O" | "-";
+  assessment: TeacherAssessment;
   notes: string | null;
   evaluatedAt: string | null;
 }
@@ -226,7 +235,7 @@ export interface MinorSprint {
   showAndGrowDate: string;
   extendedDays: number;
   extensionReason: string | null;
-  status: "planned" | "active" | "completed";
+  status: SprintStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -247,12 +256,12 @@ export interface MinorSprintExportStory {
   iWant?: string | null;
   soThat?: string | null;
   learningOutcomes: number[];
-  status: "todo" | "in_progress" | "done";
+  status: StoryStatus;
   orderIndex?: number;
   presentationData?: MinorStoryPresentationData | null;
   acceptanceCriteria?: Array<{ text: string; isCompleted: boolean; indent?: number }>;
   qualityCriteria?: Array<{ text: string; isCompleted: boolean; indent?: number }>;
-  evidence?: Array<{ type: "link" | "github" | "document" | "app"; title: string; url: string }>;
+  evidence?: Array<{ type: EvidenceType; title: string; url: string }>;
 }
 
 export interface MinorSprintExportData {
@@ -265,13 +274,13 @@ export interface MinorSprintExportData {
   showAndGrowDate: string;
   extendedDays?: number;
   extensionReason?: string | null;
-  status: "planned" | "active" | "completed";
+  status: SprintStatus;
   stories: MinorSprintExportStory[];
   feedback?: Array<{ date: string; fromWhom: string; feedback: string; action: string; orderIndex?: number }>;
-  selfEvaluations?: Array<{ learningOutcome: number; level: "V" | "NV" | "-"; argumentation?: string | null }>;
+  selfEvaluations?: Array<{ learningOutcome: number; level: SelfEvaluationLevel; argumentation?: string | null }>;
   teacherAssessments?: Array<{
     learningOutcome: number;
-    assessment: "V" | "O" | "-";
+    assessment: TeacherAssessment;
     notes?: string | null;
     evaluatedAt?: string | null;
   }>;

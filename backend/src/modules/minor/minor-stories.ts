@@ -15,7 +15,7 @@ import {
 } from "./minor-story-mapper";
 import type { PublishNotifier } from "./publish-notifier";
 
-import type { EvidenceType, StoryStatus } from "../../shared/minor";
+import type { CriterionType, EvidenceType, StoryStatus } from "../../shared/minor";
 
 export interface CriterionInput {
   id?: number;
@@ -254,11 +254,7 @@ export class MinorStories {
       .get();
   }
 
-  private insertCriteria(
-    storyId: number,
-    type: "acceptance" | "quality",
-    items: CriterionInput[] | undefined,
-  ): CriterionRow[] {
+  private insertCriteria(storyId: number, type: CriterionType, items: CriterionInput[] | undefined): CriterionRow[] {
     const inserted: CriterionRow[] = [];
     (items ?? []).forEach((crit, index) => {
       if (!crit.text?.trim()) return;

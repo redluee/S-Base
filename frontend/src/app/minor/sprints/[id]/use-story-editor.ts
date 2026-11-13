@@ -1,6 +1,6 @@
 "use client";
 
-import type { StoryStatus } from "@backend/shared/minor";
+import type { CriterionType, StoryStatus } from "@backend/shared/minor";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import { useState } from "react";
@@ -23,7 +23,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
   const [storyStatus, setStoryStatus] = useState<StoryStatus>("todo");
   const [acceptanceCriteria, setAcceptanceCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
   const [qualityCriteria, setQualityCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
-  const [focusTarget, setFocusTarget] = useState<{ type: "acceptance" | "quality"; index: number } | null>(null);
+  const [focusTarget, setFocusTarget] = useState<{ type: CriterionType; index: number } | null>(null);
   const [evidenceList, setEvidenceList] = useState<{ type: "link" | "github" | "document" | "app"; title: string; url: string }[]>([]);
   const [savingStory, setSavingStory] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
