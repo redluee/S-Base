@@ -51,7 +51,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import type { FinanceAccountIcon } from "@backend/types/finance-icons";
+import type { FinanceAccountIcon } from "@backend/shared/finance";
 
 export const accountIconComponents: Record<FinanceAccountIcon, LucideIcon> = {
   "wallet": Wallet,

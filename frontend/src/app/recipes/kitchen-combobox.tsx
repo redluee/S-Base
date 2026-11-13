@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { kitchens, type Kitchen } from "@/app/recipes/kitchens";
+import { kitchens, type Kitchen } from "@/lib/kitchens";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
 

@@ -1,4 +1,4 @@
-import type { FinanceAccountIcon } from "@backend/types/finance-icons";
+import type { FinanceAccountIcon } from "@backend/shared/finance";
 import { request as clientRequest, type Fetcher } from "./core";
 import type {
   FinanceAccount,

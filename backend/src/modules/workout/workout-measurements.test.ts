@@ -8,7 +8,7 @@ import db from "../../db/client";
 import { eq } from "drizzle-orm";
 import { measurementPhotos, measurements as measurementsTable } from "../../db/schema";
 import { WorkoutService } from "./index";
-import { call, login } from "./workout-test-utils";
+import { call, login } from "../../test-http";
 
 const uploadsDir = UPLOADS_DIR;
 

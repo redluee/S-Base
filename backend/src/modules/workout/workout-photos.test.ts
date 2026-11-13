@@ -5,7 +5,7 @@ import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { setupTestDb } from "../../test-utils";
 import { app } from "../../index";
-import { call, login } from "./workout-test-utils";
+import { call, login } from "../../test-http";
 import { WorkoutService } from "./index";
 import db from "../../db/client";
 import { sql } from "drizzle-orm";

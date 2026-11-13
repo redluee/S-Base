@@ -1,4 +1,4 @@
-import { financeAccountIcons } from "../../types/finance-icons";
+import { financeAccountIcons } from "../../shared/finance";
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import db from "../../db/client";

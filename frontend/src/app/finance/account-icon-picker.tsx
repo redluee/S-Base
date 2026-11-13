@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Ban } from "lucide-react";
 import type { FinanceAccount } from "@backend/types/finance";
-import { financeAccountIcons, type FinanceAccountIcon } from "@backend/types/finance-icons";
+import { financeAccountIcons, type FinanceAccountIcon } from "@backend/shared/finance";
 import { financeApi } from "@/lib/api/finance";
 import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";

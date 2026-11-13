@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import db from "../db/client";
 import { app } from "../index";
 import { measurements, workoutSessions, workoutTemplates } from "../db/schema";
-import { call, login } from "../modules/workout/workout-test-utils";
+import { call, login } from "../test-http";
 import { setupTestDb } from "../test-utils";
 
 function resetWorkoutData(adminId: number, testerId: number) {

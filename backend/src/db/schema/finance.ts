@@ -1,4 +1,4 @@
-import { financeAccountIcons } from "../../types/finance-icons";
+import { financeAccountIcons } from "../../shared/finance";
 import { integer, sqliteTable, text, uniqueIndex, index, check } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { users } from "./auth";

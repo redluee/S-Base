@@ -1,4 +1,4 @@
-import { financeAccountIcons, type FinanceAccountIcon } from "../../types/finance-icons";
+import { financeAccountIcons, type FinanceAccountIcon } from "../../shared/finance";
 import { and, eq, asc } from "drizzle-orm";
 import db from "../../db/client";
 import {

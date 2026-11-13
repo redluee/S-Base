@@ -61,4 +61,5 @@ export type {
   CashflowTradeName,
 } from "@backend/types/cashflow";
 
-export type { Measurement, MeasurementPhoto, Wine } from "@backend/types/recipes";
+export type { Wine } from "@backend/types/recipes";
+export type { Measurement, MeasurementPhoto } from "@backend/types/workout";

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
 import { app } from "../../index";
-import { call, login } from "./workout-test-utils";
+import { call, login } from "../../test-http";
 import { WorkoutService } from "./index";
 import db from "../../db/client";
 import { workoutSessions, sessionExercises, sessionSets } from "../../db/schema";

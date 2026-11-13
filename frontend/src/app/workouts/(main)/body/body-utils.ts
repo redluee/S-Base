@@ -1,30 +1,7 @@
-export interface Photo {
-  photoId: number;
-  measurementId: number;
-  filePath: string;
-  createdAt: string;
-}
+import type { Measurement, MeasurementPhoto } from "@/lib/api";
 
-export interface Measurement {
-  measurementId: number;
-  userId: number;
-  date: string;
-  height: number | null;
-  weight: number | null;
-  bodyFat: number | null;
-  skeletalMuscle: number | null;
-  fatMass: number | null;
-  waist?: number | null;
-  chest?: number | null;
-  hips?: number | null;
-  biceps?: number | null;
-  thighs?: number | null;
-  shoulders?: number | null;
-  neck?: number | null;
-  calves?: number | null;
-  createdAt: string;
-  photos: Photo[];
-}
+export type { Measurement };
+export type Photo = MeasurementPhoto;
 
 export type ChartTab = "weight" | "fat" | "muscle" | "bmi";
 

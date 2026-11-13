@@ -2,7 +2,8 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { eq } from "drizzle-orm";
 import { setupTestDb } from "../../test-utils";
 import { WorkoutService } from "./index";
-import { call, finishedSession, login } from "./workout-test-utils";
+import { call, login } from "../../test-http";
+import { finishedSession } from "./workout-test-utils";
 import db from "../../db/client";
 import { workoutSessions, workoutTemplates } from "../../db/schema";
 

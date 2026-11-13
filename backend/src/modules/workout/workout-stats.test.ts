@@ -4,7 +4,8 @@ import { setupTestDb } from "../../test-utils";
 import { WorkoutService } from "./index";
 import db from "../../db/client";
 import { workoutSessions, workoutTemplates } from "../../db/schema";
-import { call, finishedSession, login } from "./workout-test-utils";
+import { call, login } from "../../test-http";
+import { finishedSession } from "./workout-test-utils";
 
 describe("workout volume and PR math", () => {
   let workout: WorkoutService;

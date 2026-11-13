@@ -1,4 +1,4 @@
-import type { FinanceAccountIcon } from "./finance-icons";
+import type { FinanceAccountIcon } from "../shared/finance";
 
 export type FinanceAccountType = "current" | "savings";
 export type FinancePeriod = "month" | "year" | "all";

@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-export { call, login } from "../../test-http";
 import db from "../../db/client";
 import { workoutSessions } from "../../db/schema";
 import type { WorkoutService } from "./index";
