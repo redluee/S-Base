@@ -62,7 +62,7 @@ const INLINE_TYPES: Record<string, string> = {
 
 export const UPLOAD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.[A-Za-z0-9]{1,5}$/;
 
-export function uploadUrl(filename: string): string {
+function uploadUrl(filename: string): string {
   return `${UPLOAD_URL_PREFIX}${filename}`;
 }
 
