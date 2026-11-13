@@ -431,5 +431,7 @@ export const workoutNl: Record<string, string> = {
   "Measurement photo": "Meting foto",
   "Rest over notification title": "Pauze voorbij! ⏱️",
   "Rest over notification body": "Tijd voor je volgende set!",
+  "Set complete notification title": "Set voltooid! ⏱️",
+  "Set complete notification body": "{name} - Set {set}",
   "Time is up!": "Tijd is om!",
 };

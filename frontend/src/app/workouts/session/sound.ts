@@ -9,7 +9,7 @@ let beepAudioElement: HTMLAudioElement | null = null;
 
 let backgroundWorker: Worker | null = null;
 
-let wakeLockSentinel: unknown = null;
+let wakeLockSentinel: WakeLockSentinel | null = null;
 
 const SOUND_PREF_KEY = "sbase_rest_timer_sound_enabled";
 
@@ -312,9 +312,19 @@ export function sendRestEndNotification(): void {
   sendNotification(t("Rest over notification title"), t("Rest over notification body"), "sbase-workout-timer");
 }
 
+function setEndNotification(exerciseName?: string, setNumber?: number): { title: string; body: string } {
+  return {
+    title: t("Set complete notification title"),
+    body:
+      exerciseName && setNumber
+        ? t("Set complete notification body", { name: exerciseName, set: String(setNumber) })
+        : t("Time is up!"),
+  };
+}
+
 export function sendSetEndNotification(exerciseName?: string, setNumber?: number): void {
-  const details = exerciseName && setNumber ? `${exerciseName} - Set ${setNumber}` : t("Time is up!");
-  sendNotification("Set voltooid! ⏱️", details, "sbase-workout-timer");
+  const { title, body } = setEndNotification(exerciseName, setNumber);
+  sendNotification(title, body, "sbase-workout-timer");
 }
 
 /**
@@ -357,13 +367,8 @@ export function scheduleSetEndSound(
     triggerSetTimerCompletion(exerciseName, setNumber);
   }, delaySeconds * 1000);
 
-  const details = exerciseName && setNumber ? `${exerciseName} - Set ${setNumber}` : t("Time is up!");
-  notifyServiceWorkerSchedule(
-    delaySeconds,
-    "Set voltooid! ⏱️",
-    details,
-    "sbase-workout-timer"
-  );
+  const { title, body } = setEndNotification(exerciseName, setNumber);
+  notifyServiceWorkerSchedule(delaySeconds, title, body, "sbase-workout-timer");
 }
 
 /**
@@ -372,28 +377,23 @@ export function scheduleSetEndSound(
 export async function requestScreenWakeLock(): Promise<void> {
   if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (wakeLockSentinel && !(wakeLockSentinel as any).released) {
+    if (wakeLockSentinel && !wakeLockSentinel.released) {
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sentinel = await (navigator as any).wakeLock.request("screen");
+    const sentinel = await navigator.wakeLock.request("screen");
     wakeLockSentinel = sentinel;
-    if (sentinel) {
-      sentinel.addEventListener("release", () => {
-        if (wakeLockSentinel === sentinel) {
-          wakeLockSentinel = null;
-        }
-      });
-    }
+    sentinel.addEventListener("release", () => {
+      if (wakeLockSentinel === sentinel) {
+        wakeLockSentinel = null;
+      }
+    });
   } catch {}
 }
 
 export function releaseScreenWakeLock(): void {
   if (wakeLockSentinel) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (wakeLockSentinel as any).release();
+      wakeLockSentinel.release().catch(() => {});
     } catch {}
     wakeLockSentinel = null;
   }
