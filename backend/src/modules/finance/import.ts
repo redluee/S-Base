@@ -32,16 +32,13 @@ export class FinanceImport {
     }
     return known.find((entry) => entry.identity === importKey(userId, [source.account, source.accountName]));
   }
-  previewImport(input: unknown, userId?: number) {
+  previewImport(userId: number, input: unknown) {
     const parsed = parseImport(input);
     const preview = importPreview(parsed);
-    if (userId !== undefined) {
-      preview.sources.forEach((source, index) => {
-        const raw = parsed.sources[index];
-        const match = this.sourceBinding(userId, raw, parsed.format === "camt053");
-        if (match) source.matchedAccountId = match.accountId;
-      });
-    }
+    preview.sources.forEach((source, index) => {
+      const match = this.sourceBinding(userId, parsed.sources[index], parsed.format === "camt053");
+      if (match) source.matchedAccountId = match.accountId;
+    });
     return preview;
   }
   importBalances(userId: number, input: unknown): FinanceImportResult {

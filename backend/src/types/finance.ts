@@ -21,23 +21,10 @@ export type FinanceBalanceAccount = Omit<FinanceAccount, "type"> & {
   type: FinanceAccountType | "untracked";
   inferred?: boolean;
 };
-export interface FinanceGoal {
-  id: number;
-  name: string;
-  targetCents: number;
-  targetDate: string | null;
-}
-export interface FinanceAllocation {
-  goalId: number;
-  accountId: number;
-  amountCents: number;
-}
 export interface FinanceData {
   monthlyBudgetCents: number | null;
   accounts: FinanceAccount[];
   observations: FinanceObservation[];
-  goals: FinanceGoal[];
-  allocations: FinanceAllocation[];
   today: string;
 }
 export interface FinanceSnapshot {

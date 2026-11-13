@@ -1,7 +1,3 @@
-export function isSavingsTransfer(description: string, amountCents: number) {
-  return savingsTransferAccount(description, amountCents) !== null;
-}
-
 export function savingsTransferAccount(description: string, amountCents: number) {
   const match =
     /^(naar|van|to|from)\s+(?:(?:oranje|orange)\s+)?(?:spaarrekening|savings account)\s+([A-Z]\d{3}[- ]?\d{5})\b/i.exec(

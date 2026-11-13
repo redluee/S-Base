@@ -16,7 +16,6 @@ const selection = t.Object({
 
 const importFields = {
   content: t.Optional(t.String()),
-  csv: t.Optional(t.String()),
   order: t.Optional(t.String()),
   anchors: t.Optional(t.Record(t.String(), t.Number())),
 };
@@ -40,7 +39,7 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     .get("/budget/transactions", ({ userId, query }) => finance.budget.budgetTransactions(userId, query), {
       query: t.Object({ date: t.Optional(t.String()), page: t.Optional(t.String()) }),
     })
-    .post("/import/preview", ({ userId, body }) => finance.imports.previewImport(body, userId), {
+    .post("/import/preview", ({ userId, body }) => finance.imports.previewImport(userId, body), {
       body: t.Object(importFields),
     })
     .post("/import", ({ userId, body }) => finance.imports.importBalances(userId, body), {

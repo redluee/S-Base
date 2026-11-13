@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseMoney, moneyInput, dateLabel, savingsState, financePeriodEnd } from "./finance";
-import type { FinanceData } from "@backend/types/finance";
+import { parseMoney, moneyInput, dateLabel, financePeriodEnd } from "./finance";
 
 describe("Finance display and decimal entry", () => {
   it("converts decimal strings to exact cents without floating-point rounding", () => {
@@ -34,69 +33,6 @@ describe("Finance display and decimal entry", () => {
     expect(dateLabel(null)).toBe("—");
   });
 });
-const data: FinanceData = {
-  monthlyBudgetCents: null,
-  today: "2025-03-01",
-  accounts: [
-    {
-      id: 1,
-      name: "Sample savings A",
-      bank: null,
-      type: "savings",
-      openingDate: "2025-01-01",
-      archived: false,
-    },
-    {
-      id: 2,
-      name: "Sample savings B",
-      bank: null,
-      type: "savings",
-      openingDate: "2025-01-01",
-      archived: true,
-    },
-  ],
-  observations: [
-    { id: 1, accountId: 1, date: "2025-01-01", balanceCents: 5000 },
-    { id: 2, accountId: 2, date: "2025-01-01", balanceCents: 10000 },
-  ],
-  goals: [],
-  allocations: [{ accountId: 1, goalId: 1, amountCents: 8000 }],
-};
-describe("Savings availability and shortfalls", () => {
-  it("does not offset an account deficit with free money on another account", () => {
-    const state = savingsState(data);
-    expect(state.allocatedCents).toBe(8000);
-    expect(state.shortfallCents).toBe(3000);
-    expect(state.unallocatedCents).toBe(10000);
-    expect(state.accounts[1].archived).toBe(true);
-  });
-  it("preserves allocations and marks unknown funds instead of assuming zero", () => {
-    const state = savingsState({
-      ...data,
-      observations: data.observations.filter((o) => o.accountId !== 1),
-    });
-    expect(state.unknown).toBe(true);
-    expect(state.accounts[0].balanceCents).toBeNull();
-    expect(state.allocatedCents).toBe(8000);
-    expect(state.shortfallCents).toBe(8000);
-    expect(state.unallocatedCents).toBeNull();
-  });
-  it("chooses the latest historical observation, excludes future values and clamps negative availability", () => {
-    const state = savingsState({
-      ...data,
-      observations: [
-        ...data.observations,
-        { id: 3, accountId: 1, date: "2025-02-01", balanceCents: -100 },
-        { id: 4, accountId: 1, date: "2025-04-01", balanceCents: 100000 },
-      ],
-    });
-    expect(state.accounts[0].balanceCents).toBe(-100);
-    expect(state.accounts[0].unallocatedCents).toBe(0);
-    expect(state.accounts[0].shortfallCents).toBe(8000);
-  });
-});
-
-
 describe("Dashboard calendar periods", () => {
   it("selects complete months across years and leap years", () => {
     expect(financePeriodEnd("month", "2024-02-01", "2026-10-24")).toBe("2024-02-29");

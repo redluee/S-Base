@@ -54,7 +54,7 @@ describe("Combined money and savings chart", () => {
         { id: 1, accountId: 1, date: "2025-01-01", balanceCents: 10000 },
         { id: 2, accountId: 1, date: "2025-02-01", balanceCents: 14000 },
       ],
-      monthlyBudgetCents: null, goals: [], allocations: [], today: "2025-03-01",
+      monthlyBudgetCents: null, today: "2025-03-01",
     }, [{ accountId: 1, counterpartyIdentity: "sample-closed-savings", savings: true, date: "2025-02-01", amountCents: 4000 }]);
     for (const [period, end] of [["all", "2025-03-01"], ["year", "2025-03-01"], ["month", "2025-01-31"], ["month", "2025-02-28"]] as const) {
       const history = dashboard(balances.accounts, balances.observations, period, end).history;

@@ -6,8 +6,7 @@ import type { ParsedImport } from "./import-model";
 
 export function parseImport(input: unknown): ParsedImport {
   const data = requireObject(input);
-  if (data.content !== undefined && data.csv !== undefined) throw new ValidationError("finance.import.selection");
-  const content = data.content ?? data.csv;
+  const content = data.content;
   if (typeof content !== "string") throw new ValidationError("finance.import.malformed");
   if (
     content

@@ -35,10 +35,18 @@ export function importPreview(parsed: ParsedImport): FinanceImportPreview {
   return {
     format: parsed.format,
     rowCount: parsed.rowCount,
-    sources: parsed.sources.map(({ accountName, transactions, account, ...source }) => {
-      void transactions;
-      void account;
-      return { ...source, suggestedName: accountName || undefined };
-    }),
+    sources: parsed.sources.map((source) => ({
+      sourceKey: source.sourceKey,
+      label: source.label,
+      bank: source.bank,
+      suggestedType: source.suggestedType,
+      needsBalance: source.needsBalance,
+      firstDate: source.firstDate,
+      lastDate: source.lastDate,
+      rowCount: source.rowCount,
+      reconstructedRowCount: source.reconstructedRowCount,
+      balances: source.balances,
+      suggestedName: source.accountName || undefined,
+    })),
   };
 }

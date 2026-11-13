@@ -41,11 +41,3 @@ export function accountInput(input: unknown) {
     openingBalanceCents: cents(data.openingBalanceCents),
   };
 }
-export function goalInput(input: unknown) {
-  const data = requireObject(input);
-  return {
-    name: text(data.name)!,
-    targetCents: cents(data.targetCents, 1),
-    targetDate: data.targetDate == null || data.targetDate === "" ? null : calendarDate(data.targetDate, true),
-  };
-}

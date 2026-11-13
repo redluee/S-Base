@@ -78,7 +78,7 @@ export const financeNl: Record<string, string> = {
   "finance.budget.summary": "{spent} uitgegeven van {limit}",
   "finance.settings.resetTitle": "Alle Finance-gegevens verwijderen",
   "finance.settings.resetHelp": "Begin opnieuw met je eigen Finance-module. Je rekeningen, saldi, transacties, importkoppelingen, maandbudget en spaardoelen worden definitief verwijderd. Andere modules en andere gebruikers blijven behouden.",
-  "finance.settings.scope": "{accounts} rekeningen · {balances} saldomomenten · {goals} spaardoelen, inclusief alle transacties en toewijzingen.",
+  "finance.settings.scope": "{accounts} rekeningen · {balances} saldomomenten, inclusief alle transacties.",
   "finance.settings.typeConfirmation": "Typ VERWIJDEREN om verder te gaan",
   "finance.settings.confirmWord": "VERWIJDEREN",
   "finance.settings.resetSuccess": "Je Finance-gegevens zijn verwijderd. Je kunt opnieuw beginnen met een import.",
@@ -148,7 +148,6 @@ export const financeNl: Record<string, string> = {
   "finance.icon.wrench": "Onderhoud",
 
   "finance.balances": "Saldi bijwerken",
-  "finance.goals": "Spaardoelen",
   "finance.period": "Periode",
   "finance.month": "Maand",
   "finance.calendar.chooseMonth": "Kies een maand",
@@ -260,42 +259,6 @@ export const financeNl: Record<string, string> = {
   "finance.deleteObservation": "Saldomoment verwijderen",
   "finance.deleteObservationHelp":
     "Het saldo van {date} wordt verwijderd. Latere overzichten gebruiken dan het vorige bekende saldo, of worden onbekend als dat ontbreekt. Doeltoewijzingen blijven behouden en kunnen daardoor een tekort tonen.",
-  "finance.newGoal": "Spaardoel toevoegen",
-  "finance.editGoal": "Spaardoel bewerken",
-  "finance.goalName": "Naam van het spaardoel",
-  "finance.targetAmount": "Doelbedrag (EUR)",
-  "finance.targetDate": "Streefdatum (optioneel)",
-  "finance.targetDateLabel": "Streefdatum",
-  "finance.goalsHelp":
-    "Verdeel bestaand spaargeld bewust over je doelen. Geld kan maar één keer worden toegewezen. Een toewijzing is een reservering en geen extra saldo of automatische overboeking.",
-  "finance.goalsAsOf":
-    "Toewijzingen gebruiken de laatst bekende saldi tot en met {date}, onafhankelijk van de overzichtsperiode.",
-  "finance.allocated": "Toegewezen spaargeld",
-  "finance.unallocated": "Nog vrij op spaarrekeningen",
-  "finance.shortfall": "Ongedekte toewijzing",
-  "finance.shortfallHelp":
-    "Een spaarrekening heeft een onbekend of te laag saldo. Je toewijzingen blijven behouden. Verlaag ze zelf of werk het saldo bij. Verhogen op een rekening met een tekort is geblokkeerd; vrij geld op een andere rekening dekt dit tekort niet automatisch.",
-  "finance.savingsAvailability": "Beschikbaarheid per spaarrekening",
-  "finance.noGoals":
-    "Nog geen spaardoelen. Voeg een doel toe en wijs er daarna een deel van je spaargeld aan toe.",
-  "finance.goalProgress": "Toegewezen deel van het spaardoel",
-  "finance.remaining": "Nog toe te wijzen",
-  "finance.allocatedLabel": "toegewezen",
-  "finance.goalUncovered":
-    "Een gebruikte spaarrekening heeft een tekort of onbekend saldo. De getoonde toewijzing is daardoor niet volledig gedekt.",
-  "finance.manageAllocation": "Toewijzing aanpassen",
-  "finance.allocationEditHelp":
-    "Voer het nieuwe totale bedrag voor deze rekening en dit doel in, niet een verhoging. Gebruik 0 om de toewijzing vrij te geven. Op gearchiveerde rekeningen kun je alleen verlagen.",
-  "finance.fromAccount": "Spaarrekening",
-  "finance.newAllocation": "Nieuwe toewijzing (EUR)",
-  "finance.setAllocation": "Toewijzing opslaan",
-  "finance.allocatedToGoal": "Aan dit doel toegewezen",
-  "finance.allocationSaved": "Toewijzing opgeslagen.",
-  "finance.addSavingsFirst":
-    "Voeg eerst een spaarrekening met een bekend saldo toe om geld toe te wijzen.",
-  "finance.deleteGoal": "Spaardoel verwijderen",
-  "finance.deleteGoalHelp":
-    "Het doel en de bijbehorende toewijzingen worden verwijderd. Het gereserveerde geld komt vrij; je rekeningsaldi veranderen niet.",
   "finance.startTitle": "Begin met een import",
   "finance.startHelp": "Importeer je bankgegevens om rekeningen, transacties en saldoverloop te bekijken. Je gegevens veranderen alleen bij een nieuwe import.",
   "finance.loading": "Finance laden…",
@@ -316,35 +279,13 @@ export const financeNl: Record<string, string> = {
   "finance.futureDate": "Saldi mogen niet in de toekomst liggen.",
   "finance.invalidName": "Gebruik 1 tot 120 tekens voor een naam of bank.",
   "finance.invalidType": "Kies een betaal- of spaarrekening.",
-  "finance.beforeOpening":
-    "Deze datum ligt vóór de openingsdatum van de rekening.",
-  "finance.staleBalance":
-    "Een bestaand saldo is gewijzigd. Laad opnieuw en bewerk het bestaande saldomoment expliciet.",
-  "finance.openingConflict":
-    "De openingsdatum mag niet op of na een ander bestaand saldomoment liggen.",
-  "finance.releaseFirst":
-    "Geef eerst de doeltoewijzingen vrij voordat je het rekeningtype wijzigt.",
-  "finance.allocationLimit":
-    "Er is onvoldoende vrij spaargeld op deze rekening, of de rekening is gearchiveerd. Je kunt een bestaande toewijzing wel verlagen.",
-  "finance.goalLimit": "De toewijzing overschrijdt het doelbedrag.",
-  "finance.targetLimit":
-    "Het doelbedrag mag niet lager zijn dan de bestaande toewijzingen. Verlaag deze eerst.",
-  "finance.chooseBalance": "Vul minstens één saldo in.",
-  "finance.onlySavings": "Alleen spaargeld kan aan doelen worden toegewezen.",
   "finance.explicitEdit":
     "Vink expliciet aan dat je het bestaande saldo wilt vervangen.",
-  "finance.positiveTarget": "Het doelbedrag moet groter zijn dan nul.",
-  "finance.nonnegativeAllocation": "Een toewijzing mag niet negatief zijn.",
   "finance.accountLimit": "Je kunt maximaal 200 rekeningen bijhouden.",
-  "finance.goalCountLimit": "Je kunt maximaal 200 spaardoelen bijhouden.",
-  "finance.invalidArchive": "Kies een geldige archiefstatus.",
-  "finance.duplicateAccount": "Een rekening komt meerdere keren voor in de saldo-update.",
   "finance.invalidPeriod": "Kies een geldige periode.",
   "finance.accountNotFound": "Deze rekening is niet gevonden of is niet van jou.",
-  "finance.goalNotFound": "Dit spaardoel is niet gevonden of is niet van jou.",
   "finance.transactionNotFound": "Deze transactie is niet gevonden of is niet van jou.",
   "finance.subscriptionNotFound": "Dit abonnement is niet gevonden of is niet van jou.",
-  "finance.observationNotFound": "Dit saldomoment is niet gevonden.",
   "monthly": "Maandelijks",
   "Eenmalig": "Eenmalig",
   "Maandelijks": "Maandelijks",

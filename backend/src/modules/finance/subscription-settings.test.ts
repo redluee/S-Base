@@ -173,12 +173,12 @@ describe("Subscription corrections", () => {
     service.subscriptions.renameSubscription(owner, { id: second.id, name: "Sample custom" });
     const importPayment = (date: string, name: string, direction = "Af", description = "Sample payment") => {
       const csv = `Datum;Naam / Omschrijving;Rekening;Af Bij;Bedrag (EUR);Mededelingen;Saldo na mutatie\n${date.replaceAll("-", "")};${name};DEMO0001;${direction};10,00;${description};100,00`;
-      const preview = service.imports.previewImport({ csv, order: "descending" });
+      const preview = service.imports.previewImport(owner, { content: csv, order: "descending" });
       const existing = service.accounts
         .data(owner)
         .observations.find((entry) => entry.accountId === first.accountId && entry.date === date);
       return service.imports.importBalances(owner, {
-        csv,
+        content: csv,
         order: "descending",
         selections: [
           {

@@ -74,7 +74,7 @@ export function FinanceSettings({ data, subscriptionMonthlyCents, busy, onReset,
           <h2 className="text-lg font-semibold">{t("finance.settings.resetTitle")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("finance.settings.resetHelp")}</p>
         </div>
-        <p className="text-sm text-muted-foreground">{t("finance.settings.scope", { accounts: String(data.accounts.length), balances: String(data.observations.length), goals: String(data.goals.length) })}</p>
+        <p className="text-sm text-muted-foreground">{t("finance.settings.scope", { accounts: String(data.accounts.length), balances: String(data.observations.length) })}</p>
         <div className="max-w-sm">
           <Field
             label={t("finance.settings.typeConfirmation")}

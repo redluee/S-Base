@@ -1,8 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import db from "../db/client";
+import { financeAccounts, financeSettings } from "../db/schema/finance";
 import { modules, sessions, usermodulepermissions, users } from "../db/schema";
-import { financeAccounts, financeGoals, financeSettings } from "../db/schema/finance";
 import { app } from "../index";
 import { setupTestDb } from "../test-utils";
 
@@ -21,7 +21,6 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  db.delete(financeGoals).where(eq(financeGoals.userId, userId)).run();
   db.delete(financeAccounts).where(eq(financeAccounts.userId, userId)).run();
   db.delete(financeSettings).where(eq(financeSettings.userId, userId)).run();
 });

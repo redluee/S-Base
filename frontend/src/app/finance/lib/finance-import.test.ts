@@ -35,8 +35,6 @@ const data: FinanceData = {
     { id: 1, accountId: 1, date: "2025-01-01", balanceCents: 0 },
     { id: 2, accountId: 1, date: "2025-01-02", balanceCents: 100 },
   ],
-  goals: [],
-  allocations: [],
 };
 
 describe("Finance import selections", () => {

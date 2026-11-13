@@ -4,13 +4,11 @@ import db from "../../db/client";
 import {
   financeAccounts as accounts,
   financeObservations as observations,
-  financeGoals as goals,
-  financeAllocations as allocations,
   financeSettings as settings,
 } from "../../db/schema/finance";
-import { ConflictError, NotFoundError, ValidationError } from "../../utils/errors";
+import { NotFoundError, ValidationError } from "../../utils/errors";
 import { requireId, requireObject } from "../../utils/validation";
-import { accountInput, calendarDate, cents, today } from "./validation";
+import { accountInput, today } from "./validation";
 import type { FinanceData } from "../../types/finance";
 
 export class FinanceAccounts {
@@ -40,18 +38,6 @@ export class FinanceAccounts {
         .where(eq(accounts.userId, userId))
         .orderBy(asc(observations.date))
         .all(),
-      goals: db.select().from(goals).where(eq(goals.userId, userId)).orderBy(asc(goals.id)).all(),
-      allocations: db
-        .select({
-          goalId: allocations.goalId,
-          accountId: allocations.accountId,
-          amountCents: allocations.amountCents,
-        })
-        .from(allocations)
-        .innerJoin(accounts, eq(accounts.id, allocations.accountId))
-        .innerJoin(goals, eq(goals.id, allocations.goalId))
-        .where(and(eq(accounts.userId, userId), eq(goals.userId, userId)))
-        .all(),
       today: today(),
     };
   }
@@ -79,47 +65,6 @@ export class FinanceAccounts {
       return account;
     });
   }
-  updateAccount(userId: number, id: number, input: unknown) {
-    const { openingBalanceCents, ...data } = accountInput(input);
-    return db.transaction((tx) => {
-      const account = this.account(userId, id);
-      const history = this.history(userId, id);
-      if (
-        data.type !== account.type &&
-        tx
-          .select()
-          .from(allocations)
-          .where(eq(allocations.accountId, id))
-          .all()
-          .some((a) => a.amountCents > 0)
-      )
-        throw new ConflictError("finance.releaseFirst");
-      if (data.openingDate !== account.openingDate) {
-        if (history.some((o) => o.date !== account.openingDate && o.date <= data.openingDate))
-          throw new ConflictError("finance.openingConflict");
-        tx.delete(observations)
-          .where(and(eq(observations.accountId, id), eq(observations.date, account.openingDate)))
-          .run();
-      }
-      tx.insert(observations)
-        .values({
-          accountId: id,
-          date: data.openingDate,
-          balanceCents: openingBalanceCents,
-        })
-        .onConflictDoUpdate({
-          target: [observations.accountId, observations.date],
-          set: { balanceCents: openingBalanceCents },
-        })
-        .run();
-      return tx
-        .update(accounts)
-        .set(data)
-        .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
-        .returning()
-        .get();
-    });
-  }
   setAccountIcon(userId: number, id: number, input: unknown) {
     this.account(userId, id);
     const { icon } = requireObject(input);
@@ -131,67 +76,5 @@ export class FinanceAccounts {
       .where(and(eq(accounts.userId, userId), eq(accounts.id, id)))
       .returning()
       .get();
-  }
-  archiveAccount(userId: number, id: number, input: unknown) {
-    this.account(userId, id);
-    const { archived } = requireObject(input);
-    if (typeof archived !== "boolean") throw new ValidationError("finance.invalidArchive");
-    return db
-      .update(accounts)
-      .set({ archived })
-      .where(and(eq(accounts.userId, userId), eq(accounts.id, id)))
-      .returning()
-      .get();
-  }
-  setBalances(userId: number, input: unknown) {
-    const data = requireObject(input),
-      date = calendarDate(data.date);
-    if (!Array.isArray(data.entries) || data.entries.length < 1 || data.entries.length > 200)
-      throw new ValidationError("finance.chooseBalance");
-    const entries = data.entries.map((value: unknown) => {
-      const entry = requireObject(value);
-      return {
-        accountId: requireId(entry.accountId),
-        balanceCents: cents(entry.balanceCents),
-        expectedCents: entry.expectedCents === null ? null : cents(entry.expectedCents),
-      };
-    });
-    if (new Set(entries.map((e) => e.accountId)).size !== entries.length)
-      throw new ValidationError("finance.duplicateAccount");
-    return db.transaction((tx) => {
-      for (const entry of entries) {
-        const account = this.account(userId, entry.accountId);
-        if (date < account.openingDate) throw new ValidationError("finance.beforeOpening");
-        const existing = tx
-          .select()
-          .from(observations)
-          .where(and(eq(observations.accountId, account.id), eq(observations.date, date)))
-          .get();
-        if ((existing?.balanceCents ?? null) !== entry.expectedCents) throw new ConflictError("finance.staleBalance");
-        tx.insert(observations)
-          .values({
-            accountId: account.id,
-            date,
-            balanceCents: entry.balanceCents,
-          })
-          .onConflictDoUpdate({
-            target: [observations.accountId, observations.date],
-            set: { balanceCents: entry.balanceCents },
-          })
-          .run();
-      }
-      return { success: true };
-    });
-  }
-  deleteObservation(userId: number, id: number, dateInput: unknown) {
-    this.account(userId, id);
-    const date = calendarDate(dateInput);
-    const result = db
-      .delete(observations)
-      .where(and(eq(observations.accountId, id), eq(observations.date, date)))
-      .returning()
-      .get();
-    if (!result) throw new NotFoundError("finance.observationNotFound");
-    return { success: true };
   }
 }

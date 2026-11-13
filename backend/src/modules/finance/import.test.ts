@@ -7,7 +7,7 @@ import {
   sessions,
   usermodulepermissions,
   financeAccounts,
-  financeGoals,
+  financeObservations,
   financeImportSources,
 } from "../../db/schema";
 import { setupTestDb } from "../../test-utils";
@@ -30,10 +30,12 @@ const selection = (accountId?: number): FinanceImportSelection => ({
   entries: dates.map((date) => ({ date, expectedCents: null })),
 });
 const body = (selections = [selection()], content = csv) => ({
-  csv: content,
+  content,
   order: "descending",
   selections,
 });
+const observe = (accountId: number, date: string, balanceCents: number) =>
+  db.insert(financeObservations).values({ accountId, date, balanceCents }).run();
 const create = (userId = owner, openingDate = "2025-01-01", openingBalanceCents = 0) =>
   service.accounts.createAccount(userId, {
     name: "Sample account",
@@ -66,7 +68,6 @@ beforeAll(async () => {
 });
 beforeEach(() => {
   for (const userId of [owner, other]) {
-    db.delete(financeGoals).where(eq(financeGoals.userId, userId)).run();
     db.delete(financeAccounts).where(eq(financeAccounts.userId, userId)).run();
   }
 });
@@ -79,10 +80,7 @@ describe("Atomic ING balance import", () => {
       openingDate: "2025-01-01",
       openingBalanceCents: 10000,
     });
-    service.accounts.setBalances(owner, {
-      date: "2025-01-02",
-      entries: [{ accountId: current.id, balanceCents: 8000, expectedCents: null }],
-    });
+    observe(current.id, "2025-01-02", 8000);
     const content =
       '"Datum","Rekening","Rekening naam","Af Bij","Bedrag","Valuta","Saldo na mutatie"\n"2025-01-02","H DEMO-0001","Oranje Spaarrekening","Bij","20,00","EUR","520,00"\n"2025-01-01","H DEMO-0001","Oranje Spaarrekening","Bij","500,00","EUR","500,00"';
     const input = body(
@@ -94,7 +92,7 @@ describe("Atomic ING balance import", () => {
       ],
       content,
     );
-    expect(service.imports.previewImport(input).sources[0].suggestedType).toBe("savings");
+    expect(service.imports.previewImport(owner, input).sources[0].suggestedType).toBe("savings");
     expect(service.imports.importBalances(owner, input)).toMatchObject({
       createdAccounts: 1,
       inserted: 2,
@@ -108,7 +106,7 @@ describe("Atomic ING balance import", () => {
     expect(service.accounts.data(owner).accounts).toHaveLength(2);
   });
   it("previews without writing and creates an account directly from selected balances", () => {
-    expect(service.imports.previewImport(body()).sources[0].label).toBe("…0001");
+    expect(service.imports.previewImport(owner, body()).sources[0].label).toBe("…0001");
     expect(service.accounts.data(owner).accounts).toHaveLength(0);
     expect(service.imports.importBalances(owner, body())).toEqual({
       createdAccounts: 1,
@@ -146,10 +144,7 @@ describe("Atomic ING balance import", () => {
       unchanged: 3,
     });
     expect(service.accounts.history(owner, account.id)).toHaveLength(3);
-    service.accounts.setBalances(owner, {
-      date: "2025-01-04",
-      entries: [{ accountId: account.id, balanceCents: 999, expectedCents: null }],
-    });
+    observe(account.id, "2025-01-04", 999);
     expect(service.imports.importBalances(owner, body([{ ...input, entries: [input.entries[1]] }]))).toMatchObject({
       unchanged: 1,
     });
@@ -181,7 +176,7 @@ describe("Atomic ING balance import", () => {
     expect(service.accounts.history(owner, account.id)).toHaveLength(4);
     expect(service.accounts.history(owner, account.id).at(-1)?.balanceCents).toBe(999);
   });
-  it("handles multiple accounts and internal transfers without adding growth or altering allocations", () => {
+  it("handles multiple accounts and internal transfers without adding growth", () => {
     const initialCsv =
       "Datum;Rekening;Af Bij;Bedrag (EUR);Saldo na mutatie\n20250101;DEMO0001;Bij;100,00;100,00\n20250102;DEMO0001;Af;20,00;80,00\n20250101;DEMO0002;Bij;500,00;500,00\n20250102;DEMO0002;Bij;20,00;520,00";
     const first = {
@@ -194,19 +189,14 @@ describe("Atomic ING balance import", () => {
       newAccount: { name: "Sample second account", type: "savings" as const },
     };
     service.imports.importBalances(owner, {
-      csv: initialCsv,
+      content: initialCsv,
       order: "ascending",
       selections: [first, otherInput],
     });
     expect(service.budget.dashboard(owner, "all", "2025-01-02").comparison.changeCents).toBe(0);
     const account = service.accounts.data(owner).accounts[0];
-    const goal = service.goals.createGoal(owner, {
-      name: "Sample goal",
-      targetCents: 10000,
-    });
-    service.goals.allocate(owner, goal.id, account.id, { amountCents: 7000 });
     service.imports.importBalances(owner, {
-      csv: "Datum;Rekening;Af Bij;Bedrag (EUR);Saldo na mutatie\n20250103;DEMO0001;Af;30,00;50,00",
+      content: "Datum;Rekening;Af Bij;Bedrag (EUR);Saldo na mutatie\n20250103;DEMO0001;Af;30,00;50,00",
       order: "descending",
       selections: [
         {
@@ -217,12 +207,14 @@ describe("Atomic ING balance import", () => {
         },
       ],
     });
-    expect(service.accounts.data(owner).allocations[0].amountCents).toBe(7000);
-    expect(() => service.goals.allocate(owner, goal.id, account.id, { amountCents: 7001 })).toThrow();
+    expect(service.accounts.history(owner, account.id).at(-1)).toMatchObject({
+      date: "2025-01-03",
+      balanceCents: 5000,
+    });
   });
   it("keeps archived accounts archived while updating their history", () => {
     const account = create();
-    service.accounts.archiveAccount(owner, account.id, { archived: true });
+    db.update(financeAccounts).set({ archived: true }).where(eq(financeAccounts.id, account.id)).run();
     const input = selection(account.id);
     input.entries[0].expectedCents = 0;
     service.imports.importBalances(owner, body([input]));
@@ -309,7 +301,7 @@ describe("ING import HTTP ownership and module access", () => {
     expect(
       (
         await request(owner, "/import/preview", {
-          csv: "invalid",
+          content: "invalid",
           order: "descending",
         })
       ).status,
@@ -330,7 +322,7 @@ describe("ING import HTTP ownership and module access", () => {
 
 describe("CAMT import persistence and compatibility", () => {
   const prepare = (content = camtDocument(), accountId?: number) => {
-    const preview = service.imports.previewImport({ content }, owner);
+    const preview = service.imports.previewImport(owner, { content });
     const data = service.accounts.data(owner);
     return {
       content,
@@ -371,13 +363,13 @@ describe("CAMT import persistence and compatibility", () => {
   it("matches existing ING CSV by number despite account-name differences, replacing selected days without duplicates", () => {
     const content = `Datum;Rekening;Af Bij;Bedrag (EUR);Saldo na mutatie\n20250102;${sampleIban()};Af;20,00;80,00`;
     service.imports.importBalances(owner, {
-      csv: content,
+      content,
       order: "ascending",
       selections: [{ ...selection(), entries: [{ date: "2025-01-02", expectedCents: null }] }],
     });
     const account = service.accounts.data(owner).accounts[0];
     const binding = db.select().from(financeImportSources).where(eq(financeImportSources.accountId, account.id)).get()!;
-    expect(service.imports.previewImport({ content: camtDocument() }, owner).sources[0].matchedAccountId).toBe(
+    expect(service.imports.previewImport(owner, { content: camtDocument() }).sources[0].matchedAccountId).toBe(
       account.id,
     );
     expect(service.imports.importBalances(owner, prepare(camtDocument(), account.id))).toMatchObject({
@@ -391,7 +383,7 @@ describe("CAMT import persistence and compatibility", () => {
     ).toBe(binding.identity);
     expect(
       service.imports.importBalances(owner, {
-        csv: content,
+        content,
         order: "ascending",
         selections: [{ ...selection(account.id), entries: [{ date: "2025-01-02", expectedCents: 8000 }] }],
       }),
@@ -406,7 +398,7 @@ describe("CAMT import persistence and compatibility", () => {
     db.delete(financeAccounts).where(eq(financeAccounts.userId, owner)).run();
     const content = `Datum;Rekening;Rekening naam;Af Bij;Bedrag;Valuta;Saldo na mutatie\n20250102;${sampleIban()};Sample savings A;Af;20,00;EUR;80,00\n20250102;${sampleIban()};Sample savings B;Af;20,00;EUR;80,00`;
     service.imports.importBalances(owner, {
-      csv: content,
+      content,
       order: "ascending",
       selections: ["1", "2"].map((sourceKey) => ({
         ...selection(),
@@ -414,7 +406,7 @@ describe("CAMT import persistence and compatibility", () => {
         entries: [{ date: "2025-01-02", expectedCents: null }],
       })),
     });
-    expect(() => service.imports.previewImport({ content: camtDocument() }, owner)).toThrow(
+    expect(() => service.imports.previewImport(owner, { content: camtDocument() })).toThrow(
       "finance.import.mappingConflict",
     );
     expect(() =>

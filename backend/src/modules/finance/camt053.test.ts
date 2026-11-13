@@ -37,7 +37,6 @@ describe("CAMT.053 bank-independent statements", () => {
         "finance.import.xmlFormat",
       );
     }
-    expect(() => parseImport({ content: camtDocument(), csv: "other" })).toThrow("finance.import.selection");
   });
   it("keeps unknown banks unset and uses IBAN when the BIC is absent", () => {
     expect(parse(camtStatement({ bank: "ZZZZ" })).sources[0].bank).toBeNull();

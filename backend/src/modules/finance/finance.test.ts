@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import db from "../../db/client";
 import { users, modules, usermodulepermissions, sessions } from "../../db/schema";
-import { financeAccounts, financeGoals } from "../../db/schema/finance";
+import { financeAccounts, financeObservations } from "../../db/schema/finance";
 import { setupTestDb } from "../../test-utils";
 import { FinanceService } from "./index";
 import { NotFoundError } from "../../utils/errors";
@@ -22,12 +22,22 @@ const accountInput = (type = "current", amount = 10000, date = "2025-01-01") => 
 });
 const create = (type = "current", amount = 10000, date = "2025-01-01") =>
   service.accounts.createAccount(owner, accountInput(type, amount, date));
-const balance = (accountId: number, date: string, amount: number, expectedCents: number | null = null) =>
-  service.accounts.setBalances(owner, {
-    date,
-    entries: [{ accountId, balanceCents: amount, expectedCents }],
-  });
-const goal = (targetCents = 100000) => service.goals.createGoal(owner, { name: "Sample goal", targetCents });
+const balance = (accountId: number, date: string, balanceCents: number) =>
+  db
+    .insert(financeObservations)
+    .values({ accountId, date, balanceCents })
+    .onConflictDoUpdate({
+      target: [financeObservations.accountId, financeObservations.date],
+      set: { balanceCents },
+    })
+    .run();
+const removeBalance = (accountId: number, date: string) =>
+  db
+    .delete(financeObservations)
+    .where(and(eq(financeObservations.accountId, accountId), eq(financeObservations.date, date)))
+    .run();
+const setArchived = (accountId: number, archived: boolean) =>
+  db.update(financeAccounts).set({ archived }).where(eq(financeAccounts.id, accountId)).run();
 
 beforeAll(async () => {
   await setupTestDb();
@@ -46,7 +56,6 @@ beforeAll(async () => {
   }
 });
 beforeEach(() => {
-  db.delete(financeGoals).where(eq(financeGoals.userId, owner)).run();
   db.delete(financeAccounts).where(eq(financeAccounts.userId, owner)).run();
 });
 
@@ -63,7 +72,6 @@ describe("Finance validation and exact amounts", () => {
     expect(() => create("investment")).toThrow();
     expect(() => create("current", 0.1)).toThrow();
     expect(() => service.accounts.createAccount(owner, { ...accountInput(), name: " " })).toThrow();
-    expect(() => goal(0)).toThrow();
   });
   it("adds cents exactly, supports historical dates and never backfills from future observations", () => {
     const a = create("current", 10),
@@ -72,8 +80,7 @@ describe("Finance validation and exact amounts", () => {
     balance(b.id, "2025-02-01", 22);
     expect(service.budget.dashboard(owner, "year", "2025-02-01").end.totalCents).toBe(33);
     expect(service.budget.dashboard(owner, "year", "2025-01-15").end.totalCents).toBe(30);
-    expect(() => balance(a.id, "2024-12-31", 1)).toThrow();
-    service.accounts.deleteObservation(owner, b.id, "2025-01-01");
+    removeBalance(b.id, "2025-01-01");
     const report = service.budget.dashboard(owner, "year", "2025-01-15");
     expect(report.end.totalCents).toBe(10);
     expect(report.end.savingsCents).toBeNull();
@@ -111,43 +118,15 @@ describe("Historical observations and period comparisons", () => {
     expect(comparison.changeCents).toBe(1001);
     expect(comparison.percent).toBeCloseTo((1001 / 10001) * 100, 10);
   });
-  it("preserves blank accounts, replaces only explicitly, and rolls back a conflicting batch", () => {
-    const a = create(),
-      b = create();
-    balance(a.id, "2025-02-01", 20000);
-    expect(service.accounts.history(owner, b.id)).toHaveLength(1);
-    expect(() => balance(a.id, "2025-02-01", 30000)).toThrow();
-    balance(a.id, "2025-02-01", 30000, 20000);
-    expect(service.accounts.history(owner, a.id)).toHaveLength(2);
-    expect(() =>
-      service.accounts.setBalances(owner, {
-        date: "2025-02-01",
-        entries: [
-          { accountId: b.id, balanceCents: 333, expectedCents: null },
-          { accountId: a.id, balanceCents: 444, expectedCents: 20000 },
-        ],
-      }),
-    ).toThrow();
-    expect(service.accounts.history(owner, b.id)).toHaveLength(1);
-    service.accounts.deleteObservation(owner, a.id, "2025-02-01");
-    expect(service.budget.dashboard(owner, "year", "2025-03-01").end.totalCents).toBe(20000);
-  });
   it("recalculates past edits and keeps archived balances in current and historical totals", () => {
     const a = create();
     balance(a.id, "2025-02-01", 15000);
-    balance(a.id, "2025-01-01", 5000, 10000);
+    balance(a.id, "2025-01-01", 5000);
     expect(service.budget.dashboard(owner, "all", "2025-03-01").comparison.changeCents).toBe(10000);
-    service.accounts.archiveAccount(owner, a.id, { archived: true });
+    setArchived(a.id, true);
     expect(service.budget.dashboard(owner, "year", "2025-03-01").end.totalCents).toBe(15000);
     expect(service.budget.dashboard(owner, "year", "2025-01-01").end.totalCents).toBe(5000);
-    expect(() => service.accounts.updateAccount(owner, a.id, accountInput("current", 3, "2025-02-02"))).toThrow();
     expect(service.accounts.history(owner, a.id)[0].balanceCents).toBe(5000);
-    service.accounts.archiveAccount(owner, a.id, { archived: false });
-    service.accounts.updateAccount(owner, a.id, {
-      ...accountInput("current", 6000),
-      bank: "Sample bank",
-    });
-    expect(service.accounts.history(owner, a.id)[0].balanceCents).toBe(6000);
   });
   it("counts transfers as no overall growth once both balances reflect them", () => {
     const a = create("current", 20000),
@@ -159,54 +138,6 @@ describe("Historical observations and period comparisons", () => {
     expect(report.comparison.changeCents).toBe(0);
     expect(report.savingsComparison.changeCents).toBe(5000);
     expect(report.end.mixedDates).toBe(false);
-  });
-});
-
-describe("Savings allocations", () => {
-  it("prevents double allocation, goal overfunding, unknown funds and current account allocation", () => {
-    const a = create("savings", 10000),
-      b = create(),
-      g = goal(),
-      h = goal();
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 6000 });
-    expect(() => service.goals.allocate(owner, h.id, a.id, { amountCents: 4001 })).toThrow();
-    service.goals.allocate(owner, h.id, a.id, { amountCents: 4000 });
-    expect(() => service.goals.allocate(owner, h.id, b.id, { amountCents: 1 })).toThrow();
-    expect(() => service.goals.allocate(owner, h.id, a.id, { amountCents: -1 })).toThrow();
-    expect(() => service.goals.updateGoal(owner, g.id, { name: "Small", targetCents: 5000 })).toThrow();
-    const small = goal(1000);
-    expect(() => service.goals.allocate(owner, small.id, a.id, { amountCents: 1001 })).toThrow();
-    expect(service.budget.dashboard(owner, "all", "2025-05-01").end.totalCents).toBe(20000);
-    const unknown = create("savings", 50);
-    service.accounts.deleteObservation(owner, unknown.id, "2025-01-01");
-    expect(() => service.goals.allocate(owner, g.id, unknown.id, { amountCents: 1 })).toThrow();
-  });
-  it("preserves allocations after reductions and deletion; permits releasing funds in a deficit", () => {
-    const a = create("savings", 10000),
-      g = goal(),
-      h = goal();
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 8000 });
-    balance(a.id, "2025-02-01", 5000);
-    expect(service.accounts.data(owner).allocations[0].amountCents).toBe(8000);
-    expect(() => service.goals.allocate(owner, h.id, a.id, { amountCents: 1 })).toThrow();
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 6000 });
-    service.accounts.deleteObservation(owner, a.id, "2025-02-01");
-    service.accounts.deleteObservation(owner, a.id, "2025-01-01");
-    expect(service.accounts.data(owner).allocations[0].amountCents).toBe(6000);
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 5000 });
-    expect(() => service.accounts.updateAccount(owner, a.id, accountInput())).toThrow();
-    service.goals.deleteGoal(owner, g.id);
-    expect(service.accounts.data(owner).allocations).toHaveLength(0);
-  });
-  it("blocks increases on archived savings and allows restoration and releasing allocations", () => {
-    const a = create("savings", 10000),
-      g = goal();
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 1000 });
-    service.accounts.archiveAccount(owner, a.id, { archived: true });
-    expect(() => service.goals.allocate(owner, g.id, a.id, { amountCents: 2000 })).toThrow();
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 0 });
-    service.accounts.archiveAccount(owner, a.id, { archived: false });
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 10000 });
   });
 });
 
@@ -241,16 +172,12 @@ describe("Finance API permissions and ownership", () => {
       db.insert(usermodulepermissions).values({ userId: other, moduleId }).run();
     }
   });
-  it("denies cross-user history, writes, archive, deletes and both allocation ownership directions", async () => {
-    const a = create("savings"),
-      g = goal();
+  it("denies cross-user history and hides other users' accounts and balances", async () => {
+    const a = create("savings");
     expect(() => service.accounts.account(other, a.id)).toThrow(NotFoundError);
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 100 });
     const otherData = service.accounts.data(other);
     expect(otherData.accounts).toHaveLength(0);
     expect(otherData.observations).toHaveLength(0);
-    expect(otherData.goals).toHaveLength(0);
-    expect(otherData.allocations).toHaveLength(0);
     const otherDashboard = (await (
       await request(other, "/dashboard?period=all&date=2025-03-01")
     ).json()) as FinanceDashboard;
@@ -268,27 +195,11 @@ describe("Finance API permissions and ownership", () => {
           entries: [{ accountId: a.id, balanceCents: 1, expectedCents: 10000 }],
         },
       ],
-      [`/goals/${g.id}`, "PUT", { name: "Intrusion", targetCents: 1 }],
-      [`/goals/${g.id}`, "DELETE"],
-      [`/goals/${g.id}/allocations/${a.id}`, "PUT", { amountCents: 1 }],
     ];
     for (const [path, method, body] of cases) expect((await request(other, path, method, body)).status).toBe(404);
-    const ownGoal = service.goals.createGoal(other, {
-      name: "Other sample",
-      targetCents: 100,
-    });
-    expect((await request(other, `/goals/${ownGoal.id}/allocations/${a.id}`, "PUT", { amountCents: 1 })).status).toBe(
-      404,
-    );
-    expect((await request(owner, `/goals/${ownGoal.id}/allocations/${a.id}`, "PUT", { amountCents: 1 })).status).toBe(
-      404,
-    );
-    service.goals.deleteGoal(other, ownGoal.id);
   });
   it("rejects manual data edits and preserves data on rejected writes", async () => {
     const a = create("savings");
-    const g = goal();
-    service.goals.allocate(owner, g.id, a.id, { amountCents: 100 });
     const before = service.accounts.data(owner);
     const cases: [string, string, unknown?][] = [
       ["/accounts", "POST", accountInput()],
@@ -300,10 +211,6 @@ describe("Finance API permissions and ownership", () => {
         "POST",
         { date: "2025-01-01", entries: [{ accountId: a.id, balanceCents: 1, expectedCents: 10000 }] },
       ],
-      ["/goals", "POST", { name: "Sample", targetCents: 100 }],
-      [`/goals/${g.id}`, "PUT", { name: "Changed", targetCents: 10000 }],
-      [`/goals/${g.id}`, "DELETE"],
-      [`/goals/${g.id}/allocations/${a.id}`, "PUT", { amountCents: 1 }],
     ];
     for (const [path, method, body] of cases) {
       expect((await request(owner, path, method, body)).status).toBe(404);

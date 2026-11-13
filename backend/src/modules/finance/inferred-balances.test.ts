@@ -15,8 +15,6 @@ const data: FinanceData = {
     { id: 5, accountId: 1, date: "2025-04-01", balanceCents: 15000 },
   ],
   monthlyBudgetCents: null,
-  goals: [],
-  allocations: [],
   today: "2025-12-31",
 };
 const transfer = (

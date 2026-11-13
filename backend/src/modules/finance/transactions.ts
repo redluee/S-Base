@@ -10,8 +10,8 @@ import {
   financeSubscriptionPreferences as subscriptionPreferences,
 } from "../../db/schema/finance";
 import { calendarDate, today } from "./validation";
-import { NotFoundError, ValidationError } from "../../utils/errors";
-import { requireId, requireObject } from "../../utils/validation";
+import { ValidationError } from "../../utils/errors";
+import { requireObject } from "../../utils/validation";
 import { savingsTransferAccount } from "./transfer-detection";
 import { inferredBalances } from "./inferred-balances";
 import type { FinanceActivity, FinanceData } from "../../types/finance";
@@ -135,20 +135,6 @@ export class FinanceTransactions {
         (!query || `${entry.name} ${entry.description}`.toLowerCase().includes(query)),
     );
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
-  }
-  setTransfer(userId: number, id: number, input: unknown) {
-    const { internalTransfer } = requireObject(input);
-    if (typeof internalTransfer !== "boolean" && internalTransfer !== null)
-      throw new ValidationError("finance.transactions.invalidFilter");
-    const entry = db
-      .select({ id: transactions.id })
-      .from(transactions)
-      .innerJoin(accounts, eq(accounts.id, transactions.accountId))
-      .where(and(eq(accounts.userId, userId), eq(transactions.id, requireId(id))))
-      .get();
-    if (!entry) throw new NotFoundError("finance.transactionNotFound");
-    db.update(transactions).set({ transferOverride: internalTransfer }).where(eq(transactions.id, id)).run();
-    return { success: true };
   }
   resetFinance(userId: number, input: unknown) {
     if (requireObject(input).confirmation !== "DELETE_FINANCE")
