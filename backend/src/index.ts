@@ -1,7 +1,8 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { createDiscordBot } from "./modules/minecraft/discord-bot";
-import { sqlite } from "./db/client";
+import { closeDatabase, sqlite } from "./db/client";
+import { IN_MEMORY_DB } from "./db/paths";
 import { isProduction, resolveCorsOrigin, securityHeaders } from "./security";
 import { startBackupSchedule } from "./db/backup";
 import { authRoutes } from "./routes/auth";
@@ -13,7 +14,8 @@ import { financeRoutes } from "./routes/finance";
 import { resumeRoutes } from "./routes/resume";
 import { pulseRoutes } from "./routes/pulse";
 import { minecraftRoutes } from "./routes/minecraft";
-import { PORT, HOST, minecraft } from "./context";
+import { PORT, HOST, auth, minecraft } from "./context";
+import { ensureDefaultModules } from "./auth/modules";
 import { AppError, errorResponse, NotFoundError, ValidationError } from "./utils/errors";
 
 export const app = new Elysia()
@@ -69,21 +71,28 @@ export const app = new Elysia()
   .use(minecraftRoutes);
 
 if (process.env.NODE_ENV !== "test") {
+  ensureDefaultModules();
+  if (isProduction()) {
+    const weak = await auth.findDefaultCredentialUsers();
+    if (weak.length > 0) {
+      console.warn(
+        `Default credentials still active for: ${weak.join(", ")}. Change the passwords with 'bun run db:user change-password'.`,
+      );
+    }
+  }
   app.listen({ port: PORT, hostname: HOST });
   console.log(`Backend running on http://${HOST}:${PORT}`);
 
-  if (isProduction() && process.env.DB_PATH !== ":memory:") startBackupSchedule(sqlite);
+  if (isProduction() && !IN_MEMORY_DB) startBackupSchedule(sqlite);
 
   const discordBot = createDiscordBot(minecraft);
 
-  process.on("SIGINT", () => {
+  const shutdown = () => {
     minecraft.idle.stop();
     discordBot?.stop();
+    closeDatabase();
     process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    minecraft.idle.stop();
-    discordBot?.stop();
-    process.exit(0);
-  });
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }

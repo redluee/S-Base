@@ -1,29 +1,7 @@
+import { call, login } from "../test-http";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { app } from "../index";
 import { pulse } from "../context";
 import { setupTestDb } from "../test-utils";
-
-async function login() {
-  const res = await app.handle(
-    new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "admin" }),
-    }),
-  );
-  const match = (res.headers.get("set-cookie") ?? "").match(/session_id=([^;]+)/);
-  return `session_id=${match?.[1] ?? ""}`;
-}
-
-function call(cookie: string, method: string, path: string, body?: unknown) {
-  return app.handle(
-    new Request(`http://localhost${path}`, {
-      method,
-      headers: { Cookie: cookie, "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  );
-}
 
 describe("pulse routes error contract", () => {
   let cookie: string;
@@ -118,8 +96,7 @@ describe("pulse routes error contract", () => {
     }
   });
 
-  it("keeps auth responses unchanged", async () => {
-    const res = await app.handle(new Request("http://localhost/api/pulse/users"));
-    expect(res.status).toBe(401);
+  it("refuses anonymous requests", async () => {
+    expect((await call("", "GET", "/api/pulse/users")).status).toBe(401);
   });
 });

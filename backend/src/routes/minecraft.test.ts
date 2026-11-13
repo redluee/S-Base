@@ -1,45 +1,20 @@
+import * as http from "../test-http";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { mkdir, readFile, rm } from "fs/promises";
 import { join } from "path";
-import { requireFullMinecraftAccess } from "../context";
 import db from "../db/client";
+import { modules, usermodulepermissions } from "../db/schema";
 import { mc_servers, mc_templates } from "../db/schema/minecraft";
-import { app } from "../index";
 import { BASE_DIR } from "../modules/minecraft/paths";
 import { setupTestDb } from "../test-utils";
 
 const SLUG = "route-errors-srv";
 
-async function login() {
-  const res = await app.handle(
-    new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "admin" }),
-    }),
-  );
-  const match = (res.headers.get("set-cookie") ?? "").match(/session_id=([^;]+)/);
-  return `session_id=${match?.[1] ?? ""}`;
-}
+const call = (cookie: string, method: string, path: string, body?: unknown) =>
+  http.call(cookie, method, `/api/minecraft${path}`, body);
 
-function call(cookie: string, method: string, path: string, body?: unknown) {
-  return app.handle(
-    new Request(`http://localhost/api/minecraft${path}`, {
-      method,
-      headers: { Cookie: cookie, "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  );
-}
-
-function upload(cookie: string, path: string, files: File[]) {
-  const form = new FormData();
-  for (const f of files) form.append("files", f);
-  return app.handle(
-    new Request(`http://localhost/api/minecraft${path}`, { method: "POST", headers: { Cookie: cookie }, body: form }),
-  );
-}
+const upload = (cookie: string, path: string, files: File[]) => http.upload(cookie, `/api/minecraft${path}`, files);
 
 describe("minecraft routes error contract", () => {
   let cookie: string;
@@ -47,7 +22,7 @@ describe("minecraft routes error contract", () => {
 
   beforeEach(async () => {
     await setupTestDb();
-    cookie = await login();
+    cookie = await http.login();
     await mkdir(serverDir, { recursive: true });
     db.insert(mc_servers)
       .values({ slug: SLUG, displayName: "Route Errors", engine: "vanilla", mcVersion: "1.21.1", serverDir })
@@ -277,9 +252,32 @@ describe("minecraft routes error contract", () => {
     expect(inspect.error).toBe("minecraft.directoryNotFound");
   });
 
-  it("answers forbidden access with i18n keys", async () => {
-    const res = requireFullMinecraftAccess({ userId: 999999 });
-    expect(res?.status).toBe(403);
-    expect(await res?.json()).toEqual({ error: "minecraft.fullAccessRequired" });
+  it("limits monitor-only users to their granted servers and to start", async () => {
+    const { testerId } = await setupTestDb();
+    const full = db.select().from(modules).where(eq(modules.moduleName, "minecraft")).get()!;
+    db.delete(usermodulepermissions)
+      .where(and(eq(usermodulepermissions.userId, testerId), eq(usermodulepermissions.moduleId, full.moduleId)))
+      .run();
+    db.insert(mc_servers)
+      .values({ slug: "monitor-private", displayName: "Private", engine: "vanilla", mcVersion: "1.21.1", serverDir })
+      .run();
+    try {
+      expect((await call(cookie, "PUT", `/../pulse/users/${testerId}/servers`, { servers: [SLUG] })).status).toBe(200);
+      const tester = await http.login("tester");
+
+      const list = (await (await call(tester, "GET", "/servers")).json()) as { slug: string }[];
+      expect(list.map((s) => s.slug)).toEqual([SLUG]);
+      expect((await call(tester, "GET", `/servers/${SLUG}`)).status).toBe(200);
+
+      const other = await call(tester, "GET", "/servers/monitor-private");
+      expect(other.status).toBe(403);
+      expect(await other.json()).toEqual({ error: "minecraft.serverForbidden" });
+      const stop = await call(tester, "POST", `/servers/${SLUG}/stop`);
+      expect(stop.status).toBe(403);
+      expect(await stop.json()).toEqual({ error: "minecraft.fullAccessRequired" });
+    } finally {
+      db.delete(mc_servers).where(eq(mc_servers.slug, "monitor-private")).run();
+      db.insert(usermodulepermissions).values({ userId: testerId, moduleId: full.moduleId }).run();
+    }
   });
 });

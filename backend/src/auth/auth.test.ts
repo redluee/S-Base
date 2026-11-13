@@ -1,196 +1,94 @@
-import { describe, expect, it, beforeEach } from "bun:test";
-import { setupTestDb } from "../test-utils";
-import { AuthService } from "./index";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { eq } from "drizzle-orm";
 import db from "../db/client";
 import { users } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { setupTestDb } from "../test-utils";
+import { AuthService } from "./index";
+
+async function rejection(promiseOrFn: Promise<unknown> | (() => unknown)) {
+  try {
+    await (typeof promiseOrFn === "function" ? promiseOrFn() : promiseOrFn);
+  } catch (err) {
+    return err as { status: number; key: string };
+  }
+  throw new Error("expected a rejection");
+}
+
+const lastLoginOf = (userId: number) =>
+  db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, userId)).get()?.lastLoginAt;
 
 describe("AuthService", () => {
-  let authService: AuthService;
+  const auth = new AuthService();
   let adminId: number;
   let testerId: number;
 
   beforeEach(async () => {
-    const ids = await setupTestDb();
-    adminId = ids.adminId;
-    testerId = ids.testerId;
-    authService = new AuthService();
+    ({ adminId, testerId } = await setupTestDb());
   });
 
-  it("verifies valid credentials", async () => {
-    const res = await authService.verifyCredentials("admin", "admin");
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.userId).toBe(adminId);
-    }
-  });
-
-  it("rejects wrong password", async () => {
-    const res = await authService.verifyCredentials("admin", "wrongpass");
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.reason).toBe("wrong_password");
-    }
-  });
-
-  it("rejects non-existent user", async () => {
-    const res = await authService.verifyCredentials("nonexistent", "pass");
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.reason).toBe("not_found");
-    }
-  });
-
-  it("rejects invalid input", async () => {
-    const res = await authService.verifyCredentials("", "");
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.reason).toBe("invalid_input");
-    }
-  });
-
-  it("rejects paused user account", async () => {
-    db.update(users).set({ isPaused: 1 }).where(eq(users.userId, testerId)).run();
-    const res = await authService.verifyCredentials("tester", "tester");
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.reason).toBe("account_paused");
-    }
-    // Restore
+  afterEach(() => {
     db.update(users).set({ isPaused: 0 }).where(eq(users.userId, testerId)).run();
   });
 
-  it("creates, validates, and deletes sessions", () => {
-    const sessionId = authService.createSession(adminId);
-    expect(sessionId).toBeTruthy();
-
-    const isValid = authService.verifySession(sessionId);
-    expect(isValid).toBe(true);
-
-    const user = authService.validateSession(sessionId);
-    expect(user?.userId).toBe(adminId);
-    expect(user?.username).toBe("admin");
-
-    const username = authService.getUsernameFromSession(sessionId);
-    expect(username).toBe("admin");
-
-    const uid = authService.getUserIdFromSession(sessionId);
-    expect(uid).toBe(adminId);
-
-    authService.deleteSession(sessionId);
-    expect(authService.verifySession(sessionId)).toBe(false);
+  it("logs in with valid credentials and returns the user with role and modules", async () => {
+    const { sessionId, user } = await auth.login("admin", "admin");
+    expect(user).toMatchObject({ id: adminId, username: "admin", role: "admin", isImpersonated: false });
+    expect(user.modules).toContain("workout");
+    expect(auth.currentUser(sessionId).id).toBe(adminId);
   });
 
-  it("checks module permissions", () => {
-    const hasAccess = authService.moduleAccessCheck(adminId, "workout");
-    expect(hasAccess).toBe(true);
-
-    const userModules = authService.getUserModules(adminId);
-    expect(userModules).toContain("workout");
-    expect(userModules).toContain("recipes");
+  it("rejects unknown users, wrong passwords and paused accounts with distinct keys", async () => {
+    expect(await rejection(auth.login("nonexistent", "pass"))).toMatchObject({ status: 401, key: "auth.userNotFound" });
+    expect(await rejection(auth.login("admin", "wrong"))).toMatchObject({ status: 401, key: "auth.wrongPassword" });
+    db.update(users).set({ isPaused: 1 }).where(eq(users.userId, testerId)).run();
+    expect(await rejection(auth.login("tester", "tester"))).toMatchObject({ status: 403, key: "auth.accountPaused" });
   });
 
-  it("finds user by email", () => {
-    const user = authService.findUserByEmail("admin@example.com");
-    expect(user?.userId).toBe(adminId);
-    expect(user?.username).toBe("admin");
-
-    const notFound = authService.findUserByEmail("missing@example.com");
-    expect(notFound).toBeNull();
+  it("logs in by email case-insensitively and refuses unknown addresses", async () => {
+    expect(auth.loginByEmail("ADMIN@example.com").user.id).toBe(adminId);
+    expect(await rejection(() => auth.loginByEmail("missing@example.com"))).toMatchObject({
+      status: 403,
+      key: "auth.noAccount",
+    });
   });
 
-  it("handles impersonation flow properly", () => {
-    // Admin impersonates tester
-    const impRes = authService.impersonateUser(adminId, testerId);
-    expect(impRes.ok).toBe(true);
-    if (!impRes.ok) return;
-
-    expect(impRes.targetUser.id).toBe(testerId);
-    expect(impRes.targetUser.username).toBe("tester");
-
-    // Validate impersonated session
-    const validated = authService.validateSession(impRes.newSessionId);
-    expect(validated).not.toBeNull();
-    expect(validated?.userId).toBe(testerId);
-    expect(validated?.username).toBe("tester");
-    expect(validated?.isImpersonated).toBe(true);
-    expect(validated?.impersonatedBy).toBe("admin");
-    expect(validated?.impersonatorUserId).toBe(adminId);
-
-    // Stop impersonation
-    const stopRes = authService.stopImpersonation(impRes.newSessionId);
-    expect(stopRes.ok).toBe(true);
-    if (!stopRes.ok) return;
-
-    expect(stopRes.adminUserId).toBe(adminId);
-    expect(stopRes.adminUsername).toBe("admin");
-
-    // Impersonated session should now be deleted
-    expect(authService.verifySession(impRes.newSessionId)).toBe(false);
-
-    // New admin session should be valid and not impersonated
-    const adminSession = authService.validateSession(stopRes.newSessionId);
-    expect(adminSession?.userId).toBe(adminId);
-    expect(adminSession?.username).toBe("admin");
-    expect(adminSession?.isImpersonated).toBe(false);
+  it("invalidates a session after logout", async () => {
+    const { sessionId } = await auth.login("admin", "admin");
+    auth.deleteSession(sessionId);
+    expect(await rejection(() => auth.currentUser(sessionId))).toMatchObject({ status: 401 });
   });
 
-  it("updates and preserves lastLoginAt based on force flag", () => {
-    const fixedTime = "2026-08-20T10:00:00.000Z";
-    db.update(users).set({ lastLoginAt: fixedTime }).where(eq(users.userId, adminId)).run();
+  it("impersonates a user and returns to the admin afterwards", async () => {
+    const impersonated = auth.impersonate(adminId, testerId);
+    expect(auth.currentUser(impersonated.sessionId)).toMatchObject({
+      id: testerId,
+      isImpersonated: true,
+      impersonatedBy: "admin",
+      impersonatorUserId: adminId,
+    });
 
-    // With force = false and recent timestamp, lastLoginAt is preserved
-    const recentTime = new Date(Date.now() - 60 * 1000).toISOString(); // 1 minute ago
-    db.update(users).set({ lastLoginAt: recentTime }).where(eq(users.userId, adminId)).run();
-    authService.logLastLogin(adminId, false);
-
-    const userAfterUnforced = db
-      .select({ lastLoginAt: users.lastLoginAt })
-      .from(users)
-      .where(eq(users.userId, adminId))
-      .get();
-    expect(userAfterUnforced?.lastLoginAt).toBe(recentTime);
-
-    // With force = true, lastLoginAt is updated immediately
-    authService.logLastLogin(adminId, true);
-    const userAfterForced = db
-      .select({ lastLoginAt: users.lastLoginAt })
-      .from(users)
-      .where(eq(users.userId, adminId))
-      .get();
-    expect(userAfterForced?.lastLoginAt).not.toBe(recentTime);
-    expect(new Date(userAfterForced!.lastLoginAt!).getTime()).toBeGreaterThan(new Date(recentTime).getTime());
-
-    // With force = false and timestamp older than 5 minutes, lastLoginAt is updated
-    const oldTime = new Date(Date.now() - 15 * 60 * 1000).toISOString(); // 15 minutes ago
-    db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, adminId)).run();
-    authService.logLastLogin(adminId, false);
-    const userAfterOld = db
-      .select({ lastLoginAt: users.lastLoginAt })
-      .from(users)
-      .where(eq(users.userId, adminId))
-      .get();
-    expect(userAfterOld?.lastLoginAt).not.toBe(oldTime);
+    const back = auth.stopImpersonation(impersonated.sessionId);
+    expect(back.user).toMatchObject({ id: adminId, isImpersonated: false });
+    expect(await rejection(() => auth.currentUser(impersonated.sessionId))).toMatchObject({ status: 401 });
+    expect(await rejection(() => auth.stopImpersonation(back.sessionId))).toMatchObject({
+      key: "auth.notImpersonating",
+    });
   });
 
-  it("refreshes lastLoginAt on session validation but not for impersonated sessions", () => {
-    const oldTime = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
-    db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, adminId)).run();
+  it("refreshes last seen at most every five minutes and never for impersonated sessions", async () => {
+    const { sessionId } = await auth.login("admin", "admin");
+    const recent = new Date(Date.now() - 60 * 1000).toISOString();
+    db.update(users).set({ lastLoginAt: recent }).where(eq(users.userId, adminId)).run();
+    auth.currentUser(sessionId);
+    expect(lastLoginOf(adminId)).toBe(recent);
 
-    const sessionId = authService.createSession(adminId);
-    authService.validateSession(sessionId);
-    const afterOwn = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, adminId)).get();
-    expect(new Date(afterOwn!.lastLoginAt!).getTime()).toBeGreaterThan(new Date(oldTime).getTime());
+    const old = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    db.update(users).set({ lastLoginAt: old }).where(eq(users.userId, adminId)).run();
+    auth.currentUser(sessionId);
+    expect(lastLoginOf(adminId)).not.toBe(old);
 
-    db.update(users).set({ lastLoginAt: oldTime }).where(eq(users.userId, testerId)).run();
-    const impersonated = authService.impersonateUser(adminId, testerId);
-    if (!impersonated.ok) throw new Error("impersonation failed");
-    authService.validateSession(impersonated.newSessionId);
-    const afterImpersonation = db
-      .select({ lastLoginAt: users.lastLoginAt })
-      .from(users)
-      .where(eq(users.userId, testerId))
-      .get();
-    expect(afterImpersonation?.lastLoginAt).toBe(oldTime);
+    db.update(users).set({ lastLoginAt: old }).where(eq(users.userId, testerId)).run();
+    auth.currentUser(auth.impersonate(adminId, testerId).sessionId);
+    expect(lastLoginOf(testerId)).toBe(old);
   });
 });

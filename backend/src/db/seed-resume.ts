@@ -2,7 +2,7 @@ import db from "./client";
 import { users, modules, usermodulepermissions } from "./schema";
 import { eq, and } from "drizzle-orm";
 import { ResumeService } from "../modules/resume";
-import { DEFAULT_MODULES } from "./user-manager";
+import { ensureDefaultModules } from "../auth/modules";
 
 const username = process.argv[2] ?? "admin";
 const user = db.select().from(users).where(eq(users.username, username)).get();
@@ -11,15 +11,9 @@ if (!user) {
   process.exit(1);
 }
 
-const def = DEFAULT_MODULES.find((m) => m.name === "resume")!;
-let mod = db.select().from(modules).where(eq(modules.moduleName, "resume")).get();
-if (!mod) {
-  mod = db
-    .insert(modules)
-    .values({ moduleName: def.name, moduleAlias: def.alias, description: def.description })
-    .returning()
-    .get();
-}
+ensureDefaultModules();
+const mod = db.select().from(modules).where(eq(modules.moduleName, "resume")).get();
+if (!mod) throw new Error("resume module missing after ensureDefaultModules");
 const hasPerm = db
   .select()
   .from(usermodulepermissions)

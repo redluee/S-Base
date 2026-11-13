@@ -28,20 +28,39 @@ describe("RateLimiter", () => {
 });
 
 describe("verifyInternalSecret", () => {
+  const withEnv = (env: Record<string, string | undefined>, run: () => void) => {
+    const previous = Object.fromEntries(Object.keys(env).map((k) => [k, process.env[k]]));
+    Object.assign(process.env, env);
+    for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k];
+    try {
+      run();
+    } finally {
+      for (const [k, v] of Object.entries(previous)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+  };
+
   test("requires matching secret when configured", () => {
-    process.env.INTERNAL_AUTH_SECRET = "s3cret";
-    expect(verifyInternalSecret("s3cret")).toBe(true);
-    expect(verifyInternalSecret("wrong!")).toBe(false);
-    expect(verifyInternalSecret(null)).toBe(false);
-    delete process.env.INTERNAL_AUTH_SECRET;
+    withEnv({ INTERNAL_AUTH_SECRET: "s3cret" }, () => {
+      expect(verifyInternalSecret("s3cret")).toBe(true);
+      expect(verifyInternalSecret("wrong!")).toBe(false);
+      expect(verifyInternalSecret(null)).toBe(false);
+    });
   });
 
-  test("allows requests when no secret is configured, even in production", () => {
-    const prevEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    delete process.env.INTERNAL_AUTH_SECRET;
-    expect(verifyInternalSecret(null)).toBe(true);
-    process.env.NODE_ENV = prevEnv;
+  test("refuses every request in production when no secret is configured", () => {
+    withEnv({ NODE_ENV: "production", INTERNAL_AUTH_SECRET: undefined }, () => {
+      expect(verifyInternalSecret(null)).toBe(false);
+      expect(verifyInternalSecret("anything")).toBe(false);
+    });
+  });
+
+  test("allows requests outside production when no secret is configured", () => {
+    withEnv({ NODE_ENV: "development", INTERNAL_AUTH_SECRET: undefined }, () => {
+      expect(verifyInternalSecret(null)).toBe(true);
+    });
   });
 });
 

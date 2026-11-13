@@ -1,11 +1,10 @@
-import { join } from "path";
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
+import { DB_PATH, IN_MEMORY_DB } from "./paths";
 
-const dbPath = process.env.DB_PATH || join(import.meta.dir, "../../..", "sbase.db");
-const sqlite = new Database(dbPath);
-if (dbPath !== ":memory:") {
+const sqlite = new Database(DB_PATH);
+if (!IN_MEMORY_DB) {
   sqlite.run("PRAGMA journal_mode = WAL");
   sqlite.run("PRAGMA synchronous = NORMAL");
 }
@@ -14,22 +13,10 @@ sqlite.run("PRAGMA busy_timeout = 5000");
 
 const db = drizzle(sqlite, { schema });
 
-const cleanup = () => {
-  try {
-    sqlite.run("PRAGMA wal_checkpoint(TRUNCATE);");
-    sqlite.close();
-  } catch {}
-};
-
-process.on("SIGINT", () => {
-  cleanup();
-  process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-  cleanup();
-  process.exit(0);
-});
+export function closeDatabase(): void {
+  sqlite.run("PRAGMA wal_checkpoint(TRUNCATE);");
+  sqlite.close();
+}
 
 export { sqlite };
 export default db;

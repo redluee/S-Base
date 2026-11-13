@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { join } from "path";
-import { AppError, NotFoundError } from "../utils/errors";
+import { NotFoundError } from "../utils/errors";
+import { readSessionId } from "../auth/session-cookie";
 import { IMAGE_EXTENSIONS, UPLOAD_NAME_PATTERN, uploadResponseHeaders } from "../utils/uploads";
 import { auth, saveUpload, workout, workoutAuth } from "../context";
 import {
@@ -117,14 +118,7 @@ export const workoutRoutes = new Elysia()
   .get(
     "/api/uploads/:filename",
     async ({ params: { filename }, cookie: { session_id }, request }) => {
-      let sid = typeof session_id?.value === "string" ? session_id.value : "";
-      if (!sid) {
-        const cookieHeader = request.headers.get("cookie") || "";
-        const match = cookieHeader.match(/(?:^|;\s*)session_id=([^;]+)/);
-        if (match) sid = match[1];
-      }
-      const sessionInfo = sid ? auth.validateSession(sid) : null;
-      if (!sessionInfo) throw new AppError(401, "Unauthorized");
+      const sessionInfo = auth.sessionUser(readSessionId(session_id, request));
       if (!UPLOAD_NAME_PATTERN.test(filename) || filename.startsWith("resume_")) throw new NotFoundError();
       if (workout.measurements.isForeignPhoto(sessionInfo.userId, filename)) throw new NotFoundError();
       const file = Bun.file(join(import.meta.dir, "../../uploads", filename));

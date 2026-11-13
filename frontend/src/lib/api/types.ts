@@ -99,16 +99,7 @@ export interface Measurement {
   photos: MeasurementPhoto[];
 }
 
-export interface AuthUser {
-  id: number;
-  username: string;
-  email: string | null;
-  role?: "admin" | "user";
-  modules?: string[];
-  isImpersonated?: boolean;
-  impersonatorUserId?: number | null;
-  impersonatedBy?: string | null;
-}
+export type { AuthUser } from "@backend/auth";
 
 export type {
   MinorSprint,

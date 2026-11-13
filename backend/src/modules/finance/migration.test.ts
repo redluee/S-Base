@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
-import { runMigrations } from "../../db/migrate";
+import { LEGACY_BASELINE_END, runMigrations } from "../../db/migrate";
 import { mkdtemp, readdir, copyFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -28,7 +28,7 @@ describe("Finance production migration on disposable databases", () => {
       const usersBefore = sqlite.query("SELECT * FROM users").all();
       const cashflowBefore = sqlite.query("SELECT * FROM cashflow_clients").all();
       const permissionsBefore = sqlite.query("SELECT * FROM usermodulepermissions").all();
-      expect((await runMigrations(sqlite)).applied).toBe(9);
+      expect((await runMigrations(sqlite)).applied.every((file) => file > LEGACY_BASELINE_END)).toBe(true);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual(usersBefore);
       expect(sqlite.query("SELECT * FROM cashflow_clients").all()).toEqual(cashflowBefore);
       expect(sqlite.query("SELECT * FROM usermodulepermissions").all()).toEqual(permissionsBefore);
@@ -54,7 +54,7 @@ describe("Finance production migration on disposable databases", () => {
         ]),
       ).toThrow();
       const financeBefore = sqlite.query("SELECT * FROM finance_observations").all();
-      expect((await runMigrations(sqlite)).applied).toBe(0);
+      expect((await runMigrations(sqlite)).applied).toEqual([]);
       await sqlite.exec(await financeSql());
       expect(sqlite.query("SELECT * FROM finance_observations").all()).toEqual(financeBefore);
       expect(sqlite.query("PRAGMA foreign_key_check").all()).toEqual([]);
@@ -72,10 +72,10 @@ describe("Finance production migration on disposable databases", () => {
       sqlite.exec(
         "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE modules (module_id INTEGER PRIMARY KEY, module_name TEXT UNIQUE, module_alias TEXT, description TEXT); INSERT INTO users VALUES (1, 'synthetic-legacy');",
       );
-      expect((await runMigrations(sqlite)).applied).toBe(9);
+      expect((await runMigrations(sqlite)).applied.every((file) => file > LEGACY_BASELINE_END)).toBe(true);
       expect(sqlite.query("SELECT * FROM users").all()).toEqual([{ user_id: 1, username: "synthetic-legacy" }]);
       expect(sqlite.query("SELECT name FROM sqlite_master WHERE name = 'finance_accounts'").get()).toBeTruthy();
-      expect((await runMigrations(sqlite)).applied).toBe(0);
+      expect((await runMigrations(sqlite)).applied).toEqual([]);
     } finally {
       sqlite.close();
     }

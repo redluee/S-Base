@@ -1,90 +1,72 @@
-import { eq, gt, and, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db/client";
-import { users, sessions, usermodulepermissions, modules } from "../db/schema";
+import { modules, sessions, usermodulepermissions, users } from "../db/schema";
+import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from "../utils/errors";
+import { SESSION_TTL_SECONDS } from "./session-cookie";
+
+const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
+const DEFAULT_CREDENTIAL_USERS = ["admin", "tester"];
+
+export type Role = "admin" | "user";
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string | null;
+  role: Role;
+  modules: string[];
+  isImpersonated: boolean;
+  impersonatorUserId: number | null;
+  impersonatedBy: string | null;
+}
+
+export interface SessionUser {
+  userId: number;
+  username: string;
+}
+
+interface UserRow {
+  userId: number;
+  username: string;
+  email: string | null;
+  isPaused: number;
+}
+
+export function hashPassword(password: string): Promise<string> {
+  return Bun.password.hash(password, { algorithm: "argon2id" });
+}
 
 export class AuthService {
-  async verifyCredentials(
-    username: string,
-    password: string,
-  ): Promise<
-    | { ok: true; userId: number; email: string | null }
-    | { ok: false; reason: "not_found" | "wrong_password" | "invalid_input" | "account_paused" }
-  > {
-    if (!username || !password) return { ok: false, reason: "invalid_input" };
-
+  async login(username: string, password: string): Promise<{ sessionId: string; user: AuthUser }> {
     const user = db.select().from(users).where(eq(users.username, username)).get();
-    if (!user) return { ok: false, reason: "not_found" };
+    if (!user) throw new UnauthorizedError("auth.userNotFound");
+    if (user.isPaused === 1) throw new ForbiddenError("auth.accountPaused");
+    if (!(await Bun.password.verify(password, user.pswdHash))) throw new UnauthorizedError("auth.wrongPassword");
+    return this.startSession(user);
+  }
 
-    if (user.isPaused === 1) {
-      return { ok: false, reason: "account_paused" };
-    }
-
-    const isMatch = await Bun.password.verify(password, user.pswdHash);
-    if (!isMatch) return { ok: false, reason: "wrong_password" };
-
-    this.logLastLogin(user.userId);
-    return { ok: true, userId: user.userId, email: user.email ?? null };
+  loginByEmail(email: string): { sessionId: string; user: AuthUser } {
+    const user = db
+      .select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
+      .from(users)
+      .where(sql`lower(${users.email}) = lower(${email.trim()})`)
+      .get();
+    if (!user) throw new ForbiddenError("auth.noAccount", { email });
+    if (user.isPaused === 1) throw new ForbiddenError("auth.accountPaused");
+    return this.startSession(user);
   }
 
   async findDefaultCredentialUsers(): Promise<string[]> {
     const found: string[] = [];
-    for (const name of ["admin", "tester"]) {
+    for (const name of DEFAULT_CREDENTIAL_USERS) {
       const user = db.select().from(users).where(eq(users.username, name)).get();
       if (user && (await Bun.password.verify(name, user.pswdHash))) found.push(name);
     }
     return found;
   }
 
-  logLastLogin(userId: number, force = true): void {
-    if (!force) {
-      const user = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, userId)).get();
-      if (user?.lastLoginAt) {
-        const last = new Date(user.lastLoginAt).getTime();
-        const now = Date.now();
-        if (!Number.isNaN(last) && now - last < 5 * 60 * 1000) {
-          return;
-        }
-      }
-    }
-    const now = new Date().toISOString();
-    db.update(users).set({ lastLoginAt: now }).where(eq(users.userId, userId)).run();
-  }
-
-  createSession(userId: number, impersonatorUserId?: number | null): string {
-    const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 604800000).toISOString();
-
-    db.insert(sessions)
-      .values({
-        sessionId,
-        userId,
-        impersonatorUserId: impersonatorUserId ?? null,
-        expiresAt,
-      })
-      .run();
-    return sessionId;
-  }
-
-  verifySession(sessionId: string): boolean {
-    const result = db
-      .select()
-      .from(sessions)
-      .innerJoin(users, eq(sessions.userId, users.userId))
-      .where(
-        and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`), eq(users.isPaused, 0)),
-      )
-      .get();
-    return !!result;
-  }
-
-  validateSession(sessionId: string): {
-    userId: number;
-    username: string;
-    email: string | null;
-    isImpersonated: boolean;
-    impersonatorUserId?: number | null;
-    impersonatedBy?: string | null;
-  } | null {
+  sessionUser(sessionId: string): SessionUser & { email: string | null; impersonator: UserRow | null } {
+    if (!sessionId) throw new UnauthorizedError();
     const session = db
       .select({
         userId: users.userId,
@@ -97,124 +79,48 @@ export class AuthService {
       .innerJoin(users, eq(sessions.userId, users.userId))
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
       .get();
-    if (!session || session.isPaused === 1) return null;
+    if (!session || session.isPaused === 1) throw new UnauthorizedError();
 
-    if (!session.impersonatorUserId) this.logLastLogin(session.userId, false);
-
-    let impersonatedBy: string | null = null;
-    if (session.impersonatorUserId) {
-      const admin = db
-        .select({ username: users.username, isPaused: users.isPaused })
-        .from(users)
-        .where(eq(users.userId, session.impersonatorUserId))
-        .get();
-      if (admin && admin.isPaused === 0) {
-        impersonatedBy = admin.username;
-      }
-    }
+    const impersonator = session.impersonatorUserId ? this.activeUser(session.impersonatorUserId) : null;
+    if (!session.impersonatorUserId) this.touchLastSeen(session.userId);
 
     return {
       userId: session.userId,
       username: session.username,
       email: session.email ?? null,
-      isImpersonated: !!impersonatedBy,
-      impersonatorUserId: impersonatedBy ? session.impersonatorUserId : null,
-      impersonatedBy,
+      impersonator,
     };
   }
 
-  impersonateUser(
-    adminUserId: number,
-    targetUserId: number,
-  ):
-    | {
-        ok: true;
-        targetUser: { id: number; username: string; email: string | null };
-        newSessionId: string;
-      }
-    | { ok: false; reason: string } {
-    if (!this.moduleAccessCheck(adminUserId, "pulse")) {
-      return { ok: false, reason: "forbidden" };
-    }
+  currentUser(sessionId: string): AuthUser {
+    const session = this.sessionUser(sessionId);
+    return this.describe(session, session.impersonator);
+  }
 
+  impersonate(adminUserId: number, targetUserId: number): { sessionId: string; user: AuthUser } {
     const target = db
       .select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
       .from(users)
       .where(eq(users.userId, targetUserId))
       .get();
-
-    if (!target) {
-      return { ok: false, reason: "user_not_found" };
-    }
-
-    if (target.isPaused === 1) {
-      return { ok: false, reason: "user_paused" };
-    }
-
-    const newSessionId = this.createSession(target.userId, adminUserId);
-    return {
-      ok: true,
-      targetUser: {
-        id: target.userId,
-        username: target.username,
-        email: target.email ?? null,
-      },
-      newSessionId,
-    };
+    if (!target) throw new NotFoundError("pulse.userNotFound");
+    if (target.isPaused === 1) throw new ValidationError("pulse.userPaused");
+    const sessionId = this.createSession(target.userId, adminUserId);
+    return { sessionId, user: this.describe(target, this.activeUser(adminUserId)) };
   }
 
-  stopImpersonation(sessionId: string):
-    | {
-        ok: true;
-        adminUserId: number;
-        adminUsername: string;
-        newSessionId: string;
-      }
-    | { ok: false; reason: string } {
+  stopImpersonation(sessionId: string): { sessionId: string; user: AuthUser } {
     const session = db
-      .select({
-        sessionId: sessions.sessionId,
-        userId: sessions.userId,
-        impersonatorUserId: sessions.impersonatorUserId,
-      })
+      .select({ impersonatorUserId: sessions.impersonatorUserId })
       .from(sessions)
       .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
       .get();
-
-    if (!session?.impersonatorUserId) {
-      return { ok: false, reason: "not_impersonating" };
-    }
-
-    const admin = db
-      .select({ userId: users.userId, username: users.username, isPaused: users.isPaused })
-      .from(users)
-      .where(eq(users.userId, session.impersonatorUserId))
-      .get();
-
-    if (!admin || admin.isPaused === 1) {
-      return { ok: false, reason: "admin_unavailable" };
-    }
-
+    if (!session) throw new UnauthorizedError();
+    if (!session.impersonatorUserId) throw new ValidationError("auth.notImpersonating");
+    const admin = this.activeUser(session.impersonatorUserId);
+    if (!admin) throw new ValidationError("auth.adminUnavailable");
     this.deleteSession(sessionId);
-    const newSessionId = this.createSession(admin.userId);
-
-    return {
-      ok: true,
-      adminUserId: admin.userId,
-      adminUsername: admin.username,
-      newSessionId,
-    };
-  }
-
-  getUsernameFromSession(sessionId: string): string | null {
-    const result = db
-      .select({ username: users.username, isPaused: users.isPaused })
-      .from(sessions)
-      .innerJoin(users, eq(sessions.userId, users.userId))
-      .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
-      .get();
-    if (!result || result.isPaused === 1) return null;
-    return result.username;
+    return { sessionId: this.createSession(admin.userId), user: this.describe(admin, null) };
   }
 
   moduleAccessCheck(userId: number, moduleName: string): boolean {
@@ -228,37 +134,61 @@ export class AuthService {
   }
 
   getUserModules(userId: number): string[] {
-    const userPerms = db
+    return db
       .select({ moduleName: modules.moduleName })
       .from(usermodulepermissions)
       .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
       .where(eq(usermodulepermissions.userId, userId))
-      .all();
-    return userPerms.map((p) => p.moduleName);
-  }
-
-  getUserIdFromSession(sessionId: string): number | null {
-    const result = db
-      .select({ userId: sessions.userId, isPaused: users.isPaused })
-      .from(sessions)
-      .innerJoin(users, eq(sessions.userId, users.userId))
-      .where(and(eq(sessions.sessionId, sessionId), gt(sessions.expiresAt, sql`CURRENT_TIMESTAMP`)))
-      .get();
-    if (!result || result.isPaused === 1) return null;
-    return result.userId;
+      .all()
+      .map((p) => p.moduleName);
   }
 
   deleteSession(sessionId: string): void {
     db.delete(sessions).where(eq(sessions.sessionId, sessionId)).run();
   }
 
-  findUserByEmail(email: string): { userId: number; username: string; email: string | null; isPaused: number } | null {
+  private startSession(user: UserRow): { sessionId: string; user: AuthUser } {
+    db.update(users).set({ lastLoginAt: new Date().toISOString() }).where(eq(users.userId, user.userId)).run();
+    return { sessionId: this.createSession(user.userId), user: this.describe(user, null) };
+  }
+
+  private createSession(userId: number, impersonatorUserId: number | null = null): string {
+    const sessionId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();
+    db.insert(sessions).values({ sessionId, userId, impersonatorUserId, expiresAt }).run();
+    return sessionId;
+  }
+
+  private touchLastSeen(userId: number): void {
+    const user = db.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.userId, userId)).get();
+    const last = user?.lastLoginAt ? new Date(user.lastLoginAt).getTime() : Number.NaN;
+    if (!Number.isNaN(last) && Date.now() - last < LAST_SEEN_THROTTLE_MS) return;
+    db.update(users).set({ lastLoginAt: new Date().toISOString() }).where(eq(users.userId, userId)).run();
+  }
+
+  private activeUser(userId: number): UserRow | null {
     const user = db
       .select({ userId: users.userId, username: users.username, email: users.email, isPaused: users.isPaused })
       .from(users)
-      .where(sql`lower(${users.email}) = lower(${email.trim()})`)
+      .where(eq(users.userId, userId))
       .get();
-    if (!user) return null;
-    return { userId: user.userId, username: user.username, email: user.email ?? null, isPaused: user.isPaused };
+    return user && user.isPaused === 0 ? user : null;
+  }
+
+  private describe(
+    user: { userId: number; username: string; email: string | null },
+    impersonator: UserRow | null,
+  ): AuthUser {
+    const userModules = this.getUserModules(user.userId);
+    return {
+      id: user.userId,
+      username: user.username,
+      email: user.email ?? null,
+      role: userModules.includes("pulse") ? "admin" : "user",
+      modules: userModules,
+      isImpersonated: !!impersonator,
+      impersonatorUserId: impersonator?.userId ?? null,
+      impersonatedBy: impersonator?.username ?? null,
+    };
   }
 }

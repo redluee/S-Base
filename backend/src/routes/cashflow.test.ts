@@ -1,30 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { call, login } from "../test-http";
 import { app } from "../index";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import db from "../db/client";
 import { cashflowClients, cashflowExpenses } from "../db/schema";
 import { setupTestDb } from "../test-utils";
-
-async function login() {
-  const res = await app.handle(
-    new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "admin" }),
-    }),
-  );
-  const match = (res.headers.get("set-cookie") ?? "").match(/session_id=([^;]+)/);
-  return `session_id=${match?.[1] ?? ""}`;
-}
-
-function call(cookie: string, method: string, path: string, body?: unknown) {
-  return app.handle(
-    new Request(`http://localhost${path}`, {
-      method,
-      headers: { Cookie: cookie, "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  );
-}
 
 describe("cashflow routes error contract", () => {
   let cookie: string;

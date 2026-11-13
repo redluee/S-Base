@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import { auth, pulse, pulseAuth } from "../context";
-import { NotFoundError, ValidationError } from "../utils/errors";
+import { writeSessionCookie } from "../auth/session-cookie";
 
 const idParams = t.Object({ id: t.Numeric() });
 
@@ -47,39 +47,10 @@ export const pulseRoutes = new Elysia().group("/api/pulse", (app) =>
     })
     .post(
       "/users/:id/impersonate",
-      ({ params: { id }, userId, cookie: { session_id }, set }) => {
-        const res = auth.impersonateUser(userId, id);
-        if (!res.ok) {
-          if (res.reason === "forbidden") {
-            set.status = 403;
-            return { error: "forbidden" };
-          }
-          if (res.reason === "user_not_found") throw new NotFoundError("pulse.userNotFound");
-          throw new ValidationError("pulse.userPaused");
-        }
-
-        const isSecure = process.env.NODE_ENV === "production";
-        session_id?.set({
-          value: res.newSessionId,
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
-          maxAge: 86400,
-          secure: isSecure,
-        });
-        const cookieValue = `session_id=${res.newSessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
-
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            user: {
-              ...res.targetUser,
-              modules: auth.getUserModules(res.targetUser.id),
-              isImpersonated: true,
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json", "Set-Cookie": cookieValue } },
-        );
+      ({ params: { id }, userId, cookie: { session_id } }) => {
+        const { sessionId, user } = auth.impersonate(userId, id);
+        writeSessionCookie(session_id, sessionId);
+        return { ok: true, user };
       },
       { params: idParams },
     ),

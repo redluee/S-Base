@@ -1,13 +1,11 @@
 import type { Database } from "bun:sqlite";
-import { join, dirname } from "path";
-import { mkdirSync, readdirSync, unlinkSync } from "fs";
+import { join } from "path";
+import { mkdirSync, readdirSync, rmSync } from "fs";
+import { BACKUP_DIR } from "./paths";
 
-const defaultDbPath = join(import.meta.dir, "../../..", "sbase.db");
+const FIRST_BACKUP_DELAY_MS = 30_000;
 
-export const getBackupDir = () =>
-  process.env.BACKUP_DIR || join(dirname(process.env.DB_PATH || defaultDbPath), "backups");
-
-export const createBackup = (sqlite: Database, dir = getBackupDir(), keep = Number(process.env.BACKUP_KEEP) || 14) => {
+export const createBackup = (sqlite: Database, dir = BACKUP_DIR, keep = Number(process.env.BACKUP_KEEP) || 14) => {
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const target = join(dir, `sbase-${stamp}.db`);
@@ -15,11 +13,7 @@ export const createBackup = (sqlite: Database, dir = getBackupDir(), keep = Numb
   const files = readdirSync(dir)
     .filter((f) => /^sbase-.*\.db$/.test(f))
     .sort();
-  for (const old of files.slice(0, Math.max(0, files.length - keep))) {
-    try {
-      unlinkSync(join(dir, old));
-    } catch {}
-  }
+  for (const old of files.slice(0, Math.max(0, files.length - keep))) rmSync(join(dir, old), { force: true });
   return target;
 };
 
@@ -32,6 +26,6 @@ export const startBackupSchedule = (sqlite: Database, intervalMs = 24 * 60 * 60 
       console.error(JSON.stringify({ level: "error", event: "db_backup_failed", error: String(error) }));
     }
   };
-  setTimeout(run, 30_000).unref();
+  setTimeout(run, FIRST_BACKUP_DELAY_MS).unref();
   return setInterval(run, intervalMs).unref();
 };

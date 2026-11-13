@@ -1,8 +1,9 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 import { readdir } from "fs/promises";
+import { DB_PATH } from "./paths";
 
-const LEGACY_BASELINE_END = "0040_add_set_edited_fields.sql";
+export const LEGACY_BASELINE_END = "0040_add_set_edited_fields.sql";
 const MIGRATIONS_DIR = join(import.meta.dir, "../..", "migrations");
 
 function errorMessage(err: unknown): string | undefined {
@@ -12,8 +13,32 @@ function errorMessage(err: unknown): string | undefined {
   return undefined;
 }
 
-export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS_DIR) {
-  // 1. Ensure migrations tracking table exists
+export interface MigrationResult {
+  total: number;
+  applied: string[];
+  skipped: string[];
+  baselined: number;
+}
+
+function registerLegacyBaseline(sqlite: Database, sqlFiles: string[], appliedSet: Set<string>): number {
+  if (appliedSet.size > 0) return 0;
+  const userTableExists = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
+  if (!userTableExists) return 0;
+  const insertStmt = sqlite.prepare("INSERT INTO _migrations (name) VALUES (?)");
+  const legacyFiles = sqlFiles.filter((file) => file <= LEGACY_BASELINE_END);
+  for (const file of legacyFiles) {
+    insertStmt.run(file);
+    appliedSet.add(file);
+  }
+  return legacyFiles.length;
+}
+
+function isAlreadyAppliedError(err: unknown): boolean {
+  const message = errorMessage(err);
+  return !!message && (message.includes("already exists") || message.includes("duplicate column name"));
+}
+
+export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS_DIR): Promise<MigrationResult> {
   sqlite.run(`
     CREATE TABLE IF NOT EXISTS _migrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,68 +47,42 @@ export async function runMigrations(sqlite: Database, migrationsDir = MIGRATIONS
     );
   `);
 
-  const files = await readdir(migrationsDir);
-  const sqlFiles = files.filter((f) => f.endsWith(".sql")).sort();
+  const sqlFiles = (await readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).sort();
+  const appliedSet = new Set(
+    sqlite
+      .query<{ name: string }, []>("SELECT name FROM _migrations")
+      .all()
+      .map((r) => r.name),
+  );
+  const baselined = registerLegacyBaseline(sqlite, sqlFiles, appliedSet);
 
-  const appliedRows = sqlite.query<{ name: string }, []>("SELECT name FROM _migrations").all();
-  const appliedSet = new Set(appliedRows.map((r) => r.name));
-
-  // If _migrations is completely empty, check if this is an existing database (e.g. users table exists)
-  // Register the known legacy baseline, then apply newer additive migrations normally
-  if (appliedSet.size === 0) {
-    const userTableExists = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
-
-    if (userTableExists) {
-      console.log("Existing database detected without migration tracking. Recording current migrations as applied...");
-      const insertStmt = sqlite.prepare("INSERT INTO _migrations (name) VALUES (?)");
-      const legacyFiles = sqlFiles.filter((file) => file <= LEGACY_BASELINE_END);
-      for (const file of legacyFiles) {
-        insertStmt.run(file);
-        appliedSet.add(file);
-      }
-      console.log(`Recorded ${legacyFiles.length} migration(s) as already applied.`);
-    }
-  }
-
-  let migratedCount = 0;
-  for (const file of sqlFiles) {
-    if (appliedSet.has(file)) {
-      continue;
-    }
-
+  const applied: string[] = [];
+  const skipped: string[] = [];
+  for (const file of sqlFiles.filter((f) => !appliedSet.has(f))) {
     try {
-      const sql = await Bun.file(join(migrationsDir, file)).text();
-      sqlite.exec(sql);
+      sqlite.exec(await Bun.file(join(migrationsDir, file)).text());
       sqlite.run("INSERT INTO _migrations (name) VALUES (?)", [file]);
-      appliedSet.add(file);
-      migratedCount++;
-      console.log(`MIGRATED: ${file}`);
-    } catch (fileErr: unknown) {
-      const message = errorMessage(fileErr);
-      if (message?.includes("already exists") || message?.includes("duplicate column name")) {
-        sqlite.run("INSERT OR IGNORE INTO _migrations (name) VALUES (?)", [file]);
-        appliedSet.add(file);
-        console.log(`SKIPPED (already exists): ${file}`);
-      } else {
-        console.error(`Migration failed for ${file}:`, message || fileErr);
-        throw fileErr;
-      }
+      applied.push(file);
+    } catch (err) {
+      if (!isAlreadyAppliedError(err)) throw err;
+      sqlite.run("INSERT OR IGNORE INTO _migrations (name) VALUES (?)", [file]);
+      skipped.push(file);
     }
   }
 
-  return { total: sqlFiles.length, applied: migratedCount };
+  return { total: sqlFiles.length, applied, skipped, baselined };
 }
 
 async function main() {
-  const dbPath = process.env.DB_PATH || join(import.meta.dir, "../../..", "sbase.db");
-  const sqlite = new Database(dbPath);
-
+  const sqlite = new Database(DB_PATH);
   try {
     const result = await runMigrations(sqlite);
-    console.log(`Database migration complete (${result.applied} new applied).`);
+    if (result.baselined) console.log(`Recorded ${result.baselined} legacy migration(s) as already applied.`);
+    for (const file of result.applied) console.log(`MIGRATED: ${file}`);
+    for (const file of result.skipped) console.log(`SKIPPED (already exists): ${file}`);
+    console.log(`Database migration complete (${result.applied.length} new applied).`);
   } catch (err: unknown) {
-    const message = errorMessage(err);
-    console.error("Database migration error:", message || err);
+    console.error("Database migration error:", errorMessage(err) || err);
     process.exit(1);
   } finally {
     sqlite.close();

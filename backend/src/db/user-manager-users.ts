@@ -1,3 +1,4 @@
+import { hashPassword } from "../auth";
 import { eq } from "drizzle-orm";
 import db from "./client";
 import { users, usermodulepermissions, modules } from "./schema";
@@ -40,9 +41,7 @@ export async function createUser(username: string, passwordPlain: string, email?
       }
     }
 
-    const passwordHash = await Bun.password.hash(passwordPlain, {
-      algorithm: "argon2id",
-    });
+    const passwordHash = await hashPassword(passwordPlain);
 
     const result = db
       .insert(users)
@@ -133,9 +132,7 @@ export async function changePassword(identifier: string, passwordPlain: string) 
       return;
     }
 
-    const passwordHash = await Bun.password.hash(passwordPlain, {
-      algorithm: "argon2id",
-    });
+    const passwordHash = await hashPassword(passwordPlain);
 
     db.update(users).set({ pswdHash: passwordHash }).where(eq(users.userId, user.userId)).run();
 

@@ -1,28 +1,7 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { call, login } from "../test-http";
 import { app } from "../index";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { setupTestDb } from "../test-utils";
-
-async function login(username = "admin") {
-  const res = await app.handle(
-    new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: username }),
-    }),
-  );
-  const match = (res.headers.get("set-cookie") ?? "").match(/session_id=([^;]+)/);
-  return `session_id=${match?.[1] ?? ""}`;
-}
-
-function call(cookie: string, method: string, path: string, body?: unknown) {
-  return app.handle(
-    new Request(`http://localhost${path}`, {
-      method,
-      headers: { Cookie: cookie, "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  );
-}
 
 describe("minor routes error contract", () => {
   let cookie: string;

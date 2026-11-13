@@ -1,3 +1,4 @@
+import { hashPassword } from "../../auth";
 import { eq, inArray, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { ConflictError, NotFoundError, ValidationError, orNotFound } from "../../utils/errors";
@@ -114,7 +115,7 @@ export class PulseUsers {
       .get();
     if (existingEmail) throw new ConflictError("pulse.emailExists");
 
-    const pswdHash = await Bun.password.hash(password, { algorithm: "argon2id" });
+    const pswdHash = await hashPassword(password);
     const created = db.insert(users).values({ username, email, pswdHash }).returning({ userId: users.userId }).get();
     if (!created) throw new NotFoundError("pulse.userNotFound");
     return this.getUser(created.userId);

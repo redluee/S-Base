@@ -271,6 +271,6 @@ describe("workout routes error contract", () => {
   it("keeps the 401 body of the upload route for anonymous requests", async () => {
     const anon = await app.handle(new Request(`http://localhost/api/uploads/${crypto.randomUUID()}.jpg`));
     expect(anon.status).toBe(401);
-    expect(await anon.json()).toEqual({ error: "Unauthorized" });
+    expect(await anon.json()).toEqual({ error: "common.unauthorized" });
   });
 });

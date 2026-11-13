@@ -1,30 +1,8 @@
 import { eq } from "drizzle-orm";
-import { app } from "../../index";
+export { call, login } from "../../test-http";
 import db from "../../db/client";
 import { workoutSessions } from "../../db/schema";
 import type { WorkoutService } from "./index";
-
-export async function login(username: string) {
-  const res = await app.handle(
-    new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: username }),
-    }),
-  );
-  const match = res.headers.get("set-cookie")?.match(/session_id=([^;]+)/);
-  return `session_id=${match![1]}`;
-}
-
-export function call(cookie: string, method: string, path: string, body?: unknown) {
-  return app.handle(
-    new Request(`http://localhost${path}`, {
-      method,
-      headers: { Cookie: cookie, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    }),
-  );
-}
 
 export function finishedSession(
   workout: WorkoutService,

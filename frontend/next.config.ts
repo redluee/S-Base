@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { BACKEND_API_URL } from "./src/lib/backend";
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
@@ -32,7 +33,7 @@ const nextConfig: NextConfig = {
       fallback: [
         {
           source: "/api/:path*",
-          destination: `${process.env.API_URL ?? "http://127.0.0.1:3001/api"}/:path*`,
+          destination: `${BACKEND_API_URL}/:path*`,
         },
       ],
     };

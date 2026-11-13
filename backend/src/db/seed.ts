@@ -1,4 +1,6 @@
 import db from "./client";
+import { hashPassword } from "../auth";
+import { ensureDefaultModules } from "../auth/modules";
 import {
   users,
   modules,
@@ -20,54 +22,13 @@ if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "1"
   process.exit(1);
 }
 
-async function getOrCreateModule(name: string, alias: string, description: string) {
-  const existing = db.select().from(modules).where(eq(modules.moduleName, name)).get();
-  if (existing) {
-    return existing;
-  }
-  return db
-    .insert(modules)
-    .values({
-      moduleName: name,
-      moduleAlias: alias,
-      description,
-    })
-    .returning()
-    .get();
-}
-
 async function seed() {
   console.log("Starting development database seeding...");
 
-  // 1. Ensure modules exist
-  const oldMeasurements = db.select().from(modules).where(eq(modules.moduleName, "measurements")).get();
-  if (oldMeasurements) {
-    db.delete(usermodulepermissions).where(eq(usermodulepermissions.moduleId, oldMeasurements.moduleId)).run();
-    db.delete(modules).where(eq(modules.moduleId, oldMeasurements.moduleId)).run();
-  }
+  ensureDefaultModules();
+  const allDbModules = db.select().from(modules).all();
 
-  const recipesMod = await getOrCreateModule(
-    "recipes",
-    "Smaak Tracker",
-    "Module voor het beheren van recepten en wijnen",
-  );
-  const workoutMod = await getOrCreateModule(
-    "workout",
-    "Workout Studio",
-    "Module voor het beheren van workouts, trainingssessies en lichaamsmetingen",
-  );
-  const cashflowMod = await getOrCreateModule("cashflow", "Cashflow", "Module voor facturatie en financieel beheer");
-  const youMod = await getOrCreateModule("you", "Voor Jou", "Toegang tot stevenheijn.nl/you");
-  const lyricQuotesMod = await getOrCreateModule(
-    "lyric_quotes",
-    "Lyric Quotes",
-    "Toegang tot stevenheijn.nl/lyric_quotes",
-  );
-
-  const allDbModules = [recipesMod, workoutMod, cashflowMod, youMod, lyricQuotesMod];
-
-  // 2. Setup users: admin and test
-  const usernames = ["admin", "test"];
+  const usernames = ["admin", "tester"];
   const userMap = new Map<string, typeof users.$inferSelect>();
 
   for (const username of usernames) {
@@ -96,7 +57,7 @@ async function seed() {
       console.log(`Cleared existing user '${username}' and associated data.`);
     }
 
-    const passwordHash = await Bun.password.hash(username, { algorithm: "argon2id" });
+    const passwordHash = await hashPassword(username);
     const insertedUser = db
       .insert(users)
       .values({

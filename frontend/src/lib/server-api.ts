@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { BACKEND_API_URL, SESSION_COOKIE } from "@/lib/backend";
 import { Measurement, Wine, type AuthUser } from "@/lib/api";
 import type {
   Recipe,
@@ -10,14 +11,13 @@ import type {
   FullWorkoutSession,
 } from "@backend/types/shared";
 
-const API_URL = process.env.API_URL ?? "http://127.0.0.1:3001/api";
 
 async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("session_id")?.value;
-  const cookieHeader = sessionId ? `session_id=${sessionId}` : "";
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
+  const cookieHeader = sessionId ? `${SESSION_COOKIE}=${sessionId}` : "";
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${BACKEND_API_URL}${path}`, {
     ...init,
     cache: "no-store",
     headers: {

@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { auth, minecraft, minecraftAuth, requireFullMinecraftAccess } from "../context";
+import { ForbiddenError } from "../utils/errors";
 import type { MapFile } from "../modules/minecraft/minecraft-map";
 
 const slugParams = t.Object({ slug: t.String() });
@@ -21,9 +22,6 @@ function mapResponse(file: MapFile) {
   return new Response(file.data, { status: file.status, headers: file.headers });
 }
 
-const forbidden = (key: string) =>
-  new Response(JSON.stringify({ error: key }), { status: 403, headers: { "Content-Type": "application/json" } });
-
 export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
   app
     .use(minecraftAuth)
@@ -33,7 +31,7 @@ export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
 
       const serverMatch = path.match(/\/api\/minecraft\/servers\/([^/]+)/);
       if (serverMatch && !minecraft.servers.canAccess(userId, serverMatch[1], hasFullAccess)) {
-        return forbidden("minecraft.serverForbidden");
+        throw new ForbiddenError("minecraft.serverForbidden");
       }
 
       if (request.method === "GET") return;
