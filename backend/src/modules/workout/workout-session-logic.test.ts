@@ -191,6 +191,14 @@ describe("workout session, metric and exercise logic", () => {
       );
     });
 
+    it("lists the pause state so the running-workout card can show a paused session", () => {
+      const s = workout.sessions.create(adminId)!;
+      const pausedAt = new Date().toISOString();
+      workout.sessions.update(s.sessionId, adminId, { pausedAt, pausedSeconds: 30 });
+      const [listed] = workout.sessions.list(adminId, "active");
+      expect(listed).toMatchObject({ sessionId: s.sessionId, pausedAt, pausedSeconds: 30 });
+    });
+
     it("completes a paused session without counting the paused time", () => {
       const s = workout.sessions.create(adminId)!;
       const now = Date.now();

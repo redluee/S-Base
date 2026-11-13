@@ -43,6 +43,8 @@ export class WorkoutSessionReader {
         completedAt: workoutSessions.completedAt,
         notes: workoutSessions.notes,
         name: workoutSessions.name,
+        pausedAt: workoutSessions.pausedAt,
+        pausedSeconds: workoutSessions.pausedSeconds,
         exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`,
         completedSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id AND session_sets.completed = 1)`,
         totalSetsCount: sql<number>`(SELECT COUNT(*) FROM session_sets INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.session_exercise_id WHERE session_exercises.session_id = workout_sessions.session_id)`,
