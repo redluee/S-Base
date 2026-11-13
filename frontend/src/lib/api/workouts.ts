@@ -1,4 +1,4 @@
-import { request } from "./core";
+import { request as clientRequest, type Fetcher } from "./core";
 import type {
   WorkoutTemplate,
   FullWorkoutTemplate,
@@ -7,7 +7,7 @@ import type {
   PersonalRecord,
 } from "@backend/types/shared";
 
-export const workoutsApi = {
+export const createWorkoutsApi = (request: Fetcher) => ({
   templates: {
     list: () => request<WorkoutTemplate[]>("/workouts/templates"),
 
@@ -139,4 +139,6 @@ export const workoutsApi = {
     ),
   stats: () =>
     request<{ daysAgo: number | null; totalWorkouts: number; totalVolume: number }>("/workouts/stats"),
-};
+});
+
+export const workoutsApi = createWorkoutsApi(clientRequest);

@@ -3,7 +3,7 @@ import { t } from "@/lib/lang";
 import { ResumeProfileClient } from "./client";
 
 export default async function ResumeProfilePage() {
-  const profile = await serverApi.resume.profile().catch(() => null);
+  const profile = await serverApi.resume.profile.get().catch(() => null);
   if (!profile) {
     return (
       <div className="max-w-3xl mx-auto p-4 sm:p-6">

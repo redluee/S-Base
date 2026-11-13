@@ -1,5 +1,5 @@
 import type { FinanceAccountIcon } from "@backend/types/finance-icons";
-import { request } from "./core";
+import { request as clientRequest, type Fetcher } from "./core";
 import type {
   FinanceAccount,
   FinanceDashboard,
@@ -18,7 +18,7 @@ const json = (method: string, body: unknown) => ({
   method,
   body: JSON.stringify(body),
 });
-export const financeApi = {
+export const createFinanceApi = (request: Fetcher) => ({
   addSubscription: (transactionId: number, cadence: FinanceSubscriptionCadence) =>
     request<{ success: boolean }>("/finance/subscriptions", json("POST", { transactionId, cadence })),
   subscriptionCandidates: (search: string, page: number) =>
@@ -63,4 +63,6 @@ export const financeApi = {
     request<FinanceDashboard>(
       `/finance/dashboard?period=${period}&date=${date}`,
     ),
-};
+});
+
+export const financeApi = createFinanceApi(clientRequest);

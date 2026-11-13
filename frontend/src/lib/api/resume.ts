@@ -1,5 +1,5 @@
 import { compressImage } from "../image";
-import { request, uploadFormDataWithProgress } from "./core";
+import { request as clientRequest, uploadFormDataWithProgress, type Fetcher } from "./core";
 import type {
   ResumeProfile,
   ResumeExperience,
@@ -10,7 +10,7 @@ import type {
   ResumeGoogleFont,
 } from "@backend/types/shared";
 
-export const resumeApi = {
+export const createResumeApi = (request: Fetcher) => ({
   profile: {
     get: () => request<ResumeProfile>("/resume/profile"),
     update: (data: Partial<ResumeProfile>) =>
@@ -55,4 +55,6 @@ export const resumeApi = {
     google: (family: string) =>
       request<ResumeGoogleFont>(`/resume/fonts/google?family=${encodeURIComponent(family)}`),
   },
-};
+});
+
+export const resumeApi = createResumeApi(clientRequest);

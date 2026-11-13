@@ -1,5 +1,5 @@
 import type { StoryInput } from "@backend/modules/minor/minor-stories";
-import { request, requestForm } from "./core";
+import { request as clientRequest, requestForm, type Fetcher } from "./core";
 import type {
   MinorSprint,
   MinorSprintFull,
@@ -18,7 +18,7 @@ import type {
   MinorSprintExportData,
 } from "@backend/types/shared";
 
-export const minorApi = {
+export const createMinorApi = (request: Fetcher) => ({
   dashboard: () => request<MinorDashboardStats>("/minor/dashboard"),
   sprints: {
     list: () => request<MinorSprint[]>("/minor/sprints"),
@@ -147,4 +147,6 @@ export const minorApi = {
     form.append("file", file);
     return requestForm<{ filePath: string; originalName: string }>("/minor/upload", form);
   },
-};
+});
+
+export const minorApi = createMinorApi(clientRequest);

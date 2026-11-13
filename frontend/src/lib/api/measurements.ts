@@ -1,9 +1,9 @@
-import { request, uploadFormDataWithProgress } from "./core";
+import { request as clientRequest, uploadFormDataWithProgress, type Fetcher } from "./core";
 import type {
   Measurement,
 } from "./types";
 
-export const measurementsApi = {
+export const createMeasurementsApi = (request: Fetcher) => ({
   list: () =>
     request<Measurement[]>("/measurements"),
   latest: () =>
@@ -39,4 +39,6 @@ export const measurementsApi = {
     request<{ success: boolean }>(`/measurements/photos/${photoId}`, {
       method: "DELETE",
     }),
-};
+});
+
+export const measurementsApi = createMeasurementsApi(clientRequest);

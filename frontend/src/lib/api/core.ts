@@ -40,6 +40,8 @@ export function errorFromBody(status: number, statusText: string, text: string):
   return new ApiError(text || statusText, status);
 }
 
+export type Fetcher = <T>(path: string, init?: RequestInit) => Promise<T>;
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     credentials: "include",

@@ -1,10 +1,10 @@
-import { request } from "./core";
+import { request as clientRequest, type Fetcher } from "./core";
 import type {
   Recipe,
   FullRecipe,
 } from "@backend/types/shared";
 
-export const recipesApi = {
+export const createRecipesApi = (request: Fetcher) => ({
   list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
@@ -41,4 +41,6 @@ export const recipesApi = {
       method: "PATCH",
       body: JSON.stringify({ rating }),
     }),
-};
+});
+
+export const recipesApi = createRecipesApi(clientRequest);

@@ -1,4 +1,4 @@
-import { request, requestForm } from "./core";
+import { request as clientRequest, requestForm, type Fetcher } from "./core";
 import type { InvoiceStatus } from "@backend/shared/cashflow";
 import type {
   CashflowClient,
@@ -18,7 +18,7 @@ import type {
   TradeNameInput,
 } from "@backend/types/cashflow";
 
-export const cashflowApi = {
+export const createCashflowApi = (request: Fetcher) => ({
   tradeNames: {
     list: () => request<CashflowTradeName[]>("/cashflow/trade-names"),
     create: (data: TradeNameInput) => request<CashflowTradeName>("/cashflow/trade-names", { method: "POST", body: JSON.stringify(data) }),
@@ -82,4 +82,6 @@ export const cashflowApi = {
     delete: (id: number) => request<{ deleted: boolean }>(`/cashflow/expenses/${id}`, { method: "DELETE" }),
   },
   dashboard: (year?: number) => request<CashflowDashboardStats>(year ? `/cashflow/dashboard?year=${year}` : "/cashflow/dashboard"),
-};
+});
+
+export const cashflowApi = createCashflowApi(clientRequest);

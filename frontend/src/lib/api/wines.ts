@@ -1,9 +1,9 @@
-import { request, uploadFormDataWithProgress } from "./core";
+import { request as clientRequest, uploadFormDataWithProgress, type Fetcher } from "./core";
 import type {
   Wine,
 } from "./types";
 
-export const winesApi = {
+export const createWinesApi = (request: Fetcher) => ({
   list: (type?: string, q?: string, sortBy?: string, sortOrder?: string) => {
     const params = new URLSearchParams();
     if (type) params.set("type", type);
@@ -28,4 +28,6 @@ export const winesApi = {
       onProgress
     );
   },
-};
+});
+
+export const winesApi = createWinesApi(clientRequest);
