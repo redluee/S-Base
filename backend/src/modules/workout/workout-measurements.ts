@@ -4,7 +4,8 @@ import { measurements, measurementPhotos } from "../../db/schema";
 import { ConflictError, ValidationError, orNotFound } from "../../utils/errors";
 import { IMAGE_EXTENSIONS, removeUpload, uploadFilenameOf, uploadOwnerOf } from "../../utils/uploads";
 import type { MeasurementSaveInput, MeasurementUpdateInput } from "./workout-schemas";
-import { invalidRequest, requireId, requireObject } from "./workout-validation";
+import { requireId, requireObject } from "../../utils/validation";
+import { invalidRequest } from "./workout-validation";
 
 const MEASUREMENT_FIELDS = [
   "height",
@@ -150,7 +151,7 @@ export class WorkoutMeasurements {
   }
 
   update(userId: number, measurementIdRaw: unknown, data: MeasurementUpdateInput) {
-    const measurementId = requireId(measurementIdRaw);
+    const measurementId = requireId(measurementIdRaw, "workout.invalidId");
     const input = requireObject(data);
     if (input.date !== undefined) requireMeasurementDate(input.date);
     validateMeasurementFields(input);
@@ -181,7 +182,7 @@ export class WorkoutMeasurements {
   }
 
   addPhoto(measurementIdRaw: unknown, userId: number, filePath: string) {
-    const measurementId = requireId(measurementIdRaw);
+    const measurementId = requireId(measurementIdRaw, "workout.invalidId");
     if (!isMeasurementUpload(filePath)) throw new ValidationError("workout.invalidPhotoPath");
     this.requireOwned(measurementId, userId);
     const inUse = db
@@ -195,7 +196,7 @@ export class WorkoutMeasurements {
   }
 
   async deletePhoto(photoIdRaw: unknown, userId: number) {
-    const photoId = requireId(photoIdRaw);
+    const photoId = requireId(photoIdRaw, "workout.invalidId");
     const photo = orNotFound(
       db
         .select({
@@ -216,7 +217,7 @@ export class WorkoutMeasurements {
   }
 
   async remove(measurementIdRaw: unknown, userId: number) {
-    const measurementId = requireId(measurementIdRaw);
+    const measurementId = requireId(measurementIdRaw, "workout.invalidId");
     this.requireOwned(measurementId, userId);
 
     const photos = db.select().from(measurementPhotos).where(eq(measurementPhotos.measurementId, measurementId)).all();

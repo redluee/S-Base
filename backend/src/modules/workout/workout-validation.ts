@@ -1,4 +1,5 @@
 import { ValidationError } from "../../utils/errors";
+import { requireObject } from "../../utils/validation";
 
 export const MAX_SETS_PER_EXERCISE = 50;
 export const MAX_EXERCISES = 100;
@@ -28,12 +29,6 @@ export function invalidRequest(): ValidationError {
   return new ValidationError("common.invalidRequest");
 }
 
-export function requireId(value: unknown): number {
-  const n = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
-  if (typeof n !== "number" || !Number.isSafeInteger(n) || n < 1) throw new ValidationError("workout.invalidId");
-  return n;
-}
-
 export function requireName(value: unknown, key = "workout.nameRequired", maxLength = 200): string {
   if (typeof value !== "string" || !value.trim()) throw new ValidationError(key);
   if (value.length > maxLength) throw new ValidationError("workout.textTooLong", { max: maxLength });
@@ -49,11 +44,6 @@ export function optionalText(value: unknown, maxLength = 5000): void {
 export function optionalInteger(value: unknown): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "number" || !Number.isInteger(value)) throw invalidRequest();
-}
-
-export function requireObject(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw invalidRequest();
-  return value as Record<string, unknown>;
 }
 
 export function requireDateTime(value: unknown): void {

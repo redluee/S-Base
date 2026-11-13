@@ -8,7 +8,8 @@ import { parseDateString } from "../../shared/dates";
 import { WorkoutSessionReader } from "./workout-session-reader";
 import type { SessionSetInput, SessionUpdateInput } from "./workout-schemas";
 import type { WorkoutTemplates } from "./workout-templates";
-import { requireDateTime, requireId, requireObject, validateSessionInput } from "./workout-validation";
+import { requireId, requireObject } from "../../utils/validation";
+import { requireDateTime, validateSessionInput } from "./workout-validation";
 
 export class WorkoutSessions {
   readonly reader = new WorkoutSessionReader();
@@ -24,7 +25,7 @@ export class WorkoutSessions {
   }
 
   create(userId: number, templateId?: number, force = false) {
-    if (templateId !== undefined) requireId(templateId);
+    if (templateId !== undefined) requireId(templateId, "workout.invalidId");
     this.cleanupEmpty(userId);
     if (!force) {
       const running = db
