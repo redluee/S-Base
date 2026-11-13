@@ -50,7 +50,6 @@ export function DashboardClient({ user }: { user: AuthUser }) {
 
   const canAccess = (moduleId: ModuleId) => canOpen(moduleById(moduleId), userModules);
 
-  // Load saved background settings from localStorage per user
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     let nextBlur: number | undefined;
@@ -66,7 +65,6 @@ export function DashboardClient({ user }: { user: AuthUser }) {
           nextBgImage = parsed.bgImage === "" ? DEFAULT_BG : parsed.bgImage;
         }
       } catch {
-        // Ignore JSON parse error
       }
     }
 
@@ -78,13 +76,11 @@ export function DashboardClient({ user }: { user: AuthUser }) {
     });
   }, [storageKey]);
 
-  // Save background settings to localStorage per user
   useEffect(() => {
     if (!isLoaded) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify({ blur, brightness, bgImage }));
     } catch {
-      // Ignore quota error
     }
   }, [blur, brightness, bgImage, isLoaded, storageKey]);
 
@@ -109,14 +105,12 @@ export function DashboardClient({ user }: { user: AuthUser }) {
 
   return (
     <main id="main-content" className="flex flex-col items-center justify-start min-h-screen px-4 sm:px-6 pt-20 sm:pt-20 pb-20 sm:pb-16 relative overflow-x-hidden bg-zinc-950 text-foreground w-full font-sans">
-      {/* Impersonation Banner */}
       {isImpersonated && impersonatedBy && (
         <div className="fixed top-0 left-0 right-0 z-50">
           <ImpersonationBanner username={username} impersonatedBy={impersonatedBy} />
         </div>
       )}
 
-      {/* Background Image Container */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none scale-105 transition-[filter,background-image] duration-300"
         style={{
@@ -125,10 +119,8 @@ export function DashboardClient({ user }: { user: AuthUser }) {
         }}
       />
 
-      {/* Dark Overlay Gradient for maximum contrast */}
       <div className="fixed inset-0 z-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/50 to-zinc-950/90 pointer-events-none" />
 
-      {/* Top Header Bar */}
       <header
         className={`absolute ${
           isImpersonated ? "top-14" : "top-6"
@@ -140,7 +132,6 @@ export function DashboardClient({ user }: { user: AuthUser }) {
         <span className="text-xs font-semibold text-zinc-200 tracking-wide">{username}</span>
       </header>
 
-      {/* Title Section */}
       <section className="text-center mb-5 sm:mb-6 max-w-3xl relative z-10 w-full px-2 @container">
         <h1
           className="font-display text-[clamp(1.75rem,5cqw,2.75rem)] whitespace-nowrap leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl"
@@ -153,7 +144,6 @@ export function DashboardClient({ user }: { user: AuthUser }) {
         </p>
       </section>
 
-      {/* Active Status Banner (Elevated Glowing Pill) */}
       {runningSession && (
         <div className="w-full max-w-5xl mb-3 relative z-20 animate-in fade-in slide-in-from-top-3 duration-300">
           <RunningWorkoutCard
@@ -164,13 +154,11 @@ export function DashboardClient({ user }: { user: AuthUser }) {
         </div>
       )}
 
-      {/* Module Grid */}
       <ModuleGrid
         canAccess={canAccess}
         hasOnlineServer={hasOnlineServer}
       />
 
-      {/* Settings Toggle Button (Bottom Right) */}
       <button
         onClick={() => setIsSettingsOpen(!isSettingsOpen)}
         className="fixed bottom-6 right-6 z-40 p-3.5 squircle-icon bg-zinc-900/80 border border-white/10 text-zinc-300 hover:text-white hover:border-[#00E676]/40 hover:bg-zinc-800/90 backdrop-blur-md shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-[#00E676]/40"
@@ -184,7 +172,6 @@ export function DashboardClient({ user }: { user: AuthUser }) {
         />
       </button>
 
-      {/* Settings Menu Panel */}
       {isSettingsOpen && (
         <BackgroundSettingsPanel
           blur={blur}

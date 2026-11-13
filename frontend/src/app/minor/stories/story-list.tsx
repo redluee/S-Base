@@ -37,7 +37,6 @@ export function StoryList({ storyTypes, sprints, filteredStories, sprintGroups, 
 
             return (
               <div key={group.sprint.id} className="space-y-4">
-                {/* Sprint Section Header */}
                 {isConceptGroup ? (
                   <div className="flex items-center justify-between pb-2 border-b border-white/10">
                     <div className="flex items-center gap-3">
@@ -78,7 +77,6 @@ export function StoryList({ storyTypes, sprints, filteredStories, sprintGroups, 
                   </Link>
                 )}
 
-                {/* Stories Cards in this Sprint */}
                 <div className="grid grid-cols-1 gap-4">
                   {group.stories.map((story) => (
                     <StoryCard

@@ -74,7 +74,6 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-6">
       <InlineAlert>{actionError}</InlineAlert>
       {dialog}
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <Link href="/cashflow/invoices" className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 mb-2 transition-colors">
@@ -129,9 +128,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
         </div>
       </div>
 
-      {/* Info grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Factuurdetails */}
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
           <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">{t("Factuurdetails")}</h2>
           <dl className="space-y-2">
@@ -185,7 +182,6 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
           </dl>
         </div>
 
-        {/* Klant & Handelsnaam */}
         <div className="space-y-3">
           <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-2">
             <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide flex items-center gap-1.5">
@@ -216,13 +212,11 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
         </div>
       </div>
 
-      {/* Line items */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-800">
           <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">{t("Factuurregels")}</h2>
         </div>
 
-        {/* Mobile View Cards */}
         <div className="sm:hidden divide-y divide-zinc-800/80">
           {invoice.lines.map((line) => (
             <div key={line.id} className="p-3.5 space-y-1.5">
@@ -258,7 +252,6 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
           </div>
         </div>
 
-        {/* Desktop Table View */}
         <table className="hidden sm:table w-full text-sm">
           <thead>
             <tr className="border-b-2 border-zinc-700">
@@ -310,7 +303,6 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
         )}
       </div>
 
-      {/* Payment info */}
       {invoice.tradeNameIban && (
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
           <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3">{t("BETALINGSINFORMATIE")}</h2>

@@ -36,7 +36,6 @@ export function LinesSection({
             <p className="text-xs text-rose-400 font-medium">{fieldErrors.lines}</p>
           )}
   
-          {/* Header row (desktop only) */}
           <div className="hidden sm:grid grid-cols-[105px_125px_1fr_95px_115px_95px_32px] gap-2 pb-1 border-b border-zinc-800">
             <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Type")}</span>
             <span className="text-[10px] font-semibold text-zinc-500 uppercase">{t("Datum")}</span>
@@ -50,7 +49,6 @@ export function LinesSection({
           <div className="space-y-3 sm:space-y-2.5">
             {lines.map((line, idx) => (
               <div key={line.localId}>
-                {/* Mobile View Card (< sm) */}
                 <div className="sm:hidden p-3.5 bg-zinc-950/60 border border-zinc-800/80 rounded-lg space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-mono font-bold text-zinc-500">#{idx + 1}</span>
@@ -169,9 +167,7 @@ export function LinesSection({
                   </div>
                 </div>
   
-                {/* Desktop View Row (>= sm) */}
                 <div className="hidden sm:grid sm:grid-cols-[105px_125px_1fr_95px_115px_95px_32px] gap-2 items-center">
-                  {/* Type dropdown */}
                   <select
                     value={line.type}
                     onChange={e => updateLine(line.localId, "type", e.target.value as LineType)}
@@ -183,7 +179,6 @@ export function LinesSection({
                     <option value="discount">{t("Korting")}</option>
                   </select>
   
-                  {/* Date input */}
                   <Input
                     type="date"
                     value={line.date}
@@ -192,7 +187,6 @@ export function LinesSection({
                     title={t("Datum (optioneel)")}
                   />
   
-                  {/* Task Description */}
                   <Input
                     placeholder={t("Omschrijving")}
                     value={line.taskDescription}
@@ -200,7 +194,6 @@ export function LinesSection({
                     className="bg-zinc-800 border-zinc-700 text-sm"
                   />
   
-                  {/* Quantity / Discount Mode */}
                   {line.type === "discount" ? (
                     <select
                       value={line.discountType}
@@ -226,7 +219,6 @@ export function LinesSection({
                     </div>
                   )}
   
-                  {/* Unit Price / Discount Value */}
                   {line.type === "discount" ? (
                     <Input
                       type="number"
@@ -253,12 +245,10 @@ export function LinesSection({
                     </div>
                   )}
   
-                  {/* Total cost display */}
                   <div className={`flex items-center h-9 px-3 rounded-lg border border-zinc-700 text-sm justify-end ${line.totalCost < 0 ? "bg-emerald-500/10 text-emerald-400 font-semibold" : "bg-zinc-800/50 text-zinc-300"}`}>
                     {formatEuro(line.totalCost)}
                   </div>
   
-                  {/* Remove button */}
                   <button
                     type="button"
                     onClick={() => removeLine(line.localId)}
@@ -271,7 +261,6 @@ export function LinesSection({
             ))}
           </div>
   
-          {/* Total */}
           <div className="flex justify-end pt-3 border-t border-zinc-800">
             <div className="text-right">
               <p className="text-xs text-zinc-400">{t("Factuurtotaal")}</p>

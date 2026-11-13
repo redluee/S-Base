@@ -31,7 +31,6 @@ export function InvoiceList({
   const router = useRouter();
   return (
     <div className="space-y-2">
-      {/* Desktop table header */}
       <div className="hidden sm:grid sm:grid-cols-[160px_1.5fr_1fr_1fr_110px_165px] gap-4 px-4 pb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider select-none">
         <button
           type="button"
@@ -83,7 +82,6 @@ export function InvoiceList({
 
         return (
           <div key={inv.id}>
-            {/* Desktop view row */}
             <div
               onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
               role="button"
@@ -100,7 +98,6 @@ export function InvoiceList({
                 isOverdue ? "border-rose-500/30 hover:border-rose-500/50" : "border-zinc-800 hover:border-zinc-700"
               }`}
             >
-              {/* Status & Number */}
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] leading-none font-medium tracking-wide shrink-0 ${cfg.color}`}>
                   <StatusIcon className="size-2.5" />
@@ -115,7 +112,6 @@ export function InvoiceList({
                 </Link>
               </div>
 
-              {/* Client / Project */}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate" title={inv.clientName}>{inv.clientName}</p>
                 {inv.projectName ? (
@@ -127,7 +123,6 @@ export function InvoiceList({
                 )}
               </div>
 
-              {/* Date */}
               <div className="min-w-0">
                 <p className="text-xs text-zinc-300">{formatDate(inv.dateCreated)}</p>
                 {inv.tradeNameDisplay && (
@@ -135,19 +130,16 @@ export function InvoiceList({
                 )}
               </div>
 
-              {/* Due Date */}
               <div>
                 <p className={`text-xs ${isOverdue ? "text-rose-400 font-semibold" : "text-zinc-300"}`}>
                   {formatDate(inv.paymentDueDate)}
                 </p>
               </div>
 
-              {/* Total */}
               <div className="text-right">
                 <p className="text-sm font-bold text-white">{formatEuro(inv.total)}</p>
               </div>
 
-              {/* Actions */}
               <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                 {inv.status !== "paid" && (
                   <button
@@ -180,7 +172,6 @@ export function InvoiceList({
               </div>
             </div>
 
-            {/* Mobile view card */}
             <div
               onClick={() => router.push(`/cashflow/invoices/${inv.id}`)}
               role="button"

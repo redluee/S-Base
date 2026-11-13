@@ -26,7 +26,6 @@ export function SplitLayout({
 }: SlideLayoutProps) {
   return (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-2">
-        {/* Left Column: Points, Websites & Documents */}
         <div className="lg:col-span-6 space-y-4">
           <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-4">
             <PointsList
@@ -37,7 +36,6 @@ export function SplitLayout({
             />
           </div>
 
-          {/* Websites shown under points if images exist in the right column */}
           {images.length > 0 && websites.length > 0 && (
             <div className="space-y-2.5 pt-1">
               {websites.map((w, idx) => (
@@ -46,7 +44,6 @@ export function SplitLayout({
             </div>
           )}
 
-          {/* Fallback Demo Link when no custom websites but demoUrl exists */}
           {images.length > 0 && websites.length === 0 && demoUrl && (
             <a
               href={toExternalHref(demoUrl)}
@@ -76,7 +73,6 @@ export function SplitLayout({
             </a>
           )}
 
-          {/* Documents shown under points if an image or websites panel is in the right column */}
           {images.length > 0 && documents.length > 0 && (
             <div className="space-y-2 pt-1">
               <div className="space-y-2">
@@ -88,7 +84,6 @@ export function SplitLayout({
           )}
         </div>
 
-        {/* Right Column: Hero Image, Websites Panel, or Documents Panel */}
         <div className="lg:col-span-6">
           {images.length > 0 ? (
             <div
@@ -156,7 +151,6 @@ export function MediaLayout({
           </div>
         )}
 
-        {/* Real Images Grid - uncropped, object-contain */}
         {images.length > 0 && (
           <div
             className={`grid gap-4 ${
@@ -197,7 +191,6 @@ export function MediaLayout({
           </div>
         )}
 
-        {/* Websites Grid */}
         {websites.length > 0 && (
           <div
             className={`grid gap-3 ${
@@ -214,7 +207,6 @@ export function MediaLayout({
           </div>
         )}
 
-        {/* Documents Grid */}
         {documents.length > 0 && (
           <div
             className={`grid gap-3 ${
@@ -266,7 +258,6 @@ export function DemoLayout({
             />
           </div>
 
-          {/* Other websites if multiple exist */}
           {websites.length > 1 && (
             <div className="space-y-2 pt-1">
               {websites.slice(1).map((w, idx) => (
@@ -275,7 +266,6 @@ export function DemoLayout({
             </div>
           )}
 
-          {/* Documents */}
           {documents.length > 0 && (
             <div className="space-y-2">
               {documents.map((doc, idx) => (
@@ -329,7 +319,6 @@ export function BulletsLayout({
 }: SlideLayoutProps) {
   return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-        {/* Card 1: Deliverables */}
         <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-5">
           <PointsList
             bullets={bullets}
@@ -338,7 +327,6 @@ export function BulletsLayout({
             size="large"
           />
 
-          {/* Clickable Website Links if present */}
           {websites.length > 0 && (
             <div className="space-y-2.5 pt-1">
               {websites.map((w, idx) => (
@@ -347,7 +335,6 @@ export function BulletsLayout({
             </div>
           )}
 
-          {/* Clickable Demo Link fallback if no websites but demoUrl present */}
           {websites.length === 0 && demoUrl && (
             <a
               href={toExternalHref(demoUrl)}
@@ -378,7 +365,6 @@ export function BulletsLayout({
           )}
         </div>
 
-        {/* Card 2: Quality, Documents & Evidence */}
         <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-xl space-y-4">
           <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
             <div className="flex items-center gap-2 text-sm uppercase font-bold tracking-wider text-zinc-200">
@@ -397,7 +383,6 @@ export function BulletsLayout({
             )}
           </div>
 
-          {/* Documents */}
           {documents.length > 0 && (
             <div className="space-y-2 pb-2">
               <div className="space-y-2">
@@ -408,7 +393,6 @@ export function BulletsLayout({
             </div>
           )}
 
-          {/* Evidence items */}
           <div className="space-y-2">
             {(story.evidence || []).map((ev) => (
               <a

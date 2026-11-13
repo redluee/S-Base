@@ -35,7 +35,6 @@ export function MinorSprintImportModal({
   const [conflictAction, setConflictAction] = useState<"overwrite" | "new">("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch sprints if not provided
   useEffect(() => {
     if (isOpen && (!sprints || sprints.length === 0)) {
       api.minor.sprints
@@ -45,7 +44,6 @@ export function MinorSprintImportModal({
     }
   }, [isOpen, sprints]);
 
-  // Inspect entered JSON to detect sprint details
   const detectedSprint = useMemo(() => {
     if (!jsonText.trim()) return null;
     try {
@@ -66,7 +64,6 @@ export function MinorSprintImportModal({
     }
   }, [jsonText]);
 
-  // Check if the sprint number collides with an existing sprint
   const overlappingSprint = useMemo(() => {
     if (!detectedSprint || !detectedSprint.sprintNumber) return null;
     const numberLower = detectedSprint.sprintNumber.toLowerCase();
@@ -301,7 +298,6 @@ export function MinorSprintImportModal({
             </div>
           </div>
 
-          {/* Overlapping Sprint Conflict Resolver */}
           {overlappingSprint && (
             <div className="p-3.5 rounded-xl bg-zinc-950 border border-amber-500/30 space-y-3 animate-in fade-in duration-150">
               <div className="flex items-start gap-2.5">

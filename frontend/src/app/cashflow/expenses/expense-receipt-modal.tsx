@@ -29,7 +29,6 @@ export function ExpenseReceiptModal({
       backdropClassName="bg-black/80"
     >
       <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-800 bg-zinc-900/90">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
@@ -72,7 +71,6 @@ export function ExpenseReceiptModal({
           </div>
         </div>
 
-        {/* Viewer Body */}
         <div className="relative flex-1 min-h-[60vh] sm:min-h-[72vh] bg-zinc-950 p-2 sm:p-4 flex items-center justify-center overflow-auto">
           {isPdf ? (
             <iframe

@@ -11,7 +11,6 @@ export function usePhotoUpload(onChanged: () => void, setActionError: (msg: stri
   const [uploadStage, setUploadStage] = useState<"idle" | "optimizing" | "uploading">("idle");
   const [optimisticPhotoUrl, setOptimisticPhotoUrl] = useState<string | null>(null);
 
-  // Upload photo
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetLog: Measurement) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -23,14 +22,11 @@ export function usePhotoUpload(onChanged: () => void, setActionError: (msg: stri
       setUploadStage("optimizing");
       setUploadProgress(0);
 
-      // Create instant visual preview
       tempUrl = URL.createObjectURL(file);
       setOptimisticPhotoUrl(tempUrl);
 
-      // Compress client side
       const compressedBlob = await compressImage(file);
 
-      // Upload compressed image
       setUploadStage("uploading");
       const { filePath } = await api.measurements.uploadPhoto(
         compressedBlob,
@@ -55,7 +51,6 @@ export function usePhotoUpload(onChanged: () => void, setActionError: (msg: stri
     }
   };
 
-  // Delete photo
   const handleDeletePhoto = async (photoId: number) => {
     setActionError(null);
     try {

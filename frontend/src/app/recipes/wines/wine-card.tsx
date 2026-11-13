@@ -72,13 +72,11 @@ export function WineCard({ wine }: { wine: Wine }) {
       className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${style.card}`}
     >
       <div>
-        {/* Header row: Image (if any) or Badge + Actions */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <Badge variant="outline" className={`text-xs px-2.5 py-0.5 font-medium ${style.badge}`}>
             {t(wine.type)}
           </Badge>
 
-          {/* Action buttons */}
           <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
             <Button
               render={<Link href={`/recipes/wines/${wine.wineId}/edit`} />}
@@ -136,7 +134,6 @@ export function WineCard({ wine }: { wine: Wine }) {
           </div>
         </div>
 
-        {/* Wine Eticket Photo if present */}
         {wine.imageUrl && (
           <div className="relative w-full h-44 mb-3 rounded-xl overflow-hidden bg-black/40 border border-white/10 group-hover:border-white/20 transition-all">
             <Image
@@ -149,7 +146,6 @@ export function WineCard({ wine }: { wine: Wine }) {
           </div>
         )}
 
-        {/* Brand & Variety */}
         <h3 className="font-display font-semibold text-base sm:text-lg leading-tight text-white mb-1">
           {wine.brand}
         </h3>
@@ -157,7 +153,6 @@ export function WineCard({ wine }: { wine: Wine }) {
           {wine.variety}
         </p>
 
-        {/* Metadata row: Vintage, Region, Purchase Location & Rating */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/70 mb-3">
           {wine.vintage && (
             <span className="inline-flex items-center gap-1 font-medium bg-black/20 px-2 py-0.5 rounded-md border border-white/10">

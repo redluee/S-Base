@@ -23,7 +23,6 @@ export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispat
     setLinkSearchQuery("");
     try {
       const all = await api.minor.stories.list();
-      // Unassigned stories (sprintId is null or != current sprint id)
       const unassigned = all.filter((s) => !s.sprintId);
       setAvailableConceptStories(unassigned);
     } catch (err) {

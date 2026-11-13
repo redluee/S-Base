@@ -70,7 +70,6 @@ export function saveSetTimerSnapshot(snapshot: SetTimerSnapshot): void {
   try {
     localStorage.setItem(setTimerStorageKey(snapshot.sessionId), JSON.stringify(snapshot));
   } catch {
-    // storage unavailable
   }
 }
 
@@ -78,6 +77,5 @@ export function clearSetTimerSnapshot(sessionId: number): void {
   try {
     localStorage.removeItem(setTimerStorageKey(sessionId));
   } catch {
-    // storage unavailable
   }
 }

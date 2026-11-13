@@ -54,7 +54,6 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
         </div>
 
         <div className="space-y-4 sm:space-y-5 text-sm">
-          {/* Header Title & Status */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
             <div className="min-w-0 flex-1">
               <h3 className="text-base sm:text-xl font-bold text-white tracking-tight break-words">
@@ -137,9 +136,7 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
             </div>
           )}
 
-          {/* Criteria Checklists Stacked (Acceptance & Quality) */}
           <div className="space-y-4">
-            {/* Acceptance criteria */}
             <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-zinc-100 text-sm">{t("Acceptatiecriteria")}</span>
@@ -187,7 +184,6 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
               </div>
             </div>
 
-            {/* Quality criteria */}
             <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-zinc-100 text-sm">{t("Kwaliteitscriteria")}</span>
@@ -236,7 +232,6 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
             </div>
           </div>
 
-          {/* Bewijslast */}
           {viewingStory.evidence && viewingStory.evidence.length > 0 && (
             <div className="space-y-2.5 p-4 rounded-xl bg-zinc-950 border border-white/5">
               <span className="font-bold text-zinc-200 text-sm">{t("Bewijsstukken & resultaten")}</span>
@@ -259,7 +254,6 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
             </div>
           )}
 
-          {/* Modal Footer */}
           <div className="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-white/10">
             <div className="flex items-center gap-2">
               <button

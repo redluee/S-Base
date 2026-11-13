@@ -94,30 +94,24 @@ export function BodyChart({ logs, chartTab }: { logs: Measurement[]; chartTab: C
         </div>
 
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-          {/* Grid lines */}
           <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255, 255, 255, 0.08)" strokeWidth={1} strokeDasharray="3 3" />
           <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255, 255, 255, 0.08)" strokeWidth={1} strokeDasharray="3 3" />
           <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1} />
 
-          {/* Y Axis labels */}
           <text x={padding - 12} y={padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl(maxVal, 1)}</text>
           <text x={padding - 12} y={height / 2 + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl((maxVal + minVal) / 2, 1)}</text>
           <text x={padding - 12} y={height - padding + 4} fill="var(--color-muted)" fontSize={12} fontWeight="600" textAnchor="end">{formatNumberNl(minVal, 1)}</text>
 
-          {/* Area Fill for line 1 */}
           {areaD1 && (
             <path d={areaD1} fill="url(#brand-gradient)" opacity={0.15} />
           )}
 
-          {/* Line 1 */}
           <path d={pathD1} fill="none" stroke="var(--color-brand)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Line 2 */}
           {chartTab === "muscle" && pathD2 && (
             <path d={pathD2} fill="none" stroke="#f59e0b" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
           )}
 
-          {/* Dots and Tooltips for Line 1 */}
           {points1.map((p, idx) => (
             <g key={`d1-${idx}`} className="group/dot cursor-pointer">
               <circle cx={p.x} cy={p.y} r={4.5} fill="var(--color-brand)" stroke="#000000" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
@@ -130,7 +124,6 @@ export function BodyChart({ logs, chartTab }: { logs: Measurement[]; chartTab: C
             </g>
           ))}
 
-          {/* Dots and Tooltips for Line 2 */}
           {points2.map((p, idx) => (
             <g key={`d2-${idx}`} className="group/dot cursor-pointer">
               <circle cx={p.x} cy={p.y} r={4.5} fill="#f59e0b" stroke="#000000" strokeWidth={1.5} className="transition-all group-hover/dot:r-6" />
@@ -143,7 +136,6 @@ export function BodyChart({ logs, chartTab }: { logs: Measurement[]; chartTab: C
             </g>
           ))}
 
-          {/* Gradients */}
           <defs>
             <linearGradient id="brand-gradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--color-brand)" />

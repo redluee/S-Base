@@ -65,7 +65,6 @@ export function useRestTimer(exercises: SessionExercise[] | undefined) {
     }
   }
 
-  // Rest Timer countdown
   useEffect(() => {
     if (restActive && restEndTimeRef.current) {
       const checkRestTimer = () => {

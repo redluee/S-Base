@@ -29,7 +29,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
   const [copiedSprintId, setCopiedSprintId] = useState<number | null>(null);
   const [editingSprint, setEditingSprint] = useState<MinorSprint | null>(null);
 
-  // Form state
   const [sprintNumber, setSprintNumber] = useState("");
   const [startDate, setStartDate] = useState(today());
   const [durationDays, setDurationDays] = useState(DEFAULT_SPRINT_DAYS);
@@ -130,7 +129,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <InlineAlert>{actionError}</InlineAlert>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">
@@ -164,7 +162,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto scrollbar-none">
         {[
           { id: "all", label: "Alle" },
@@ -186,7 +183,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
         ))}
       </div>
 
-      {/* Sprints List */}
       <SprintList
         filteredSprints={filteredSprints}
         copiedSprintId={copiedSprintId}
@@ -213,7 +209,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
       )}
 
 
-      {/* Sprint Import Modal */}
       <MinorSprintImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}

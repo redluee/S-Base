@@ -108,7 +108,6 @@ export function WorkoutSessionExerciseList({
       })}
 
 
-      {/* Underneath other exercises: render ExerciseEditBlock if unknownExerciseDraft exists */}
       {unknownExerciseDraft ? (
         <div className="mt-4 flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">

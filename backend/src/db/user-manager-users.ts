@@ -112,7 +112,6 @@ export async function deleteUser(identifier: string) {
       return;
     }
 
-    // SQLite CASCADE foreign keys zorgt ervoor dat permissies en actieve sessies ook verwijderd worden.
     db.delete(users).where(eq(users.userId, user.userId)).run();
 
     console.log(

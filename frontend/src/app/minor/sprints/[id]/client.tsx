@@ -45,7 +45,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   const importer = useStoryImport(sprint, reloadSprint, setViewingStoryId, report);
   const exporter = useSprintExport(sprint, selfEvals, getCurrentFullSprint, report);
 
-  // Presentation State
   const [isPresentationOpen, setIsPresentationOpen] = useState(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).get("present") === "1";
@@ -56,7 +55,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
   const viewingStory = sprint.stories.find((s) => s.id === viewingStoryId) || null;
 
-  // Keyboard shortcut Ctrl+S / Cmd+S
   const saveActionRef = useRef<() => void>(() => {});
   useEffect(() => {
     if (activeTab === "self_eval") {
@@ -79,7 +77,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Calculate unique LUs in sprint for warnings
   const uniqueLUsInSprint = new Set<number>();
   sprint.stories.forEach((st) => {
     st.learningOutcomes.forEach((lu) => uniqueLUsInSprint.add(lu));
@@ -94,7 +91,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       <SprintBanners hasFewLUs={hasFewLUs} missingLU5={missingLU5} uniqueLUsInSprint={uniqueLUsInSprint} data={data} />
 
-      {/* Section Tabs (1. PLANNING, 2. FEEDBACK, 3. ZELFEVALUATIE & BEOORDELING, 4. REFLECTIE) */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {[
           { id: "planning", label: "1. Planning", icon: Layers },
@@ -162,7 +158,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
       {exporter.pendingExportType && <ExportWarningModal setActiveTab={setActiveTab} exporter={exporter} />}
 
-      {/* Presentation Fullscreen Mode */}
       {isPresentationOpen && (
         <SprintPresentation
           sprint={sprint}
@@ -177,7 +172,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
         />
       )}
 
-      {/* Story Presentation Editor Modal */}
       {editingPresentationStory && (
         <PresentationStoryEditor
           story={editingPresentationStory}

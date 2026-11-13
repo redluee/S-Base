@@ -49,7 +49,6 @@ export function ExerciseList({
     searchParams.get("equipment") || initialEquipment
   );
 
-  // Extract all unique equipment options present in the dataset
   const availableEquipments = useMemo(() => {
     const set = new Set<string>();
     for (const ex of exercises) {
@@ -65,7 +64,6 @@ export function ExerciseList({
     return Array.from(set).sort();
   }, [exercises]);
 
-  // Extract all unique categories present in dataset + standard list
   const availableCategories = useMemo(() => {
     const set = new Set<string>(KNOWN_CATEGORIES);
     for (const ex of exercises) {
@@ -81,7 +79,6 @@ export function ExerciseList({
     return Array.from(set);
   }, [exercises]);
 
-  // Update URL search parameters when filters change
   useEffect(() => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
@@ -93,10 +90,8 @@ export function ExerciseList({
     router.replace(targetUrl, { scroll: false });
   }, [q, selectedCategory, selectedEquipment, pathname, router]);
 
-  // Filter exercises
   const filteredExercises = useMemo(() => {
     return exercises.filter((ex) => {
-      // 1. Query filter
       if (q) {
         const normQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
         const nameNorm = ex.name.replace(/[\s\-\/]/g, "").toLowerCase();
@@ -114,7 +109,6 @@ export function ExerciseList({
         if (!matchesQ) return false;
       }
 
-      // 2. Category filter
       if (selectedCategory) {
         const cats = ex.categories && ex.categories.length > 0
           ? ex.categories
@@ -125,7 +119,6 @@ export function ExerciseList({
         if (!matchesCat) return false;
       }
 
-      // 3. Equipment filter
       if (selectedEquipment) {
         const eqs = ex.equipments && ex.equipments.length > 0
           ? ex.equipments
@@ -150,9 +143,7 @@ export function ExerciseList({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Search & Filter Control Bar */}
       <div className="flex flex-col gap-3 bg-card p-4 rounded-xl ring-1 ring-foreground/10 shadow-sm">
-        {/* Search input */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
@@ -175,10 +166,8 @@ export function ExerciseList({
           )}
         </div>
 
-        {/* Filter Dropdowns / Pills */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-border/40">
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {/* Category Select */}
             <div className="relative flex-1 sm:flex-initial min-w-[140px]">
               <select
                 value={selectedCategory}
@@ -200,7 +189,6 @@ export function ExerciseList({
               <Folder className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             </div>
 
-            {/* Equipment Select */}
             <div className="relative flex-1 sm:flex-initial min-w-[140px]">
               <select
                 value={selectedEquipment}
@@ -222,7 +210,6 @@ export function ExerciseList({
               <Dumbbell className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             </div>
 
-            {/* Reset Filters button */}
             {hasActiveFilters && (
               <Button
                 type="button"
@@ -237,7 +224,6 @@ export function ExerciseList({
             )}
           </div>
 
-          {/* Item Count */}
           <div className="text-xs text-muted-foreground font-medium self-center">
             {filteredExercises.length}{" "}
             {filteredExercises.length === 1 ? t("exercise") : t("exercises")}
@@ -245,7 +231,6 @@ export function ExerciseList({
         </div>
       </div>
 
-      {/* Exercise List Results */}
       {filteredExercises.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center bg-card rounded-xl ring-1 ring-foreground/10 p-6">
           <Filter className="size-8 text-muted-foreground/50 mb-3" />
@@ -291,14 +276,12 @@ export function ExerciseList({
                       </span>
                       
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {/* Category badge */}
                         {category && (
                           <span className="text-[11px] px-2 py-0.5 rounded-full bg-brand/10 text-brand font-medium border border-brand/20">
                             {t(category)}
                           </span>
                         )}
 
-                        {/* Equipment badges */}
                         {equipments.map((eq) => (
                           <span
                             key={eq}

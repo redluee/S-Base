@@ -116,7 +116,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
   return (
     <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-6">
       <InlineAlert>{loadError}</InlineAlert>
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t("Cashflow")}</h1>
@@ -140,9 +139,7 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
         </div>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Omzet */}
         <Link
           href={`/cashflow/invoices?year=${activeYear}&status=paid`}
           className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-blue-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
@@ -158,7 +155,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
           <p className="text-xs text-zinc-500">{t("{count} betaalde facturen", { count: String(paid?.count ?? 0) })}</p>
         </Link>
 
-        {/* Uitgaven */}
         <Link
           href={`/cashflow/expenses?year=${activeYear}`}
           className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-rose-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
@@ -174,7 +170,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
           <p className="text-xs text-zinc-500">{t("Bedrijfskosten in {year}", { year: String(activeYear) })}</p>
         </Link>
 
-        {/* Netto resultaat */}
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div className={`flex items-center gap-2 ${netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
@@ -188,7 +183,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
           <p className="text-xs text-zinc-500">{t("Omzet minus uitgaven")}</p>
         </div>
 
-        {/* Openstaand */}
         <Link
           href="/cashflow/invoices?status=open"
           className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex flex-col gap-2 hover:border-amber-500/50 hover:bg-zinc-850/60 transition-all cursor-pointer group"
@@ -205,7 +199,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
         </Link>
       </div>
 
-      {/* Income & Expenses Chart */}
       <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-4 flex-wrap">
@@ -305,7 +298,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
                 <div className="w-full flex items-end h-[120px]">
                   {totalVal > 0 || expenseVal > 0 ? (
                     <div className="w-full flex items-end justify-center gap-0.5 h-full">
-                      {/* Income Bar */}
                       {hasIncome && (
                         <div
                           className={`${barWidthClass} flex flex-col justify-end transition-all duration-300`}
@@ -344,7 +336,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
                         </div>
                       )}
 
-                      {/* Expense Bar */}
                       {hasExpense && (
                         <div
                           className={`${barWidthClass} flex flex-col justify-end transition-all duration-300`}
@@ -367,7 +358,6 @@ export function CashflowDashboardClient({ initialYear, initialStats }: { initial
         </div>
       </div>
 
-      {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         {[
           { href: "/cashflow/invoices", label: t("Facturen bekijken"), icon: FileText },

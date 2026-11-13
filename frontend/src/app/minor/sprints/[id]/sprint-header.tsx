@@ -40,7 +40,6 @@ export function SprintHeader({ setIsPresentationOpen, data, exporter }: SprintHe
         </div>
       </div>
 
-      {/* Export & Presentation Toolbar */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
         <button
           type="button"

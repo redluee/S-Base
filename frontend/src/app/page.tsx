@@ -13,7 +13,6 @@ export default async function LoginPage() {
     <main id="main-content" className="flex min-h-screen flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,227,164,0.06)_0%,transparent_70%)] pointer-events-none" />
 
-      {/* Decorative signal rings */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[32rem] rounded-full border border-brand/5 pointer-events-none" />
       <div
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[24rem] rounded-full border border-brand/10 pointer-events-none"

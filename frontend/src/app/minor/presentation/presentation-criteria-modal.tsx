@@ -33,7 +33,6 @@ export function PresentationCriteriaModal({
 
   const storyColor = typeDetails.color;
 
-  // Filter criteria by type
   const acceptanceCriteria = useMemo(() => {
     return (story.criteria || [])
       .filter((c) => c.type === "acceptance")
@@ -49,7 +48,6 @@ export function PresentationCriteriaModal({
   const completedAcceptanceCount = acceptanceCriteria.filter((c) => c.isCompleted).length;
   const completedQualityCount = qualityCriteria.filter((c) => c.isCompleted).length;
 
-  // Toggle criterion completion status
   async function handleToggleCriterion(critId: number, currentStatus: boolean) {
     try {
       await api.minor.stories.toggleCriterion(critId, !currentStatus);
@@ -78,7 +76,6 @@ export function PresentationCriteriaModal({
       <div
         className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-7 max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl space-y-5"
       >
-        {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -131,7 +128,6 @@ export function PresentationCriteriaModal({
           </button>
         </div>
 
-        {/* Story Context / User Story sentence (if present) */}
         {story.iWant && (
           <div className="text-xs sm:text-sm text-zinc-300 italic bg-zinc-950/70 p-3 rounded-xl border border-white/5">
             {story.asA && t("Als {rol} ", { rol: story.asA })}{t("wil ik")} {story.iWant}
@@ -139,9 +135,7 @@ export function PresentationCriteriaModal({
           </div>
         )}
 
-        {/* Criteria Content List - Scrollable */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-6">
-          {/* Section 1: Acceptatiecriteria */}
           <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950/90 border border-white/10 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -211,7 +205,6 @@ export function PresentationCriteriaModal({
             )}
           </div>
 
-          {/* Section 2: Kwaliteitscriteria */}
           <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950/90 border border-white/10 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -282,7 +275,6 @@ export function PresentationCriteriaModal({
           </div>
         </div>
 
-        {/* Footer info & close button */}
         <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="size-3.5 text-emerald-400" />

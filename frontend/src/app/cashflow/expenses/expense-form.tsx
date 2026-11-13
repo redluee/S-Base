@@ -113,7 +113,6 @@ export function ExpenseForm({
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Description */}
         <div className="space-y-1.5 sm:col-span-2">
           <Label className="text-xs text-zinc-400">{t("Omschrijving")}</Label>
           <Input
@@ -125,7 +124,6 @@ export function ExpenseForm({
           {error && <p className="text-xs text-rose-400">{error}</p>}
         </div>
 
-        {/* Amount */}
         <div className="space-y-1.5">
           <Label className="text-xs text-zinc-400">{t("Bedrag (€)")}</Label>
           <Input
@@ -139,7 +137,6 @@ export function ExpenseForm({
           />
         </div>
 
-        {/* Date */}
         <div className="space-y-1.5">
           <Label className="text-xs text-zinc-400">{t("Datum")}</Label>
           <Input
@@ -150,7 +147,6 @@ export function ExpenseForm({
           />
         </div>
 
-        {/* Category */}
         <div className="space-y-1.5">
           <Label className="text-xs text-zinc-400">{t("Categorie")}</Label>
           <select
@@ -182,7 +178,6 @@ export function ExpenseForm({
           )}
         </div>
 
-        {/* Trade Name */}
         <div className="space-y-1.5">
           <Label className="text-xs text-zinc-400">{t("Handelsnaam")}</Label>
           <select
@@ -210,7 +205,6 @@ export function ExpenseForm({
           />
         </div>
 
-        {/* Receipt / Invoice Upload Section */}
         <div className="space-y-2 sm:col-span-2 pt-2 border-t border-zinc-800/80">
           <Label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
             <FileText className="size-3.5 text-blue-400" />

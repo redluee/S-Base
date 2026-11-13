@@ -179,7 +179,6 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
             </div>
           </div>
 
-          {/* Status */}
           <div>
             <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Status")}</label>
             <select
@@ -193,10 +192,8 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
             </select>
           </div>
 
-          {/* Criteria Checklists Stacked (Acceptance & Quality) */}
           <StoryEditCriteria editor={editor} />
 
-          {/* Evidence Links & Document Uploads */}
           <StoryEditEvidence editor={editor} />
 
           <div className="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-white/10">

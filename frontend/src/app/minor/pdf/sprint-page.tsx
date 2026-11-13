@@ -35,21 +35,16 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* SPRINT Header Banner */}
       <View style={[styles.sprintBanner, { backgroundColor: bannerBg }]}>
         <Text style={styles.sprintBannerText}>SPRINT {sprintNum}</Text>
       </View>
 
-      {/* ======================================================== */}
-      {/* 1. PLANNING (User Stories) */}
-      {/* ======================================================== */}
       <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
         <Text style={styles.sectionHeaderText}>1. PLANNING (User Stories) </Text>
         <Text style={styles.sectionAgentText}>Plannen met je plannings Agent</Text>
       </View>
 
       <View style={styles.tableBorder}>
-        {/* Koprij */}
         <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
           <View style={[styles.koprijCell, { width: "13.4%", alignItems: "center" }]}>
             <Text style={styles.koprijText}>Story</Text>
@@ -65,7 +60,6 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
           </View>
         </View>
 
-        {/* Story Rows: unselected sprints get a single placeholder row, selected sprints show only their actual stories */}
         {(isSelected ? (stories.length > 0 ? stories : [undefined]) : [undefined]).map((story, i, arr) => {
           const accCriteria = (story?.criteria || []).filter((c) => c.type === "acceptance");
           const qualCriteria = (story?.criteria || []).filter((c) => c.type === "quality");
@@ -117,15 +111,11 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
       <View style={styles.spacer} />
 
-      {/* ======================================================== */}
-      {/* 2. FEEDBACK (Ontvangen van anderen) */}
-      {/* ======================================================== */}
       <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
         <Text style={styles.sectionHeaderText}>2. FEEDBACK (Ontvangen van anderen)</Text>
       </View>
 
       <View style={styles.tableBorder}>
-        {/* Koprij */}
         <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
           <View style={[styles.koprijCell, { width: "13.4%" }]}>
             <Text style={styles.koprijText}>Datum</Text>
@@ -141,7 +131,6 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
           </View>
         </View>
 
-        {/* 3 Feedback Rows */}
         {[0, 1, 2].map((i) => {
           const fb = feedbackList[i];
           return (
@@ -172,15 +161,11 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
       <View style={styles.spacer} />
 
-      {/* ======================================================== */}
-      {/* 3. ZELFEVALUATIE (Mastery) */}
-      {/* ======================================================== */}
       <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
         <Text style={styles.sectionHeaderText}>3. ZELFEVALUATIE (Mastery)</Text>
       </View>
 
       <View style={styles.tableBorder}>
-        {/* Koprij */}
         <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
           <View style={[styles.koprijCell, { width: "13.4%", alignItems: "center" }]}>
             <Text style={styles.koprijText}>LU</Text>
@@ -196,7 +181,6 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
           </View>
         </View>
 
-        {/* 5 LU Rows */}
         {LU_MASTER_DEFINITIONS.map((luDef, idx) => {
           const level = resolveSprintLuLevel(sprint, luDef.lu);
           const argumentation = resolveSprintLuArgumentation(sprint, luDef.lu);
@@ -229,15 +213,11 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
 
       <View style={styles.spacer} />
 
-      {/* ======================================================== */}
-      {/* 4. REFLECTIE */}
-      {/* ======================================================== */}
       <View style={[styles.sectionHeaderRow, { backgroundColor: sectionBg }]}>
         <Text style={styles.sectionHeaderText}>4. REFLECTIE</Text>
       </View>
 
       <View style={styles.tableBorder}>
-        {/* Koprij */}
         <View style={[styles.tableRow, { backgroundColor: koprijBg }]}>
           <View style={[styles.koprijCell, { width: "13.4%" }]}>
             <Text style={styles.koprijText}>Datum</Text>
@@ -253,7 +233,6 @@ export function SprintPdfPage({ sprintNum, sprint }: SprintPdfPageProps) {
           </View>
         </View>
 
-        {/* 3 Reflectie Rows */}
         {[0, 1, 2].map((i) => {
           const isFirst = i === 0;
           return (

@@ -37,16 +37,13 @@ export function SprintPresentation({
 }: SprintPresentationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter stories included in presentation (default true unless explicitly false)
   const presentedStories = useMemo(() => {
     return sprint.stories.filter((s) => s.presentationData?.enabled !== false);
   }, [sprint.stories]);
 
-  // Slides structure: 0 = Intro, 1..N = Stories, N+1 = Outro
   const totalSlides = 2 + presentedStories.length;
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
 
-  // Lightbox & Modal states
   const [lightboxImage, setLightboxImage] = useState<{ url: string; caption?: string } | null>(null);
   const [isOverviewOpen, setIsOverviewOpen] = useState<boolean>(false);
   const [editingStory, setEditingStory] = useState<MinorStory | null>(null);
@@ -56,7 +53,6 @@ export function SprintPresentation({
   const [fullscreenToast, setFullscreenToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-hiding control bar timer
   const [controlsVisible, setControlsVisible] = useState<boolean>(true);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -78,12 +74,10 @@ export function SprintPresentation({
     };
   }, [currentSlideIndex]);
 
-  // Focus presentation container on mount for immediate keyboard control
   useEffect(() => {
     containerRef.current?.focus();
   }, []);
 
-  // Track fullscreen changes across all rendering engines
   useEffect(() => {
     function onFullscreenChange() {
       setIsFullscreen(isCurrentlyFullscreen());
@@ -102,7 +96,6 @@ export function SprintPresentation({
     };
   }, []);
 
-  // Determine current active story and story color
   const isIntroSlide = currentSlideIndex === 0;
   const isOutroSlide = currentSlideIndex === totalSlides - 1;
   const currentStory =
@@ -122,7 +115,6 @@ export function SprintPresentation({
     return currentStory?.storyTypeCode || "US";
   }, [isIntroSlide, isOutroSlide, currentStory]);
 
-  // Navigation handlers
   const goToNextSlide = useCallback(() => {
     resetIdleTimer();
     setCurrentSlideIndex((prev) => Math.min(prev + 1, totalSlides - 1));
@@ -139,7 +131,6 @@ export function SprintPresentation({
     setIsOverviewOpen(false);
   }, [totalSlides, resetIdleTimer]);
 
-  // Fullscreen toggle
   const toggleFullscreen = useCallback(async () => {
     try {
       const willBeFullscreen = !isCurrentlyFullscreen();
@@ -150,7 +141,6 @@ export function SprintPresentation({
       }
       setIsFullscreen(isCurrentlyFullscreen());
 
-      // Show brief feedback toast
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       setFullscreenToast(
         willBeFullscreen
@@ -165,10 +155,8 @@ export function SprintPresentation({
     }
   }, []);
 
-  // Keyboard navigation & Shortcuts (including F for fullscreen)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Ignore if user is typing in an input or textarea
       const target = e.target as HTMLElement | null;
       if (
         target instanceof HTMLInputElement ||
@@ -179,7 +167,6 @@ export function SprintPresentation({
         return;
       }
 
-      // Check for F key press to toggle fullscreen
       const isFKey =
         e.key === "f" ||
         e.key === "F" ||
@@ -193,7 +180,6 @@ export function SprintPresentation({
         return;
       }
 
-      // Ignore other navigation keys if lightbox, editor, or criteria modal is active
       if (lightboxImage !== null || editingStory !== null || viewingCriteriaStory !== null) {
         return;
       }
@@ -259,7 +245,6 @@ export function SprintPresentation({
     resetIdleTimer,
   ]);
 
-  // Touch Swipe gestures for tablet / touchscreens
   const touchStartXRef = useRef<number | null>(null);
 
   function handleTouchStart(e: React.TouchEvent) {
@@ -277,7 +262,6 @@ export function SprintPresentation({
     touchStartXRef.current = null;
   }
 
-  // Handle saving updated presentation data for current story
   async function handleSaveStoryPresentation(data: MinorStoryPresentationData) {
     if (!editingStory) return;
     try {
@@ -293,7 +277,6 @@ export function SprintPresentation({
   }
 
 
-  // Handle criteria update inside criteria modal
   const handleStoryUpdatedInternal = useCallback(
     (updatedStory: MinorStory) => {
       if (onStoryUpdated) {
@@ -317,14 +300,12 @@ export function SprintPresentation({
       data-minor-theme="dark"
       className="fixed inset-0 z-[100] bg-black text-white flex flex-col justify-between select-none overflow-hidden outline-none"
     >
-      {/* Dynamic Animated Ambient Background */}
       <PresentationBackground
         accentColor={currentAccentColor}
         storyTypeCode={currentStoryTypeCode}
         slideIndex={currentSlideIndex}
       />
 
-      {/* Toast Notification for Fullscreen shortcut F */}
       {fullscreenToast && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-zinc-900/95 border border-brand/40 text-white text-xs font-semibold shadow-[0_0_2rem_rgba(0,0,0,0.85)] backdrop-blur-md flex items-center gap-2 pointer-events-none transition-all">
           <Maximize2 className="size-3.5 text-brand" />
@@ -332,7 +313,6 @@ export function SprintPresentation({
         </div>
       )}
 
-      {/* Top Progress Bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-white/5 z-20">
         <div
           className="h-full transition-all duration-300"
@@ -434,10 +414,8 @@ export function SprintPresentation({
         />
       )}
 
-      {/* Image Zoom Lightbox */}
       <PresentationLightbox key={lightboxImage?.url} image={lightboxImage} onClose={() => setLightboxImage(null)} />
 
-      {/* Criteria Inspector Modal */}
       {viewingCriteriaStory && (
         <PresentationCriteriaModal
           story={viewingCriteriaStory}
@@ -447,7 +425,6 @@ export function SprintPresentation({
         />
       )}
 
-      {/* Story Presentation Editor Modal */}
       {editingStory && (
         <PresentationStoryEditor
           story={editingStory}

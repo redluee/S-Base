@@ -41,7 +41,6 @@ describe("MinorEvaluations", () => {
       startDate: "2026-09-01",
     });
 
-    // Create a story with status 'done' touching LU 1 and LU 2
     minor.stories.create(adminId, sprint.id, {
       title: "Realized Story",
       learningOutcomes: [1, 2],
@@ -63,7 +62,6 @@ describe("MinorEvaluations", () => {
     expect(eval3?.level).toBe("-");
     expect(eval3?.argumentation).toBe("");
 
-    // Explicit manual auto-generation still works
     const generated = minor.drafts.autoGenerate(sprint.id, adminId);
     const gen1 = generated.find((e) => e.learningOutcome === 1);
     expect(gen1?.level).toBe("V");

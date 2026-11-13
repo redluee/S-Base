@@ -109,7 +109,6 @@ export function ExerciseEditBlock({
       className="scroll-mt-24 relative flex flex-col gap-5 p-4 sm:p-5 bg-card ring-1 ring-foreground/10 rounded-xl group"
     >
 
-      {/* Header with Exercise Autocomplete */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="flex items-center gap-2 flex-1 min-w-[12rem]">
           {index !== undefined && (
@@ -167,7 +166,6 @@ export function ExerciseEditBlock({
         </div>
       </div>
 
-      {/* Category & Equipment Selector (Premium Chip UI) */}
       <div>
         <ExerciseCategorySelector
           category={ex.category}
@@ -180,7 +178,6 @@ export function ExerciseEditBlock({
         />
       </div>
 
-      {/* Dynamic Tracking Toggles */}
       <div className="flex flex-col gap-2">
         <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
           {t("Track Targets")}
@@ -212,9 +209,7 @@ export function ExerciseEditBlock({
         </div>
       </div>
 
-      {/* Fields Flex Container */}
       <div className="flex flex-wrap items-end gap-3">
-        {/* Sets & Reps / Sets & Time / Sets */}
         {ex.trackingFields.reps ? (
           <div className="grid gap-1.5 flex-1 min-w-[120px] max-w-[160px]">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -306,7 +301,6 @@ export function ExerciseEditBlock({
           </div>
         )}
 
-        {/* Weight */}
         {ex.trackingFields.weight && (
           <div className="grid gap-1.5 flex-1 min-w-[100px] max-w-[140px]">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -323,7 +317,6 @@ export function ExerciseEditBlock({
           </div>
         )}
 
-        {/* Distance */}
         {ex.trackingFields.distance && (
           <div className="grid gap-1.5 flex-1 min-w-[130px] max-w-[180px]">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -352,7 +345,6 @@ export function ExerciseEditBlock({
           </div>
         )}
 
-        {/* Rest Time */}
         <div className="grid gap-1.5 flex-1 min-w-[100px] max-w-[140px]">
           <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
             {t("Rest Time")}
@@ -364,7 +356,6 @@ export function ExerciseEditBlock({
           />
         </div>
 
-        {/* Per Side Switch */}
         <div className="grid gap-1.5 shrink-0 min-w-[80px] justify-center sm:justify-start">
           <Label htmlFor={`per-side-toggle-${exId}`} className="text-[11px] uppercase tracking-wider text-muted-foreground text-center sm:text-left">
             {t("Per Side")}
@@ -379,7 +370,6 @@ export function ExerciseEditBlock({
         </div>
       </div>
 
-      {/* Optional Action Buttons (Save/Cancel) */}
       {(onSave || onCancel) && (
         <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-border/30">
           {onCancel && (

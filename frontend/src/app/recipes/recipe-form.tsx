@@ -89,7 +89,6 @@ export function RecipeForm({
       setErrors(newErrors);
       setLoading(false);
 
-      // Focus the first invalid input
       const firstErrorKey = Object.keys(newErrors)[0];
       let elementId = "";
       if (firstErrorKey === "name") {

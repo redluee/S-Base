@@ -86,7 +86,6 @@ export function getBeepWavUri(): string {
   for (let i = 0; i < samples.length; i++) {
     const t = i / sampleRate;
     const progress = i / samples.length;
-    // Fast attack (10ms), linear decay
     const attack = Math.min(1, t / 0.01);
     const decay = 1 - progress;
     const env = attack * decay;

@@ -51,13 +51,11 @@ describe("MinorStories", () => {
     expect(toggled?.isCompleted).toBe(false);
     expect(() => minor.stories.toggleCriterion(testerId, firstCrit.id, true)).toThrow("minor.criterionNotFound");
 
-    // Update story status
     const updated = minor.stories.update(story.id, adminId, {
       status: "done",
     });
     expect(updated?.status).toBe("done");
 
-    // Test listAllStories
     const allStories = minor.stories.listAll(adminId);
     expect(allStories.length).toBeGreaterThanOrEqual(1);
     const found = allStories.find((s) => s.id === story.id);
@@ -65,16 +63,13 @@ describe("MinorStories", () => {
     expect(found?.sprintNumber).toBe(sprint.sprintNumber);
     expect(found?.criteria?.length).toBe(3);
 
-    // Auto-generate self-evaluations
     const autoEvals = minor.drafts.autoGenerate(sprint.id, adminId);
     expect(autoEvals.length).toBe(5);
-    // LU 1 should be 'V' and mention story evidence
     const lu1 = autoEvals.find((e) => e.learningOutcome === 1);
     expect(lu1?.level).toBe("V");
     expect(lu1?.argumentation).toContain("Sprintbeheer");
     expect(lu1?.argumentation).toContain("https://github.com/example/pr/1");
 
-    // LU 3 (not in story) should be '-'
     const lu3 = autoEvals.find((e) => e.learningOutcome === 3);
     expect(lu3?.level).toBe("-");
   });
@@ -115,7 +110,6 @@ describe("MinorStories", () => {
     expect(story.presentationData?.links?.[0].url).toBe("https://docs.example.com");
     expect(story.presentationData?.documents?.[0].title).toBe("Architecture Spec");
 
-    // Retrieve via getSprintById
     const sprintData = minor.sprints.getById(sprint.id, adminId);
     const foundStory = sprintData?.stories.find((s) => s.id === story.id);
     expect(foundStory?.presentationData?.demoTitle).toBe("Staging Dashboard Live");
@@ -125,7 +119,6 @@ describe("MinorStories", () => {
     expect(foundStory?.presentationData?.links?.[0].title).toBe("API Documentation");
     expect(foundStory?.presentationData?.documents?.[0].url).toBe("/api/minor/uploads/spec.pdf");
 
-    // Update presentation data
     const updated = minor.stories.update(story.id, adminId, {
       presentationData: {
         ...foundStory!.presentationData,
@@ -138,7 +131,6 @@ describe("MinorStories", () => {
     expect(updated?.presentationData?.listStyle).toBe("bullets");
     expect(updated?.presentationData?.bullets?.length).toBe(1);
 
-    // Verify in listAllStories
     const all = minor.stories.listAll(adminId);
     const storyInAll = all.find((s) => s.id === story.id);
     expect(storyInAll?.presentationData?.layout).toBe("media");
@@ -165,7 +157,6 @@ describe("MinorStories", () => {
     const initialSprint = minor.sprints.getById(sprint.id, adminId);
     expect(initialSprint?.stories.map((s) => s.id)).toEqual([story1.id, story2.id, story3.id]);
 
-    // Reorder: 3, 1, 2
     const result = minor.stories.reorder(sprint.id, adminId, [story3.id, story1.id, story2.id]);
     expect(result).toEqual({ success: true });
 
@@ -175,7 +166,6 @@ describe("MinorStories", () => {
     expect(updatedSprint?.stories[1].orderIndex).toBe(2);
     expect(updatedSprint?.stories[2].orderIndex).toBe(3);
 
-    // Verify user isolation: tester cannot reorder admin's sprint
     expect(() => minor.stories.reorder(sprint.id, testerId, [story1.id, story2.id, story3.id])).toThrow(NotFoundError);
   });
   it("imports a story from loosely shaped JSON and rejects JSON without a title", () => {

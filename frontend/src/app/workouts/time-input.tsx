@@ -13,7 +13,6 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
   ({ value, onChange, className, ...props }, ref) => {
     const [displayValue, setDisplayValue] = useState(value);
 
-    // Sync from prop changes
     useEffect(() => {
       setDisplayValue(value);
     }, [value]);
@@ -21,27 +20,22 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
       
-      // Allow user to delete completely
       if (!raw) {
         setDisplayValue("");
         onChange("");
         return;
       }
 
-      // Remove anything that is not a digit
       let digitsOnly = raw.replace(/\D/g, "");
       
-      // If user pressed backspace when displayValue ended with ':' (e.g. "12:" -> "12")
       if (displayValue.endsWith(":") && raw === displayValue.slice(0, -1)) {
         digitsOnly = digitsOnly.slice(0, -1);
       }
       
-      // Limit to 4 digits (MMSS)
       const truncated = digitsOnly.slice(0, 4);
       
       let formatted = truncated;
       
-      // Automatically add colon after 2 digits
       if (truncated.length >= 2) {
         const mm = truncated.slice(0, 2);
         let ss = truncated.slice(2);

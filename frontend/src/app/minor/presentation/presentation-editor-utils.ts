@@ -94,7 +94,6 @@ export function buildPresentationPayload(state: PresentationEditorState): MinorS
     if (isImageUrl(trimmed)) {
       cleanImages.push({ url: trimmed, caption: img.caption?.trim() || undefined });
     } else {
-      // If a PDF or web URL was entered into images, route it to documents
       cleanDocs.push({ title: img.caption?.trim() || trimmed, url: trimmed });
     }
   }

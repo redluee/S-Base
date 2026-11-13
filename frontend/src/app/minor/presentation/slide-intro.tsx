@@ -21,7 +21,6 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
     new Set(stories.flatMap((s) => s.learningOutcomes || []))
   ).sort((a, b) => a - b);
 
-  // Group stories count by type
   const typeCounts = stories.reduce<Record<string, number>>((acc, s) => {
     acc[s.storyTypeCode] = (acc[s.storyTypeCode] || 0) + 1;
     return acc;
@@ -29,12 +28,10 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col justify-center items-center min-h-[72vh] px-4 sm:px-8 py-6 text-center animate-in fade-in duration-300">
-      {/* Main Title */}
       <h1 className="font-display text-4xl sm:text-6xl text-white tracking-tight leading-tight max-w-4xl">
         {sprint.name}
       </h1>
 
-      {/* Dates */}
       <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-4 text-xs sm:text-sm text-zinc-400 font-mono">
         <div className="flex items-center gap-1.5">
           <Calendar className="size-3.5 text-zinc-500" />
@@ -48,9 +45,7 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
         </div>
       </div>
 
-      {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mt-10 text-left">
-        {/* Card 1: Stories total & completed */}
         <div className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 relative overflow-hidden group">
           <div className="text-xs uppercase font-semibold tracking-wider text-zinc-400 mb-1">
             {t("Opgeleverde Stories")}
@@ -73,7 +68,6 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
           </div>
         </div>
 
-        {/* Card 2: Story types breakdown */}
         <div className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10">
           <div className="text-xs uppercase font-semibold tracking-wider text-zinc-400 mb-2">
             {t("Story Typen")}
@@ -111,7 +105,6 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
         </div>
       </div>
 
-      {/* Start Button */}
       <div className="mt-10 flex flex-col items-center gap-3">
         <button
           type="button"

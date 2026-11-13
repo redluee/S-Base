@@ -22,13 +22,11 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   const [vacations, setVacations] = useState<MinorVacation[]>(initialVacations);
   const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
 
-  // Export Settings (Portfolio link & last name)
   const [portfolioUrl, setPortfolioUrl] = useState(initialSettings?.portfolioUrl || "");
   const [lastName, setLastName] = useState(initialSettings?.lastName || "");
   const [savingPortfolioUrl, setSavingPortfolioUrl] = useState(false);
   const [portfolioUrlSaved, setPortfolioUrlSaved] = useState(false);
 
-  // Vacation Modal
   const [isVacModalOpen, setIsVacModalOpen] = useState(false);
   const [editingVac, setEditingVac] = useState<MinorVacation | null>(null);
   const [vacName, setVacName] = useState("");
@@ -36,7 +34,6 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   const [vacEnd, setVacEnd] = useState("");
   const [savingVac, setSavingVac] = useState(false);
 
-  // Story Type Modal
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [editingType, setEditingType] = useState<MinorStoryType | null>(null);
   const [typeCode, setTypeCode] = useState("");
@@ -48,7 +45,6 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   const [savingType, setSavingType] = useState(false);
 
 
-  // Export Settings Handlers
   async function handleSaveExportSettings(e: React.FormEvent) {
     e.preventDefault();
     setSavingPortfolioUrl(true);
@@ -69,7 +65,6 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
     }
   }
 
-  // Vacation Handlers
   function openCreateVacModal() {
     setEditingVac(null);
     setVacName("");
@@ -124,7 +119,6 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
     }
   }
 
-  // Story Type Handlers
   function openCreateTypeModal() {
     setEditingType(null);
     setTypeCode("");
@@ -206,7 +200,6 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       <InlineAlert>{actionError}</InlineAlert>
-      {/* Header */}
       <div>
         <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">
           {t("Minor Instellingen")}

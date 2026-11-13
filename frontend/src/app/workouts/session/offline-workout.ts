@@ -41,7 +41,6 @@ function notifySyncChange(): void {
   try {
     window.dispatchEvent(new Event(OFFLINE_SYNC_EVENT));
   } catch {
-    // ignore
   }
 }
 
@@ -384,7 +383,6 @@ export function initOfflineWorkoutSync(): () => void {
     }
   }, 15000);
 
-  // Initial check
   syncAllPendingOfflineSessions();
 
   return () => {

@@ -142,7 +142,6 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       <InlineAlert>{error}</InlineAlert>
-      {/* Header */}
       <div>
         <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">
           {t("Verzamelexport Portfolio")}
@@ -152,7 +151,6 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
         </p>
       </div>
 
-      {/* Filename Section */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
           <FileSignature className="size-4 text-brand" />
@@ -170,9 +168,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
         </p>
       </section>
 
-      {/* Export Format Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* PDF Card */}
         <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="size-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center">
@@ -196,7 +192,6 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
           </button>
         </div>
 
-        {/* Excel Card */}
         <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="size-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -220,7 +215,6 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
           </button>
         </div>
 
-        {/* JSON Card */}
         <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="size-10 rounded-xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center">
@@ -245,7 +239,6 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
         </div>
       </div>
 
-      {/* Sprints Selection Section */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -310,7 +303,6 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
         </div>
       </section>
 
-      {/* Pre-export Validation Warning Modal */}
       {exportIssues.length > 0 && (
         <ModalOverlay
           open

@@ -126,7 +126,6 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                   </div>
 
                   <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
-                    {/* Self Eval Level */}
                     <div className="flex items-center gap-1.5">
                       <label className="text-zinc-400 font-semibold">{t("Zelf (Niv.)")}:</label>
                       <select
@@ -178,7 +177,6 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                   </div>
                 </div>
 
-                {/* Argumentation Textarea */}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <label className="text-zinc-300 font-semibold flex items-center gap-1.5">
@@ -212,7 +210,6 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                     className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-brand"
                   />
 
-                  {/* Attached Story Evidence Pills */}
                   {luEvidenceList.length > 0 && (
                     <div className="pt-1 space-y-1">
                       <span className="text-[11px] text-zinc-400 font-medium block">

@@ -250,7 +250,6 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
   const doc = (
     <Document title={`Factuur ${invoice.invoiceNumber}`} author={invoice.tradeNameDisplay ?? "Onbekend"}>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.tradeName}>{invoice.tradeNameDisplay ?? "Mijn Bedrijf"}</Text>
@@ -264,7 +263,6 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           </View>
         </View>
 
-        {/* Info section */}
         <View style={styles.infoSection}>
           <View style={styles.infoBlock}>
             <Text style={styles.infoTitle}>Gefactureerd aan</Text>
@@ -282,7 +280,6 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           </View>
         </View>
 
-        {/* Line items */}
         <View style={styles.itemsTable}>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colDesc]}>Omschrijving</Text>
@@ -315,7 +312,6 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           ))}
         </View>
 
-        {/* Totals */}
         <View style={styles.totalsSection}>
           <View style={styles.totalsTable}>
             <View style={styles.totalsRow}>
@@ -329,7 +325,6 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           </View>
         </View>
 
-        {/* Meta table */}
         <View style={styles.metaTable}>
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Factuurreferentie</Text>
@@ -362,7 +357,6 @@ export async function buildInvoicePDFBlob(invoice: CashflowInvoiceFull): Promise
           </View>
         )}
 
-        {/* Footer */}
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>Bedankt voor uw vertrouwen aan mij bij deze opdracht</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />

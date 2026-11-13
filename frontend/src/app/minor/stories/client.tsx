@@ -35,7 +35,6 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
   const [groupBySprint, setGroupBySprint] = useState<boolean>(true);
   const [expandedStoryIds, setExpandedStoryIds] = useState<Set<number>>(new Set());
 
-  // Create Story Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newSprintId, setNewSprintId] = useState<string>("");
   const [newStoryTypeCode, setNewStoryTypeCode] = useState("US");
@@ -180,7 +179,6 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
 
   const filteredStories = useMemo(() => {
     return stories.filter((st) => {
-      // Sprint filter
       if (selectedSprintId === "unassigned" && st.sprintId) {
         return false;
       }
@@ -192,12 +190,10 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
         return false;
       }
 
-      // Type filter
       if (selectedType !== "all" && st.storyTypeCode.toUpperCase() !== selectedType.toUpperCase()) {
         return false;
       }
 
-      // Status filter
       if (selectedStatus !== "all" && st.status !== selectedStatus) {
         return false;
       }
@@ -207,7 +203,6 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
         return false;
       }
 
-      // Text query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = st.title.toLowerCase().includes(q);
@@ -227,7 +222,6 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
     });
   }, [stories, selectedSprintId, selectedType, selectedStatus, selectedLU, searchQuery]);
 
-  // Statistics
   const totalCount = stories.length;
   const conceptCount = stories.filter((s) => !s.sprintId).length;
   const doneCount = stories.filter((s) => s.status === "done").length;
@@ -239,13 +233,11 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
 
   const completionPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
-  // Grouping logic
   const sprintGroups = useMemo(() => {
     if (!groupBySprint) return null;
 
     const map = new Map<number, { sprint: MinorSprint | { id: number; sprintNumber?: string; name: string }; stories: MinorStoryWithSprint[] }>();
 
-    // Initialise sprints order
     sprints.forEach((sp) => {
       map.set(sp.id, { sprint: sp, stories: [] });
     });
@@ -287,7 +279,6 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       <InlineAlert>{actionError}</InlineAlert>
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">

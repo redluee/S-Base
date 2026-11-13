@@ -16,7 +16,6 @@ interface DashboardOverviewProps {
 export function DashboardOverview({ stats, sprints, openCreateSprintModal, setIsPeerModalOpen }: DashboardOverviewProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Sprints List (2 cols) */}
       <section className="lg:col-span-2 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-white tracking-tight">
@@ -93,7 +92,6 @@ export function DashboardOverview({ stats, sprints, openCreateSprintModal, setIs
         </div>
       </section>
 
-      {/* Peer Help Highlights (1 col) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">

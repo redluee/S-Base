@@ -52,7 +52,6 @@ export default async function WorkoutsPage() {
           <WorkoutSubnav current="workouts" />
         </div>
 
-        {/* Running Workout Banner */}
         {runningSessions.length > 0 && (
           <div className="mb-6 flex flex-col gap-3">
             {runningSessions.length > 1 && (
@@ -68,7 +67,6 @@ export default async function WorkoutsPage() {
           </div>
         )}
 
-        {/* Stats Dashboard */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
           <div className="rounded-xl bg-card p-2.5 sm:p-6 ring-1 ring-foreground/10 flex flex-col items-center justify-center text-center min-h-[90px] sm:min-h-[130px]">
             {stats.daysAgo === null ? (
@@ -107,7 +105,6 @@ export default async function WorkoutsPage() {
                     {remaining} {t("tot volgende mijlpaal")}
                   </span>
                   
-                  {/* Progress bar */}
                   <div className="w-full bg-zinc-800/80 h-1.5 sm:h-2 rounded-full mt-1.5 sm:mt-3 overflow-hidden border border-white/5">
                     <div 
                       className="bg-brand h-full rounded-full transition-all duration-500" 

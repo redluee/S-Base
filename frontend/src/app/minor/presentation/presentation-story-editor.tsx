@@ -162,7 +162,6 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
         className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-2xl w-full space-y-5 shadow-2xl my-8 text-sm max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with Title and On/Off Switch next to close button */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2 min-w-0">
             <Presentation className="size-4.5 text-brand shrink-0" />
@@ -213,7 +212,6 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Dia Layout Keuze */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-950 border border-white/5">
             <div>
               <label className="block text-xs font-semibold text-zinc-200">
@@ -236,7 +234,6 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
             </select>
           </div>
 
-          {/* Blok 1: Bulletpoints of genummerde punten */}
           <BulletsBlock
             expanded={expandedBlocks.bullets}
             onToggle={() => toggleBlock("bullets")}
@@ -273,7 +270,6 @@ export function PresentationStoryEditor({ story, onSave, onClose }: Presentation
           />
 
 
-          {/* Footer Actions */}
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
             <button
               type="button"

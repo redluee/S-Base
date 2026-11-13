@@ -26,7 +26,6 @@ export function useSessionSetActions({
   stopRestTimer,
 }: SetActionsArgs) {
   const touchedRef = useRef<Set<string>>(new Set());
-  // Pop Burst satisfaction animation state
   const [lastCompletedSet, setLastCompletedSet] = useState<{ exIdx: number; setIdx: number } | null>(null);
 
   async function removeSet(exerciseIndex: number, setIndex: number) {

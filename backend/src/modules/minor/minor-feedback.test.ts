@@ -17,7 +17,6 @@ describe("MinorFeedback", () => {
       startDate: "2026-09-07",
     });
 
-    // Feedback
     const fb = minor.feedback.add(sprint.id, adminId, {
       date: "2026-09-16",
       fromWhom: "Docent Jan",
@@ -28,7 +27,6 @@ describe("MinorFeedback", () => {
     const fbList = minor.feedback.list(sprint.id, adminId);
     expect(fbList.length).toBe(1);
 
-    // Reflection
     const ref = minor.feedback.saveReflection(sprint.id, adminId, {
       whatLearned: "Veel geleerd over SQLite indexes",
       whatRetained: "Gestructureerde feedbackverwerking",
@@ -36,7 +34,6 @@ describe("MinorFeedback", () => {
     });
     expect(ref.whatLearned).toContain("SQLite");
 
-    // Peer Help
     const peer = minor.peerHelp.create(adminId, {
       sprintId: sprint.id,
       date: "2026-09-10",

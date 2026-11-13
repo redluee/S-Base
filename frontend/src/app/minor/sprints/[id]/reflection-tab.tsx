@@ -87,7 +87,6 @@ export function ReflectionTab({ data }: ReflectionTabProps) {
             />
           </div>
 
-          {/* Docentbeoordeling per leeruitkomst (Voldoende behaald) */}
           <div className="pt-3 border-t border-white/10 space-y-2.5">
             <div>
               <label className="block text-zinc-200 font-bold text-xs">

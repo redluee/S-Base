@@ -23,7 +23,6 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MinorPeerHelp | null>(null);
 
-  // Form state
   const [date, setDate] = useState(today());
   const [sprintId, setSprintId] = useState<number | undefined>(undefined);
   const [peerName, setPeerName] = useState("");
@@ -106,7 +105,6 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <InlineAlert>{actionError}</InlineAlert>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">
@@ -129,7 +127,6 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
         </button>
       </div>
 
-      {/* Search Bar */}
       <div className="relative max-w-md">
         <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
         <input
@@ -141,9 +138,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
         />
       </div>
 
-      {/* Table / Cards List */}
       <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-        {/* Mobile Cards View */}
         <div className="block md:hidden divide-y divide-white/5">
           {filteredList.length === 0 ? (
             <div className="py-12 text-center text-zinc-500 italic">
@@ -208,7 +203,6 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
           )}
         </div>
 
-        {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -287,7 +281,6 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
         </div>
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
         <ModalOverlay
           open

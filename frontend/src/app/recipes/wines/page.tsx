@@ -56,7 +56,6 @@ export default async function WinesPage({
           </div>
         </div>
 
-        {/* Wine type filters */}
         <div className="flex gap-1.5 overflow-x-auto flex-nowrap sm:flex-wrap -mx-4 sm:mx-0 px-4 sm:px-0 mb-4 [&::-webkit-scrollbar]:hidden">
           {wineTypes.map((wt) => {
             const params = new URLSearchParams();
@@ -81,7 +80,6 @@ export default async function WinesPage({
           })}
         </div>
 
-        {/* Sort fields */}
         <div className="flex items-center gap-1.5 mb-6">
           {sortFields.map((field) => {
             const isActive = sortBy === field.key || (!sortBy && field.key === "brand");
@@ -112,7 +110,6 @@ export default async function WinesPage({
           })}
         </div>
 
-        {/* Empty state */}
         {wines.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center rounded-2xl border border-dashed border-border/60 bg-card/40 px-4">
             <Link

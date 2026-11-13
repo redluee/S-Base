@@ -41,7 +41,6 @@ export function useSessionSync({
   const syncVersionRef = useRef(0);
   const syncPromiseChain = useRef<Promise<unknown>>(Promise.resolve());
 
-  // Trigger sync if offline data is pending and connection is online
   useEffect(() => {
     if (session?.sessionId) {
       const offlineData = getOfflineSession(session.sessionId);
@@ -58,7 +57,6 @@ export function useSessionSync({
     setUnsynced(Boolean(id && getOfflineSession(id)?.pendingSync));
   }, [sessionRef]);
 
-  // API operations
   async function saveExercises(exercises: SessionExercise[]) {
     if (!session) return;
     setSaving(true);
@@ -99,7 +97,6 @@ export function useSessionSync({
     await syncPromiseChain.current;
   }
 
-  // Cleanup sound and timers on component unmount
   useEffect(() => {
     return () => {
       cancelScheduledSound();
@@ -127,7 +124,6 @@ export function useSessionSync({
     };
   }, [session, isSummaryView]);
 
-  // Stop / start functions
   async function togglePause() {
     if (!session || session.completedAt) return;
     const now = Date.now();

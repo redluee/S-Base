@@ -35,7 +35,6 @@ export function RecipeIngredientList({
   const [newAddedIds, setNewAddedIds] = useState<Set<string>>(new Set());
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
 
-  // Drag and drop states
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevPositionsRef = useRef<Map<string, number>>(new Map());

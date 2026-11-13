@@ -1,18 +1,14 @@
-// HTML5 Audio background rest timer sound utility
 import { getChimeWavUri, getBeepWavUri } from "./sound-wav";
 import { t } from "@/lib/lang";
 
 let scheduledTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let hasTriggeredCurrentTimer = false;
 
-// Audio elements
 let chimeAudioElement: HTMLAudioElement | null = null;
 let beepAudioElement: HTMLAudioElement | null = null;
 
-// Worker-based background timer
 let backgroundWorker: Worker | null = null;
 
-// Screen Wake Lock
 let wakeLockSentinel: unknown = null;
 
 const SOUND_PREF_KEY = "sbase_rest_timer_sound_enabled";
@@ -93,7 +89,6 @@ export function unlockAudio(): void {
   initAudioElements();
   if (chimeAudioElement) {
     try {
-      // Just load it into memory on user gesture
       chimeAudioElement.load();
     } catch {}
   }

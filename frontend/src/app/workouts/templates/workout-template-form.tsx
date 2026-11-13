@@ -241,7 +241,6 @@ export function WorkoutTemplateForm({
 
       <div className="h-px bg-border/50 w-full" />
 
-      {/* Exercises Array */}
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">{t("Exercises")}</h2>
@@ -275,7 +274,6 @@ export function WorkoutTemplateForm({
         </Button>
       </div>
 
-      {/* Submit */}
       <div className="sticky bottom-4 mt-6 z-10 flex flex-col gap-2">
         <div ref={feedbackRef} className="flex flex-col gap-2 scroll-mb-24">
           <InlineAlert className="bg-card">{error}</InlineAlert>

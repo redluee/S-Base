@@ -48,7 +48,6 @@ function ClientContractModal({
       backdropClassName="bg-black/80"
     >
       <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-800 bg-zinc-900/90">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
@@ -91,7 +90,6 @@ function ClientContractModal({
           </div>
         </div>
 
-        {/* PDF Viewer Body */}
         <div className="relative flex-1 min-h-[60vh] sm:min-h-[72vh] bg-zinc-950 p-2 sm:p-4">
           <iframe
             src={client.contractPdfPath}
@@ -195,7 +193,6 @@ function ClientForm({
           <Input type="number" min="0" step="0.01" value={standardRate} onChange={e => setStandardRate(e.target.value)} className="bg-zinc-800 border-zinc-700" placeholder="75.00" />
         </div>
 
-        {/* PDF Contract Section */}
         <div className="space-y-2 sm:col-span-2 pt-2 border-t border-zinc-800/80">
           <Label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
             <FileText className="size-3.5 text-blue-400" />
@@ -435,7 +432,6 @@ export function ClientsClient({ initialItems }: { initialItems: CashflowClient[]
         </div>
       )}
 
-      {/* Contract Viewer Lightbox Modal */}
       {viewingContractClient && (
         <ClientContractModal
           client={viewingContractClient}

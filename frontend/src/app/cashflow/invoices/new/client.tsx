@@ -79,7 +79,6 @@ export function NewInvoiceClient({
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
-  // Form state
   const [clientId, setClientId] = useState<number | "">(inv?.clientId ?? "");
   const [projectId, setProjectId] = useState<number | "">(inv?.projectId ?? "");
   const [tradeNameId, setTradeNameId] = useState<number | "">(inv?.tradeNameId ?? "");
@@ -94,7 +93,6 @@ export function NewInvoiceClient({
   const [isKor, setIsKor] = useState(inv?.isKor ?? true);
   const [lines, setLines] = useState<InvoiceLine[]>(() => (inv ? linesFromInvoice(inv) : emptyLines()));
 
-  // Inline new client state
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
@@ -156,7 +154,6 @@ export function NewInvoiceClient({
   const filteredProjects = projects.filter(p => clientId ? p.clientId === Number(clientId) : true);
   const selectedClient = clients.find(c => c.id === Number(clientId));
 
-  // Auto-set payment due date when dateCreated changes
   const handleDateCreatedChange = (val: string) => {
     setDateCreated(val);
     if (val) {
@@ -164,7 +161,6 @@ export function NewInvoiceClient({
     }
   };
 
-  // Auto-fill unit price from client standard rate when adding lines
   function addLine() {
     const rate = selectedClient?.standardRate ?? 0;
     setLines(prev => recalculateLines([...prev, {
@@ -278,7 +274,6 @@ export function NewInvoiceClient({
       <InlineAlert>{actionError}</InlineAlert>
       <h1 className="text-xl font-bold text-white">{editId ? t("Factuur bewerken") : t("Nieuwe factuur")}</h1>
 
-      {/* Client, Project & Trade Name */}
       <ClientSection
         clientId={clientId}
         clients={clients}
@@ -307,7 +302,6 @@ export function NewInvoiceClient({
         tradeNameId={tradeNameId}
         tradeNames={tradeNames}
       />
-      {/* Invoice Meta */}
       <DetailsSection
         dateCreated={dateCreated}
         datePaid={datePaid}
@@ -332,7 +326,6 @@ export function NewInvoiceClient({
         setStatus={setStatus}
         status={status}
       />
-      {/* Invoice Lines */}
       <LinesSection
         addLine={addLine}
         fieldErrors={fieldErrors}
@@ -342,10 +335,8 @@ export function NewInvoiceClient({
         total={total}
         updateLine={updateLine}
       />
-      {/* Error */}
       {error && <p className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-4 py-2">{error}</p>}
 
-      {/* Actions */}
       <div className="flex gap-3 justify-end">
         <Button
           type="button"

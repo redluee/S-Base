@@ -20,44 +20,35 @@ interface StoryTypePreset {
   grad2: GradientPosition;
 }
 
-// Predefined coordinate presets per story type so each type has a distinct spatial anchor
 const PRESETS: StoryTypePreset[] = [
-  // 0: INTRO / Default (Signal Green) - Top-Left & Bottom-Right
   {
     grad1: { top: "18%", left: "18%", size: "680px", opacity: 0.44 },
     grad2: { top: "76%", left: "80%", size: "720px", opacity: 0.36 },
   },
-  // 1: US (User Story - Emerald) - Top-Right & Bottom-Left
   {
     grad1: { top: "16%", left: "82%", size: "700px", opacity: 0.48 },
     grad2: { top: "78%", left: "16%", size: "640px", opacity: 0.38 },
   },
-  // 2: RS (Research Story - Orange) - Bottom-Right & Top-Center-Left
   {
     grad1: { top: "74%", left: "78%", size: "720px", opacity: 0.46 },
     grad2: { top: "20%", left: "28%", size: "620px", opacity: 0.38 },
   },
-  // 3: LS (Learning Story - Purple) - Center-Right & Top-Left
   {
     grad1: { top: "45%", left: "86%", size: "680px", opacity: 0.48 },
     grad2: { top: "15%", left: "14%", size: "620px", opacity: 0.38 },
   },
-  // 4: BUG / FIX (Rose / Red) - Bottom-Center & Top-Right
   {
     grad1: { top: "80%", left: "48%", size: "700px", opacity: 0.48 },
     grad2: { top: "15%", left: "70%", size: "620px", opacity: 0.38 },
   },
-  // 5: TECH / SPIKE (Blue / Cyan) - Center-Left & Top-Right
   {
     grad1: { top: "50%", left: "12%", size: "660px", opacity: 0.45 },
     grad2: { top: "18%", left: "76%", size: "720px", opacity: 0.38 },
   },
-  // 6: OUTRO - Bottom-Left & Mid-Top-Right
   {
     grad1: { top: "68%", left: "24%", size: "680px", opacity: 0.46 },
     grad2: { top: "26%", left: "76%", size: "700px", opacity: 0.36 },
   },
-  // 7: Custom / Fallback - Top-Center & Bottom-Right
   {
     grad1: { top: "16%", left: "50%", size: "680px", opacity: 0.46 },
     grad2: { top: "76%", left: "82%", size: "680px", opacity: 0.36 },
@@ -74,7 +65,6 @@ function getPresetForType(typeCode?: string): StoryTypePreset {
   if (code === "TECH" || code === "SPIKE") return PRESETS[5];
   if (code === "OUTRO") return PRESETS[6];
 
-  // Deterministic distribution for any custom story type
   let hash = 0;
   for (let i = 0; i < code.length; i++) {
     hash = (hash * 31 + code.charCodeAt(i)) % PRESETS.length;
@@ -145,10 +135,8 @@ export function PresentationBackground({
         }
       `}</style>
 
-      {/* Deep pitch black background */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Dynamic Circular Gradient 1 */}
       <div
         className="absolute rounded-full will-change-[top,left]"
         style={{
@@ -173,7 +161,6 @@ export function PresentationBackground({
             transition: "background-color 1100ms cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          {/* Radiant center hotspot */}
           <div
             className="absolute inset-[22%] rounded-full"
             style={{
@@ -189,7 +176,6 @@ export function PresentationBackground({
         </div>
       </div>
 
-      {/* Dynamic Circular Gradient 2 */}
       <div
         className="absolute rounded-full will-change-[top,left]"
         style={{
@@ -214,7 +200,6 @@ export function PresentationBackground({
             transition: "background-color 1100ms cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          {/* Radiant center hotspot */}
           <div
             className="absolute inset-[24%] rounded-full"
             style={{
@@ -230,7 +215,6 @@ export function PresentationBackground({
         </div>
       </div>
 
-      {/* Subtle dot matrix grid overlay for a high-tech console texture */}
       <div
         className="absolute inset-0 opacity-[0.14]"
         style={{
@@ -240,7 +224,6 @@ export function PresentationBackground({
         }}
       />
 
-      {/* Vignette border fade (softer so corners aren't completely blacked out) */}
       <div className="absolute inset-0 bg-radial-[ellipse_at_center,_transparent_50%,_rgba(0,0,0,0.65)_100%]" />
     </div>
   );

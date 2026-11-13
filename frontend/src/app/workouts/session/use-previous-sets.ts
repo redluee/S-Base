@@ -5,7 +5,6 @@ import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
 export function usePreviousSets(session: FullWorkoutSession | null) {
   const [previousSetsMap, setPreviousSetsMap] = useState<Record<string, SessionSet[]>>({});
 
-  // Fetch previous sets mapping to show smart ghost targets
   useEffect(() => {
     if (session?.exercises?.length) {
       const uniqueNames: string[] = Array.from(new Set(session.exercises.map((e) => e.exerciseName)));

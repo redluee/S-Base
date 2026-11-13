@@ -1,6 +1,5 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
-// Palette matching Image 1 & Image 2
 export const COLOR_CARMINE_RED = "#C00000";
 export const COLOR_ODD_BANNER = "#E6302B";
 export const COLOR_ODD_SECTION = "#FACAC9";
@@ -27,7 +26,6 @@ export const styles = StyleSheet.create({
     color: COLOR_BLACK,
     backgroundColor: "#FFFFFF",
   },
-  // Table utilities
   tableBorder: {
     borderWidth: 0.5,
     borderColor: COLOR_BORDER,
@@ -50,7 +48,6 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Dashboard Page Styles
   dashHeaderCell: {
     backgroundColor: COLOR_CARMINE_RED,
     paddingHorizontal: 3,
@@ -89,7 +86,6 @@ export const styles = StyleSheet.create({
     color: COLOR_BLACK,
   },
 
-  // Logboek Sprint Page Styles
   sprintBanner: {
     height: 18,
     justifyContent: "center",
@@ -149,7 +145,6 @@ export const styles = StyleSheet.create({
     height: 4,
   },
 
-  // Portfolio Link Row (Dashboard Page)
   portfolioRow: {
     flexDirection: "row",
     marginTop: 8,

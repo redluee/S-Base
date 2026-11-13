@@ -232,7 +232,6 @@ export function InvoicesClient({
         </Link>
       </div>
 
-      {/* Filter Bar */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -241,7 +240,6 @@ export function InvoicesClient({
               <span>{t("Filter op")}:</span>
             </div>
 
-            {/* Client Select */}
             <select
               value={selectedClientId ?? ""}
               onChange={e => handleClientChange(e.target.value)}
@@ -255,7 +253,6 @@ export function InvoicesClient({
               ))}
             </select>
 
-            {/* Project Select */}
             <select
               value={selectedProjectId ?? ""}
               onChange={e => handleProjectChange(e.target.value)}
@@ -269,7 +266,6 @@ export function InvoicesClient({
               ))}
             </select>
 
-            {/* Year Select */}
             <select
               value={selectedYear}
               onChange={e => handleYearChange(e.target.value)}
@@ -295,7 +291,6 @@ export function InvoicesClient({
             )}
           </div>
 
-          {/* Sort Selector */}
           <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
             <ArrowUpDown className="size-3.5 text-blue-400 shrink-0" />
             <span className="shrink-0">{t("Sorteer op")}:</span>
@@ -321,7 +316,6 @@ export function InvoicesClient({
           </div>
         </div>
 
-        {/* Status Pills */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-800/60">
           {statusPills.map(sp => (
             <button

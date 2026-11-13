@@ -42,7 +42,6 @@ describe("MinorSchedule", () => {
     expect(calc.extensionReason).toContain("Herfstvakantie");
     expect(calc.endDate).toBe("2026-11-01");
 
-    // Clean up
     minor.schedule.removeVacation(vac.id, adminId);
   });
 
@@ -57,7 +56,6 @@ describe("MinorSchedule", () => {
     expect(rs).toBeDefined();
     expect(rs?.defaultQualityCriteria?.length).toBeGreaterThanOrEqual(1);
 
-    // Create custom story type with default quality criteria
     const custom = minor.storyTypes.create(adminId, {
       code: "TS",
       name: "Tech Story",
@@ -72,7 +70,6 @@ describe("MinorSchedule", () => {
     expect(custom.defaultQualityCriteria?.length).toBe(2);
     expect(custom.defaultQualityCriteria?.[1].indent).toBe(1);
 
-    // Update custom story type
     const updatedCustom = minor.storyTypes.update(custom.id, adminId, {
       name: "Technical Story",
       defaultQualityCriteria: [{ text: "CI pipeline slaagt zonder warnings", indent: 0 }],
@@ -81,7 +78,6 @@ describe("MinorSchedule", () => {
     expect(updatedCustom?.defaultQualityCriteria?.length).toBe(1);
     expect(updatedCustom?.defaultQualityCriteria?.[0].text).toBe("CI pipeline slaagt zonder warnings");
 
-    // Update default story type (e.g. US)
     const updatedUs = minor.storyTypes.update(us!.id, adminId, {
       name: "Functionele User Story",
       defaultQualityCriteria: [{ text: "Aangepast US kwaliteitscriterium 1", indent: 0 }],

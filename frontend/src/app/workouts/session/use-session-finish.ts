@@ -57,7 +57,6 @@ export function useSessionFinish({
   const elapsedSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingElapsedRef = useRef<number | null>(null);
 
-  // Finished / Summary View state
   const [showFinishedWarning, setShowFinishedWarning] = useState(false);
   const [showZeroRepsWarning, setShowZeroRepsWarning] = useState(false);
   const [highlightZeroReps, setHighlightZeroReps] = useState(false);
@@ -139,7 +138,6 @@ export function useSessionFinish({
     }
   }
 
-  // Handle final completion
   function handleFinishClick() {
     const totalSecs = session ? sessionElapsedSeconds(session, Date.now()) : elapsed;
     const h = Math.floor(totalSecs / 3600);
@@ -149,7 +147,6 @@ export function useSessionFinish({
     setSummaryMinutes(String(m));
     setSummarySeconds(String(s));
 
-    // Check if there are any completed sets with 0/null values
     let hasZeroSets = false;
     if (session?.exercises) {
       for (const ex of session.exercises) {
@@ -175,7 +172,6 @@ export function useSessionFinish({
   }
 
   function checkIncompleteAndProceed() {
-    // Check if there are any incomplete sets
     let hasIncomplete = false;
     if (session?.exercises) {
       for (const ex of session.exercises) {
@@ -236,7 +232,6 @@ export function useSessionFinish({
     setSaving(true);
     setActionError(null);
     try {
-      // Calculate duration in seconds
       const h = parseInt(summaryHours, 10) || 0;
       const m = Math.min(59, parseInt(summaryMinutes, 10) || 0);
       const s = Math.min(59, parseInt(summarySeconds, 10) || 0);

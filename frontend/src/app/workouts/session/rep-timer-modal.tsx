@@ -58,7 +58,6 @@ export function RepTimerModal({
   const accumulatedMsRef = useRef<number>(initialRestore?.accumulatedMs ?? 0);
   const animFrameRef = useRef<number | null>(null);
   
-  // Track chime triggers
   const last3BeepSecRef = useRef<number | null>(null);
   const targetChimeTriggeredRef = useRef(
     Boolean(initialRestore && targetDurationSeconds && targetDurationSeconds > 0 && initialRestore.elapsedMs / 1000 >= (restored?.targetTime ?? 0))
@@ -92,13 +91,11 @@ export function RepTimerModal({
     }
   }
 
-  // Request permissions and unlock audio on initial render
   useEffect(() => {
     unlockAudio();
     requestNotificationPermission();
   }, []);
 
-  // Screen Wake Lock while set timer is running
   useEffect(() => {
     if (isRunning) {
       requestScreenWakeLock();
@@ -124,7 +121,6 @@ export function RepTimerModal({
   }, [isRunning, targetTime, targetDurationSeconds, exerciseName, setNumber, soundEnabled]);
 
 
-  // Handle returning from background / screen off
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -155,7 +151,6 @@ export function RepTimerModal({
     };
   }, [isRunning, targetTime, targetDurationSeconds, exerciseName, setNumber]);
 
-  // High precision timer loop via requestAnimationFrame
   useEffect(() => {
     if (isRunning) {
       if (startTimeRef.current === null) startTimeRef.current = Date.now();
@@ -168,7 +163,6 @@ export function RepTimerModal({
 
           const currentElapsedSec = Math.floor(currentTotalMs / 1000);
 
-            // 3, 2, 1 Countdown beeps before reaching targetTime
           if (targetDurationSeconds && targetDurationSeconds > 0) {
             const secsRemaining = targetTime - currentElapsedSec;
             if (secsRemaining <= 3 && secsRemaining > 0 && last3BeepSecRef.current !== secsRemaining) {
@@ -176,7 +170,6 @@ export function RepTimerModal({
               playLoudBeep();
             }
 
-            // Completion chime and vibration when target is reached
             if (secsRemaining <= 0 && !targetChimeTriggeredRef.current) {
               targetChimeTriggeredRef.current = true;
               triggerSetTimerCompletion(exerciseName, setNumber);
@@ -206,13 +199,11 @@ export function RepTimerModal({
     };
   }, [isRunning, targetTime, targetDurationSeconds, exerciseName, setNumber]);
 
-  // Persist timer state so it survives a page reload
   useEffect(() => {
     persist();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, targetTime]);
 
-  // Cleanup scheduled sound on component unmount
   useEffect(() => {
     return () => {
       cancelScheduledSound();
@@ -224,7 +215,6 @@ export function RepTimerModal({
   const isCountdown = targetDurationSeconds != null && targetDurationSeconds > 0;
   const displaySeconds = isCountdown ? targetTime - elapsedSeconds : elapsedSeconds;
 
-  // Smooth SVG progress ring percent calculation
   const totalTargetMs = targetTime * 1000;
   const progressPercent = isCountdown
     ? Math.min(100, Math.max(0, (elapsedMs / totalTargetMs) * 100))
@@ -273,7 +263,6 @@ export function RepTimerModal({
           >
       <div className="relative w-full max-w-md bg-popover ring-1 ring-foreground/10 rounded-2xl p-5 sm:p-6 flex flex-col items-center gap-4 text-zinc-100">
         
-        {/* Header */}
         <div className="w-full flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-brand/15 text-brand border border-brand/30">
@@ -307,11 +296,8 @@ export function RepTimerModal({
           </div>
         </div>
 
-        {/* Circular Timer Display */}
         <div className="relative size-52 flex items-center justify-center my-1">
-          {/* SVG Progress Ring */}
           <svg className="size-full -rotate-90" viewBox="0 0 100 100">
-            {/* Track */}
             <circle
               cx="50"
               cy="50"
@@ -320,7 +306,6 @@ export function RepTimerModal({
               strokeWidth="6"
               fill="transparent"
             />
-            {/* Smooth Progress */}
             <circle
               cx="50"
               cy="50"
@@ -334,7 +319,6 @@ export function RepTimerModal({
             />
           </svg>
 
-          {/* Time digits */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className={`text-5xl font-extrabold tracking-tight tabular-nums ${
               isCountdown && displaySeconds <= 0 ? "text-brand" : "text-white"
@@ -349,7 +333,6 @@ export function RepTimerModal({
           </div>
         </div>
 
-        {/* Quick adjustments (+10s / -10s) */}
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -367,7 +350,6 @@ export function RepTimerModal({
           </Button>
         </div>
 
-        {/* Main Play/Pause & Reset Controls */}
         <div className="w-full flex items-center justify-center gap-4 pt-1">
           <Button
             variant="ghost"
@@ -402,7 +384,6 @@ export function RepTimerModal({
           </Button>
         </div>
 
-        {/* Complete & Save Buttons */}
         <div className="w-full flex flex-col sm:flex-row items-stretch gap-2 pt-1">
           <Button
             onClick={() => handleCompleteWithSeconds(elapsedSeconds)}

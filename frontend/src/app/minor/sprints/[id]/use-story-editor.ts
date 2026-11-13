@@ -38,7 +38,6 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
     return [{ text: "", isCompleted: false, indent: 0 }];
   }
 
-  // Story Helpers
   function openCreateStoryModal() {
     setEditingStory(null);
     setStoryTypeCode("US");

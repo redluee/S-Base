@@ -93,7 +93,6 @@ export function WorkoutCompletionSummary({
         </div>
       </div>
 
-      {/* Duration Editor */}
       <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-4 sm:p-5">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           {t("Duration Editor")}
@@ -120,7 +119,6 @@ export function WorkoutCompletionSummary({
         </div>
       </div>
 
-      {/* Performance Summary Details */}
       <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-4 sm:p-5 flex flex-col gap-4">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {t("Performance Summary")}
@@ -137,7 +135,6 @@ export function WorkoutCompletionSummary({
           </div>
         </div>
 
-        {/* PR badges */}
         {personalRecords.length > 0 ? (
           <div className="mt-2 flex flex-col gap-2">
             <h3 className="text-xs font-medium text-brand flex items-center gap-1.5">
@@ -183,7 +180,6 @@ export function WorkoutCompletionSummary({
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex flex-col gap-2.5 mt-2">
         <Button
           onClick={onSave}

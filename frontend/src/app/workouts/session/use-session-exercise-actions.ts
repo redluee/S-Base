@@ -186,13 +186,11 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
 
     const trimmedName = name.trim();
 
-    // Check if this exercise is known (category passed or found in history/progress)
     let isKnown = Boolean(category);
     let historySessionSets: SessionSet[] | null = (lastSets as unknown as SessionSet[]) || null;
     let historyCategory: string | undefined = undefined;
     let historyEquipment: string | undefined = undefined;
 
-    // Try fetching progress/history for this exercise name if not already provided
     if (!historySessionSets || historySessionSets.length === 0) {
       try {
         const found = await fetchLastCompletedSets(trimmedName);
@@ -212,18 +210,15 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
     }
 
     if (historySessionSets && historySessionSets.length > 0) {
-      // Update previousSetsMap so ghost targets show up instantly
       setPreviousSetsMap((prev) => ({
         ...prev,
         [trimmedName]: historySessionSets!,
       }));
     }
 
-    // If exercise is NOT known (does not exist yet in system):
     if (!isKnown) {
       setReplacingExerciseId(null);
       setReplaceName("");
-      // Show the exercise creation block (ExerciseEditBlock) for this exercise index
       setEditingExerciseDraft(
         draftFromSuggestion(
           trimmedName,
@@ -247,7 +242,6 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
     const eq = equipment || historyEquipment || "none";
     const isPerSide = perSide ? 1 : 0;
 
-    // Take over settings from last executed session, else construct sets using default values
     const initialSets: SessionSet[] =
       historySessionSets && historySessionSets.length > 0
         ? setsFromHistory(historySessionSets)

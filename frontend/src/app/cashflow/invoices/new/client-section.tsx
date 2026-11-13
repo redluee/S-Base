@@ -129,7 +129,6 @@ export function ClientSection({
             </div>
           </div>
   
-          {/* Inline new client form */}
           {showNewClient && (
             <div className="mt-2 p-4 bg-zinc-800/60 border border-zinc-700 rounded-lg space-y-3">
               <p className="text-xs font-semibold text-zinc-300">{t("Klant aanmaken")}</p>

@@ -63,7 +63,6 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4 text-xs">
-            {/* Type, Number, Sprint Selection */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="text-zinc-400 font-medium">{t("Story Type")}</label>
@@ -108,7 +107,6 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
               </div>
             </div>
 
-            {/* Title */}
             <div className="space-y-1">
               <label className="text-zinc-400 font-medium">{t("Titel van de story")} *</label>
               <input
@@ -121,7 +119,6 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
               />
             </div>
 
-            {/* Als / Wil ik / Zodat */}
             <div className="p-4 rounded-xl bg-zinc-950/70 border border-white/5 space-y-3">
               <div className="text-zinc-300 font-semibold text-xs flex items-center gap-1.5">
                 <Sparkles className="size-3.5 text-brand" />
@@ -185,7 +182,6 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
               </div>
             </div>
 
-            {/* Status */}
             <div className="space-y-1">
               <label className="text-zinc-400 font-medium">{t("Status")}</label>
               <select
@@ -199,7 +195,6 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
               </select>
             </div>
 
-            {/* Criteria */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-zinc-400 font-medium">{t("Acceptatiecriteria")}</label>
@@ -234,7 +229,6 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
               ))}
             </div>
 
-            {/* Actions */}
             <div className="pt-3 flex items-center justify-end gap-2 border-t border-white/10">
               <button
                 type="button"

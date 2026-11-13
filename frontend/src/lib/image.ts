@@ -23,13 +23,11 @@ export async function compressImage(
 
       let { width, height } = img;
 
-      // If dimensions are within bounds and file size is already small (< 300KB), return original
       if (width <= maxDimension && height <= maxDimension && file.size <= 300 * 1024) {
         resolve(file);
         return;
       }
 
-      // Calculate new dimensions preserving aspect ratio
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
           height = Math.round((height * maxDimension) / width);
@@ -59,7 +57,6 @@ export async function compressImage(
           if (blob && blob.size < file.size) {
             resolve(blob);
           } else {
-            // If blob couldn't be generated or isn't smaller, use original file
             resolve(file);
           }
         },

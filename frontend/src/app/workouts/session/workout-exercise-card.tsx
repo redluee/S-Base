@@ -184,7 +184,6 @@ export function WorkoutExerciseCard({
         />
       )}
 
-      {/* Add Set Button */}
       <div className="flex gap-2">
         <Button
           variant="ghost"

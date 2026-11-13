@@ -6,13 +6,10 @@ import { isImageUrl } from "@/app/minor/constants";
 export type SlideLayout = "auto" | "split" | "media" | "bullets" | "demo";
 
 export function useSlideStoryContent(story: MinorStory) {
-  // Resolved presentation content
   const presentationData = story.presentationData || {};
 
-  // List style (bullets vs numbered steps) set via presentation editor
   const listStyle = presentationData.listStyle || "bullets";
 
-  // Resolve presentation websites (interactive links, live demos, etc.)
   const websites = useMemo(() => {
     const rawWebsites = presentationData.websites || presentationData.links || [];
     const list: Array<{ url: string; title: string }> = [];
@@ -28,7 +25,6 @@ export function useSlideStoryContent(story: MinorStory) {
       }
     }
 
-    // Fallback: If no websites configured, check demoUrl or evidence for live app/links
     if (list.length === 0) {
       if (presentationData.demoUrl?.trim()) {
         const url = presentationData.demoUrl.trim();
@@ -66,7 +62,6 @@ export function useSlideStoryContent(story: MinorStory) {
     story.evidence,
   ]);
 
-  // Resolve presentation documents (PDFs and URLs)
   const documents = useMemo(() => {
     const rawDocs = presentationData.documents || [];
     const rawImages = presentationData.images || [];
@@ -84,7 +79,6 @@ export function useSlideStoryContent(story: MinorStory) {
       }
     }
 
-    // Include non-image URLs from rawImages
     for (const img of rawImages) {
       if (!img.url?.trim() || isImageUrl(img.url)) continue;
       const url = img.url.trim();
@@ -98,7 +92,6 @@ export function useSlideStoryContent(story: MinorStory) {
     return list;
   }, [presentationData.documents, presentationData.images]);
 
-  // Resolve presentation images (only valid image URLs)
   const images = useMemo(() => {
     const rawImages = presentationData.images || [];
     const realImages: Array<{ url: string; caption?: string }> = [];
@@ -109,7 +102,6 @@ export function useSlideStoryContent(story: MinorStory) {
       }
     }
 
-    // Fallback: If no custom images provided, fallback to evidence images
     if (realImages.length === 0 && (!presentationData.images || presentationData.images.length === 0)) {
       const evidenceImages = (story.evidence || [])
         .filter((e) => isImageUrl(e.url))
@@ -120,24 +112,20 @@ export function useSlideStoryContent(story: MinorStory) {
     return realImages;
   }, [presentationData.images, story.evidence]);
 
-  // Primary website and demo details
   const primaryWebsite = websites[0] || null;
   const demoUrl = primaryWebsite ? primaryWebsite.url : (presentationData.demoUrl?.trim() || null);
   const demoTitle = primaryWebsite ? primaryWebsite.title : (presentationData.demoTitle?.trim() || t("Bekijk live applicatie"));
 
-  // Bullets: custom or fallback from criteria
   const bullets = useMemo(() => {
     if (presentationData.bullets && presentationData.bullets.length > 0) {
       return presentationData.bullets.filter((b) => b.trim().length > 0);
     }
-    // Fallback to acceptance criteria
     const criteriaTexts = (story.criteria || [])
       .filter((c) => c.text.trim())
       .map((c) => c.text.trim());
     return criteriaTexts.slice(0, 5);
   }, [presentationData.bullets, story.criteria]);
 
-  // Determine layout
   const activeLayout = useMemo(() => {
     const pref = presentationData.layout || "auto";
     if (pref !== "auto") return pref;

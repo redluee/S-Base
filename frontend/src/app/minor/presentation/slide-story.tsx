@@ -29,7 +29,6 @@ export function SlideStory({
   const storyColor = typeDetails.color;
 
 
-  // Criteria counts for top badge
   const totalCriteriaCount = story.criteria?.length || 0;
   const completedCriteriaCount = (story.criteria || []).filter((c) => c.isCompleted).length;
 
@@ -42,7 +41,6 @@ export function SlideStory({
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col justify-center min-h-[72vh] px-4 sm:px-8 py-4 animate-in fade-in duration-200 select-text">
-      {/* Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4 mb-6">
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <StoryTypeBadge
@@ -73,7 +71,6 @@ export function SlideStory({
             {story.status === "done" ? t("Voltooid") : story.status === "in_progress" ? t("Bezig") : t("To Do")}
           </span>
 
-          {/* Criteria button */}
           {onOpenCriteria && (
             <button
               type="button"
@@ -106,7 +103,6 @@ export function SlideStory({
         </div>
       </div>
 
-      {/* Story Title */}
       <h2 className="font-display text-2xl sm:text-4xl text-white tracking-tight leading-snug mb-4">
         {story.title}
       </h2>

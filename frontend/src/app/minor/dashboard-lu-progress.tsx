@@ -24,7 +24,6 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
         </h2>
       </div>
 
-      {/* Master Progress Bar Card */}
       <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -62,15 +61,12 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
           </div>
         </div>
 
-        {/* Master Progress Bar */}
         <div className="space-y-1.5">
           <div className="h-3.5 bg-zinc-950 rounded-full border border-white/10 p-0.5 relative overflow-hidden flex items-center">
-            {/* Projected Fill */}
             <div
               className="absolute left-0.5 top-0.5 bottom-0.5 bg-brand/20 rounded-full transition-all duration-500"
               style={{ width: `calc(${projectedPercentage}% - 4px)` }}
             />
-            {/* Official Fill */}
             <div
               className="relative h-full bg-brand rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(0,227,164,0.4)]"
               style={{ width: `${officialPercentage}%` }}
@@ -88,7 +84,6 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
           </div>
         </div>
 
-        {/* Minimum Target Requirements Status Pills */}
         <div className="pt-3 border-t border-white/5">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {LEARNING_OUTCOMES.map((luNum) => {

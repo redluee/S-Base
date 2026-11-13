@@ -128,7 +128,6 @@ export function ExpensesClient({
     <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto space-y-6">
       <InlineAlert>{actionError}</InlineAlert>
       {dialog}
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -153,7 +152,6 @@ export function ExpensesClient({
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-1">
           <div className="flex items-center justify-between text-xs text-zinc-400">
@@ -187,7 +185,6 @@ export function ExpensesClient({
         </div>
       </div>
 
-      {/* Form Area */}
       {showForm && !editing && (
         <ExpenseForm
           tradeNames={tradeNames}
@@ -197,7 +194,6 @@ export function ExpensesClient({
         />
       )}
 
-      {/* Filter Controls */}
       <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/80">
         <div className="relative flex-1">
           <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -240,7 +236,6 @@ export function ExpensesClient({
         </div>
       </div>
 
-      {/* Expense Items List */}
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="size-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
@@ -338,7 +333,6 @@ export function ExpensesClient({
         </div>
       )}
 
-      {/* Receipt Lightbox Modal */}
       {viewingReceiptExpense && (
         <ExpenseReceiptModal
           expense={viewingReceiptExpense}

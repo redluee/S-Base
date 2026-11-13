@@ -46,14 +46,11 @@ export function WineForm({ wine }: { wine?: Wine }) {
       setUploadStage("optimizing");
       setUploadProgress(0);
 
-      // Create instant visual preview
       tempUrl = URL.createObjectURL(file);
       setPreviewUrl(tempUrl);
 
-      // Compress image client side
       const compressedBlob = await compressImage(file);
 
-      // Upload compressed image
       setUploadStage("uploading");
       const res = await api.wines.uploadPhoto(compressedBlob, file.name, (pct) => {
         setUploadProgress(pct);
@@ -125,7 +122,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         </div>
       )}
 
-      {/* Brand / Winery */}
       <div className="space-y-2">
         <Label htmlFor="brand" className="text-foreground font-medium">
           {t("Brand / Winery")} <span className="text-destructive">*</span>
@@ -140,7 +136,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         />
       </div>
 
-      {/* Type Dropdown & Variety */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="type" className="text-foreground font-medium">
@@ -176,7 +171,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         </div>
       </div>
 
-      {/* Vintage & Country/Region */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="vintage" className="text-foreground font-medium">
@@ -208,7 +202,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         </div>
       </div>
 
-      {/* Where bought (Purchase location) */}
       <div className="space-y-2">
         <Label htmlFor="purchaseLocation" className="text-foreground font-medium">
           {t("Where bought")} <span className="text-muted-foreground font-normal">({t("optional")})</span>
@@ -228,7 +221,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         </select>
       </div>
 
-      {/* Rating Slider/Input */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="rating" className="text-foreground font-medium">
@@ -263,7 +255,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         </div>
       </div>
 
-      {/* Photo Uploader */}
       <div className="space-y-2">
         <Label className="text-foreground font-medium">
           {t("Label photo")} <span className="text-muted-foreground font-normal">({t("optional")})</span>
@@ -271,7 +262,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
 
         {previewUrl || imageUrl ? (
           <div className="relative w-full h-48 rounded-xl overflow-hidden bg-black/40 border border-border group">
-            {/* Display Image (previewUrl or saved imageUrl) */}
             <Image
               src={previewUrl || imageUrl!}
               alt="Wine label"
@@ -280,7 +270,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
               className="object-contain p-2"
             />
 
-            {/* Overlay during uploading */}
             {isUploading ? (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 gap-3 z-20 animate-in fade-in duration-200">
                 <Loader2 className="size-7 text-brand animate-spin" />
@@ -344,7 +333,6 @@ export function WineForm({ wine }: { wine?: Wine }) {
         />
       </div>
 
-      {/* Form Buttons */}
       <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
         <Button
           type="button"

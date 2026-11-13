@@ -37,7 +37,6 @@ describe("WorkoutService measurements", () => {
     expect(created?.bodyFat).toBe(15.2);
     expect(created?.waist).toBe(82.0);
 
-    // Saving same date updates existing entry
     const updated = measurements.save(adminId, {
       date,
       weight: 79.8,

@@ -108,7 +108,6 @@ export function DashboardHero({ stats, activeSprint, totalOfficial, totalProject
         </div>
       )}
 
-      {/* Quick Stats Column */}
       <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md flex flex-col justify-between">
         <div className="space-y-4">
           <div className="flex items-center justify-between">

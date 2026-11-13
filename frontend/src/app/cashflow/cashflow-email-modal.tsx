@@ -125,7 +125,6 @@ function CashflowEmailInvoiceModal({ invoice, onClose, onSent }: CashflowEmailIn
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-          {/* Form */}
           <div className="lg:w-[380px] shrink-0 p-5 space-y-4 overflow-y-auto border-b lg:border-b-0 lg:border-r border-zinc-800">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-400">{t("Aan")}</label>
@@ -174,7 +173,6 @@ function CashflowEmailInvoiceModal({ invoice, onClose, onSent }: CashflowEmailIn
             {error && <p className="text-xs text-rose-400">{error}</p>}
           </div>
 
-          {/* Preview */}
           <div className="flex-1 min-h-0 bg-zinc-950/40 p-3 sm:p-4">
             {previewUrl ? (
               <iframe title={t("PDF-voorbeeld")} src={previewUrl} className="w-full h-full rounded-lg bg-white border border-zinc-800" />

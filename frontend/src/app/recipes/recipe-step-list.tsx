@@ -118,8 +118,6 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
       el.style.transition = 'transform 150ms ease-out';
 
       if (i === from) {
-        // The dragged element moves to the 'to' position.
-        // We calculate the sum of heights between 'from' and 'to'.
         let translation = 0;
         const cs = getComputedStyle(stepsContainerRef.current);
         const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
@@ -135,7 +133,6 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
         }
         el.style.transform = `translateY(${translation}px)`;
       } else if (i < from) {
-        // Elements before the original drag position
         if (to <= i) {
           const cs = getComputedStyle(stepsContainerRef.current);
           const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
@@ -145,7 +142,6 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
           el.style.transform = '';
         }
       } else if (i > from) {
-        // Elements after the original drag position
         if (to >= i) {
           const cs = getComputedStyle(stepsContainerRef.current);
           const gap = parseFloat(cs.rowGap) || parseFloat(cs.gap) || 8;
@@ -211,7 +207,6 @@ export function RecipeStepList({ steps, onChange }: RecipeStepListProps) {
     const mouseY = e.clientY;
     let targetIndex = from;
 
-    // Determine target index by checking which slot the mouse cursor is closest to/within
     for (let i = 0; i < positions.length; i++) {
       const p = positions[i];
       const middle = p.top + p.height / 2;

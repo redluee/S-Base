@@ -36,7 +36,6 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
   const [peerLinks, setPeerLinks] = useState("");
   const [savingPeer, setSavingPeer] = useState(false);
 
-  // Sprint Create Modal State
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [sprintNumber, setSprintNumber] = useState("");
   const [startDate, setStartDate] = useState(today());
@@ -123,7 +122,6 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       <InlineAlert>{actionError}</InlineAlert>
-      {/* Page Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">
@@ -155,7 +153,6 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
         </div>
       </div>
 
-      {/* Non-Blocking Warnings Banner */}
       {warnings && (warnings.fewLearningOutcomes || warnings.missingLU5) && (
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs space-y-1.5 animate-in fade-in duration-200">
           <div className="flex items-center gap-2 font-semibold">

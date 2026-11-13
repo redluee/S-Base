@@ -26,7 +26,6 @@ export function StoryFilters({ storyTypes, sprints, searchQuery, setSearchQuery,
   return (
     <div className="p-4 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* Search Input */}
         <div className="lg:col-span-2 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
           <input
@@ -38,7 +37,6 @@ export function StoryFilters({ storyTypes, sprints, searchQuery, setSearchQuery,
           />
         </div>
 
-        {/* Sprint Filter */}
         <select
           value={selectedSprintId}
           onChange={(e) => setSelectedSprintId(e.target.value)}
@@ -53,7 +51,6 @@ export function StoryFilters({ storyTypes, sprints, searchQuery, setSearchQuery,
           ))}
         </select>
 
-        {/* Type Filter */}
         <select
           value={selectedType}
           onChange={(e) => setSelectedType(e.target.value)}
@@ -63,7 +60,6 @@ export function StoryFilters({ storyTypes, sprints, searchQuery, setSearchQuery,
           <StoryTypeOptions storyTypes={storyTypes} />
         </select>
 
-        {/* Status Filter */}
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
@@ -76,7 +72,6 @@ export function StoryFilters({ storyTypes, sprints, searchQuery, setSearchQuery,
         </select>
       </div>
 
-      {/* Quick LU Pills */}
       <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-white/5">
         <span className="text-[11px] font-semibold text-zinc-500 mr-1">{t("Leeruitkomst:")}</span>
         <button

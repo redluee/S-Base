@@ -50,7 +50,6 @@ export function StoryCard({
       style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
       className={`p-4 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${STORY_TYPE_HOVER_BORDER} hover:bg-zinc-800/40 transition-all space-y-3 sm:space-y-4 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand`}
     >
-      {/* Top Row: Type Badge, Story Number, Sprint Tag, Status Select & Story Title */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 flex-wrap">
@@ -96,7 +95,6 @@ export function StoryCard({
               ))}
             </div>
 
-            {/* Status Dropdown */}
             <select
               value={story.status}
               onChange={(e) => onStatusChange(story.id, e.target.value as "todo" | "in_progress" | "done")}
@@ -115,7 +113,6 @@ export function StoryCard({
           </div>
         </div>
 
-        {/* Title: Unconstrained width for long titles with break-words */}
         <h3 className={`text-base sm:text-lg font-bold text-white tracking-tight break-words ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
           {story.title}
         </h3>
@@ -136,7 +133,6 @@ export function StoryCard({
         )}
       </div>
 
-      {/* User Story Structure (Als / Wil ik / Zodat) */}
       {(story.asA || story.iWant || story.soThat) && (
         <div className="p-4 rounded-xl bg-zinc-950/60 border border-white/5 text-sm text-zinc-300 space-y-1 leading-relaxed">
           <p className="break-words">
@@ -154,10 +150,8 @@ export function StoryCard({
         </div>
       )}
 
-      {/* Criteria & Evidence Overview Row */}
       <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5">
         <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-zinc-400 flex-wrap">
-          {/* Criteria Count */}
           {totalCriteria > 0 ? (
             <div className="flex items-center gap-2">
               <span className="font-semibold text-zinc-300 whitespace-nowrap">
@@ -176,7 +170,6 @@ export function StoryCard({
             <span className="text-zinc-500 italic">{t("Geen criteria")}</span>
           )}
 
-          {/* Evidence Count */}
           {story.evidence && story.evidence.length > 0 && (
             <span className="text-zinc-400 whitespace-nowrap">
               {story.evidence.length} {story.evidence.length === 1 ? t("bewijsstuk") : t("bewijsstukken")}
@@ -201,13 +194,11 @@ export function StoryCard({
         )}
       </div>
 
-      {/* Collapsible Criteria & Evidence Detail */}
       {isExpanded && (
         <div
           className="p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5 space-y-4 animate-in fade-in duration-150"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Acceptance Criteria */}
           {criteria.some((c) => c.type === "acceptance") && (
             <div className="space-y-2.5">
               <div className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
@@ -246,7 +237,6 @@ export function StoryCard({
             </div>
           )}
 
-          {/* Quality Criteria */}
           {criteria.some((c) => c.type === "quality") && (
             <div className="space-y-2.5 pt-3 border-t border-white/5">
               <div className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
@@ -285,7 +275,6 @@ export function StoryCard({
             </div>
           )}
 
-          {/* Evidence List */}
           {story.evidence && story.evidence.length > 0 && (
             <div className="space-y-2.5 pt-3 border-t border-white/5">
               <div className="text-xs font-bold text-zinc-200 uppercase tracking-wider">

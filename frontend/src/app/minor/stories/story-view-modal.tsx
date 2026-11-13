@@ -28,7 +28,6 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
         className="p-3 sm:p-4 overflow-y-auto"
       >
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-7 max-w-3xl w-full space-y-4 sm:space-y-5 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-          {/* Modal Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <StoryTypeBadge code={viewingStory.storyTypeCode} storyTypes={storyTypes} showName hideNameOnMobile size="md" />
@@ -65,7 +64,6 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
           </div>
 
           <div className="space-y-5 text-sm">
-            {/* Header Title & Status */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
               <div className="min-w-0 flex-1">
                 <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight break-words">
@@ -93,7 +91,6 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
               </div>
             </div>
 
-            {/* Sprint Connection Section */}
             <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-950 border border-white/5">
               <div className="flex items-center gap-2 text-xs text-zinc-300">
                 <Link2 className="size-4 text-brand" />
@@ -175,9 +172,7 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
               </div>
             )}
 
-            {/* Criteria Checklists Stacked (Acceptance & Quality) */}
             <div className="space-y-4">
-              {/* Acceptance criteria */}
               <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-zinc-100 text-sm">{t("Acceptatiecriteria")}</span>
@@ -225,7 +220,6 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
                 </div>
               </div>
 
-              {/* Quality criteria */}
               <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-zinc-100 text-sm">{t("Kwaliteitscriteria")}</span>
@@ -274,7 +268,6 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
               </div>
             </div>
 
-            {/* Bewijslast */}
             {viewingStory.evidence && viewingStory.evidence.length > 0 && (
               <div className="space-y-2.5 p-4 rounded-xl bg-zinc-950 border border-white/5">
                 <span className="font-bold text-zinc-200 text-sm">{t("Bewijsstukken & resultaten")}</span>
@@ -297,7 +290,6 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
               </div>
             )}
 
-            {/* Modal Footer */}
             <div className="pt-3 flex items-center justify-between gap-3 border-t border-white/10">
               <button
                 type="button"

@@ -50,7 +50,6 @@ export function PresentationOverview({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
-        {/* Slide 0: Intro */}
         <button
           type="button"
           onClick={() => goToSlide(0)}
@@ -69,7 +68,6 @@ export function PresentationOverview({
           </span>
         </button>
 
-        {/* Story Slides */}
         {presentedStories.map((st, idx) => {
           const slideNum = idx + 1;
           const isCurrent = currentSlideIndex === slideNum;
@@ -115,7 +113,6 @@ export function PresentationOverview({
           );
         })}
 
-        {/* Last Slide: Outro */}
         <button
           type="button"
           onClick={() => goToSlide(totalSlides - 1)}

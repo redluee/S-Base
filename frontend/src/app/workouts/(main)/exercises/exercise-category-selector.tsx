@@ -65,12 +65,10 @@ export function ExerciseCategorySelector({
 
   const currentCategory = normalizeCategory(category);
 
-  // Parse comma separated equipment
   const selectedEquipment = equipment 
     ? equipment.split(",").map(e => e.trim()).filter(Boolean) 
     : [];
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -129,7 +127,6 @@ export function ExerciseCategorySelector({
   return (
     <div className="flex flex-col gap-2 relative" ref={containerRef} onKeyDown={handleKeyDown}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-        {/* Category Pill Dropdown */}
         <div className="relative">
           {readOnlyCategory ? (
             <div className="flex items-center gap-1.5 px-3 min-h-9 rounded-full text-xs font-semibold border bg-white/5 border-border/80 text-foreground cursor-default select-none">
@@ -160,7 +157,6 @@ export function ExerciseCategorySelector({
             </button>
           )}
 
-          {/* Category Dropdown Popover */}
           {!readOnlyCategory && isCatOpen && (
             <div ref={catMenuRef} role="menu" aria-label={t("Category label")} className="absolute top-full left-0 mt-2 w-48 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
@@ -198,7 +194,6 @@ export function ExerciseCategorySelector({
           )}
         </div>
 
-        {/* Selected Equipment Chips */}
         {selectedEquipment.map((eq) => (
           <div 
             key={eq} 
@@ -216,7 +211,6 @@ export function ExerciseCategorySelector({
           </div>
         ))}
 
-        {/* Assisted Toggle */}
         {currentCategory === "Bodyweight" && onToggleAssisted && (
           <button
             type="button"
@@ -235,7 +229,6 @@ export function ExerciseCategorySelector({
           </button>
         )}
 
-        {/* + Material Button */}
         <button
           ref={matTriggerRef}
           type="button"
@@ -259,7 +252,6 @@ export function ExerciseCategorySelector({
         </button>
       </div>
 
-      {/* Equipment Dropdown Popover */}
       {isOpen && (
         <div ref={matMenuRef} role="menu" aria-label={t("Choose equipment category")} className="absolute top-full left-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           {!activeTab ? (

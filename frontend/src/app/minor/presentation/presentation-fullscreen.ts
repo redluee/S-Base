@@ -47,7 +47,6 @@ export async function requestFullscreenAcrossBrowsers(targetElement?: HTMLElemen
         return;
       }
     } catch {
-      // Continue to next candidate
     }
   }
 }

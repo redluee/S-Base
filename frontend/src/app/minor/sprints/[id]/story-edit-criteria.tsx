@@ -12,7 +12,6 @@ export function StoryEditCriteria({ editor }: StoryEditCriteriaProps) {
   const { storyTypeCode, acceptanceCriteria, setAcceptanceCriteria, qualityCriteria, setQualityCriteria, focusTarget, setFocusTarget, getDefaultQualityCriteriaForType, addAcceptanceCriterion, addQualityCriterion } = editor;
   return (
         <div className="space-y-4">
-          {/* Acceptance criteria */}
           <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -108,7 +107,6 @@ export function StoryEditCriteria({ editor }: StoryEditCriteriaProps) {
             </div>
           </div>
 
-          {/* Quality criteria */}
           <div className="space-y-3 p-4 sm:p-5 rounded-xl bg-zinc-950 border border-white/5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">

@@ -28,7 +28,6 @@ export function ClientAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Use matchedClient name if query hasn't been typed or when client selection changes
   const displayQuery = open ? query : (matchedClient?.name ?? query);
 
   const filteredClients = clients.filter((c) =>

@@ -45,7 +45,6 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
       </View>
 
       <View style={styles.tableBorder}>
-        {/* Header Row */}
         <View style={styles.tableRow}>
           <View style={[styles.dashHeaderCellLeft, { width: "14%" }]}>
             <Text style={styles.dashHeaderTextWhite}>LU</Text>
@@ -70,7 +69,6 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
           ))}
         </View>
 
-        {/* Data Rows (LU 1 t/m 5) */}
         {LU_MASTER_DEFINITIONS.map((luDef) => (
           <View key={luDef.lu} style={styles.tableRow}>
             <View style={[styles.tableCell, { width: "14%" }]}>
@@ -97,7 +95,6 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
           </View>
         ))}
 
-        {/* Total Row */}
         <View style={[styles.tableRow, { borderBottomWidth: 0 }]}>
           <View style={[styles.tableCell, { width: "14%" }]}>
             <Text style={styles.dashDataTextBold}>Totaal</Text>

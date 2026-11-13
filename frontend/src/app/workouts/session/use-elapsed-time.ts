@@ -10,7 +10,6 @@ export function useElapsedTime(
 ) {
   const [elapsed, setElapsed] = useState(0);
 
-  // Derive elapsed time from the persisted timestamps and pause state
   useEffect(() => {
     if (session) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -18,7 +17,6 @@ export function useElapsedTime(
     }
   }, [session, sessionRef]);
 
-  // Main timer tick
   useEffect(() => {
     if (!session?.sessionId || isPaused || isSummaryView || session?.completedAt) return;
 

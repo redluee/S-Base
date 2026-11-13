@@ -90,7 +90,6 @@ export function StoryTypeSection({ storyTypes, onCreate, onEdit, onDelete }: Sto
                   <p className="text-[11px] text-zinc-400 leading-relaxed">{st.description}</p>
                 )}
 
-                {/* Quality criteria count & preview */}
                 <div className="pt-2 border-t border-white/5 space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-zinc-400 font-medium flex items-center gap-1.5">

@@ -36,7 +36,6 @@ export function NewProjectClient({
   const [description, setDescription] = useState(initialProject?.description ?? "");
   const [location, setLocation] = useState(initialProject?.location ?? "");
 
-  // Inline new client
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");

@@ -120,7 +120,6 @@ export function StoryTypeModal({
           </div>
         </div>
 
-        {/* Default Quality Criteria Editor */}
         <div className="space-y-2.5 pt-2 border-t border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

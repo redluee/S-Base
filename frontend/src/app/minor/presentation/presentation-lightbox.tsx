@@ -36,7 +36,6 @@ export function PresentationLightbox({ image, onClose }: PresentationLightboxPro
       backdropClassName="z-[120] bg-black/90 backdrop-blur-md"
     >
       <div className="relative">
-      {/* Lightbox Toolbar */}
       <div
         className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-zinc-900/90 border border-white/10 rounded-xl p-1.5 shadow-xl backdrop-blur-md"
       >
@@ -89,7 +88,6 @@ export function PresentationLightbox({ image, onClose }: PresentationLightboxPro
         </button>
       </div>
 
-      {/* Image Container */}
       <div
         className="max-w-[92vw] max-h-[86vh] flex flex-col items-center justify-center select-none"
       >

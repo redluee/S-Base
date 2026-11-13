@@ -34,7 +34,6 @@ const newestFirst = (logs: Measurement[]) =>
 export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
   const [logs, setLogs] = useState<Measurement[]>(() => newestFirst(initialLogs));
 
-  // Form State (used for both inline edit and new prepended entry)
   const [editingId, setEditingId] = useState<number | null>(null); // null, 0 for new, or measurementId for editing
   const [formDate, setFormDate] = useState("");
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
@@ -46,10 +45,8 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
   const [pendingDeleteLogId, setPendingDeleteLogId] = useState<number | null>(null);
   const [deletingLog, setDeletingLog] = useState(false);
 
-  // Photo viewer state
   const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
 
-  // Chart state
   const [chartTab, setChartTab] = useState<ChartTab>("weight");
 
   const fetchLogs = () => {
@@ -92,7 +89,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
     }
   };
 
-  // Open form for a new entry
   const handleNewEntry = () => {
     setSaveError(null);
     const today = getTodayString();
@@ -109,7 +105,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
     }
   };
 
-  // Open form to edit an existing entry
   const handleEditEntry = (log: Measurement) => {
     setSaveError(null);
     setEditingId(log.measurementId);
@@ -121,7 +116,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
     setEditingId(null);
   };
 
-  // Save current log
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formDate) return;
@@ -150,7 +144,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
     }
   };
 
-  // Delete measurement
   const handleDeleteLog = async (id: number) => {
     setDeletingLog(true);
     setActionError(null);
@@ -169,7 +162,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
     }
   };
 
-  // Prepend mock log if creating a new one
   const displayLogs: Measurement[] = editingId === 0 ? [
     {
       measurementId: 0,
@@ -182,7 +174,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
     ...logs
   ] : logs;
 
-  // Latest measurement for summary dashboard
   const latestLog = logs.length > 0 ? logs[0] : null;
   const latestBmi = latestLog ? calculateBMI(latestLog.weight, latestLog.height) : null;
 
@@ -190,7 +181,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
   return (
     <>
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
-        {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2.5">
             <Scale className="size-6 sm:size-7 text-brand" />
@@ -204,7 +194,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
         <BodySummaryCards latestLog={latestLog} latestBmi={latestBmi} logCount={logs.length} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Inline Logs & Editing */}
           <section className="lg:col-span-7 flex flex-col gap-5 order-2 lg:order-1">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium text-muted-foreground">
@@ -269,7 +258,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
 
           </section>
 
-          {/* Right Column: Graphs */}
           <section className="lg:col-span-5 flex flex-col gap-5 order-1 lg:order-2">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium text-muted-foreground">
@@ -277,7 +265,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
               </h2>
             </div>
 
-            {/* Tab switchers */}
             <div className="flex gap-1.5 overflow-x-auto">
               {[
                 { id: "weight", label: t("Weight") },
@@ -308,7 +295,6 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
         </div>
       </div>
 
-      {/* Lightbox photo viewer */}
       {activePhotoUrl && (
         <ModalOverlay
           open

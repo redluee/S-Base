@@ -20,7 +20,6 @@ export function ProjectsClient({ initialProjects, initialClients }: { initialPro
   const [filterClient, setFilterClient] = useState("");
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  // Modal state for project deletion with connected invoices option
   const [deleteModalProject, setDeleteModalProject] = useState<CashflowProject | null>(null);
   const [deleteInvoicesChoice, setDeleteInvoicesChoice] = useState<boolean>(false);
 
@@ -66,7 +65,6 @@ export function ProjectsClient({ initialProjects, initialClients }: { initialPro
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <select
           value={filterClient}
@@ -124,7 +122,6 @@ export function ProjectsClient({ initialProjects, initialClients }: { initialPro
         </div>
       )}
 
-      {/* Delete Project Modal */}
       {deleteModalProject && (
         <ModalOverlay
           open

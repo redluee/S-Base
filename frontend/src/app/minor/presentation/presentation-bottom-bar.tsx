@@ -40,7 +40,6 @@ export function PresentationBottomBar({
     }`}
   >
     <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-2xl bg-zinc-900/90 border border-white/10 shadow-2xl backdrop-blur-md">
-      {/* Previous Button */}
       <button
         type="button"
         onClick={onPrev}
@@ -51,7 +50,6 @@ export function PresentationBottomBar({
         <ChevronLeft className="size-5" />
       </button>
 
-      {/* Slide Indicator (Click to open overview) */}
       <button
         type="button"
         onClick={() => onOpenOverview()}
@@ -64,7 +62,6 @@ export function PresentationBottomBar({
         / {String(totalSlides).padStart(2, "0")}
       </button>
 
-      {/* Next Button */}
       <button
         type="button"
         onClick={onNext}
@@ -77,7 +74,6 @@ export function PresentationBottomBar({
 
       <div className="w-px h-5 bg-white/10 mx-1 hidden sm:block" />
 
-      {/* Criteria button (Acceptance & Quality criteria) */}
       {currentStory && (
         <button
           type="button"
@@ -93,7 +89,6 @@ export function PresentationBottomBar({
         </button>
       )}
 
-      {/* Edit Presentation Content for this story */}
       {currentStory && (
         <button
           type="button"

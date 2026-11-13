@@ -24,7 +24,6 @@ export function FeedbackTab({ data }: FeedbackTabProps) {
           </div>
         </div>
 
-        {/* Feedback Form */}
         <form onSubmit={handleAddFeedback} className="p-4 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-3">
           <h3 className="text-xs font-bold text-zinc-200">{t("Feedbackregel toevoegen")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
@@ -83,9 +82,7 @@ export function FeedbackTab({ data }: FeedbackTabProps) {
           </div>
         </form>
 
-        {/* Feedback List (Responsive Cards for mobile, Table for desktop) */}
         <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-          {/* Mobile Cards */}
           <div className="block sm:hidden divide-y divide-white/5">
             {sprint.feedback.length === 0 ? (
               <div className="p-8 text-center text-zinc-500 italic">
@@ -123,7 +120,6 @@ export function FeedbackTab({ data }: FeedbackTabProps) {
             )}
           </div>
 
-          {/* Desktop Table */}
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

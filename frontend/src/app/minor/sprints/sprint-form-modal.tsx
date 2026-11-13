@@ -93,7 +93,6 @@ export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, 
               </div>
             </div>
 
-            {/* Real-time Calculation Summary Box */}
             {calculatedDates && (() => {
               const computedStatus = calculateSprintStatus(startDate, calculatedDates.endDate);
 

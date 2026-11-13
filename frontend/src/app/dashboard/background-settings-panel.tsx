@@ -49,7 +49,6 @@ export function BackgroundSettingsPanel({
         </div>
   
         <div className="space-y-5 text-xs">
-          {/* Blur Slider */}
           <div>
             <div className="flex justify-between items-center mb-1.5 font-medium">
               <span className="text-zinc-300">{t("Blur")}</span>
@@ -71,7 +70,6 @@ export function BackgroundSettingsPanel({
             </div>
           </div>
   
-          {/* Brightness Slider */}
           <div>
             <div className="flex justify-between items-center mb-1.5 font-medium">
               <span className="text-zinc-300">{t("Brightness")}</span>
@@ -93,13 +91,11 @@ export function BackgroundSettingsPanel({
             </div>
           </div>
   
-          {/* Background Image Selection */}
           <div>
             <label className="block mb-2 font-medium text-zinc-300">
               {t("Background Image")}
             </label>
   
-            {/* Quick Presets */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 type="button"
@@ -126,7 +122,6 @@ export function BackgroundSettingsPanel({
               </button>
             </div>
   
-            {/* Custom Image Upload */}
             <div>
               <label className="flex items-center justify-center gap-2 w-full p-2.5 squircle-icon border border-dashed border-zinc-700 bg-zinc-800/40 hover:bg-zinc-800/80 text-zinc-300 hover:text-white cursor-pointer transition-all">
                 <Upload className="size-3.5 text-zinc-400" />
@@ -141,7 +136,6 @@ export function BackgroundSettingsPanel({
             </div>
           </div>
   
-          {/* Reset Defaults Button */}
           <div className="pt-3 border-t border-white/10 flex justify-end">
             <button
               type="button"

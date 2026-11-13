@@ -89,7 +89,6 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
           </div>
         ) : historyData?.sessions && historyData.sessions.length > 0 ? (
           <div className="flex flex-col gap-4">
-            {/* Stats */}
             {(() => {
               const allSets = historyData.sessions.flatMap((s: ProgressSession) => s.sets);
               const weightVals = allSets.filter((s: ProgressSet) => s.weight != null).map((s: ProgressSet) => s.weight as number);
@@ -150,7 +149,6 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               );
             })()}
 
-            {/* SVG chart */}
             {historyData.sessions.length > 0 && (
               <div className="bg-white/[0.04] rounded-xl p-3.5">
                 {(() => {
@@ -218,7 +216,6 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               </div>
             )}
 
-            {/* List */}
             <div className="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-1">
               {[...historyData.sessions].reverse().map((sessionItem: ProgressSession, idx: number) => {
                 const date = new Date(sessionItem.startedAt);
@@ -265,7 +262,6 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                       )}
                     </div>
                     
-                    {/* Sets breakdown */}
                     <div className="flex flex-wrap gap-1">
                       {sessionItem.sets.map((s: ProgressSet, sIdx: number) => {
                         let detail = "";

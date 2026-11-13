@@ -34,7 +34,6 @@ export function VacationSection({ vacations, onCreate, onEdit, onDelete }: Vacat
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-zinc-900/60 overflow-hidden text-xs">
-        {/* Mobile Cards */}
         <div className="block sm:hidden divide-y divide-white/5">
           {vacations.length === 0 ? (
             <div className="py-8 text-center text-zinc-500 italic">
@@ -72,7 +71,6 @@ export function VacationSection({ vacations, onCreate, onEdit, onDelete }: Vacat
           )}
         </div>
 
-        {/* Desktop Table */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

@@ -113,7 +113,6 @@ export function ExerciseCardHeader({
             )}
           </div>
 
-          {/* Reordering Controls and Kebab Menu */}
           <div className="flex items-center shrink-0">
             {totalExercises > 1 && (
               <>

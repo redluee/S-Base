@@ -49,7 +49,6 @@ export function LinkStoryModal({ storyTypes, data, editor, linking }: LinkStoryM
           {t("Koppel een bestaande concept story of backlog item aan")} <span className="text-white font-semibold">{sprint.sprintNumber}: {sprint.name}</span>.
         </p>
 
-        {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
           <input
@@ -61,7 +60,6 @@ export function LinkStoryModal({ storyTypes, data, editor, linking }: LinkStoryM
           />
         </div>
 
-        {/* Stories List */}
         <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
           {loadingConceptStories ? (
             <div className="p-8 text-center text-xs text-zinc-500">{t("Concept stories laden...")}</div>

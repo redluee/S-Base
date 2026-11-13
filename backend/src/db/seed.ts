@@ -33,7 +33,6 @@ async function seed() {
   const userMap = new Map<string, typeof users.$inferSelect>();
 
   for (const username of usernames) {
-    // Delete existing user if exists to ensure clean idempotent seed
     const existingUser = db.select().from(users).where(eq(users.username, username)).get();
     if (existingUser) {
       const uid = existingUser.userId;
@@ -72,7 +71,6 @@ async function seed() {
     userMap.set(username, insertedUser);
     console.log(`Created user '${username}' (id=${insertedUser.userId})`);
 
-    // Grant all module permissions
     for (const mod of allDbModules) {
       db.insert(usermodulepermissions)
         .values({
@@ -84,7 +82,6 @@ async function seed() {
     console.log(`Granted all module permissions to user '${username}'.`);
   }
 
-  // 3. Seed 5 global Recipes (and remove any with conflicting names first)
   const recipeData = [
     {
       name: "Gegrilde Kip met Tomatensalsa",
@@ -197,11 +194,9 @@ async function seed() {
   }
   console.log("Seeded 5 global recipes.");
 
-  // 4. Seed user-specific data (Workout templates, completed workouts, body measurements, wines)
   for (const [username, user] of userMap.entries()) {
     console.log(`Seeding specific data for user '${username}'...`);
 
-    // --- 3 Workout Templates ---
     const templates = [
       {
         name: "Borst en Triceps",
@@ -345,7 +340,6 @@ async function seed() {
     }
     console.log(`  Seeded 3 workout templates for ${username}.`);
 
-    // --- 9 Completed Workouts (Sessions, 3 per template) ---
     let sessionCount = 0;
     for (let j = 0; j < templateIds.length; j++) {
       const templateId = templateIds[j];
@@ -399,7 +393,6 @@ async function seed() {
     }
     console.log(`  Seeded ${sessionCount} completed workouts for ${username}.`);
 
-    // --- 3 Body Measurement Logs ---
     const measurementLogs = [
       { date: "2026-08-01", height: 180.0, weight: 80.0, bodyFat: 15.0, skeletalMuscle: 38.0, fatMass: 12.0 },
       { date: "2026-08-03", height: 180.0, weight: 79.5, bodyFat: 14.8, skeletalMuscle: 38.2, fatMass: 11.8 },
@@ -421,7 +414,6 @@ async function seed() {
     }
     console.log(`  Seeded 3 body measurement logs for ${username}.`);
 
-    // --- 5 Wines ---
     const wineData = [
       {
         brand: "Château Margaux",

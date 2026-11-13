@@ -85,7 +85,6 @@ export function BodyLogCard({
           </div>
         </div>
 
-        {/* Metric Chips */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
           {log.height && (
             <div className="bg-muted/30 ring-1 ring-foreground/5 rounded-lg p-2.5 text-center min-w-0">
@@ -113,7 +112,6 @@ export function BodyLogCard({
           )}
         </div>
 
-        {/* Recorded Circumferences Sub-section */}
         {hasCircumferences(log) && (
         <div className="mb-4 pt-3 border-t border-border/40">
           <span className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-2 flex items-center gap-1">
@@ -133,7 +131,6 @@ export function BodyLogCard({
         </div>
       )}
 
-      {/* BMI and Photos container */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-border/50 pt-3.5">
           {bmi ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
@@ -144,7 +141,6 @@ export function BodyLogCard({
             <div className="text-xs text-muted-foreground/60">{t("BMI not available")}</div>
           )}
 
-          {/* Photos uploads */}
           <div className="flex items-center gap-2 overflow-x-auto">
             {log.photos.map((p) => (
               <div key={p.photoId} className="relative group/photo shrink-0 size-11 rounded-lg border border-border overflow-hidden bg-background">
@@ -171,7 +167,6 @@ export function BodyLogCard({
               </div>
             ))}
 
-            {/* Uploading optimistic thumbnail */}
             {uploadingLogId === log.measurementId && (
               <div className="relative shrink-0 size-11 rounded-lg border border-brand/60 overflow-hidden bg-background flex flex-col items-center justify-center animate-in fade-in duration-200">
                 {optimisticPhotoUrl ? (

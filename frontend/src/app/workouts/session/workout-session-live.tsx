@@ -70,13 +70,11 @@ export function WorkoutSessionLive({
   const { restActive, restSecondsLeft, restTotalSeconds, activeRestExerciseIdx, activeRestSetIdx, soundEnabled, toggleSound } = restTimer;
   useSessionWakeLock(Boolean(session?.sessionId && !isPaused && !isSummaryView && !session?.completedAt), restActive);
 
-  // UI state
   const [sessionName, setSessionName] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [activeMenuExerciseId, setActiveMenuExerciseId] = useState<number | null>(null);
   const [activeEquipmentMenuExerciseId, setActiveEquipmentMenuExerciseId] = useState<number | null>(null);
 
-  // Exercise history modal state
   const [historyExerciseName, setHistoryExerciseName] = useState<string | null>(null);
   const [historyExerciseEquipment, setHistoryExerciseEquipment] = useState<string | null>(null);
 
@@ -85,13 +83,11 @@ export function WorkoutSessionLive({
     setHistoryExerciseEquipment(equipment || null);
   };
 
-  // Leave confirmation state
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
 
   const [startConflict, setStartConflict] = useState<ActiveSessionInfo | null>(null);
   const creatingRef = useRef(false);
 
-  // Fetch initial session if not provided
   const createSession = useCallback(async (force = false) => {
     if (creatingRef.current) return;
     creatingRef.current = true;
@@ -387,7 +383,6 @@ export function WorkoutSessionLive({
         handleZeroRepsConfirm={finish.handleZeroRepsConfirm}
       />
 
-      {/* Exercise History View Modal Overlay */}
       {historyExerciseName && (
         <ExerciseHistoryModal
           exerciseName={historyExerciseName}
@@ -396,7 +391,6 @@ export function WorkoutSessionLive({
         />
       )}
 
-      {/* Active Rep Timer Modal Overlay */}
       {activeRepTimer && (
         <RepTimerModal
           key={`${activeRepTimer.exIdx}-${activeRepTimer.setIdx}`}

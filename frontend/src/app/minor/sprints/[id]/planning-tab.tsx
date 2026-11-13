@@ -121,7 +121,6 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                   style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
                   className={`scroll-mt-24 p-3.5 sm:p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${STORY_TYPE_HOVER_BORDER} hover:bg-zinc-800/50 transition-all cursor-pointer flex flex-col gap-2.5 sm:gap-3 group`}
                 >
-                  {/* Top Row: Type Badge + Story Number (Left) & Status Dropdown / Desktop Title */}
                   <div className="flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 shrink-0">
                       <StoryTypeBadge
@@ -138,14 +137,12 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                       )}
                     </div>
 
-                    {/* Desktop only: Title placed inline */}
                     <div className="hidden sm:flex items-center min-w-0 flex-1 ml-1">
                       <h3 className={`text-sm font-semibold text-white tracking-tight truncate ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
                         {st.title}
                       </h3>
                     </div>
 
-                    {/* Mobile Status dropdown pinned to top-right */}
                     <div className="sm:hidden" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={st.status}
@@ -169,7 +166,6 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                     </div>
                   </div>
 
-                  {/* Mobile Title Row: Full width, clean wrapping */}
                   <div className="sm:hidden">
                     <h3 className={`text-sm font-semibold text-white tracking-tight break-words leading-snug ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
                       {st.title}
@@ -214,7 +210,6 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                      {/* Status dropdown for desktop */}
                       <div className="hidden sm:block">
                         <select
                           value={st.status}
@@ -237,7 +232,6 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                         </select>
                       </div>
 
-                      {/* Reordering Controls (Same style & behavior as workout studio) */}
                       {sprint.stories.length > 1 && (
                         <div className="flex items-center gap-0.5 mr-0.5">
                           <button

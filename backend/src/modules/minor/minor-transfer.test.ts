@@ -76,7 +76,6 @@ describe("MinorTransfer", () => {
       .get();
     const importUserId = importUser.userId;
 
-    // 1. Export
     const exported = minor.transfer.exportSprint(sprint.id, adminId);
     expect(exported).not.toBeNull();
     expect(exported?.sprintNumber).toBe("1");
@@ -94,7 +93,6 @@ describe("MinorTransfer", () => {
     expect((exported as unknown as Record<string, unknown>).userId).toBeUndefined();
     expect((exported.stories[0] as unknown as Record<string, unknown>).id).toBeUndefined();
 
-    // 2. Import as new sprint for an isolated user
     const imported = minor.transfer.importSprint(importUserId, { ...exported });
     expect(imported).toBeDefined();
     expect(imported.id).toBeDefined();
@@ -118,7 +116,6 @@ describe("MinorTransfer", () => {
     expect(imported.teacherAssessments.find((a) => a.learningOutcome === 1)?.assessment).toBe("V");
     expect(imported.reflection?.whatLearned).toBe("Session auth best practices");
 
-    // 3. Import into existing sprint (targetSprintId)
     const targetSprint = minor.sprints.create(adminId, {
       sprintNumber: "2",
       name: "Sprint 2: Empty Target",
@@ -132,7 +129,6 @@ describe("MinorTransfer", () => {
     expect(merged.stories[0].title).toBe("User Authentication");
     expect(merged.feedback.length).toBe(1);
 
-    // 4. Overwrite existing sprint
     minor.stories.create(adminId, targetSprint.id, {
       title: "Old Story To Be Overwritten",
       learningOutcomes: [3],
@@ -144,7 +140,6 @@ describe("MinorTransfer", () => {
     expect(overwritten.stories.length).toBe(1);
     expect(overwritten.stories[0].title).toBe("User Authentication");
 
-    // 5. Rename imported sprint
     const renamed = minor.transfer.importSprint(adminId, {
       ...exported,
       customName: "Sprint 1 (kopie)",

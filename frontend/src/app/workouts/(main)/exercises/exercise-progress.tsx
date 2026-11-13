@@ -44,7 +44,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   const [selectedEquipment, setSelectedEquipment] = useState<string>(initialEquipment);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
 
-  // Extract all unique equipment options present in availableEquipments or sessions
   const availableEquipments = Array.from(
     new Set([
       ...(data.availableEquipments || []),
@@ -70,7 +69,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
     });
   }
 
-  // Filter sessions according to selected equipment tab
   const filteredSessions = sessions.filter((session) => {
     if (selectedEquipment === "all") return true;
     if (selectedEquipment === "none") return !session.equipment || session.equipment === "none";
@@ -87,7 +85,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   const totalDuration = allSets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0);
   const maxDuration = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.duration ?? 0), 0);
 
-  // Determine stat mode: "weight", "reps", or "time"
   const statMode: "weight" | "reps" | "time" =
     hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
@@ -124,7 +121,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
           </Button>
         </div>
 
-        {/* Material / Equipment Filter Tabs */}
         {showMaterialTabs && (
           <div className="flex flex-wrap items-center gap-1.5">
             <button
@@ -224,7 +220,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
         <div className="space-y-4">
           <h2 className="text-sm font-medium text-muted-foreground">{t("History")}</h2>
 
-          {/* Simple SVG line chart */}
           <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
             <div className="text-xs text-muted-foreground mb-3">
               {statMode === "weight"
@@ -237,7 +232,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
               viewBox="0 0 320 130"
               className="w-full h-auto"
             >
-              {/* Axes lines */}
               <line x1="40" y1="5" x2="40" y2="105" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
               <line x1="40" y1="105" x2="310" y2="105" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
               
@@ -274,12 +268,10 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
                 return (
                   <>
-                    {/* Y Axis Labels */}
                     <text x="32" y="12" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="tabular-nums">{formatYLabel(dataMax)}</text>
                     <text x="32" y="58" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="tabular-nums">{formatYLabel(Math.round((dataMax + dataMin) / 2))}</text>
                     <text x="32" y="108" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end" className="tabular-nums">{formatYLabel(dataMin)}</text>
 
-                    {/* X Axis Labels */}
                     {filteredSessions.length === 1 && (
                       <text x="175" y="120" fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="middle" >{formatDate(firstSession.startedAt)}</text>
                     )}
@@ -290,7 +282,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                       </>
                     )}
 
-                    {/* Plot Line */}
                     <polyline
                       fill="none"
                       stroke="var(--color-brand)"
@@ -299,7 +290,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
                       strokeLinejoin="round"
                       points={points.join(" ")}
                     />
-                    {/* Plot Dots */}
                     {values.map((v: number, i: number) => {
                       const x = filteredSessions.length > 1 ? 40 + (i / (filteredSessions.length - 1)) * 260 : 175;
                       const y = 105 - ((v - dataMin) / range) * 95;
@@ -315,7 +305,6 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
             </svg>
           </div>
 
-          {/* Session list */}
           {[...filteredSessions].reverse().map((session: WorkoutSession) => {
             const vol = session.sets.reduce((sum: number, set: SetItem) => sum + effectiveVolume(set.weight, set.reps), 0);
             const reps = session.sets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0);

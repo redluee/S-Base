@@ -109,7 +109,6 @@ describe("WorkoutService", () => {
     expect(suggestions[0].defaultReps).toBe(10);
     expect(suggestions[0].defaultWeight).toBe(40);
 
-    // Create completed session 1 with 50kg
     const s1 = workoutService.sessions.create(adminId, undefined, true)!;
     workoutService.sessions.update(s1.sessionId, adminId, {
       exercises: [
@@ -124,7 +123,6 @@ describe("WorkoutService", () => {
     });
     workoutService.sessions.complete(s1.sessionId, adminId);
 
-    // Create completed session 2 with 55kg (more recent)
     const s2 = workoutService.sessions.create(adminId, undefined, true)!;
     workoutService.sessions.update(s2.sessionId, adminId, {
       exercises: [
@@ -142,7 +140,6 @@ describe("WorkoutService", () => {
     });
     workoutService.sessions.complete(s2.sessionId, adminId);
 
-    // Ensure suggestExercises only returns ONE entry for Overhead Press and uses the latest session data
     const suggestionsAfter = workoutService.suggestions.exercises(adminId, "Overhead");
     const ohMatches = suggestionsAfter.filter((s) => s.value.toLowerCase() === "overhead press");
     expect(ohMatches.length).toBe(1);
@@ -171,7 +168,6 @@ describe("WorkoutService", () => {
     const s = workoutService.sessions.create(adminId, tmpl.templateId, true);
     expect(s?.exercises?.[0].perSide).toBe(1);
 
-    // Disable perSide on this session exercise
     const updated = workoutService.sessions.update(s!.sessionId, adminId, {
       exercises: [
         {
@@ -230,7 +226,6 @@ describe("WorkoutService", () => {
   });
 
   it("fires a weight PR when assistance decreases and keeps one continuous progress series across the assisted-to-added transition", () => {
-    // Session 1: heavily assisted (-20kg support)
     const s1 = workoutService.sessions.create(adminId, undefined, true)!;
     workoutService.sessions.update(s1.sessionId, adminId, {
       exercises: [
@@ -245,7 +240,6 @@ describe("WorkoutService", () => {
     });
     workoutService.sessions.complete(s1.sessionId, adminId);
 
-    // Session 2: less assistance (-15kg support) -> should register a weight PR
     const s2 = workoutService.sessions.create(adminId, undefined, true)!;
     workoutService.sessions.update(s2.sessionId, adminId, {
       exercises: [
@@ -267,7 +261,6 @@ describe("WorkoutService", () => {
     expect(weightPr?.newValue).toBe(15);
     expect(weightPr?.assisted).toBe(true);
 
-    // Session 3: same exercise, now with added weight instead of assistance
     const s3 = workoutService.sessions.create(adminId, undefined, true)!;
     workoutService.sessions.update(s3.sessionId, adminId, {
       exercises: [
