@@ -4,18 +4,18 @@ import { requireOwnedSprint } from "./minor-ownership";
 import { minorReflections, minorSelfEvaluations, minorTeacherAssessments } from "../../db/schema";
 import type { MinorSelfEvaluation, MinorTeacherAssessment } from "../../types/shared";
 import { today } from "../../shared/dates";
-import { LEARNING_OUTCOMES } from "../../shared/minor";
+import { LEARNING_OUTCOMES, type SelfEvaluationLevel, type TeacherAssessment } from "../../shared/minor";
 import type { PublishNotifier } from "./publish-notifier";
 
 export interface SelfEvaluationInput {
   learningOutcome: number;
-  level: "V" | "NV" | "-";
+  level: SelfEvaluationLevel;
   argumentation?: string | null;
 }
 
 export interface TeacherAssessmentInput {
   learningOutcome: number;
-  assessment: "V" | "O" | "-";
+  assessment: TeacherAssessment;
   notes?: string | null;
   evaluatedAt?: string | null;
 }

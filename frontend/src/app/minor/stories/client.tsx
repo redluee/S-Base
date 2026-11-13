@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import { useState, useMemo } from "react";
 import { Layers, Plus } from "lucide-react";
 import { t } from "@/lib/lang";
@@ -44,7 +45,7 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
   const [newIWant, setNewIWant] = useState("");
   const [newSoThat, setNewSoThat] = useState("");
   const [newSelectedLUs, setNewSelectedLUs] = useState<number[]>([1, 2]);
-  const [newStatus, setNewStatus] = useState<"todo" | "in_progress" | "done">("todo");
+  const [newStatus, setNewStatus] = useState<StoryStatus>("todo");
   const [newAcceptanceCriteria, setNewAcceptanceCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([
     { text: "", isCompleted: false, indent: 0 },
   ]);
@@ -166,7 +167,7 @@ export function MinorStoriesClient({ initialStories, sprints, storyTypes }: Mino
     }
   }
 
-  async function handleStatusChange(storyId: number, newStatus: "todo" | "in_progress" | "done") {
+  async function handleStatusChange(storyId: number, newStatus: StoryStatus) {
     try {
       await api.minor.stories.update(storyId, { status: newStatus });
       setStories((prev) =>

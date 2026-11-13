@@ -7,6 +7,12 @@ export const SPRINT_STATUSES = ["planned", "active", "completed"] as const;
 export type SprintStatus = (typeof SPRINT_STATUSES)[number];
 export const STORY_STATUSES = ["todo", "in_progress", "done"] as const;
 export type StoryStatus = (typeof STORY_STATUSES)[number];
+export const EVIDENCE_TYPES = ["link", "github", "document", "app"] as const;
+export type EvidenceType = (typeof EVIDENCE_TYPES)[number];
+export const SELF_EVALUATION_LEVELS = ["V", "NV", "-"] as const;
+export type SelfEvaluationLevel = (typeof SELF_EVALUATION_LEVELS)[number];
+export const TEACHER_ASSESSMENTS = ["V", "O", "-"] as const;
+export type TeacherAssessment = (typeof TEACHER_ASSESSMENTS)[number];
 
 export const DEFAULT_SPRINT_DAYS = 14;
 export const FEW_LEARNING_OUTCOMES = 3;
@@ -49,7 +55,19 @@ export function isSprintFinished(sprint: { status: SprintStatus; endDate: string
   return sprint.status === "completed" || sprint.endDate < onDate;
 }
 
-export type LearningOutcomeLevel = "V" | "O" | "-";
+export type LearningOutcomeLevel = TeacherAssessment;
+
+export const LEARNING_OUTCOME_TARGETS: Record<LearningOutcome, number> = { 1: 2, 2: 4, 3: 2, 4: 4, 5: 6 };
+export const TOTAL_REQUIRED_PASSES = 24;
+
+export function passProgress(officialPasses: Record<number, number>) {
+  const total = Object.values(officialPasses).reduce((sum, count) => sum + count, 0);
+  return {
+    total,
+    allMinimumsMet: LEARNING_OUTCOMES.every((lu) => (officialPasses[lu] || 0) >= LEARNING_OUTCOME_TARGETS[lu]),
+    totalTargetMet: total >= TOTAL_REQUIRED_PASSES,
+  };
+}
 
 export function isOfficialPass(teacherAssessment: string | null | undefined): boolean {
   return teacherAssessment === "V";

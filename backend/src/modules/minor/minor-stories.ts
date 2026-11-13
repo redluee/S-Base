@@ -15,8 +15,7 @@ import {
 } from "./minor-story-mapper";
 import type { PublishNotifier } from "./publish-notifier";
 
-type StoryStatus = "todo" | "in_progress" | "done";
-type EvidenceType = "link" | "github" | "document" | "app";
+import type { EvidenceType, StoryStatus } from "../../shared/minor";
 
 export interface CriterionInput {
   id?: number;

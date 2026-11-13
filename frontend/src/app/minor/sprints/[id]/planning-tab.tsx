@@ -1,4 +1,5 @@
 "use client";
+import type { StoryStatus } from "@backend/shared/minor";
 import type { MinorStoryType, MinorStory } from "@/lib/api";
 
 import { Layers, Plus, Edit3, CheckSquare, Presentation, Download, Link2, ChevronUp, ChevronDown } from "lucide-react";
@@ -147,7 +148,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                       <select
                         value={st.status}
                         onChange={async (e) => {
-                          const newStatus = e.target.value as "todo" | "in_progress" | "done";
+                          const newStatus = e.target.value as StoryStatus;
                           await api.minor.stories.update(st.id, { status: newStatus });
                           await reloadSprint();
                         }}
@@ -214,7 +215,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                         <select
                           value={st.status}
                           onChange={async (e) => {
-                            const newStatus = e.target.value as "todo" | "in_progress" | "done";
+                            const newStatus = e.target.value as StoryStatus;
                             await api.minor.stories.update(st.id, { status: newStatus });
                             await reloadSprint();
                           }}

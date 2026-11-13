@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { cashflow, cashflowAuth } from "../context";
 import { DISCOUNT_TYPES, INVOICE_LINE_TYPES, INVOICE_STATUSES } from "../shared/cashflow";
+import { literals } from "../utils/schema";
 import { ATTACHMENT_EXTENSIONS, saveUpload } from "../utils/uploads";
 
 const idParams = t.Object({ id: t.Numeric() });
@@ -29,7 +30,6 @@ const projectFields = {
   location: optionalText,
 };
 
-const literals = <T extends string>(values: readonly T[]) => t.Union(values.map((v) => t.Literal(v)));
 const invoiceStatus = literals(INVOICE_STATUSES);
 
 const invoiceLine = t.Object({

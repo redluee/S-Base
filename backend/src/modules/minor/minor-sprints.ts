@@ -19,11 +19,9 @@ import type {
 } from "../../types/shared";
 import type { MinorEvaluations } from "./minor-evaluations";
 import { today } from "../../shared/dates";
-import { calculateSprintStatus, DEFAULT_SPRINT_DAYS } from "../../shared/minor";
+import { calculateSprintStatus, DEFAULT_SPRINT_DAYS, type SprintStatus } from "../../shared/minor";
 import type { MinorSchedule } from "./minor-schedule";
 import { loadStoryChildren, toStory } from "./minor-story-mapper";
-
-type SprintStatus = "planned" | "active" | "completed";
 
 export interface SprintInput {
   sprintNumber?: string | null;

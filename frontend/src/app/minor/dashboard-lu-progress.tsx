@@ -3,7 +3,7 @@
 import { GraduationCap, Check } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorDashboardStats } from "@/lib/api";
-import { LEARNING_OUTCOMES, learningOutcomeShort, LEARNING_OUTCOME_INFO } from "@/app/minor/learning-outcomes";
+import { LEARNING_OUTCOMES, learningOutcomeShort, LEARNING_OUTCOME_INFO, TOTAL_REQUIRED_PASSES } from "@/app/minor/learning-outcomes";
 
 interface DashboardLuProgressProps {
   stats: MinorDashboardStats;
@@ -51,12 +51,12 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
           <div className="flex items-center gap-4 text-xs font-mono">
             <div className="text-left sm:text-right">
               <span className="text-zinc-500 block text-[11px]">{t("Officieel behaald")}</span>
-              <span className="text-base font-bold text-brand">{totalOfficial} <span className="text-xs text-zinc-500">/ 24</span></span>
+              <span className="text-base font-bold text-brand">{totalOfficial} <span className="text-xs text-zinc-500">/ {TOTAL_REQUIRED_PASSES}</span></span>
             </div>
             <div className="h-8 w-px bg-white/10 hidden sm:block" />
             <div className="text-left sm:text-right">
               <span className="text-zinc-500 block text-[11px]">{t("Prognose")}</span>
-              <span className="text-base font-bold text-emerald-400">{totalProjected} <span className="text-xs text-zinc-500">/ 24</span></span>
+              <span className="text-base font-bold text-emerald-400">{totalProjected} <span className="text-xs text-zinc-500">/ {TOTAL_REQUIRED_PASSES}</span></span>
             </div>
           </div>
         </div>

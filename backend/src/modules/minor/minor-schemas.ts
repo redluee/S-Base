@@ -1,12 +1,20 @@
 import { t } from "elysia";
+import {
+  EVIDENCE_TYPES,
+  SELF_EVALUATION_LEVELS,
+  SPRINT_STATUSES,
+  STORY_STATUSES,
+  TEACHER_ASSESSMENTS,
+} from "../../shared/minor";
+import { literals } from "../../utils/schema";
 
 const open = { additionalProperties: true };
 const optText = t.Optional(t.Nullable(t.String()));
 const optNumber = t.Optional(t.Nullable(t.Number()));
 
-const sprintStatus = t.Union([t.Literal("planned"), t.Literal("active"), t.Literal("completed")]);
-const storyStatus = t.Union([t.Literal("todo"), t.Literal("in_progress"), t.Literal("done")]);
-const evidenceType = t.Union([t.Literal("link"), t.Literal("github"), t.Literal("document"), t.Literal("app")]);
+const sprintStatus = literals(SPRINT_STATUSES);
+const storyStatus = literals(STORY_STATUSES);
+const evidenceType = literals(EVIDENCE_TYPES);
 
 export const idParams = t.Object({ id: t.Numeric() });
 
@@ -96,7 +104,7 @@ export const selfEvaluationsBody = t.Object({
   evaluations: t.Array(
     t.Object({
       learningOutcome: t.Number(),
-      level: t.Union([t.Literal("V"), t.Literal("NV"), t.Literal("-")]),
+      level: literals(SELF_EVALUATION_LEVELS),
       argumentation: optText,
     }),
   ),
@@ -106,7 +114,7 @@ export const teacherAssessmentsBody = t.Object({
   assessments: t.Array(
     t.Object({
       learningOutcome: t.Number(),
-      assessment: t.Union([t.Literal("V"), t.Literal("O"), t.Literal("-")]),
+      assessment: literals(TEACHER_ASSESSMENTS),
       notes: optText,
       evaluatedAt: optText,
     }),

@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import { ExternalLink, Link2 } from "lucide-react";
 import Link from "next/link";
 import { t } from "@/lib/lang";
@@ -11,7 +12,7 @@ interface StoryViewModalProps {
   sprints: MinorSprint[];
   viewingStory: MinorStoryWithSprint;
   handleToggleCriterion: (criterionId: number, isCompleted: boolean) => void;
-  handleStatusChange: (storyId: number, newStatus: "todo" | "in_progress" | "done") => void;
+  handleStatusChange: (storyId: number, newStatus: StoryStatus) => void;
   handleLinkStoryToSprint: (storyId: number, targetSprintId: number | null) => void;
   onClose: () => void;
 }

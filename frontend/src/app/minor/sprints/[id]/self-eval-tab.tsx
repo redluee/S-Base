@@ -1,5 +1,6 @@
 "use client";
 
+import type { SelfEvaluationLevel, TeacherAssessment } from "@backend/shared/minor";
 import { Sparkles, Save, Check } from "lucide-react";
 import { toExternalHref } from "@/lib/uri";
 import { t } from "@/lib/lang";
@@ -131,7 +132,7 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                       <select
                         value={evalItem?.level ?? "-"}
                         onChange={(e) => {
-                          const newLevel = e.target.value as "V" | "NV" | "-";
+                          const newLevel = e.target.value as SelfEvaluationLevel;
                           setSelfEvals((prev) =>
                             prev.map((item) =>
                               item.learningOutcome === luNum ? { ...item, level: newLevel } : item
@@ -152,7 +153,7 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                       <select
                         value={assessItem?.assessment ?? "-"}
                         onChange={(e) => {
-                          const newAssess = e.target.value as "V" | "O" | "-";
+                          const newAssess = e.target.value as TeacherAssessment;
                           setTeacherAssessments((prev) =>
                             prev.map((item) =>
                               item.learningOutcome === luNum

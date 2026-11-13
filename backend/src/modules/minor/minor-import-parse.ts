@@ -1,11 +1,9 @@
 import type { MinorStoryPresentationData } from "../../types/shared";
 import { today } from "../../shared/dates";
+import { EVIDENCE_TYPES, SELF_EVALUATION_LEVELS, STORY_STATUSES, TEACHER_ASSESSMENTS } from "../../shared/minor";
 import type { EvidenceInput, StoryInput } from "./minor-stories";
 
 export type JsonRecord = Record<string, unknown>;
-
-const EVIDENCE_TYPES = ["link", "github", "document", "app"] as const;
-const STORY_STATUSES = ["todo", "in_progress", "done"] as const;
 
 export function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -112,7 +110,6 @@ export function parseFeedback(raw: unknown, index: number) {
 
 export function parseSelfEvaluations(raw: unknown) {
   if (!Array.isArray(raw)) return [];
-  const levels = ["V", "NV", "-"] as const;
   return raw
     .filter(
       (e): e is JsonRecord & { learningOutcome: number } =>
@@ -120,14 +117,13 @@ export function parseSelfEvaluations(raw: unknown) {
     )
     .map((e) => ({
       learningOutcome: e.learningOutcome,
-      level: levels.find((l) => l === e.level) ?? "-",
+      level: SELF_EVALUATION_LEVELS.find((l) => l === e.level) ?? "-",
       argumentation: e.argumentation ? String(e.argumentation) : "",
     }));
 }
 
 export function parseTeacherAssessments(raw: unknown) {
   if (!Array.isArray(raw)) return [];
-  const values = ["V", "O", "-"] as const;
   return raw
     .filter(
       (a): a is JsonRecord & { learningOutcome: number } =>
@@ -135,7 +131,7 @@ export function parseTeacherAssessments(raw: unknown) {
     )
     .map((a) => ({
       learningOutcome: a.learningOutcome,
-      assessment: values.find((v) => v === a.assessment) ?? "-",
+      assessment: TEACHER_ASSESSMENTS.find((v) => v === a.assessment) ?? "-",
       notes: a.notes ? String(a.notes) : "",
       evaluatedAt: a.evaluatedAt ? String(a.evaluatedAt) : undefined,
     }));

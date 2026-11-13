@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import { useState } from "react";
@@ -17,7 +18,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
   const [iWant, setIWant] = useState("");
   const [soThat, setSoThat] = useState("");
   const [selectedLUs, setSelectedLUs] = useState<number[]>([]);
-  const [storyStatus, setStoryStatus] = useState<"todo" | "in_progress" | "done">("todo");
+  const [storyStatus, setStoryStatus] = useState<StoryStatus>("todo");
   const [acceptanceCriteria, setAcceptanceCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
   const [qualityCriteria, setQualityCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
   const [focusTarget, setFocusTarget] = useState<{ type: "acceptance" | "quality"; index: number } | null>(null);

@@ -6,6 +6,13 @@ import db from "../../db/client";
 import { users } from "../../db/schema";
 import { UPLOADS_DIR } from "../../db/paths";
 import { UPLOAD_PREFIXES } from "../../utils/uploads";
+import type {
+  EvidenceType,
+  SelfEvaluationLevel,
+  SprintStatus,
+  StoryStatus,
+  TeacherAssessment,
+} from "../../shared/minor";
 import type { MinorService } from "./index";
 import type { MinorStoryPresentationData } from "../../types/shared";
 
@@ -30,12 +37,12 @@ export interface PublicSnapshotStory {
   iWant: string | null;
   soThat: string | null;
   learningOutcomes: number[];
-  status: "todo" | "in_progress" | "done";
+  status: StoryStatus;
   orderIndex: number;
   presentationData: Omit<MinorStoryPresentationData, "notes"> | null;
   acceptanceCriteria: PublicSnapshotCriterion[];
   qualityCriteria: PublicSnapshotCriterion[];
-  evidence: Array<{ type: "link" | "github" | "document" | "app"; title: string; url: string }>;
+  evidence: Array<{ type: EvidenceType; title: string; url: string }>;
 }
 
 export interface PublicSnapshotSprint {
@@ -47,12 +54,12 @@ export interface PublicSnapshotSprint {
   showAndGrowDate: string;
   extendedDays: number;
   extensionReason: string | null;
-  status: "planned" | "active" | "completed";
+  status: SprintStatus;
   stories: PublicSnapshotStory[];
-  selfEvaluations: Array<{ learningOutcome: number; level: "V" | "NV" | "-"; argumentation: string | null }>;
+  selfEvaluations: Array<{ learningOutcome: number; level: SelfEvaluationLevel; argumentation: string | null }>;
   teacherAssessments: Array<{
     learningOutcome: number;
-    assessment: "V" | "O" | "-";
+    assessment: TeacherAssessment;
     notes: string | null;
     evaluatedAt: string | null;
   }>;

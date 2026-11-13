@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import { ExternalLink, ChevronDown, ChevronUp, CheckSquare, Square } from "lucide-react";
 import Link from "next/link";
 import { t } from "@/lib/lang";
@@ -16,7 +17,7 @@ interface StoryCardProps {
   onView: () => void;
   onToggleExpand: () => void;
   onToggleCriterion: (criterionId: number, isCompleted: boolean) => void;
-  onStatusChange: (storyId: number, newStatus: "todo" | "in_progress" | "done") => void;
+  onStatusChange: (storyId: number, newStatus: StoryStatus) => void;
 }
 
 export function StoryCard({
@@ -97,7 +98,7 @@ export function StoryCard({
 
             <select
               value={story.status}
-              onChange={(e) => onStatusChange(story.id, e.target.value as "todo" | "in_progress" | "done")}
+              onChange={(e) => onStatusChange(story.id, e.target.value as StoryStatus)}
               className={`text-xs font-semibold uppercase px-2.5 py-1 rounded-lg border cursor-pointer ${
                 story.status === "done"
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"

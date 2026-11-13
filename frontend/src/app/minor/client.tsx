@@ -17,9 +17,9 @@ import { SprintFormModal } from "./sprints/sprint-form-modal";
 import { useSprintDates } from "./sprints/use-sprint-dates";
 import { useActionError } from "@/lib/use-action-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { LEARNING_OUTCOMES, TOTAL_REQUIRED_PASSES, LEARNING_OUTCOME_INFO } from "@/app/minor/learning-outcomes";
+import { TOTAL_REQUIRED_PASSES } from "@/app/minor/learning-outcomes";
 import { today } from "@backend/shared/dates";
-import { DEFAULT_SPRINT_DAYS } from "@backend/shared/minor";
+import { DEFAULT_SPRINT_DAYS, passProgress } from "@backend/shared/minor";
 
 interface MinorDashboardClientProps {
   initialStats: MinorDashboardStats;
@@ -81,14 +81,10 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
   const activeSprint = stats.activeSprint;
   const warnings = stats.activeSprintWarnings;
 
-  const totalOfficial = Object.values(stats.officialPasses).reduce((a, b) => a + b, 0);
+  const { total: totalOfficial, allMinimumsMet, totalTargetMet } = passProgress(stats.officialPasses);
   const totalProjected = Object.values(stats.projectedPasses).reduce((a, b) => a + b, 0);
   const officialPercentage = Math.min(100, Math.round((totalOfficial / TOTAL_REQUIRED_PASSES) * 100));
   const projectedPercentage = Math.min(100, Math.round((totalProjected / TOTAL_REQUIRED_PASSES) * 100));
-  const allMinimumsMet = LEARNING_OUTCOMES.every(
-    (lu) => (stats.officialPasses[lu] || 0) >= LEARNING_OUTCOME_INFO[lu].target
-  );
-  const totalTargetMet = totalOfficial >= TOTAL_REQUIRED_PASSES;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">

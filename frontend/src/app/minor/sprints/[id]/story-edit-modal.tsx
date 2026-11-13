@@ -1,4 +1,5 @@
 "use client";
+import type { StoryStatus } from "@backend/shared/minor";
 import type { MinorStoryType } from "@/lib/api";
 
 import { Trash2, CheckSquare, Square, Sparkles, Unlink, Copy, Check, X } from "lucide-react";
@@ -183,7 +184,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
             <label className="block text-xs font-semibold text-zinc-300 mb-1.5">{t("Status")}</label>
             <select
               value={storyStatus}
-              onChange={(e) => setStoryStatus(e.target.value as "todo" | "in_progress" | "done")}
+              onChange={(e) => setStoryStatus(e.target.value as StoryStatus)}
               className="w-full sm:w-56 bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand cursor-pointer"
             >
               <option value="todo">{t("To Do")}</option>

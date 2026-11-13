@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import type { ReactNode } from "react";
 import { ExternalLink, CheckSquare, Square, Sparkles, X } from "lucide-react";
 import { t } from "@/lib/lang";
@@ -13,7 +14,7 @@ interface StoryViewModalProps {
   storyTypes: MinorStoryType[];
   viewingStory: MinorStory;
   handleToggleCriterion: (criterionId: number, isCompleted: boolean) => void;
-  handleStatusChange: (storyId: number, newStatus: "todo" | "in_progress" | "done") => void;
+  handleStatusChange: (storyId: number, newStatus: StoryStatus) => void;
   onClose: () => void;
   headerExtra?: ReactNode;
   beforeNarrative?: ReactNode;
@@ -73,7 +74,7 @@ export function StoryViewModal({
                 <span className="text-zinc-400 text-xs font-medium">{t("Status")}:</span>
                 <select
                   value={viewingStory.status}
-                  onChange={(e) => handleStatusChange(viewingStory.id, e.target.value as "todo" | "in_progress" | "done")}
+                  onChange={(e) => handleStatusChange(viewingStory.id, e.target.value as StoryStatus)}
                   className={`text-xs font-semibold uppercase px-3 py-1.5 rounded-lg border cursor-pointer ${
                     viewingStory.status === "done"
                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"

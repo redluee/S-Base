@@ -1,4 +1,4 @@
-import type { StoryInput } from "@backend/modules/minor/minor-stories";
+import type { SelfEvaluationInput, SprintInput, StoryInput, TeacherAssessmentInput } from "@backend/types/minor";
 import { request as clientRequest, requestForm, type Fetcher } from "./core";
 import type {
   MinorSprint,
@@ -33,26 +33,8 @@ export const createMinorApi = (request: Fetcher) => ({
         extensionReason: string | null;
         showAndGrowDate: string;
       }>(`/minor/sprints/calculate-dates?startDate=${encodeURIComponent(startDate)}&durationDays=${durationDays}`),
-    create: (data: {
-      sprintNumber?: string;
-      name?: string;
-      startDate: string;
-      endDate?: string;
-      durationDays?: number;
-      showAndGrowDate?: string;
-      status?: "planned" | "active" | "completed";
-    }) => request<MinorSprint>("/minor/sprints", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: Partial<{
-      sprintNumber: string;
-      name: string;
-      startDate: string;
-      endDate: string;
-      durationDays: number;
-      showAndGrowDate: string;
-      extendedDays: number;
-      extensionReason: string | null;
-      status: "planned" | "active" | "completed";
-    }>) => request<MinorSprint>(`/minor/sprints/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: SprintInput & { startDate: string }) => request<MinorSprint>("/minor/sprints", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: SprintInput) => request<MinorSprint>(`/minor/sprints/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ success: boolean }>(`/minor/sprints/${id}`, { method: "DELETE" }),
     exportJson: (id: number) => request<MinorSprintExportData>(`/minor/sprints/${id}/export`),
     import: (
@@ -75,9 +57,9 @@ export const createMinorApi = (request: Fetcher) => ({
           });
     },
     autoSelfEvaluations: (id: number) => request<MinorSelfEvaluation[]>(`/minor/sprints/${id}/self-evaluations/auto`, { method: "POST" }),
-    saveSelfEvaluations: (id: number, evaluations: { learningOutcome: number; level: "V" | "NV" | "-"; argumentation?: string }[]) =>
+    saveSelfEvaluations: (id: number, evaluations: SelfEvaluationInput[]) =>
       request<MinorSelfEvaluation[]>(`/minor/sprints/${id}/self-evaluations`, { method: "PUT", body: JSON.stringify({ evaluations }) }),
-    saveTeacherAssessments: (id: number, assessments: { learningOutcome: number; assessment: "V" | "O" | "-"; notes?: string; evaluatedAt?: string }[]) =>
+    saveTeacherAssessments: (id: number, assessments: TeacherAssessmentInput[]) =>
       request<MinorTeacherAssessment[]>(`/minor/sprints/${id}/teacher-assessments`, { method: "PUT", body: JSON.stringify({ assessments }) }),
     getReflection: (id: number) => request<MinorReflection>(`/minor/sprints/${id}/reflection`),
     saveReflection: (id: number, data: { date?: string; whatLearned?: string; whatRetained?: string; whatChange?: string }) =>

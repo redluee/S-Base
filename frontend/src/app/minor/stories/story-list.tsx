@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import { ListChecks, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { t } from "@/lib/lang";
@@ -16,7 +17,7 @@ interface StoryListProps {
   setViewingStoryId: React.Dispatch<React.SetStateAction<number | null>>;
   toggleExpand: (id: number) => void;
   handleToggleCriterion: (criterionId: number, isCompleted: boolean) => void;
-  handleStatusChange: (storyId: number, newStatus: "todo" | "in_progress" | "done") => void;
+  handleStatusChange: (storyId: number, newStatus: StoryStatus) => void;
 }
 
 export function StoryList({ storyTypes, sprints, filteredStories, sprintGroups, groupBySprint, expandedStoryIds, setViewingStoryId, toggleExpand, handleToggleCriterion, handleStatusChange }: StoryListProps) {

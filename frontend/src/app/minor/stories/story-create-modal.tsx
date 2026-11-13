@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoryStatus } from "@backend/shared/minor";
 import { Sparkles, Plus, Check, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
@@ -27,8 +28,8 @@ interface StoryCreateModalProps {
   setNewSoThat: React.Dispatch<React.SetStateAction<string>>;
   newSelectedLUs: number[];
   setNewSelectedLUs: React.Dispatch<React.SetStateAction<number[]>>;
-  newStatus: "todo" | "in_progress" | "done";
-  setNewStatus: React.Dispatch<React.SetStateAction<"todo" | "in_progress" | "done">>;
+  newStatus: StoryStatus;
+  setNewStatus: React.Dispatch<React.SetStateAction<StoryStatus>>;
   newAcceptanceCriteria: { text: string; isCompleted: boolean; indent?: number }[];
   setNewAcceptanceCriteria: React.Dispatch<React.SetStateAction<{ text: string; isCompleted: boolean; indent?: number }[]>>;
   setNewQualityCriteria: React.Dispatch<React.SetStateAction<{ text: string; isCompleted: boolean; indent?: number }[]>>;
@@ -186,7 +187,7 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
               <label className="text-zinc-400 font-medium">{t("Status")}</label>
               <select
                 value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value as "todo" | "in_progress" | "done")}
+                onChange={(e) => setNewStatus(e.target.value as StoryStatus)}
                 className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-zinc-200 text-xs focus:outline-none focus:border-brand"
               >
                 <option value="todo">{t("To Do")}</option>

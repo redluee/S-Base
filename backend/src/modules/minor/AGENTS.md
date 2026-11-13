@@ -32,7 +32,7 @@ This guide enables AI models to navigate and understand the Minor module without
 
 ## Service Methods (`MinorService` in `index.ts` composes topic classes as readonly properties; the file per topic is `minor-<topic>.ts`)
 
-Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `ValidationError`; schemas for every route live in `minor-schemas.ts`. Sprint ownership is checked once in `minor-ownership.ts` (`requireOwnedSprint`, `ownedSprintIdOrNull`). Pure rules shared with the frontend (learning outcomes, sprint dates/status, pass rule, argumentation draft) live in `backend/src/shared/minor.ts`; the frontend imports them via `@backend/shared/minor`.
+Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `ValidationError`; schemas for every route live in `minor-schemas.ts`. Sprint ownership is checked once in `minor-ownership.ts` (`requireOwnedSprint`, `ownedSprintIdOrNull`). Pure rules shared with the frontend (learning outcomes and their pass targets, status/level vocabularies, sprint dates/status, pass rule, argumentation draft) live in `backend/src/shared/minor.ts`; the frontend imports them via `@backend/shared/minor`.
 
 | Property (file)                                                      | Methods                                                                                                                                                                                 |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
