@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverApi } from "@/lib/server-api";
 
 import Link from "next/link";
@@ -77,7 +76,7 @@ export default async function WorkoutHistoryPage({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {sessions.map((session: any) => (
+            {sessions.map((session) => (
               <Link
                 key={session.sessionId}
                 href={`/workouts/history/${session.sessionId}`}

@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import type { FullWorkoutTemplate } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import {
   formSignature,
@@ -35,7 +35,7 @@ export function WorkoutTemplateForm({
   prefill,
   sourceSessionId,
 }: {
-  initial?: any;
+  initial?: FullWorkoutTemplate;
   prefill?: TemplatePrefill;
   sourceSessionId?: number;
 }) {

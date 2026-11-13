@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,14 +23,14 @@ import { trackingKind } from "@backend/shared/workout";
 import { formatClock } from "@/app/workouts/duration";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {
-  const cleaned: Record<string, any> = {
+  const cleaned: Record<string, unknown> = {
     name: session.name || "Workout Session",
   };
   if (session.notes) cleaned.notes = session.notes;
 
   if (Array.isArray(session.exercises)) {
-    cleaned.exercises = session.exercises.map((ex: any) => {
-      const cleanedEx: Record<string, any> = {
+    cleaned.exercises = session.exercises.map((ex) => {
+      const cleanedEx: Record<string, unknown> = {
         exerciseName: ex.exerciseName,
       };
       if (ex.category) cleanedEx.category = ex.category;
@@ -39,8 +38,8 @@ export function cleanSessionForExport(session: FullWorkoutSession) {
       if (ex.perSide) cleanedEx.perSide = Number(ex.perSide);
 
       if (Array.isArray(ex.sets)) {
-        cleanedEx.sets = ex.sets.map((s: any) => {
-          const cleanedSet: Record<string, any> = {
+        cleanedEx.sets = ex.sets.map((s) => {
+          const cleanedSet: Record<string, unknown> = {
             setNumber: s.setNumber,
           };
           if (s.reps != null) cleanedSet.reps = s.reps;

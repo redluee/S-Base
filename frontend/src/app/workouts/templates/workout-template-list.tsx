@@ -1,21 +1,23 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import type { WorkoutTemplate } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, ChevronRight } from "lucide-react";
 
-export function WorkoutTemplateList({ templates: initialTemplates, actions }: { templates: any[]; actions: ReactNode }) {
+type TemplateListItem = WorkoutTemplate & { exerciseCount?: number };
+
+export function WorkoutTemplateList({ templates: initialTemplates, actions }: { templates: TemplateListItem[]; actions: ReactNode }) {
   const router = useRouter();
   const [templates, setTemplates] = useState(initialTemplates);
   const [reordering, setReordering] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
 
-  async function saveOrder(next: any[]) {
+  async function saveOrder(next: TemplateListItem[]) {
     setSavingOrder(true);
     try {
       await api.workouts.templates.reorder(next.map((tpl) => tpl.templateId));
@@ -66,7 +68,7 @@ export function WorkoutTemplateList({ templates: initialTemplates, actions }: { 
         </div>
       ) : (
       <div className="flex flex-col gap-3">
-        {templates.map((template: any, index: number) => {
+        {templates.map((template, index) => {
           const card = (
             <div className="px-4 sm:px-5 py-3 sm:py-4">
               <div className="flex items-start justify-between gap-3">
