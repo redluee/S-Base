@@ -15,7 +15,7 @@ import {
   AlertDialogActions,
   AlertDialogClose,
 } from "@/components/ui/alert-dialog";
-import { getFlag } from "@/lib/kitchens";
+import { getFlag } from "@/app/recipes/kitchens";
 import Link from "next/link";
 import { ArrowLeft, CircleDashed } from "lucide-react";
 import type { FullRecipe } from "@backend/types/recipes";

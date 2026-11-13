@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_RECIPE_STATUS } from "@backend/shared/recipes";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -27,7 +28,7 @@ export function RecipeForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [cookingTime, setCookingTime] = useState(initial?.cookingTime?.toString() ?? "");
   const [kitchen, setKitchen] = useState(initial?.kitchen ?? "");
-  const [status, setStatus] = useState(initial?.status ?? "to try");
+  const [status, setStatus] = useState(initial?.status ?? DEFAULT_RECIPE_STATUS);
   const [rating, setRating] = useState(initial?.rating?.toString() ?? "");
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     initial?.ingredients?.map((i, idx: number) => ({

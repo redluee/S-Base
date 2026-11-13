@@ -1,5 +1,6 @@
 export const RECIPE_STATUSES = ["to try", "success", "needs tweak", "failure", "archived"] as const;
 export type RecipeStatus = (typeof RECIPE_STATUSES)[number];
+export const DEFAULT_RECIPE_STATUS: RecipeStatus = "to try";
 
 export const WINE_TYPES = ["red", "white", "rose", "sparkling", "dessert"] as const;
 export type WineType = (typeof WINE_TYPES)[number];

@@ -4,7 +4,7 @@ import { ingredients, recipeIngredients, recipeSteps, recipes } from "../../db/s
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { normalizeSearchString } from "../../shared/search";
 import { sqlNormalize } from "../../utils/search";
-import { isRating, isRecipeStatus } from "../../shared/recipes";
+import { DEFAULT_RECIPE_STATUS, isRating, isRecipeStatus } from "../../shared/recipes";
 import type { IngredientInput, RecipeIngredients, StepInput } from "./recipes-ingredients";
 
 export interface RecipeInput {
@@ -112,7 +112,7 @@ export class RecipeCatalog {
         name: data.name,
         cookingTime: data.cookingTime,
         kitchen: data.kitchen,
-        status: data.status ?? "to try",
+        status: data.status ?? DEFAULT_RECIPE_STATUS,
         description: data.description,
         rating: data.rating,
       })

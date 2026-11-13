@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api";
-import { kitchens } from "@/lib/kitchens";
+import { kitchens } from "@/app/recipes/kitchens";
 import { SearchBar, type SearchConfig, type SearchSuggestion } from "@/components/search-bar";
 import { normalizeSearchString } from "@backend/shared/search";
 

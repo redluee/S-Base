@@ -3,7 +3,7 @@ import { serverApi } from "@/lib/server-api";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getFlag } from "@/lib/kitchens";
+import { getFlag } from "@/app/recipes/kitchens";
 import { t } from "@/lib/lang";
 import type { Recipe } from "@backend/types/recipes";
 import { RECIPE_STATUSES, statusBadge } from "./recipe-status";
