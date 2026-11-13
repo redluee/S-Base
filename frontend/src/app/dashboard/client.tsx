@@ -7,6 +7,8 @@ import { api, type AuthUser } from "@/lib/api";
 import type { WorkoutSession } from "@backend/types/shared";
 import { RunningWorkoutCard } from "@/app/workouts/running-workout-card";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useActionError } from "@/lib/use-action-error";
 import { DEFAULT_BG, DEFAULT_BLUR, DEFAULT_BRIGHTNESS } from "./dashboard-modules";
 import { canOpen, moduleById, type ModuleId } from "@/lib/modules";
 import { ModuleGrid } from "./module-grid";
@@ -23,16 +25,19 @@ export function DashboardClient({ user }: { user: AuthUser }) {
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [runningSession, setRunningSession] = useState<WorkoutSession | null>(null);
   const [hasOnlineServer, setHasOnlineServer] = useState<boolean>(false);
+  const { error: sessionsError, report: reportSessionsError } = useActionError();
 
   useEffect(() => {
-    api.workouts.sessions
-      .list("active")
-      .then((sessions) => {
-        if (sessions && sessions.length > 0) {
-          setRunningSession(sessions[0]);
-        }
-      })
-      .catch(() => {});
+    if (canOpen(moduleById("workout"), userModules)) {
+      api.workouts.sessions
+        .list("active")
+        .then((sessions) => {
+          if (sessions && sessions.length > 0) {
+            setRunningSession(sessions[0]);
+          }
+        })
+        .catch((err) => reportSessionsError(err, "Could not load the running workout."));
+    }
 
     if (canOpen(moduleById("minecraft"), userModules)) {
       api.minecraft.servers
@@ -44,7 +49,7 @@ export function DashboardClient({ user }: { user: AuthUser }) {
           setHasOnlineServer(false);
         });
     }
-  }, [userModules]);
+  }, [userModules, reportSessionsError]);
 
   const storageKey = `sbase_dashboard_bg_${username.toLowerCase().trim() || "default"}`;
 
@@ -142,6 +147,12 @@ export function DashboardClient({ user }: { user: AuthUser }) {
           {t("Built for personal use and development")}
         </p>
       </section>
+
+      {sessionsError && (
+        <div className="w-full max-w-5xl mb-3 relative z-20">
+          <InlineAlert>{sessionsError}</InlineAlert>
+        </div>
+      )}
 
       {runningSession && (
         <div className="w-full max-w-5xl mb-3 relative z-20 animate-in fade-in slide-in-from-top-3 duration-300">

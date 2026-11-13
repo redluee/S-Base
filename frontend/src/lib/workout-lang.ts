@@ -76,6 +76,7 @@ export const workoutNl: Record<string, string> = {
   "Create your first template": "Maak je eerste sjabloon aan",
   "Completed": "Voltooid",
   "No active sessions.": "Geen actieve trainingen.",
+  "Could not load the running workout.": "Lopende training laden mislukt.",
   "No completed sessions yet.": "Nog geen voltooide trainingen.",
   "Session": "Training",
   "Duration": "Duur",
