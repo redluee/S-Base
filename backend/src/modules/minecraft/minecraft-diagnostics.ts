@@ -11,7 +11,7 @@ const ERROR_LINE =
   /ERROR|FATAL|Exception in thread|Encountered an unexpected exception|FAILED TO BIND|Address already in use|You need to agree to the EULA/i;
 
 export class MinecraftDiagnostics {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "servers">) {}
 
   async startupError(slug: string): Promise<{ lines: string[]; crashReport?: string }> {
     const server = this.parts.servers.get(slug);

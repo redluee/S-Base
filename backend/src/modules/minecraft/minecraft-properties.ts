@@ -6,7 +6,7 @@ import { propertiesPath } from "./server-layout";
 import { mergeProperties, readPropertiesFile } from "./server-properties";
 
 export class MinecraftProperties {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "lifecycle" | "servers">) {}
 
   read(slug: string) {
     return readPropertiesFile(this.parts.servers.get(slug).serverDir);

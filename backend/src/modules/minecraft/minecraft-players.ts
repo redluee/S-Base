@@ -28,7 +28,7 @@ async function readBanList(path: string): Promise<BannedPlayer[]> {
 }
 
 export class MinecraftPlayers {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "idle" | "lifecycle" | "servers">) {}
 
   private statByUuid(serverId: number, uuid: string) {
     return db

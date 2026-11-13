@@ -22,7 +22,7 @@ function anyFileContains(dir: string, needle: string): boolean {
 }
 
 export class MinecraftMap {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "servers">) {}
 
   getWebDir(serverDir: string): string | null {
     const candidates = [

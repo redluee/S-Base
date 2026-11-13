@@ -11,7 +11,7 @@ export interface MinecraftAccessRequest {
 }
 
 export class MinecraftAccess {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "servers">) {}
 
   authorize({ userId, hasFullAccess, slug, action }: MinecraftAccessRequest) {
     if (slug !== undefined && !this.parts.servers.canAccess(userId, slug, hasFullAccess)) {

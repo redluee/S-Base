@@ -30,7 +30,12 @@ export interface UpdateServerInput {
 export type ServerRow = typeof mc_servers.$inferSelect;
 
 export class MinecraftServers {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(
+    private readonly parts: Pick<
+      MinecraftService,
+      "dirs" | "downloads" | "lifecycle" | "map" | "players" | "properties" | "templates"
+    >,
+  ) {}
 
   exists(slug: string): boolean {
     return !!db.select({ slug: mc_servers.slug }).from(mc_servers).where(eq(mc_servers.slug, slug)).get();

@@ -25,7 +25,7 @@ export interface CreateTemplateInput extends Partial<CustomTemplateInput> {
 }
 
 export class MinecraftTemplates {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "dirs" | "properties" | "servers">) {}
 
   list() {
     return db.select().from(mc_templates).all();

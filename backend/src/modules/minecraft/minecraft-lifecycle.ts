@@ -23,7 +23,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class MinecraftLifecycle {
   private readonly trackingProcesses = new Map<string, ReturnType<typeof Bun.spawn>>();
 
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "dirs" | "idle" | "players" | "processes" | "servers">) {}
 
   private tmuxAlive(slug: string): boolean {
     return Bun.spawnSync(["tmux", "has-session", "-t", tmuxSession(slug)]).exitCode === 0;

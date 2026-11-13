@@ -8,7 +8,7 @@ export class MinecraftIdle {
   private readonly emptySince = new Map<string, number>();
   private interval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "lifecycle" | "players" | "servers">) {}
 
   start(intervalMs = DEFAULT_IDLE_CHECK_INTERVAL_MS) {
     if (this.interval) return;

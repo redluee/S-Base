@@ -74,7 +74,7 @@ async function detectVersion(dir: string, files: string[], jarFiles: string[]): 
 }
 
 export class MinecraftImporter {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "dirs" | "servers">) {}
 
   async inspect(targetPath: string): Promise<ServerInspection> {
     const dir = resolve(targetPath);

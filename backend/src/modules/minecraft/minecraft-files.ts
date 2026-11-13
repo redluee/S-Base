@@ -37,7 +37,7 @@ export async function validateUploads(files: File[]) {
 }
 
 export class MinecraftFiles {
-  constructor(private readonly parts: MinecraftService) {}
+  constructor(private readonly parts: Pick<MinecraftService, "dirs" | "lifecycle" | "servers">) {}
 
   private async reloadDatapacks(slug: string, type: string) {
     if (type === "datapacks" && this.parts.lifecycle.isRunning(slug)) {
