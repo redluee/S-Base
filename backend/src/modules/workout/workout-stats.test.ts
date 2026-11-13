@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { afterEach, describe, expect, it, beforeEach } from "bun:test";
 import { eq } from "drizzle-orm";
 import { setupTestDb } from "../../test-utils";
 import { WorkoutService } from "./index";
@@ -280,6 +280,27 @@ describe("workout volume and PR math", () => {
       ]);
       const res = await call(cookie, "GET", `/api/workouts/sessions/${id}/prs?duration=abc`);
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe("days since last workout", () => {
+    const originalTz = process.env.TZ;
+
+    afterEach(() => {
+      process.env.TZ = originalTz;
+    });
+
+    it("counts calendar days in the app time zone, not the process time zone", () => {
+      process.env.TZ = "UTC";
+      const id = finishedSession(workout, adminId, [
+        { exerciseName: "Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, weight: 100, completed: 1 }] },
+      ]);
+      db.update(workoutSessions)
+        .set({ completedAt: "2026-01-10T23:30:00.000Z" })
+        .where(eq(workoutSessions.sessionId, id))
+        .run();
+      expect(workout.stats.summary(adminId, new Date("2026-01-11T10:00:00.000Z")).daysAgo).toBe(0);
+      expect(workout.stats.summary(adminId, new Date("2026-01-11T23:30:00.000Z")).daysAgo).toBe(1);
     });
   });
 });

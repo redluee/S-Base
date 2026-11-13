@@ -3,10 +3,10 @@ import db from "../../db/client";
 import { workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
 import type { PersonalRecord } from "../../types/shared";
 import { activeSeconds, effectiveVolume, exerciseKey, signedWeight } from "../../shared/workout";
-import { parseDateString } from "../../shared/dates";
+import { parseDateString, today } from "../../shared/dates";
 
 export class WorkoutStats {
-  summary(userId: number) {
+  summary(userId: number, now: Date = new Date()) {
     const lastSession = db
       .select()
       .from(workoutSessions)
@@ -17,11 +17,8 @@ export class WorkoutStats {
 
     let daysAgo: number | null = null;
     if (lastSession?.completedAt) {
-      const completedDate = parseDateString(lastSession.completedAt);
-      const today = new Date();
-      const date1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-      const date2 = Date.UTC(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate());
-      daysAgo = Math.floor((date1 - date2) / (1000 * 60 * 60 * 24));
+      const completedDay = Date.parse(today(parseDateString(lastSession.completedAt)));
+      daysAgo = Math.round((Date.parse(today(now)) - completedDay) / (1000 * 60 * 60 * 24));
     }
 
     const workoutCountRes = db
