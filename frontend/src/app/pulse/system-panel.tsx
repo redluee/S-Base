@@ -80,7 +80,7 @@ export function SystemPanel({
         const next = await api.pulse.getSystemUpdate();
         if (!cancelled) setUpdate(next);
       } catch {
-        // transient failure, retry on next tick
+        // polled again on the next tick
       }
     }, POLL_INTERVAL_MS);
     return () => {
@@ -103,7 +103,7 @@ export function SystemPanel({
       setShutdownSchedule(updated);
       notify(t("Shutdown schedule updated"));
     } catch (err) {
-      notify(apiErrorMessage(err, "Opslaan mislukt"), "error");
+      notify(apiErrorMessage(err, "pulse.saveFailed"), "error");
     } finally {
       setIsSavingShutdown(false);
     }
@@ -117,7 +117,7 @@ export function SystemPanel({
       setShutdownSchedule(updated);
       notify(t("Shutdown schedule updated"));
     } catch (err) {
-      notify(apiErrorMessage(err, "Opslaan mislukt"), "error");
+      notify(apiErrorMessage(err, "pulse.saveFailed"), "error");
     } finally {
       setIsSavingShutdown(false);
     }
@@ -133,7 +133,7 @@ export function SystemPanel({
       setShutdownSchedule(updated);
       notify(shutdownSchedule.isBlocked ? t("Shutdown unblocked") : t("Shutdown blocked for tonight"));
     } catch (err) {
-      notify(apiErrorMessage(err, "Opslaan mislukt"), "error");
+      notify(apiErrorMessage(err, "pulse.saveFailed"), "error");
     } finally {
       setIsSavingShutdown(false);
     }
@@ -146,7 +146,7 @@ export function SystemPanel({
       notify(t("Shutdown initiated"));
       setIsShutdownNowOpen(false);
     } catch (err) {
-      notify(apiErrorMessage(err, "Failed to initiate shutdown"), "error");
+      notify(apiErrorMessage(err, "pulse.shutdownFailed"), "error");
     } finally {
       setIsShuttingDownNow(false);
     }
@@ -159,16 +159,10 @@ export function SystemPanel({
       setUpdate(next);
       setIsUpdateOpen(false);
     } catch (err) {
+      notify(apiErrorMessage(err, "pulse.updateStartFailed"), "error");
       if (err instanceof ApiError && err.status === 409) {
-        notify(apiErrorMessage(err, "Bijwerken starten mislukt"), "error");
         setIsUpdateOpen(false);
-        try {
-          setUpdate(await api.pulse.getSystemUpdate());
-        } catch {
-          // ignore
-        }
-      } else {
-        notify(apiErrorMessage(err, "Bijwerken starten mislukt"), "error");
+        setUpdate(await api.pulse.getSystemUpdate().catch(() => update));
       }
     } finally {
       setIsStartingUpdate(false);
@@ -182,12 +176,8 @@ export function SystemPanel({
       setRebootRequested(true);
       setIsRebootOpen(false);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        notify(apiErrorMessage(err, "Herstarten mislukt"), "error");
-        setIsRebootOpen(false);
-      } else {
-        notify(apiErrorMessage(err, "Herstarten mislukt"), "error");
-      }
+      notify(apiErrorMessage(err, "pulse.rebootFailed"), "error");
+      if (err instanceof ApiError && err.status === 409) setIsRebootOpen(false);
     } finally {
       setIsRebooting(false);
     }

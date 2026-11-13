@@ -1,6 +1,5 @@
 import { requireUser, serverApi } from "@/lib/server-api";
 import { PulseClient } from "./client";
-import type { McServer, ShutdownSchedule, SystemUpdateState } from "@/lib/api";
 
 export default async function PulsePage() {
   const user = await requireUser();
@@ -9,25 +8,9 @@ export default async function PulsePage() {
     serverApi.pulse.users(),
     serverApi.pulse.modules(),
     serverApi.pulse.stats(),
-    serverApi.minecraft.servers.list().catch(() => [] as McServer[]),
-    serverApi.pulse.shutdownSchedule().catch(() => ({
-      enabled: true,
-      time: "01:00",
-      blockedUntil: null,
-      isBlocked: false,
-      nextShutdownAt: null,
-      minutesUntilShutdown: null,
-    } as ShutdownSchedule)),
-    serverApi.pulse.systemUpdate().catch(() => ({
-      status: "idle",
-      phase: null,
-      progress: null,
-      startedAt: null,
-      finishedAt: null,
-      exitCode: null,
-      log: [],
-      error: null,
-    } as SystemUpdateState)),
+    user.modules.includes("minecraft") ? serverApi.minecraft.servers.list() : Promise.resolve([]),
+    serverApi.pulse.shutdownSchedule(),
+    serverApi.pulse.systemUpdate(),
   ]);
 
   return (

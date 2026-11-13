@@ -69,12 +69,16 @@ export function PulseClient({
     setStatusMsg({ text, type });
   };
 
-  const refreshStats = (updatedUsers: PulseUser[]) => {
-    const totalUsers = updatedUsers.length;
-    const pausedUsers = updatedUsers.filter((u) => u.isPaused === 1).length;
-    const activeUsers = totalUsers - pausedUsers;
-    const totalPermissions = updatedUsers.reduce((acc, u) => acc + u.modules.length, 0);
-    setStats({ totalUsers, activeUsers, pausedUsers, totalPermissions });
+  const reloadStats = async () => {
+    try {
+      setStats(await api.pulse.stats());
+    } catch (error) {
+      showNotification(apiErrorMessage(error, "pulse.statsFailed"), "error");
+    }
+  };
+
+  const replaceUser = (updated: PulseUser) => {
+    setUsersList((prev) => prev.map((u) => (u.userId === updated.userId ? updated : u)));
   };
 
   const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
@@ -82,18 +86,15 @@ export function PulseClient({
     setIsCreatingUser(true);
     try {
       const created = await api.pulse.createUser(newUser);
-      setUsersList((prev) => {
-        const next = [created, ...prev];
-        refreshStats(next);
-        return next;
-      });
+      setUsersList((prev) => [created, ...prev]);
+      void reloadStats();
       setSearchQuery(created.username);
       setExpandedUserId(created.userId);
       setNewUser({ username: "", email: "", password: "" });
       setIsCreateUserOpen(false);
       showNotification(t("User created"));
     } catch (error) {
-      showNotification(apiErrorMessage(error, "User creation failed"), "error");
+      showNotification(apiErrorMessage(error, "pulse.createUserFailed"), "error");
     } finally {
       setIsCreatingUser(false);
     }
@@ -108,15 +109,12 @@ export function PulseClient({
     setLoadingUserId(userId);
     try {
       const updated = await api.pulse.updateEmail(userId, emailInput || null);
-      setUsersList((prev) => {
-        const next = prev.map((u) => (u.userId === userId ? updated : u));
-        refreshStats(next);
-        return next;
-      });
+      replaceUser(updated);
+      void reloadStats();
       setEditingEmailUserId(null);
       showNotification(t("E-mailadres bijgewerkt"));
     } catch (error) {
-      showNotification(apiErrorMessage(error, "Opslaan mislukt"), "error");
+      showNotification(apiErrorMessage(error, "pulse.saveFailed"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -127,14 +125,11 @@ export function PulseClient({
     setLoadingUserId(user.userId);
     try {
       const updated = await api.pulse.updateStatus(user.userId, newStatus === 1);
-      setUsersList((prev) => {
-        const next = prev.map((u) => (u.userId === user.userId ? updated : u));
-        refreshStats(next);
-        return next;
-      });
+      replaceUser(updated);
+      void reloadStats();
       showNotification(newStatus === 1 ? t("Account gepauzeerd") : t("Account geactiveerd"));
     } catch (error) {
-      showNotification(apiErrorMessage(error, "Status wijzigen mislukt"), "error");
+      showNotification(apiErrorMessage(error, "pulse.statusFailed"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -147,14 +142,11 @@ export function PulseClient({
     setLoadingUserId(user.userId);
     try {
       const updated = await api.pulse.updateModules(user.userId, updatedModules);
-      setUsersList((prev) => {
-        const next = prev.map((u) => (u.userId === user.userId ? updated : u));
-        refreshStats(next);
-        return next;
-      });
+      replaceUser(updated);
+      void reloadStats();
       showNotification(t("Module toegang bijgewerkt"));
     } catch (error) {
-      showNotification(apiErrorMessage(error, "Permissies wijzigen mislukt"), "error");
+      showNotification(apiErrorMessage(error, "pulse.modulesFailed"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -168,12 +160,10 @@ export function PulseClient({
     setLoadingUserId(user.userId);
     try {
       const updated = await api.pulse.updateServers(user.userId, updatedServers);
-      setUsersList((prev) =>
-        prev.map((u) => (u.userId === user.userId ? { ...u, mcServers: updated.mcServers ?? updatedServers } : u))
-      );
+      replaceUser(updated);
       showNotification(t("Server toegang bijgewerkt"));
     } catch (error) {
-      showNotification(apiErrorMessage(error, "Server toegang wijzigen mislukt"), "error");
+      showNotification(apiErrorMessage(error, "pulse.serversFailed"), "error");
     } finally {
       setLoadingUserId(null);
     }
@@ -188,7 +178,7 @@ export function PulseClient({
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
-      showNotification(apiErrorMessage(error, "Login failed. Please try again."), "error");
+      showNotification(apiErrorMessage(error, "pulse.impersonateFailed"), "error");
       setLoadingUserId(null);
     }
   };

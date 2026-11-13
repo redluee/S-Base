@@ -97,7 +97,7 @@ export const serverApi = {
   minecraft: {
     servers: {
       list: () => serverFetch<import("./api").McServer[]>("/minecraft/servers"),
-      get: (slug: string) => serverFetch<import("./api").McServer>(`/minecraft/servers/${slug}`),
+      get: (slug: string) => serverFetch<import("./api").McServerDetail>(`/minecraft/servers/${slug}`),
     },
     templates: {
       list: () => serverFetch<import("./api").McTemplate[]>("/minecraft/templates"),

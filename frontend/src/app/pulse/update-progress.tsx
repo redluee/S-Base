@@ -3,18 +3,21 @@
 import type { RefObject } from "react";
 import { Check, ChevronDown, CircleAlert } from "lucide-react";
 import { t } from "@/lib/lang";
-import type { SystemUpdateState, UpdatePhase } from "@/lib/api";
+import { UPDATE_STEP_PHASES } from "@backend/shared/pulse";
+import type { SystemUpdateState, UpdatePhase, UpdateStepPhase } from "@/lib/api";
 import { FOCUS } from "./system-panel-styles";
 
-export const UPDATE_STEPS: { phase: UpdatePhase; label: string }[] = [
-  { phase: "repositories", label: "Repositories laden" },
-  { phase: "resolving", label: "Afhankelijkheden oplossen" },
-  { phase: "downloading", label: "Downloaden" },
-  { phase: "installing", label: "Installeren" },
-  { phase: "cleanup", label: "Opruimen" },
-  { phase: "verifying", label: "Verifiëren" },
-  { phase: "complete", label: "Klaar" },
-];
+const STEP_LABELS: Record<UpdateStepPhase, string> = {
+  repositories: "Repositories laden",
+  resolving: "Afhankelijkheden oplossen",
+  downloading: "Downloaden",
+  installing: "Installeren",
+  cleanup: "Opruimen",
+  verifying: "Verifiëren",
+  complete: "Klaar",
+};
+
+export const UPDATE_STEPS = UPDATE_STEP_PHASES.map((phase) => ({ phase, label: STEP_LABELS[phase] }));
 
 export function UpdateProgress({
   update,
