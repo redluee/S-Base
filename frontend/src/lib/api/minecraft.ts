@@ -1,5 +1,5 @@
 import { t } from "../lang";
-import { request, requestForm } from "./core";
+import { request as clientRequest, requestForm, type Fetcher } from "./core";
 import type { FolderType } from "@backend/shared/minecraft";
 import type {
   McBannedPlayer,
@@ -15,7 +15,7 @@ import type {
   McUploadResult,
 } from "./types";
 
-export const minecraftApi = {
+export const createMinecraftApi = (request: Fetcher) => ({
   versions: () => request<string[]>("/minecraft/versions"),
   servers: {
     list: () => request<McServer[]>("/minecraft/servers"),
@@ -163,4 +163,6 @@ export const minecraftApi = {
         body: JSON.stringify(data),
       }),
   },
-};
+});
+
+export const minecraftApi = createMinecraftApi(clientRequest);

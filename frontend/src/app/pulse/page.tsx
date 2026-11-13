@@ -9,8 +9,8 @@ export default async function PulsePage() {
     serverApi.pulse.modules(),
     serverApi.pulse.stats(),
     user.modules.includes("minecraft") ? serverApi.minecraft.servers.list() : Promise.resolve([]),
-    serverApi.pulse.shutdownSchedule(),
-    serverApi.pulse.systemUpdate(),
+    serverApi.pulse.getShutdownSchedule(),
+    serverApi.pulse.getSystemUpdate(),
   ]);
 
   return (

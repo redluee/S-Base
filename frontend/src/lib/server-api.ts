@@ -4,6 +4,8 @@ import { canOpen, moduleById, type ModuleId } from "@/lib/modules";
 import { BACKEND_API_URL, SESSION_COOKIE } from "@/lib/backend";
 import { createCashflowApi } from "@/lib/api/cashflow";
 import { createMeasurementsApi } from "@/lib/api/measurements";
+import { createMinecraftApi } from "@/lib/api/minecraft";
+import { createPulseApi } from "@/lib/api/pulse";
 import { createMinorApi } from "@/lib/api/minor";
 import { createRecipesApi } from "@/lib/api/recipes";
 import { createResumeApi } from "@/lib/api/resume";
@@ -86,27 +88,8 @@ export const serverApi = {
 
   cashflow: createCashflowApi(serverFetch),
 
-  pulse: {
-    users: () => serverFetch<import("./api").PulseUser[]>("/pulse/users"),
-    modules: () => serverFetch<import("./api").PulseModuleInfo[]>("/pulse/modules"),
-    stats: () => serverFetch<import("./api").PulseStats>("/pulse/stats"),
-    shutdownSchedule: () => serverFetch<import("./api").ShutdownSchedule>("/pulse/shutdown-schedule"),
-    systemUpdate: () => serverFetch<import("./api").SystemUpdateState>("/pulse/system-update"),
-  },
-
-  minecraft: {
-    servers: {
-      list: () => serverFetch<import("./api").McServer[]>("/minecraft/servers"),
-      get: (slug: string) => serverFetch<import("./api").McServerDetail>(`/minecraft/servers/${slug}`),
-    },
-    templates: {
-      list: () => serverFetch<import("./api").McTemplate[]>("/minecraft/templates"),
-      get: (id: number) => serverFetch<import("./api").McTemplate>(`/minecraft/templates/${id}`),
-    },
-    import: {
-      scan: () => serverFetch<import("./api").McUnregisteredServerScan[]>("/minecraft/import/scan"),
-    },
-  },
+  pulse: createPulseApi(serverFetch),
+  minecraft: createMinecraftApi(serverFetch),
   resume: createResumeApi(serverFetch),
   minor: createMinorApi(serverFetch),
 };

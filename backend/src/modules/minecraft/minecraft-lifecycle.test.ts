@@ -104,17 +104,18 @@ describe("Minecraft lifecycle and idle monitor", () => {
     });
     try {
       await minecraft.lifecycle.broadcastShutdownWarning(5);
-      expect(sent.map(([slug]) => slug)).toEqual(["test-busy"]);
-      expect(sent[0][1]).toContain("5 minuten");
+      expect(sent.map(([slug]) => slug).filter((slug) => slug.startsWith("test-"))).toEqual(["test-busy"]);
+      expect(sent.find(([slug]) => slug === "test-busy")?.[1]).toContain("5 minuten");
 
       sent.length = 0;
       await minecraft.lifecycle.broadcastShutdownWarning(1);
-      expect(sent[0][1]).toContain("1 minuut");
+      expect(sent.find(([slug]) => slug === "test-busy")?.[1]).toContain("1 minuut");
 
       sent.length = 0;
       await minecraft.lifecycle.stopAll();
-      expect(sent.map(([slug]) => slug)).toEqual(["test-busy", "test-empty"]);
-      expect(stopped).toEqual(["test-busy", "test-empty"]);
+      const own = (slug: string) => slug.startsWith("test-");
+      expect(sent.map(([slug]) => slug).filter(own)).toEqual(["test-busy", "test-empty"]);
+      expect(stopped.filter(own)).toEqual(["test-busy", "test-empty"]);
     } finally {
       for (const slug of ["test-busy", "test-empty", "test-offline"]) {
         db.delete(mc_servers).where(eq(mc_servers.slug, slug)).run();

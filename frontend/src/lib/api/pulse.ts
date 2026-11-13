@@ -1,4 +1,4 @@
-import { request } from "./core";
+import { request as clientRequest, type Fetcher } from "./core";
 import type {
   AuthUser,
   PulseModuleInfo,
@@ -8,7 +8,7 @@ import type {
   SystemUpdateState,
 } from "./types";
 
-export const pulseApi = {
+export const createPulseApi = (request: Fetcher) => ({
   users: () => request<PulseUser[]>("/pulse/users"),
   createUser: (data: { username: string; email: string; password: string }) =>
     request<PulseUser>("/pulse/users", {
@@ -68,4 +68,6 @@ export const pulseApi = {
     request<{ ok: boolean }>("/pulse/reboot", {
       method: "POST",
     }),
-};
+});
+
+export const pulseApi = createPulseApi(clientRequest);
