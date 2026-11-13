@@ -1,6 +1,7 @@
 export const minecraftNl: Record<string, string> = {
   "minecraft.serverNotFound": "Server niet gevonden",
   "minecraft.templateNotFound": "Sjabloon niet gevonden.",
+  "minecraft.templateFileMissing": "Een of meer sjabloonbestanden ontbreken op de server. Upload ze opnieuw.",
   "minecraft.fileNotFound": "Bestand niet gevonden.",
   "minecraft.mapNotFound": "Wereldkaart niet gevonden of nog niet gegenereerd.",
   "minecraft.invalidSlug": "Ongeldige serveridentifier: 3-32 tekens, alleen kleine letters, cijfers en koppeltekens.",

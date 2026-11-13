@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { eq } from "drizzle-orm";
-import { mkdir, writeFile, readFile, rm } from "fs/promises";
+import { mkdir, readFile, rm, unlink, writeFile } from "fs/promises";
 import { join } from "path";
 import db from "../../db/client";
 import { mc_servers } from "../../db/schema/minecraft";
 import { setupTestDb } from "../../test-utils";
 import { MinecraftService } from "./index";
 import { FIXTURE_DIR, mockExternalCalls } from "./minecraft-test-utils";
+import { TEMPLATES_DIR } from "./paths";
 
 describe("Minecraft templates", () => {
   let minecraft: MinecraftService;
@@ -82,6 +83,25 @@ describe("Minecraft templates", () => {
     await minecraft.templates.remove(templateId);
     await minecraft.servers.remove("tmpl-speedrun-test", true);
   }, 90000);
+  it("refuses to build a server from a template whose files are missing", async () => {
+    const tmpl = await minecraft.templates.createCustom({
+      name: "Broken Template",
+      engine: "fabric",
+      mcVersion: "1.21.1",
+    });
+    const templateId = tmpl!.templateId;
+    await minecraft.templates.uploadFile(templateId, "mods", "gone.jar", new TextEncoder().encode("x").buffer);
+    await unlink(join(TEMPLATES_DIR, templateId.toString(), "mods", "gone.jar"));
+    try {
+      await expect(minecraft.templates.speedrun(templateId, "tmpl-broken", "Broken")).rejects.toThrow(
+        "minecraft.templateFileMissing",
+      );
+      expect(db.select().from(mc_servers).where(eq(mc_servers.slug, "tmpl-broken")).get()).toBeUndefined();
+    } finally {
+      await minecraft.templates.remove(templateId);
+    }
+  });
+
   it("handles custom level-name and template deployment with datapacks", async () => {
     const srvDir = join(testDir, "test-custom-level-name");
     await mkdir(join(srvDir, "custom_world"), { recursive: true });

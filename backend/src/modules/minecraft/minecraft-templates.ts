@@ -4,7 +4,7 @@ import { join } from "path";
 import db from "../../db/client";
 import { mc_template_files, mc_templates } from "../../db/schema/minecraft";
 import { FOLDER_TYPES } from "../../shared/minecraft";
-import { ConflictError, orNotFound } from "../../utils/errors";
+import { ConflictError, NotFoundError, orNotFound } from "../../utils/errors";
 import { listDirectory, validateUploads } from "./minecraft-files";
 import type { MinecraftService } from "./index";
 import { TEMPLATES_DIR } from "./paths";
@@ -186,6 +186,12 @@ export class MinecraftTemplates {
   async speedrun(id: number, newSlug: string, displayName: string) {
     validateSlug(newSlug);
     const t = this.get(id);
+    const tDir = join(TEMPLATES_DIR, id.toString());
+    const missing = [];
+    for (const f of t.files) {
+      if (!(await Bun.file(join(tDir, f.fileType, f.filename)).exists())) missing.push(`${f.fileType}/${f.filename}`);
+    }
+    if (missing.length) throw new NotFoundError("minecraft.templateFileMissing", { files: missing });
     const seed = Math.floor(Math.random() * 2 ** 48).toString();
     const server = await this.parts.servers.create({
       slug: newSlug,
@@ -199,10 +205,9 @@ export class MinecraftTemplates {
     props["level-seed"] = seed;
     await this.parts.properties.write(newSlug, props);
 
-    const tDir = join(TEMPLATES_DIR, id.toString());
     for (const f of t.files) {
       const destDir = await this.parts.dirs.subdir(server.serverDir, f.fileType);
-      await copyFile(join(tDir, f.fileType, f.filename), join(destDir, f.filename)).catch(() => {});
+      await copyFile(join(tDir, f.fileType, f.filename), join(destDir, f.filename));
     }
     return this.parts.servers.get(newSlug);
   }
