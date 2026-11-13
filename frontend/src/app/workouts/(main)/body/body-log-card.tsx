@@ -3,20 +3,7 @@ import { Calendar, Camera, Loader2, Pencil, Ruler, Trash2, X } from "lucide-reac
 import { t } from "@/lib/lang";
 import { formatNumberNl } from "@/app/workouts/number-input";
 import { Button } from "@/components/ui/button";
-import { calculateBMI, hasCircumferences, type CircumferenceKey, type Measurement } from "./body-utils";
-
-function circumferenceLabels(): { key: CircumferenceKey; label: string }[] {
-  return [
-    { key: "waist", label: t("Middel") },
-    { key: "chest", label: t("Borst") },
-    { key: "hips", label: t("Heupen") },
-    { key: "biceps", label: t("Biceps") },
-    { key: "thighs", label: t("Bovenbenen") },
-    { key: "shoulders", label: t("Schouders") },
-    { key: "neck", label: t("Nek") },
-    { key: "calves", label: t("Kuiten") },
-  ];
-}
+import { calculateBMI, circumferenceLabels, hasCircumferences, type Measurement } from "./body-utils";
 
 interface BodyLogCardProps {
   log: Measurement;

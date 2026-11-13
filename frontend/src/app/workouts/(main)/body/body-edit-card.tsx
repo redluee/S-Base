@@ -1,25 +1,12 @@
 import { Ruler, ChevronDown, ChevronUp } from "lucide-react";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
-import { preventInvalidInput, type CircumferenceKey, type FormValues } from "./body-utils";
+import { circumferenceLabels, preventInvalidInput, type FormValues } from "./body-utils";
 
 const mainInputClass =
   "w-full bg-background border border-border rounded-md px-2 min-h-11 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand transition-colors";
 const mainBoxClass = "bg-muted/30 border border-border/50 rounded-lg p-2.5";
 const mainLabelClass = "block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1";
-
-function circumferenceFields(): { key: CircumferenceKey; label: string }[] {
-  return [
-    { key: "waist", label: t("Middel") },
-    { key: "chest", label: t("Borst") },
-    { key: "hips", label: t("Heupen") },
-    { key: "biceps", label: t("Biceps") },
-    { key: "thighs", label: t("Bovenbenen") },
-    { key: "shoulders", label: t("Schouders") },
-    { key: "neck", label: t("Nek") },
-    { key: "calves", label: t("Kuiten") },
-  ];
-}
 
 interface BodyEditCardProps {
   form: FormValues;
@@ -117,7 +104,7 @@ export function BodyEditCard({
                 {t("Lichaamsmetingen")} (cm)
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {circumferenceFields().map((f) => (
+                {circumferenceLabels().map((f) => (
                   <div key={f.key} className="bg-background border border-border/60 rounded-md p-2">
                     <label className="block text-[10px] text-muted-foreground uppercase font-bold mb-1">{f.label}</label>
                     <input

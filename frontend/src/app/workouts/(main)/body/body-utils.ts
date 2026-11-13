@@ -1,13 +1,26 @@
 import type { Measurement, MeasurementPhoto } from "@/lib/api";
+import { t } from "@/lib/lang";
+import { CIRCUMFERENCE_FIELDS, type CircumferenceField } from "@backend/shared/workout";
 
 export type { Measurement };
 export type Photo = MeasurementPhoto;
 
 export type ChartTab = "weight" | "fat" | "muscle" | "bmi";
 
-export type CircumferenceKey = "waist" | "chest" | "hips" | "biceps" | "thighs" | "shoulders" | "neck" | "calves";
+const CIRCUMFERENCE_LABEL_KEYS: Record<CircumferenceField, string> = {
+  waist: "Middel",
+  chest: "Borst",
+  hips: "Heupen",
+  biceps: "Biceps",
+  thighs: "Bovenbenen",
+  shoulders: "Schouders",
+  neck: "Nek",
+  calves: "Kuiten",
+};
 
-export const CIRCUMFERENCE_KEYS: CircumferenceKey[] = ["waist", "chest", "hips", "biceps", "thighs", "shoulders", "neck", "calves"];
+export function circumferenceLabels(): { key: CircumferenceField; label: string }[] {
+  return CIRCUMFERENCE_FIELDS.map((key) => ({ key, label: t(CIRCUMFERENCE_LABEL_KEYS[key]) }));
+}
 
 export interface FormValues {
   height: string;
@@ -84,10 +97,7 @@ export function formToPayload(form: FormValues) {
 }
 
 export function hasCircumferences(log: Measurement): boolean {
-  return Boolean(
-    log.waist || log.chest || log.hips || log.biceps ||
-    log.thighs || log.shoulders || log.neck || log.calves
-  );
+  return CIRCUMFERENCE_FIELDS.some((key) => Boolean(log[key]));
 }
 
 export function getAutofilledHeight(date: string, currentLogs: Measurement[]): string {

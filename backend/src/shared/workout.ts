@@ -4,6 +4,18 @@ export const EXERCISE_CATEGORIES = ["Free Weights", "Machines", "Bodyweight", "C
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 export const DEFAULT_CATEGORY: ExerciseCategory = "Free Weights";
 
+export const CIRCUMFERENCE_FIELDS = [
+  "waist",
+  "chest",
+  "hips",
+  "biceps",
+  "thighs",
+  "shoulders",
+  "neck",
+  "calves",
+] as const;
+export type CircumferenceField = (typeof CIRCUMFERENCE_FIELDS)[number];
+
 export const SESSION_STATUS_FILTERS = ["active", "completed"] as const;
 export type SessionStatusFilter = (typeof SESSION_STATUS_FILTERS)[number];
 

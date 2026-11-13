@@ -2,6 +2,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { measurements, measurementPhotos } from "../../db/schema";
 import { isCalendarDate } from "../../shared/dates";
+import { CIRCUMFERENCE_FIELDS } from "../../shared/workout";
 import { ConflictError, ValidationError, orNotFound } from "../../utils/errors";
 import { IMAGE_EXTENSIONS, removeUpload, uploadFilenameOf, uploadOwnerOf } from "../../utils/uploads";
 import type { MeasurementSaveInput, MeasurementUpdateInput } from "./workout-schemas";
@@ -14,14 +15,7 @@ const MEASUREMENT_FIELDS = [
   "bodyFat",
   "skeletalMuscle",
   "fatMass",
-  "waist",
-  "chest",
-  "hips",
-  "biceps",
-  "thighs",
-  "shoulders",
-  "neck",
-  "calves",
+  ...CIRCUMFERENCE_FIELDS,
 ] as const;
 
 function requireMeasurementDate(value: unknown): string {
