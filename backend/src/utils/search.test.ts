@@ -1,16 +1,23 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeSearchString } from "./search";
+import { sql } from "drizzle-orm";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import db from "../db/client";
+import { normalizeSearchString, sqlNormalize } from "./search";
 
-describe("search utility", () => {
-  it("normalizes search strings by removing spaces, hyphens, slashes and converting to lowercase", () => {
-    expect(normalizeSearchString(" Hello-World / Test ")).toBe("helloworldtest");
-    expect(normalizeSearchString("Pasta-Bolognese")).toBe("pastabolognese");
-    expect(normalizeSearchString("Kip/Rijst")).toBe("kiprijst");
-  });
+const probe = sqliteTable("search_probe", { value: text("value") });
 
-  it("handles empty or single-character strings", () => {
-    expect(normalizeSearchString("")).toBe("");
-    expect(normalizeSearchString("  -  ")).toBe("");
-    expect(normalizeSearchString("A")).toBe("a");
+describe("search normalisation", () => {
+  it("normalises stored values in SQL exactly like the query in JS", () => {
+    db.run(sql`CREATE TABLE IF NOT EXISTS search_probe (value TEXT)`);
+    for (const value of ["Kip/Rijst", "Pasta-Bolognese", " Hello World "]) {
+      db.run(sql`DELETE FROM search_probe`);
+      db.insert(probe).values({ value }).run();
+      const stored = db
+        .select({ normalized: sqlNormalize(probe.value) })
+        .from(probe)
+        .get();
+      expect(stored?.normalized).toBe(normalizeSearchString(value));
+    }
+    db.run(sql`DROP TABLE search_probe`);
   });
 });

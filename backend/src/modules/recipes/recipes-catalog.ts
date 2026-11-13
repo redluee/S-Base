@@ -181,9 +181,9 @@ export class RecipeCatalog {
     return or(
       like(sqlNormalize(recipes.name), `%${normalizedQ}%`),
       like(sqlNormalize(recipes.kitchen), `%${normalizedQ}%`),
-      sql`EXISTS (SELECT 1 FROM recipe_ingredients ri
-           INNER JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-           WHERE ri.recipe_id = recipes.recipe_id AND replace(replace(i.name, ' ', ''), '-', '') LIKE ${`%${normalizedQ}%`})`,
+      sql`EXISTS (SELECT 1 FROM ${recipeIngredients}
+           INNER JOIN ${ingredients} ON ${recipeIngredients.ingredientId} = ${ingredients.ingredientId}
+           WHERE ${recipeIngredients.recipeId} = ${recipes.recipeId} AND ${sqlNormalize(ingredients.name)} LIKE ${`%${normalizedQ}%`})`,
     ) as SQL;
   }
 }
