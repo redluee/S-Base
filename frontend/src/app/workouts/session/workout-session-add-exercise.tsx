@@ -2,10 +2,10 @@
 
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
-import { ExerciseAutocomplete } from "@/app/workouts/exercises/exercise-autocomplete";
+import { ExerciseAutocomplete } from "@/app/workouts/(main)/exercises/exercise-autocomplete";
 import { Plus } from "lucide-react";
 import { blankExerciseDraft, draftFromSuggestion, type HistorySetInput } from "@/app/workouts/session/workout-session-helpers";
-import type { ExerciseRowData } from "@/app/workouts/exercises/exercise-edit-block";
+import type { ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 
 export interface AddExerciseControlsProps {
   showAddExercise: boolean;

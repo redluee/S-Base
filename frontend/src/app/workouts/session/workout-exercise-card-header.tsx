@@ -3,7 +3,7 @@
 import { Check, ChevronUp, ChevronDown, MoreVertical, Edit2, History, Trash2, RefreshCw } from "lucide-react";
 import { Menu } from "@base-ui/react/menu";
 import { Button } from "@/components/ui/button";
-import { ExerciseAutocomplete } from "@/app/workouts/exercises/exercise-autocomplete";
+import { ExerciseAutocomplete } from "@/app/workouts/(main)/exercises/exercise-autocomplete";
 import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
 import type { WorkoutExerciseCardProps } from "@/app/workouts/session/workout-exercise-card";

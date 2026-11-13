@@ -1,18 +1,10 @@
-import { getCurrentUser } from "@/lib/server-api";
-import { redirect } from "next/navigation";
-import { NavHeader } from "@/components/nav-header";
+import { ModuleShell } from "@/components/module-shell";
 import { ResumeSubnav } from "./subnav";
 
-export default async function ResumeLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-  if (!user.modules?.includes("resume")) redirect("/dashboard");
-
+export default function ResumeLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <NavHeader username={user.username} />
-      <ResumeSubnav />
-      <main id="main-content" className="flex-1">{children}</main>
-    </>
+    <ModuleShell module="resume" subnav={<ResumeSubnav />}>
+      {children}
+    </ModuleShell>
   );
 }

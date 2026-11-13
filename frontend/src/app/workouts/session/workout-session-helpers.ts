@@ -2,7 +2,7 @@ import { highestCompletedWeight } from "@backend/utils/workout-defaults";
 import { api } from "@/lib/api";
 import { parseDecimal, toInputString } from "@/lib/number-input";
 import { isTimedExercise, normalizeCategory } from "@/app/workouts/session/workout-exercise-card";
-import { formatDuration, mapCategory, mapEquipment, unmapCategory, type ExerciseRowData } from "@/app/workouts/exercises/exercise-edit-block";
+import { formatDuration, mapCategory, mapEquipment, unmapCategory, type ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
 
 export type HistorySetInput = {

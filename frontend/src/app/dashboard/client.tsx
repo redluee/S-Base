@@ -7,27 +7,15 @@ import { api, type AuthUser } from "@/lib/api";
 import type { WorkoutSession } from "@backend/types/shared";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
-import { MODULES, DEFAULT_BG, DEFAULT_BLUR, DEFAULT_BRIGHTNESS } from "./dashboard-modules";
+import { DEFAULT_BG, DEFAULT_BLUR, DEFAULT_BRIGHTNESS } from "./dashboard-modules";
+import { canOpen, moduleById, type ModuleId } from "@/lib/modules";
 import { ModuleGrid } from "./module-grid";
 import { BackgroundSettingsPanel } from "./background-settings-panel";
 import { User, Settings } from "lucide-react";
 
 
-export function DashboardClient({
-  username,
-  role,
-  user,
-  userModules,
-  isImpersonated,
-  impersonatedBy,
-}: {
-  username: string;
-  role?: "admin" | "user";
-  user?: AuthUser;
-  userModules?: string[];
-  isImpersonated?: boolean;
-  impersonatedBy?: string | null;
-}) {
+export function DashboardClient({ user }: { user: AuthUser }) {
+  const { username, modules: userModules, isImpersonated, impersonatedBy } = user;
   const [blur, setBlur] = useState<number>(DEFAULT_BLUR);
   const [brightness, setBrightness] = useState<number>(DEFAULT_BRIGHTNESS);
   const [bgImage, setBgImage] = useState<string>(DEFAULT_BG);
@@ -35,12 +23,6 @@ export function DashboardClient({
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [runningSession, setRunningSession] = useState<WorkoutSession | null>(null);
   const [hasOnlineServer, setHasOnlineServer] = useState<boolean>(false);
-
-  // Determine current active role
-  const currentRole: "admin" | "user" =
-    role ??
-    (user?.role ??
-      (userModules?.includes("pulse") || username === "admin" ? "admin" : "user"));
 
   useEffect(() => {
     api.workouts.sessions
@@ -52,7 +34,7 @@ export function DashboardClient({
       })
       .catch(() => {});
 
-    if (Array.isArray(userModules) && (userModules.includes("minecraft") || userModules.includes("minecraft:monitor"))) {
+    if (canOpen(moduleById("minecraft"), userModules)) {
       api.minecraft.servers
         .list()
         .then((servers) => {
@@ -66,20 +48,7 @@ export function DashboardClient({
 
   const storageKey = `sbase_dashboard_bg_${username.toLowerCase().trim() || "default"}`;
 
-  const hasModule = (moduleName: string): boolean => {
-    if (!Array.isArray(userModules)) return false;
-    return userModules.includes(moduleName);
-  };
-
-  const canAccess = (moduleId: string): boolean => {
-    const mod = MODULES.find((m) => m.id === moduleId);
-    if (!mod) return false;
-    if (!mod.roles.includes(currentRole)) return false;
-    if (moduleId === "minecraft") {
-      return hasModule("minecraft") || hasModule("minecraft:monitor");
-    }
-    return hasModule(moduleId);
-  };
+  const canAccess = (moduleId: ModuleId) => canOpen(moduleById(moduleId), userModules);
 
   // Load saved background settings from localStorage per user
   useEffect(() => {

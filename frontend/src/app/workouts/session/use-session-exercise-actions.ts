@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { createTempExerciseId, setExerciseAssisted } from "@/lib/offline-workout";
-import type { ExerciseRowData } from "@/app/workouts/exercises/exercise-edit-block";
+import type { ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import {
   buildEditDraft,
   defaultSetList,

@@ -1,8 +1,7 @@
-import { serverApi, getCurrentUser } from "@/lib/server-api";
-import { redirect } from "next/navigation";
+import { serverApi } from "@/lib/server-api";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { NavHeader } from "@/components/nav-header";
 import { MotivationalQuote } from "@/app/workouts/motivational-quote";
 import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
 import { RunningWorkoutCard } from "@/components/running-workout-card";
@@ -36,10 +35,6 @@ function getMilestoneStats(totalWorkouts: number) {
 }
 
 export default async function WorkoutsPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-  if (!user.modules?.includes("workout")) redirect("/dashboard");
-
   const [templates, stats, activeSessions] = await Promise.all([
     serverApi.workouts.templates.list(),
     serverApi.workouts.stats(),
@@ -49,9 +44,7 @@ export default async function WorkoutsPage() {
   const runningSessions = activeSessions ?? [];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground">
             {t("Workout Studio")}
@@ -173,7 +166,6 @@ export default async function WorkoutsPage() {
             }
           />
         </div>
-      </main>
-    </div>
+      </div>
   );
 }

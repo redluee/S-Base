@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { UserCheck, ArrowRightLeft, Loader2 } from "lucide-react";
 
@@ -11,20 +11,29 @@ interface ImpersonationBannerProps {
   impersonatedBy: string;
 }
 
-export function ImpersonationBanner({ username, impersonatedBy }: ImpersonationBannerProps) {
+export function useStopImpersonation() {
   const router = useRouter();
   const [isStopping, setIsStopping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleStopImpersonation() {
+  async function stop() {
     setIsStopping(true);
+    setError(null);
     try {
       await api.stopImpersonate();
       router.push("/pulse");
       router.refresh();
-    } catch {
+    } catch (err) {
+      setError(apiErrorMessage(err, "auth.adminUnavailable"));
       setIsStopping(false);
     }
   }
+
+  return { stop, isStopping, error };
+}
+
+export function ImpersonationBanner({ username, impersonatedBy }: ImpersonationBannerProps) {
+  const { stop: handleStopImpersonation, isStopping, error } = useStopImpersonation();
 
   return (
     <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-200 px-4 py-2 text-xs backdrop-blur-md sticky top-0 z-50 transition-all animate-in fade-in slide-in-from-top-1">
@@ -42,6 +51,7 @@ export function ImpersonationBanner({ username, impersonatedBy }: ImpersonationB
               })}
             </span>
           </span>
+          {error && <span role="alert" className="text-red-300">{error}</span>}
         </div>
 
         <button

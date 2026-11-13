@@ -4,11 +4,11 @@ import { useRef, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { useModuleTransition } from "@/components/module-transition-provider";
 import { t } from "@/lib/lang";
-import type { ModuleDefinition } from "./dashboard-modules";
-import { ModuleIcon } from "./module-icon";
+import type { AppModule } from "@/lib/modules";
+import { ModuleIcon } from "@/components/module-icon";
 
 export function ModuleLink({ module, children, className, style }: {
-  module: ModuleDefinition;
+  module: AppModule;
   children: ReactNode;
   className: string;
   style: CSSProperties;

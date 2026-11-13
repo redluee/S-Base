@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import {
   api,
@@ -207,10 +206,7 @@ export function PulseClient({
   }, [usersList, searchQuery]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <NavHeader username={username} />
-
-      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="fixed right-4 top-4 z-50 max-w-[calc(100vw-2rem)]" role="status" aria-live="polite">
           {statusMsg && (
             <div
@@ -372,7 +368,6 @@ export function PulseClient({
             </ul>
           )}
         </section>
-      </main>
     </div>
   );
 }

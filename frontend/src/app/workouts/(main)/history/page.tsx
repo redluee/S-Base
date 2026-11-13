@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverApi } from "@/lib/server-api";
-import { redirect } from "next/navigation";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { NavHeader } from "@/components/nav-header";
 import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
 import { t } from "@/lib/lang";
 import { Calendar } from "lucide-react";
@@ -14,19 +13,11 @@ export default async function WorkoutHistoryPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  let user: { id: number; username: string } | null = null;
-  try {
-    user = (await serverApi.me()).user;
-  } catch {}
-  if (!user) redirect("/");
-
   const { q } = await searchParams;
   const sessions = await serverApi.workouts.sessions.list("completed", q);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2">
             <Calendar className="size-6 sm:size-7 text-brand" />
@@ -136,7 +127,6 @@ export default async function WorkoutHistoryPage({
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
   );
 }

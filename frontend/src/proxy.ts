@@ -1,55 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { cfEmailOf, SESSION_COOKIE } from "@/lib/backend";
+import { PROTECTED_PATH_PREFIXES } from "@/lib/modules";
 import { getAbsoluteUrl } from "@/lib/request-url";
 
-const protectedPaths = ["/dashboard", "/recipes", "/workouts", "/cashflow", "/finance", "/games", "/pulse"];
+function isProtected(pathname: string): boolean {
+  return PROTECTED_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function cfExchange(request: NextRequest, redirect: string) {
+  const url = getAbsoluteUrl("/api/auth/cf-exchange", request);
+  url.searchParams.set("redirect", redirect);
+  return NextResponse.redirect(url);
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value;
+  const cfEmail = cfEmailOf(request.headers);
 
-  const sessionId = request.cookies.get("session_id")?.value;
-  const cfEmail =
-    request.headers.get("cf-access-authenticated-user-email") ??
-    process.env.CF_DEV_EMAIL ??
-    undefined;
-
-  // If user arrives at root '/'
-  if (pathname === "/") {
-    if (cfEmail && !sessionId) {
-      const exchangeUrl = getAbsoluteUrl("/api/auth/cf-exchange", request);
-      exchangeUrl.searchParams.set("redirect", "/dashboard");
-      return NextResponse.redirect(exchangeUrl);
-    }
-    return NextResponse.next();
-  }
-
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-  if (!isProtected) {
-    return NextResponse.next();
-  }
-
-  if (sessionId) {
-    return NextResponse.next();
-  }
-
-  if (cfEmail) {
-    const exchangeUrl = getAbsoluteUrl("/api/auth/cf-exchange", request);
-    exchangeUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(exchangeUrl);
-  }
-
+  if (pathname === "/") return cfEmail && !hasSession ? cfExchange(request, "/dashboard") : NextResponse.next();
+  if (!isProtected(pathname) || hasSession) return NextResponse.next();
+  if (cfEmail) return cfExchange(request, pathname);
   return NextResponse.redirect(getAbsoluteUrl("/", request));
 }
 
 export const config = {
-  matcher: [
-    "/",
-    "/dashboard/:path*",
-    "/recipes/:path*",
-    "/workouts/:path*",
-    "/cashflow/:path*",
-    "/finance/:path*",
-    "/games/:path*",
-    "/pulse/:path*",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|.*\\.[a-z0-9]+$).*)"],
 };

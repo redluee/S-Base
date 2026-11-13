@@ -1,7 +1,6 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
-import { redirect } from "next/navigation";
+
 import Link from "next/link";
-import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import { WineForm } from "../../wine-form";
 
@@ -10,21 +9,11 @@ export default async function EditWinePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  let user: { id: number; username: string } | null = null;
-  try {
-    user = (await serverApi.me()).user;
-  } catch {
-    // Not authenticated
-  }
-  if (!user) redirect("/");
-
   const { id } = await params;
   const wine = await notFoundOn404(serverApi.wines.get(Number(id)));
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <Link
@@ -44,7 +33,6 @@ export default async function EditWinePage({
         </div>
 
         <WineForm wine={wine} />
-      </main>
-    </div>
+      </div>
   );
 }

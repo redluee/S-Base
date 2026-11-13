@@ -1,17 +1,10 @@
-import { getCurrentUser } from "@/lib/server-api";
-import { redirect } from "next/navigation";
-import { NavHeader } from "@/components/nav-header";
+import { ModuleShell } from "@/components/module-shell";
 import { CashflowSubnav } from "./subnav";
 
-export default async function CashflowLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-
+export default function CashflowLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-full flex flex-col">
-      <NavHeader username={user.username} />
-      <CashflowSubnav />
-      <main id="main-content" className="flex-1">{children}</main>
-    </div>
+    <ModuleShell module="cashflow" subnav={<CashflowSubnav />}>
+      {children}
+    </ModuleShell>
   );
 }

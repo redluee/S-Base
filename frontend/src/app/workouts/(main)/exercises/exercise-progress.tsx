@@ -8,7 +8,7 @@ import { ArrowLeft, GitMerge } from "lucide-react";
 import { parseDateString } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ExerciseMergeModal } from "@/app/workouts/exercises/exercise-merge-modal";
+import { ExerciseMergeModal } from "@/app/workouts/(main)/exercises/exercise-merge-modal";
 
 interface SetItem {
   setNumber: number;

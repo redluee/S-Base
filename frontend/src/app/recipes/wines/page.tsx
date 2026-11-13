@@ -1,9 +1,8 @@
 import { serverApi } from "@/lib/server-api";
-import { redirect } from "next/navigation";
+
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import type { Wine } from "@/lib/api";
 import { WineCard } from "./wine-card";
@@ -21,21 +20,11 @@ export default async function WinesPage({
 }: {
   searchParams: Promise<{ type?: string; sortBy?: string; sortOrder?: string; q?: string }>;
 }) {
-  let user: { id: number; username: string } | null = null;
-  try {
-    user = (await serverApi.me()).user;
-  } catch {
-    // Not authenticated
-  }
-  if (!user) redirect("/");
-
   const { type, sortBy, sortOrder, q } = await searchParams;
   const wines = await serverApi.wines.list(type, q, sortBy, sortOrder);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <Link
@@ -152,7 +141,6 @@ export default async function WinesPage({
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
   );
 }

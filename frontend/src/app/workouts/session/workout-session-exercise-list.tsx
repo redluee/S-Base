@@ -1,7 +1,7 @@
 "use client";
 
 import { t } from "@/lib/lang";
-import { ExerciseEditBlock, type ExerciseRowData } from "@/app/workouts/exercises/exercise-edit-block";
+import { ExerciseEditBlock, type ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import { WorkoutExerciseCard, type WorkoutExerciseCardProps } from "@/app/workouts/session/workout-exercise-card";
 import { AddExerciseControls, type AddExerciseControlsProps } from "@/app/workouts/session/workout-session-add-exercise";
 import { Dumbbell } from "lucide-react";

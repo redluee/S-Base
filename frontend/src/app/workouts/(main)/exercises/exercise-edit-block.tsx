@@ -5,13 +5,13 @@ import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ExerciseAutocomplete } from "@/app/workouts/exercises/exercise-autocomplete";
-import { ExerciseCategorySelector } from "@/app/workouts/exercises/exercise-category-selector";
+import { ExerciseAutocomplete } from "@/app/workouts/(main)/exercises/exercise-autocomplete";
+import { ExerciseCategorySelector } from "@/app/workouts/(main)/exercises/exercise-category-selector";
 import { TimeInput } from "@/components/ui/time-input";
 import { Switch } from "@/components/ui/switch";
 import { ChevronUp, ChevronDown, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toggleTrackingField } from "@/app/workouts/exercises/tracking-fields";
+import { toggleTrackingField } from "@/app/workouts/(main)/exercises/tracking-fields";
 import { sanitizeDecimalInput, toInputString } from "@/lib/number-input";
 
 export interface TrackingFields {

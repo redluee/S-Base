@@ -15,7 +15,7 @@ interface Suggestion {
   id?: number;
 }
 
-export function SearchBar() {
+export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
   const router = useRouter();
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
@@ -29,7 +29,7 @@ export function SearchBar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const isWorkouts = pathname.includes("/workouts");
+  const isWorkouts = scope === "workouts";
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.length < 1) {
@@ -136,30 +136,19 @@ export function SearchBar() {
 
     if (isWorkouts) {
       const match = suggestions.find((s) => s.value === value);
-      if (match) {
-        if (match.type === "exercise" && match.rawValue) {
-          router.push(
-            `/workouts/exercises/${encodeURIComponent(match.rawValue)}${
-              match.equipment ? `?equipment=${encodeURIComponent(match.equipment)}` : ""
-            }`
-          );
-        } else if (match.type === "template" && match.id !== undefined) {
-          router.push(`/workouts/t/${match.id}`);
-        } else if (match.type === "history" && match.id !== undefined) {
-          router.push(`/workouts/history/${match.id}`);
-        } else {
-          if (pathname.startsWith("/workouts/history")) {
-            router.push(`/workouts/history?q=${encodeURIComponent(value.trim())}`);
-          } else {
-            router.push(`/workouts/exercises?q=${encodeURIComponent(value.trim())}`);
-          }
-        }
+      const listPage = pathname.startsWith("/workouts/history") ? "/workouts/history" : "/workouts/exercises";
+      if (match?.type === "exercise" && match.rawValue) {
+        router.push(
+          `/workouts/exercises/${encodeURIComponent(match.rawValue)}${
+            match.equipment ? `?equipment=${encodeURIComponent(match.equipment)}` : ""
+          }`
+        );
+      } else if (match?.type === "template" && match.id !== undefined) {
+        router.push(`/workouts/t/${match.id}`);
+      } else if (match?.type === "history" && match.id !== undefined) {
+        router.push(`/workouts/history/${match.id}`);
       } else {
-        if (pathname.startsWith("/workouts/history")) {
-          router.push(`/workouts/history?q=${encodeURIComponent(value.trim())}`);
-        } else {
-          router.push(`/workouts/exercises?q=${encodeURIComponent(value.trim())}`);
-        }
+        router.push(`${listPage}?q=${encodeURIComponent(value.trim())}`);
       }
     } else {
       router.push(`/recipes?q=${encodeURIComponent(value.trim())}`);

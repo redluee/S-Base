@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { canOpen, moduleById, type ModuleId } from "@/lib/modules";
 import { BACKEND_API_URL, SESSION_COOKIE } from "@/lib/backend";
 import { Measurement, Wine, type AuthUser } from "@/lib/api";
 import type {
@@ -52,13 +53,25 @@ export async function notFoundOn404<T>(promise: Promise<T>): Promise<T> {
   }
 }
 
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
-    const { user } = await serverApi.me();
-    return user;
-  } catch {
-    return null;
+    return (await serverApi.me()).user;
+  } catch (error) {
+    if (error instanceof ServerApiError && error.status === 401) return null;
+    throw error;
   }
+}
+
+export async function requireUser(): Promise<AuthUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+  return user;
+}
+
+export async function requireModuleUser(id: ModuleId): Promise<AuthUser> {
+  const user = await requireUser();
+  if (!canOpen(moduleById(id), user.modules)) redirect("/dashboard");
+  return user;
 }
 
 export const serverApi = {

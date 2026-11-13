@@ -1,13 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
-import { NavHeader } from "@/components/nav-header";
 import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
-import { Scale, Plus, X, Loader2 } from "lucide-react";
+import { Scale, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -30,11 +28,11 @@ import {
   type Measurement,
 } from "./body-utils";
 
-export default function BodyPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ id: number; username: string } | null>(null);
-  const [logs, setLogs] = useState<Measurement[]>([]);
-  const [loading, setLoading] = useState(true);
+const newestFirst = (logs: Measurement[]) =>
+  [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
+  const [logs, setLogs] = useState<Measurement[]>(() => newestFirst(initialLogs));
 
   // Form State (used for both inline edit and new prepended entry)
   const [editingId, setEditingId] = useState<number | null>(null); // null, 0 for new, or measurementId for editing
@@ -55,41 +53,11 @@ export default function BodyPage() {
   const [chartTab, setChartTab] = useState<ChartTab>("weight");
 
   const fetchLogs = () => {
-    setLoading(true);
-    api.measurements.list()
-      .then((data) => {
-        const sorted = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setLogs(sorted);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load measurements:", err);
-        setActionError(t("Loading measurements failed. Try again."));
-        setLoading(false);
-      });
+    api.measurements
+      .list()
+      .then((data) => setLogs(newestFirst(data)))
+      .catch((err) => setActionError(apiErrorMessage(err, "Loading measurements failed. Try again.")));
   };
-
-  // Load user and data
-  useEffect(() => {
-    api.me()
-      .then((res) => {
-        setUser(res.user);
-        api.measurements.list()
-          .then((data) => {
-            const sorted = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setLogs(sorted);
-            setLoading(false);
-          })
-          .catch((err) => {
-            console.error("Failed to load measurements:", err);
-            setActionError(t("Loading measurements failed. Try again."));
-            setLoading(false);
-          });
-      })
-      .catch(() => {
-        router.push("/");
-      });
-  }, [router]);
 
   const { uploadingLogId, uploadProgress, uploadStage, optimisticPhotoUrl, handlePhotoUpload, handleDeletePhoto } =
     usePhotoUpload(fetchLogs, setActionError);
@@ -205,7 +173,7 @@ export default function BodyPage() {
   const displayLogs: Measurement[] = editingId === 0 ? [
     {
       measurementId: 0,
-      userId: user?.id ?? 0,
+      userId: 0,
       date: formDate,
       ...formToPayload(form),
       createdAt: "",
@@ -219,23 +187,9 @@ export default function BodyPage() {
   const latestBmi = latestLog ? calculateBMI(latestLog.weight, latestLog.height) : null;
 
 
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
-        <NavHeader username={user?.username ?? ""} />
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <Loader2 className="size-8 text-brand animate-spin" />
-          <span className="text-muted-foreground text-sm mt-3">{t("Loading measurements...")}</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <NavHeader username={user.username} />
-
-      <main id="main-content" className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <>
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground flex items-center gap-2.5">
@@ -352,7 +306,7 @@ export default function BodyPage() {
           </section>
 
         </div>
-      </main>
+      </div>
 
       {/* Lightbox photo viewer */}
       {activePhotoUrl && (
@@ -388,6 +342,6 @@ export default function BodyPage() {
           if (pendingDeleteLogId !== null) handleDeleteLog(pendingDeleteLogId);
         }}
       />
-    </div>
+    </>
   );
 }

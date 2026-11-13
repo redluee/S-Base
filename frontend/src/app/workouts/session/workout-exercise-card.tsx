@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ExerciseCategorySelector } from "@/app/workouts/exercises/exercise-category-selector";
+import { ExerciseCategorySelector } from "@/app/workouts/(main)/exercises/exercise-category-selector";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";

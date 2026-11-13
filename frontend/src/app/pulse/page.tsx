@@ -1,13 +1,9 @@
-import { serverApi, getCurrentUser } from "@/lib/server-api";
-import { redirect } from "next/navigation";
+import { requireUser, serverApi } from "@/lib/server-api";
 import { PulseClient } from "./client";
 import type { McServer, ShutdownSchedule, SystemUpdateState } from "@/lib/api";
 
 export default async function PulsePage() {
-  const user = await getCurrentUser();
-  if (!user || !user.modules?.includes("pulse")) {
-    redirect("/dashboard");
-  }
+  const user = await requireUser();
 
   const [initialUsers, initialModules, initialStats, initialServers, initialShutdownSchedule, initialSystemUpdate] = await Promise.all([
     serverApi.pulse.users(),

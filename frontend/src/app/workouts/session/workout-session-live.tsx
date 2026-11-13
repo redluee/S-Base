@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { FileText } from "lucide-react";
-import { ExerciseHistoryModal } from "@/app/workouts/exercises/exercise-history-modal";
+import { ExerciseHistoryModal } from "@/app/workouts/(main)/exercises/exercise-history-modal";
 import { WorkoutCompletionSummary } from "@/app/workouts/session/workout-completion-summary";
 import { RepTimerModal } from "@/app/workouts/session/rep-timer-modal";
 import { SessionConflictDialog } from "@/app/workouts/session/session-conflict-dialog";
@@ -34,7 +34,6 @@ export function WorkoutSessionLive({
   autoFinish = false,
 }: {
   session?: FullWorkoutSession | null;
-  userId?: number;
   autoFinish?: boolean;
 }) {
   const router = useRouter();

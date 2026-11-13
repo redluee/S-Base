@@ -1,6 +1,5 @@
 import { notFoundOn404, serverApi } from "@/lib/server-api";
-import { redirect } from "next/navigation";
-import { NavHeader } from "@/components/nav-header";
+
 import { RecipeDetail } from "../recipe-detail";
 
 export default async function RecipeDetailPage({
@@ -8,23 +7,12 @@ export default async function RecipeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  let user: { id: number; username: string } | null = null;
-  try {
-    user = (await serverApi.me()).user;
-  } catch {
-    // Not authenticated
-  }
-  if (!user) redirect("/");
-
   const { id } = await params;
   const recipe = await notFoundOn404(serverApi.recipes.get(Number(id)));
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
         <RecipeDetail recipe={recipe} />
-      </main>
-    </div>
+      </div>
   );
 }

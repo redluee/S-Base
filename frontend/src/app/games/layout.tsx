@@ -1,15 +1,5 @@
-import { getCurrentUser } from "@/lib/server-api";
-import { redirect } from "next/navigation";
-import { NavHeader } from "@/components/nav-header";
+import { ModuleShell } from "@/components/module-shell";
 
-export default async function GamesLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-  if (!user.modules?.includes("minecraft") && !user.modules?.includes("minecraft:monitor")) redirect("/dashboard");
-  return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full">{children}</main>
-    </div>
-  );
+export default function GamesLayout({ children }: { children: React.ReactNode }) {
+  return <ModuleShell module="minecraft">{children}</ModuleShell>;
 }

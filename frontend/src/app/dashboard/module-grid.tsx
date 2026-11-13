@@ -4,26 +4,26 @@ import type { CSSProperties } from "react";
 import { ModuleLink } from "./module-link";
 import { ArrowUpRight } from "lucide-react";
 import { t } from "@/lib/lang";
-import { MODULES } from "./dashboard-modules";
-import { ModuleIcon } from "./module-icon";
+import { MODULES, type ModuleId } from "@/lib/modules";
+import { ModuleIcon } from "@/components/module-icon";
 
 export function ModuleGrid({
   canAccess,
   hasOnlineServer,
 }: {
-  canAccess: (moduleId: string) => boolean;
+  canAccess: (moduleId: ModuleId) => boolean;
   hasOnlineServer: boolean;
 }) {
   return (
     <nav className="relative z-10 grid w-full max-w-4xl grid-cols-2 gap-3 sm:gap-4">
       {MODULES.filter((module) => canAccess(module.id)).map((module) => {
-        const compact = module.id === "lyric_quotes" || module.id === "you";
-        const fullWidth = module.id === "workout" || module.id === "pulse";
+        const compact = module.tile === "compact";
+        const fullWidth = module.tile === "wide";
         const style = {
           "--tile-color": module.accentColor,
           "--tile-tint": `${module.accentColor}26`,
           "--tile-border": `${module.accentColor}4d`,
-          "--tile-glow": module.glowColor,
+          "--tile-glow": `${module.accentColor}59`,
         } as CSSProperties;
         const content = (
           <>

@@ -2,6 +2,7 @@ export const commonNl: Record<string, string> = {
   "common.notFound": "Niet gevonden.",
   "common.invalidRequest": "Ongeldige invoer.",
   "common.unauthorized": "Je bent niet ingelogd.",
+  "by {admin}": "door {admin}",
   "common.forbidden": "Je hebt geen toegang tot deze module.",
   "auth.userNotFound": "Gebruiker niet gevonden",
   "auth.wrongPassword": "Ongeldig wachtwoord",

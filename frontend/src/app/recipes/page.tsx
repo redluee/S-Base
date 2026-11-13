@@ -1,10 +1,9 @@
-import { serverApi, getCurrentUser } from "@/lib/server-api";
-import { redirect } from "next/navigation";
+import { serverApi } from "@/lib/server-api";
+
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getFlag } from "@/lib/kitchens";
-import { NavHeader } from "@/components/nav-header";
 import { t } from "@/lib/lang";
 import type { Recipe } from "@backend/types/shared";
 
@@ -27,17 +26,11 @@ export default async function RecipesPage({
 }: {
   searchParams: Promise<{ status?: string; sortBy?: string; sortOrder?: string; q?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-  if (!user.modules?.includes("recipes")) redirect("/dashboard");
-
   const { status, sortBy, sortOrder, q } = await searchParams;
   const recipes = await serverApi.recipes.list(status, sortBy, sortOrder, q);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader username={user.username} />
-      <main id="main-content" className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-foreground">
             {t("Taste tracker")}
@@ -227,7 +220,6 @@ export default async function RecipesPage({
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
   );
 }

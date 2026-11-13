@@ -16,7 +16,7 @@ import {
   type TemplateDraftForm,
 } from "@/app/workouts/templates/template-draft";
 import { Button } from "@/components/ui/button";
-import { ExerciseEditBlock } from "@/app/workouts/exercises/exercise-edit-block";
+import { ExerciseEditBlock } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import { TemplateDraftNotice } from "@/app/workouts/templates/workout-template-draft-notice";
 import { TemplateInfoFields } from "@/app/workouts/templates/workout-template-info-fields";
 import {

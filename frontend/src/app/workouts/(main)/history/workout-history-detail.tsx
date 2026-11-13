@@ -18,7 +18,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatNumberNl } from "@/lib/number-input";
 import { formatSessionDuration } from "@/lib/workout-time";
-import { formatHistoryWeight } from "@/app/workouts/history/set-display";
+import { formatHistoryWeight } from "@/app/workouts/(main)/history/set-display";
 import { isQuickStartSession } from "@/app/workouts/templates/session-to-template";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {

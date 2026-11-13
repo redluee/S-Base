@@ -3,52 +3,24 @@
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { SearchBar } from "@/components/search-bar";
-import { User, LogOut, ChevronDown, Dumbbell, ChefHat, Banknote, Gamepad2, ArrowRightLeft, GraduationCap, FileUser, Wallet } from "lucide-react";
-import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { User, LogOut, ChevronDown, ArrowRightLeft } from "lucide-react";
+import { ModuleIcon } from "@/components/module-icon";
+import { moduleForPath } from "@/lib/modules";
+import type { AuthUser } from "@/lib/api";
+import { ImpersonationBanner, useStopImpersonation } from "@/components/impersonation-banner";
 
-interface NavHeaderProps {
-  username: string;
-  isImpersonated?: boolean;
-  impersonatedBy?: string | null;
-}
-
-export function NavHeader({
-  username,
-  isImpersonated: initialIsImpersonated,
-  impersonatedBy: initialImpersonatedBy,
-}: NavHeaderProps) {
+export function NavHeader({ user }: { user: AuthUser }) {
   const router = useRouter();
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [fetchedImpersonation, setFetchedImpersonation] = useState<{
-    isImpersonated: boolean;
-    impersonatedBy: string | null;
-  } | null>(null);
-  const [isStopping, setIsStopping] = useState(false);
+  const { stop: handleStopImpersonation, isStopping } = useStopImpersonation();
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const isImpersonated = initialIsImpersonated ?? fetchedImpersonation?.isImpersonated ?? false;
-  const impersonatedBy = initialImpersonatedBy ?? fetchedImpersonation?.impersonatedBy ?? null;
-
-  useEffect(() => {
-    if (initialIsImpersonated === undefined) {
-      // Fallback: check session state client-side
-      api.me()
-        .then((res) => {
-          if (res.user.isImpersonated) {
-            setFetchedImpersonation({
-              isImpersonated: true,
-              impersonatedBy: res.user.impersonatedBy ?? null,
-            });
-          }
-        })
-        .catch(() => {});
-    }
-  }, [initialIsImpersonated]);
+  const { username, isImpersonated, impersonatedBy } = user;
+  const current = moduleForPath(pathname);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -60,33 +32,10 @@ export function NavHeader({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (pathname.includes("/workouts/session")) {
-    return null;
-  }
-
-  const isWorkouts = pathname.includes("/workouts");
-  const isRecipes = pathname.includes("/recipes");
-  const isFinance = pathname === "/finance" || pathname.startsWith("/finance/");
-  const isCashflow = pathname.includes("/cashflow");
-  const isGames = pathname.includes("/games");
-  const isMinor = pathname.includes("/minor");
-  const isResume = pathname.includes("/resume");
-
   async function handleLogout() {
     await api.logout();
     router.push("/");
     router.refresh();
-  }
-
-  async function handleStopImpersonation() {
-    setIsStopping(true);
-    try {
-      await api.stopImpersonate();
-      router.push("/pulse");
-      router.refresh();
-    } catch {
-      setIsStopping(false);
-    }
   }
 
   return (
@@ -107,65 +56,20 @@ export function NavHeader({
             <span className="hidden sm:inline">S-Base</span>
             <span className="sr-only sm:hidden">S-Base</span>
           </Link>
-          {isWorkouts && (
+          {current && (
             <Link
-              href="/workouts"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand/10 border border-brand/20 text-brand hover:bg-brand/20 transition-all cursor-pointer"
+              href={current.href}
+              style={{ "--module-color": current.accentColor } as CSSProperties}
+              className="flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-(--module-color) transition-colors hover:bg-(--module-color)/15 [&_svg]:size-3.5"
             >
-              <Dumbbell className="size-3.5" />
-              <span className="hidden xs:inline">{t("Workout Studio")}</span>
-            </Link>
-          )}
-          {isRecipes && (
-            <Link
-              href="/recipes"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
-            >
-              <ChefHat className="size-3.5" />
-              <span className="hidden xs:inline">{t("Taste tracker")}</span>
-            </Link>
-          )}
-          {isFinance && <Link href="/finance" className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-xs font-medium text-zinc-200 hover:bg-muted"><Wallet className="size-4" /><span>{t("finance.title")}</span></Link>}
-          {isCashflow && (
-            <Link
-              href="/cashflow"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
-            >
-              <Banknote className="size-3.5" />
-              <span className="hidden xs:inline">{t("Cashflow")}</span>
-            </Link>
-          )}
-          {isGames && (
-            <Link
-              href="/games/minecraft"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all cursor-pointer"
-            >
-              <Gamepad2 className="size-3.5" />
-              <span className="hidden xs:inline">{t("Lobby Control")}</span>
-            </Link>
-          )}
-          {isMinor && (
-            <Link
-              href="/minor"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
-            >
-              <GraduationCap className="size-3.5" />
-              <span className="hidden xs:inline">{t("Minor Tracker")}</span>
-            </Link>
-          )}
-          {isResume && (
-            <Link
-              href="/resume"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all cursor-pointer"
-            >
-              <FileUser className="size-3.5" />
-              <span className="hidden xs:inline">{t("CV Builder")}</span>
+              <ModuleIcon id={current.id} />
+              <span className="hidden xs:inline">{t(current.title)}</span>
             </Link>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          {!isFinance && <SearchBar />}
+          {current?.search && <SearchBar scope={current.search} />}
 
           <div className="relative" ref={dropdownRef}>
             <button
@@ -194,7 +98,7 @@ export function NavHeader({
                   <p className="font-semibold text-zinc-100 truncate mt-0.5">{username}</p>
                   {isImpersonated && impersonatedBy && (
                     <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono">
-                      door {impersonatedBy}
+                      {t("by {admin}", { admin: impersonatedBy })}
                     </span>
                   )}
                 </div>
