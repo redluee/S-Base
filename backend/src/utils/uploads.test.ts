@@ -3,6 +3,9 @@ import {
   ATTACHMENT_EXTENSIONS,
   DOWNLOAD_ONLY_EXTENSIONS,
   IMAGE_EXTENSIONS,
+  LEGACY_UPLOADS,
+  mayReadUpload,
+  registerUploadReadPolicy,
   resolveUploadExtension,
   uploadFilenameOf,
   uploadOwnerOf,
@@ -50,5 +53,32 @@ describe("upload allow-lists", () => {
     expect(uploadFilenameOf(`/api/uploads/minor_${uuid}.pdf`)).toBe(`minor_${uuid}.pdf`);
     expect(uploadFilenameOf(`/api/uploads/../sbase.db`)).toBeNull();
     expect(uploadFilenameOf(`x/api/uploads/minor_${uuid}.pdf`)).toBeNull();
+  });
+});
+
+describe("upload read policies", () => {
+  const allModules = () => true;
+
+  it("asks the owning module's policy after the module check and falls back to allowing reads", () => {
+    const file = "cashflow_123e4567-e89b-12d3-a456-426614174000.pdf";
+    const unregister = registerUploadReadPolicy("cashflow", (userId, filename) => userId === 1 && filename === file);
+    try {
+      expect(mayReadUpload(1, file, allModules)).toBe(true);
+      expect(mayReadUpload(2, file, allModules)).toBe(false);
+      expect(mayReadUpload(1, file, () => false)).toBe(false);
+    } finally {
+      unregister();
+    }
+  });
+
+  it("routes unprefixed files to the legacy policy without a module check", () => {
+    const file = "123e4567-e89b-12d3-a456-426614174000.pdf";
+    const unregister = registerUploadReadPolicy(LEGACY_UPLOADS, (userId) => userId === 1);
+    try {
+      expect(mayReadUpload(1, file, () => false)).toBe(true);
+      expect(mayReadUpload(2, file, allModules)).toBe(false);
+    } finally {
+      unregister();
+    }
   });
 });

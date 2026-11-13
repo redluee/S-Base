@@ -12,6 +12,7 @@ import { ResumeService } from "./modules/resume";
 import { ForbiddenError } from "./utils/errors";
 import { readSessionId } from "./auth/session-cookie";
 import type { ModuleName } from "./auth/modules";
+import { LEGACY_UPLOADS, registerUploadReadPolicy } from "./utils/uploads";
 
 export const PORT = Number(process.env.PORT) || 3001;
 export const HOST = process.env.HOST || "0.0.0.0";
@@ -27,6 +28,12 @@ export const pulse = new PulseService({
 export const minor = new MinorService();
 export const resume = new ResumeService();
 export const finance = new FinanceService();
+
+const ownMeasurementPhoto = (userId: number, filename: string) =>
+  !workout.measurements.isForeignPhoto(userId, filename);
+registerUploadReadPolicy("workout", ownMeasurementPhoto);
+registerUploadReadPolicy(LEGACY_UPLOADS, ownMeasurementPhoto);
+registerUploadReadPolicy("resume", () => false);
 
 function sessionUserFrom(cookie: Parameters<typeof readSessionId>[0], request: Request) {
   const user = auth.sessionUser(readSessionId(cookie, request));

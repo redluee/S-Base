@@ -13,6 +13,33 @@ export const UPLOAD_PREFIXES = {
 
 export type UploadOwner = keyof typeof UPLOAD_PREFIXES;
 
+export const LEGACY_UPLOADS = "legacy";
+
+type UploadReadPolicy = (userId: number, filename: string) => boolean;
+
+const readPolicies = new Map<UploadOwner | typeof LEGACY_UPLOADS, UploadReadPolicy>();
+
+export function registerUploadReadPolicy(owner: UploadOwner | typeof LEGACY_UPLOADS, policy: UploadReadPolicy) {
+  const previous = readPolicies.get(owner);
+  readPolicies.set(owner, policy);
+  return () => {
+    if (readPolicies.get(owner) !== policy) return;
+    if (previous) readPolicies.set(owner, previous);
+    else readPolicies.delete(owner);
+  };
+}
+
+export function mayReadUpload(
+  userId: number,
+  filename: string,
+  hasModule: (userId: number, owner: UploadOwner) => boolean,
+): boolean {
+  const owner = uploadOwnerOf(filename);
+  if (owner && !hasModule(userId, owner)) return false;
+  const policy = readPolicies.get(owner ?? LEGACY_UPLOADS);
+  return policy ? policy(userId, filename) : true;
+}
+
 const UPLOAD_URL_PREFIX = "/api/uploads/";
 
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif", "bmp"];
