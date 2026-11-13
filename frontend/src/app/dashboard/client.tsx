@@ -126,7 +126,7 @@ export function DashboardClient({ user }: { user: AuthUser }) {
           isImpersonated ? "top-14" : "top-6"
         } right-4 sm:right-6 z-30 flex items-center gap-2 p-1.5 px-3.5 squircle-pill bg-zinc-900/80 border border-white/10 backdrop-blur-[16px] shadow-lg`}
       >
-        <div className="size-6 sm:size-7 squircle-pill bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shadow-[0_0_8px_rgba(0,230,118,0.3)]">
+        <div className="size-6 sm:size-7 squircle-pill bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shadow-[0_0_8px_color-mix(in_oklab,var(--color-brand)_30%,transparent)]">
           <User className="size-3.5 sm:size-4" />
         </div>
         <span className="text-xs font-semibold text-zinc-200 tracking-wide">{username}</span>
@@ -134,10 +134,9 @@ export function DashboardClient({ user }: { user: AuthUser }) {
 
       <section className="text-center mb-5 sm:mb-6 max-w-3xl relative z-10 w-full px-2 @container">
         <h1
-          className="font-display text-[clamp(1.75rem,5cqw,2.75rem)] whitespace-nowrap leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl"
-          style={{ textShadow: "0 0 3rem rgba(0,230,118,0.25)" }}
+          className="font-display text-[clamp(1.75rem,5cqw,2.75rem)] whitespace-nowrap leading-none mb-3 select-none font-black tracking-tight drop-shadow-xl [text-shadow:0_0_3rem_color-mix(in_oklab,var(--color-brand)_25%,transparent)]"
         >
-          {t("Welcome to")} <span className="text-[#00E676]">S</span>-Base
+          {t("Welcome to")} <span className="text-brand">S</span>-Base
         </h1>
         <p className="text-xs sm:text-sm text-zinc-400 font-medium">
           {t("Built for personal use and development")}
@@ -161,13 +160,13 @@ export function DashboardClient({ user }: { user: AuthUser }) {
 
       <button
         onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-        className="fixed bottom-6 right-6 z-40 p-3.5 squircle-icon bg-zinc-900/80 border border-white/10 text-zinc-300 hover:text-white hover:border-[#00E676]/40 hover:bg-zinc-800/90 backdrop-blur-md shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-[#00E676]/40"
+        className="fixed bottom-6 right-6 z-40 p-3.5 squircle-icon bg-zinc-900/80 border border-white/10 text-zinc-300 hover:text-white hover:border-brand/40 hover:bg-zinc-800/90 backdrop-blur-md shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-brand/40"
         title={t("Background Settings")}
         aria-label={t("Background Settings")}
       >
         <Settings
           className={`size-5 transition-transform duration-500 ${
-            isSettingsOpen ? "rotate-90 text-[#00E676]" : "group-hover:rotate-90"
+            isSettingsOpen ? "rotate-90 text-brand" : "group-hover:rotate-90"
           }`}
         />
       </button>

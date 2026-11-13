@@ -15,8 +15,7 @@ export default async function LoginPage() {
 
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[32rem] rounded-full border border-brand/5 pointer-events-none" />
       <div
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[24rem] rounded-full border border-brand/10 pointer-events-none"
-        style={{ boxShadow: "0 0 4rem rgba(0,227,164,0.12)" }}
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[24rem] rounded-full border border-brand/10 pointer-events-none shadow-[0_0_4rem_rgba(0,227,164,0.12)]"
       />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[16rem] rounded-full border border-brand/[0.15] pointer-events-none" />
 

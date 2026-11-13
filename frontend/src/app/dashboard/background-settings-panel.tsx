@@ -34,7 +34,7 @@ export function BackgroundSettingsPanel({
       <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 squircle-card bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl p-5 text-zinc-100 animate-in fade-in slide-in-from-bottom-4 duration-200">
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <Sliders className="size-4.5 text-[#00E676]" />
+            <Sliders className="size-4.5 text-brand" />
             <h3 className="font-semibold text-base text-zinc-100">
               {t("Background Settings")}
             </h3>
@@ -52,7 +52,7 @@ export function BackgroundSettingsPanel({
           <div>
             <div className="flex justify-between items-center mb-1.5 font-medium">
               <span className="text-zinc-300">{t("Blur")}</span>
-              <span className="text-[#00E676] font-mono font-bold">{blur}px</span>
+              <span className="text-brand font-mono font-bold">{blur}px</span>
             </div>
             <input
               type="range"
@@ -61,7 +61,7 @@ export function BackgroundSettingsPanel({
               step="1"
               value={blur}
               onChange={(e) => setBlur(Number(e.target.value))}
-              className="w-full accent-[#00E676] bg-zinc-800 rounded-lg cursor-pointer h-2"
+              className="w-full accent-brand bg-zinc-800 rounded-lg cursor-pointer h-2"
             />
             <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
               <span>0px</span>
@@ -73,7 +73,7 @@ export function BackgroundSettingsPanel({
           <div>
             <div className="flex justify-between items-center mb-1.5 font-medium">
               <span className="text-zinc-300">{t("Brightness")}</span>
-              <span className="text-[#00E676] font-mono font-bold">{brightness}%</span>
+              <span className="text-brand font-mono font-bold">{brightness}%</span>
             </div>
             <input
               type="range"
@@ -82,7 +82,7 @@ export function BackgroundSettingsPanel({
               step="1"
               value={brightness}
               onChange={(e) => setBrightness(Number(e.target.value))}
-              className="w-full accent-[#00E676] bg-zinc-800 rounded-lg cursor-pointer h-2"
+              className="w-full accent-brand bg-zinc-800 rounded-lg cursor-pointer h-2"
             />
             <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
               <span>0%</span>
@@ -102,7 +102,7 @@ export function BackgroundSettingsPanel({
                 onClick={() => setBgImage("/karp-350.jpg")}
                 className={`flex items-center justify-center gap-2 p-2.5 squircle-icon border text-xs font-semibold transition-all ${
                   bgImage === "/karp-350.jpg"
-                    ? "bg-[#00E676]/15 border-[#00E676] text-[#00E676]"
+                    ? "bg-brand/15 border-brand text-brand"
                     : "bg-zinc-800/60 border-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
                 }`}
               >
@@ -114,7 +114,7 @@ export function BackgroundSettingsPanel({
                 onClick={() => setBgImage("none")}
                 className={`flex items-center justify-center gap-2 p-2.5 squircle-icon border text-xs font-semibold transition-all ${
                   bgImage === "none"
-                    ? "bg-[#00E676]/15 border-[#00E676] text-[#00E676]"
+                    ? "bg-brand/15 border-brand text-brand"
                     : "bg-zinc-800/60 border-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
                 }`}
               >
