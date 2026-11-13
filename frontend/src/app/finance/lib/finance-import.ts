@@ -5,6 +5,7 @@ import type {
   FinanceAccountType,
   FinanceImportFormat,
 } from "@backend/types/finance";
+import { FINANCE_IMPORT_MAX_BYTES } from "@backend/shared/finance";
 
 export function detectImportFormat(content: string): FinanceImportFormat {
   return content.replace(/^\uFEFF/, "").trimStart().startsWith("<") ? "camt053" : "ing-csv";
@@ -12,7 +13,7 @@ export function detectImportFormat(content: string): FinanceImportFormat {
 
 export async function readImportFile(file: File): Promise<string> {
   if (!/\.(csv|xml)$/i.test(file.name)) throw new Error("finance.import.fileType");
-  if (file.size > 2 * 1024 * 1024) throw new Error("finance.import.size");
+  if (file.size > FINANCE_IMPORT_MAX_BYTES) throw new Error("finance.import.size");
   const bytes = await file.arrayBuffer();
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);

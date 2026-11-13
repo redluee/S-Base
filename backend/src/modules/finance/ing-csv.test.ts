@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { ING_MAX_BYTES, parseIngCsv } from "./ing-csv";
+import { FINANCE_IMPORT_MAX_BYTES } from "../../shared/finance";
+import { parseIngCsv } from "./ing-csv";
 
 const header =
   '"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie";"Tag"';
@@ -242,6 +243,6 @@ describe("ING CSV daily balances", () => {
       );
     for (const value of ["20250230", "31-04-2025", "20990101"])
       expect(() => parseIngCsv(csv([row(value, "Bij", "1,00", "1,00")]), "descending")).toThrow("finance.import.date");
-    expect(() => parseIngCsv("x".repeat(ING_MAX_BYTES + 1), "ascending")).toThrow("finance.import.size");
+    expect(() => parseIngCsv("x".repeat(FINANCE_IMPORT_MAX_BYTES + 1), "ascending")).toThrow("finance.import.size");
   });
 });

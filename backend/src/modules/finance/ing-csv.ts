@@ -1,9 +1,9 @@
 import { ValidationError } from "../../utils/errors";
+import { FINANCE_IMPORT_MAX_BYTES } from "../../shared/finance";
 import { requireObject } from "../../utils/validation";
 import { calendarDate, cents } from "./validation";
 import type { FinanceImportPreview, FinanceImportOrder } from "../../types/finance";
 
-export const ING_MAX_BYTES = 2 * 1024 * 1024;
 const MAX_ROWS = 20000;
 const HEADER_ALIASES: Record<string, string> = {
   date: "datum",
@@ -34,7 +34,7 @@ function invalid(key: string): never {
 }
 
 function csvRows(content: string): string[][] {
-  if (!content || new TextEncoder().encode(content).length > ING_MAX_BYTES) invalid("size");
+  if (!content || new TextEncoder().encode(content).length > FINANCE_IMPORT_MAX_BYTES) invalid("size");
   const text = content.replace(/^\uFEFF/, "").replace(/^sep=[;,]\r?\n/i, "");
   const firstLine = text.split(/\r?\n/, 1)[0];
   const delimiter = firstLine.includes(";") ? ";" : ",";

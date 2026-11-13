@@ -1,3 +1,5 @@
+export const FINANCE_IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+
 export const financeAccountIcons = [
   "wallet",
   "landmark",

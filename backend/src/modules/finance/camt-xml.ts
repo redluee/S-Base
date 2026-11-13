@@ -1,7 +1,7 @@
 import { SaxesParser } from "saxes";
 import { ValidationError } from "../../utils/errors";
 import { calendarDate, cents } from "./validation";
-import { ING_MAX_BYTES } from "./ing-csv";
+import { FINANCE_IMPORT_MAX_BYTES } from "../../shared/finance";
 
 export interface XmlNode {
   name: string;
@@ -39,7 +39,7 @@ export function value(node: XmlNode, ...path: string[]) {
 }
 
 export function xmlDocument(content: string) {
-  if (new TextEncoder().encode(content).length > ING_MAX_BYTES) invalid("size");
+  if (new TextEncoder().encode(content).length > FINANCE_IMPORT_MAX_BYTES) invalid("size");
   const parser = new SaxesParser({ xmlns: true });
   const stack: XmlNode[] = [];
   let root: XmlNode | undefined;
