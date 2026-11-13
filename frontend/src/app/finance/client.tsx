@@ -1,5 +1,6 @@
 "use client";
 
+import { today as calendarToday } from "@backend/shared/dates";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type {
@@ -43,14 +44,7 @@ function FinanceContent() {
   const [subscriptions, setSubscriptions] = useState<FinanceSubscriptions | null>(null);
   const [data, setData] = useState<FinanceData | null>(null),
     [report, setReport] = useState<FinanceDashboard | null>(null);
-  const [today] = useState(() =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Europe/Amsterdam",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date()),
-  );
+  const [today] = useState(() => calendarToday());
   const [date, setDate] = useState(today);
   const [period, setPeriod] = useState<FinancePeriod>("month");
   const [loading, setLoading] = useState(true),

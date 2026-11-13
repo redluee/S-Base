@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { today as todayDate } from "@backend/shared/dates";
 import { useState } from "react";
 import { api, apiErrorMessage } from "@/lib/api";
 import { t } from "@/lib/lang";
@@ -20,7 +21,6 @@ import {
   formFromLog,
   formToPayload,
   getAutofilledHeight,
-  getTodayString,
   hasCircumferences,
   parseNumberInput,
   type ChartTab,
@@ -91,7 +91,7 @@ export function BodyClient({ initialLogs }: { initialLogs: Measurement[] }) {
 
   const handleNewEntry = () => {
     setSaveError(null);
-    const today = getTodayString();
+    const today = todayDate();
     setFormDate(today);
 
     const existing = logs.find((l) => l.date === today);

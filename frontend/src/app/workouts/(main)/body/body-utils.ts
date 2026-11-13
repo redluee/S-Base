@@ -107,14 +107,6 @@ export function getAutofilledHeight(date: string, currentLogs: Measurement[]): s
   return sortedPast.length > 0 && sortedPast[0].height ? sortedPast[0].height.toString() : "";
 }
 
-export function getTodayString(): string {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 export function calculateBMI(weight: number | null, height: number | null): number | null {
   if (!weight || !height) return null;
   const heightInMeters = height / 100;
