@@ -14,7 +14,6 @@ export interface AppModule {
   href: string;
   external?: boolean;
   tile: "wide" | "regular" | "compact";
-  search?: "recipes" | "workouts";
 }
 
 export const MODULES: AppModule[] = [
@@ -26,7 +25,6 @@ export const MODULES: AppModule[] = [
     accentColor: "#00E676",
     href: "/workouts",
     tile: "wide",
-    search: "workouts",
   },
   {
     id: "finance",
@@ -54,7 +52,6 @@ export const MODULES: AppModule[] = [
     accentColor: "#FFB300",
     href: "/recipes",
     tile: "regular",
-    search: "recipes",
   },
   {
     id: "minecraft",

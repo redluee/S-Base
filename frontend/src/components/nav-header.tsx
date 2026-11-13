@@ -3,17 +3,16 @@
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useRef, type CSSProperties } from "react";
+import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
-import { SearchBar } from "@/components/search-bar";
 import { User, LogOut, ChevronDown, ArrowRightLeft } from "lucide-react";
 import { ModuleIcon } from "@/components/module-icon";
 import { moduleForPath } from "@/lib/modules";
 import type { AuthUser } from "@/lib/api";
 import { ImpersonationBanner, useStopImpersonation } from "@/components/impersonation-banner";
 
-export function NavHeader({ user }: { user: AuthUser }) {
+export function NavHeader({ user, search }: { user: AuthUser; search?: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -69,7 +68,7 @@ export function NavHeader({ user }: { user: AuthUser }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {current?.search && <SearchBar scope={current.search} />}
+          {search}
 
           <div className="relative" ref={dropdownRef}>
             <button

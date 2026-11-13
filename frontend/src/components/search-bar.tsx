@@ -3,24 +3,27 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
-import { api } from "@/lib/api";
-import { kitchens } from "@/lib/kitchens";
 import { t } from "@/lib/lang";
 
-interface Suggestion {
-  type: "recipe" | "ingredient" | "kitchen" | "exercise" | "template" | "history";
+export interface SearchSuggestion {
   value: string;
-  rawValue?: string;
-  equipment?: string | null;
-  id?: number;
+  typeLabel: string;
+  href?: string;
 }
 
-export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
+export interface SearchConfig {
+  placeholder: string;
+  ariaLabel: string;
+  suggest: (q: string) => Promise<SearchSuggestion[]>;
+  searchHref: (query: string, pathname: string) => string;
+}
+
+export function SearchBar({ config }: { config: SearchConfig }) {
   const router = useRouter();
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
@@ -29,8 +32,6 @@ export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const isWorkouts = scope === "workouts";
-
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.length < 1) {
       setSuggestions([]);
@@ -38,50 +39,15 @@ export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
       return;
     }
     try {
-      if (isWorkouts) {
-        const remote = await api.workouts.suggest(q);
-        const mapped = remote.map((r) => {
-          if (r.type === "exercise") {
-            return {
-              type: "exercise" as const,
-              value: r.equipment ? `${r.value} (${t(r.equipment)})` : r.value,
-              rawValue: r.value,
-              equipment: r.equipment,
-            };
-          } else if (r.type === "template") {
-            return {
-              type: "template" as const,
-              value: r.value,
-              id: r.id,
-            };
-          } else {
-            return {
-              type: "history" as const,
-              value: r.value,
-              id: r.id,
-            };
-          }
-        });
-        setSuggestions(mapped);
-        setActiveIndex(-1);
-        setOpen(mapped.length > 0);
-      } else {
-        const remote = await api.recipes.suggest(q);
-        const normalizedQ = q.replace(/[\s\-\/]/g, "").toLowerCase();
-        const localKitchens = kitchens
-          .filter((k) => k.name.replace(/[\s\-\/]/g, "").toLowerCase().includes(normalizedQ))
-          .filter((k) => !remote.some((r) => r.type === "kitchen" && r.value === k.name))
-          .map((k) => ({ type: "kitchen" as const, value: k.name }));
-        const all = [...remote, ...localKitchens] as Suggestion[];
-        setSuggestions(all);
-        setActiveIndex(-1);
-        setOpen(all.length > 0);
-      }
+      const all = await config.suggest(q);
+      setSuggestions(all);
+      setActiveIndex(-1);
+      setOpen(all.length > 0);
     } catch {
       setSuggestions([]);
       setOpen(false);
     }
-  }, [isWorkouts]);
+  }, [config]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -134,25 +100,8 @@ export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
     setQuery("");
     setOpen(false);
 
-    if (isWorkouts) {
-      const match = suggestions.find((s) => s.value === value);
-      const listPage = pathname.startsWith("/workouts/history") ? "/workouts/history" : "/workouts/exercises";
-      if (match?.type === "exercise" && match.rawValue) {
-        router.push(
-          `/workouts/exercises/${encodeURIComponent(match.rawValue)}${
-            match.equipment ? `?equipment=${encodeURIComponent(match.equipment)}` : ""
-          }`
-        );
-      } else if (match?.type === "template" && match.id !== undefined) {
-        router.push(`/workouts/t/${match.id}`);
-      } else if (match?.type === "history" && match.id !== undefined) {
-        router.push(`/workouts/history/${match.id}`);
-      } else {
-        router.push(`${listPage}?q=${encodeURIComponent(value.trim())}`);
-      }
-    } else {
-      router.push(`/recipes?q=${encodeURIComponent(value.trim())}`);
-    }
+    const match = suggestions.find((s) => s.value === value);
+    router.push(match?.href ?? config.searchHref(value.trim(), pathname));
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -228,8 +177,8 @@ export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
           onFocus={() => {
             if (suggestions.length > 0) setOpen(true);
           }}
-          placeholder={isWorkouts ? t("Search workouts…") : t("Search recipes…")}
-          aria-label={isWorkouts ? t("Zoek workouts") : t("Zoek recepten")}
+          placeholder={t(config.placeholder)}
+          aria-label={t(config.ariaLabel)}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-brand rounded min-w-0"
         />
       </div>
@@ -245,7 +194,7 @@ export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
           >
             {suggestions.map((suggestion, i) => (
               <button
-                key={`${suggestion.type}-${suggestion.value}`}
+                key={`${suggestion.typeLabel}-${suggestion.value}`}
                 type="button"
                 onClick={() => submit(suggestion.value)}
                 onMouseEnter={() => setActiveIndex(i)}
@@ -257,19 +206,7 @@ export function SearchBar({ scope }: { scope: "recipes" | "workouts" }) {
               >
                 <span className="flex-1 truncate">{suggestion.value}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {suggestion.type === "recipe"
-                    ? t("Recipe")
-                    : suggestion.type === "ingredient"
-                      ? t("Ingredient")
-                      : suggestion.type === "kitchen"
-                        ? t("Kitchen")
-                        : suggestion.type === "exercise"
-                          ? t("Exercise")
-                          : suggestion.type === "template"
-                            ? t("Template")
-                            : suggestion.type === "history"
-                              ? t("History")
-                              : ""}
+                  {t(suggestion.typeLabel)}
                 </span>
               </button>
             ))}
