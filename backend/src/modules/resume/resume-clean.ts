@@ -1,6 +1,7 @@
 import { ValidationError } from "../../utils/errors";
 import type { ResumeLink, ResumeSection } from "../../types/shared";
-import { RESUME_SECTIONS_MAX, type PeriodInput } from "./resume-constants";
+import { RESUME_SECTIONS_MAX } from "../../shared/resume";
+import type { PeriodInput } from "./resume-constants";
 
 export function parseJson<T>(value: string, fallback: T): T {
   try {

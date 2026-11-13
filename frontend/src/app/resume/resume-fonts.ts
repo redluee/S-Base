@@ -18,9 +18,9 @@ export function resolveResumeFont(value: string): Promise<ResolvedFont | null> {
         regular: f.regularUrl,
         bold: f.boldUrl,
       }))
-      .catch(() => {
+      .catch((err) => {
         cache.delete(value);
-        return null;
+        throw err;
       });
     cache.set(value, pending);
   }

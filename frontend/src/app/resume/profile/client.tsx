@@ -5,8 +5,8 @@ import { Plus, Trash2, Upload } from "lucide-react";
 import type { ResumeProfile, ResumeLink, ResumeSection } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
+import { RESUME_SECTIONS_MAX } from "@backend/shared/resume";
 
-const RESUME_SECTIONS_MAX = 5;
 
 const inputCls =
   "w-full min-h-[44px] sm:min-h-[36px] rounded-lg bg-zinc-950 border border-border px-3 text-sm text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand";

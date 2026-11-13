@@ -38,15 +38,14 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
   const { resume, profile, experiences, educations } = data;
 
   const [titleResolved, textResolved, photo] = await Promise.all([
-    resolveResumeFont(resume.titleFont),
-    resolveResumeFont(resume.textFont),
+    resolveResumeFont(resume.titleFont).catch(() => null),
+    resolveResumeFont(resume.textFont).catch(() => null),
     profile.photoPath ? photoToDataUrl(profile.photoPath) : Promise.resolve(null),
   ]);
 
-  const registered = registeredFonts;
   const register = (font: ResolvedFont | null) => {
     if (!font) return "Helvetica";
-    if (!registered.has(font.family)) {
+    if (!registeredFonts.has(font.family)) {
       Font.register({
         family: font.family,
         fonts: [
@@ -54,7 +53,7 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
           { src: new URL(font.bold, window.location.origin).href, fontWeight: 700 },
         ],
       });
-      registered.add(font.family);
+      registeredFonts.add(font.family);
     }
     return font.family;
   };

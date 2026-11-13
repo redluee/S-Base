@@ -2,31 +2,16 @@ import { join } from "path";
 import { mkdir } from "fs/promises";
 import type { ResumeGoogleFont } from "../../types/shared";
 import { UPLOADS_DIR } from "../../db/paths";
+import { CURATED_FONT_IDS, GOOGLE_PREFIX } from "../../shared/resume";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 
-export const CURATED_FONTS = [
-  "carlito",
-  "inter",
-  "lato",
-  "merriweather",
-  "playfair-display",
-  "source-serif",
-  "space-grotesk",
-  "epilogue",
-];
-
-const GOOGLE_PREFIX = "google:";
 const FAMILY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ]{1,58}$/;
 const FONTS_DIR = join(UPLOADS_DIR, "fonts");
 
 export function isValidFontValue(value: unknown): value is string {
   if (typeof value !== "string") return false;
-  if (CURATED_FONTS.includes(value)) return true;
+  if ((CURATED_FONT_IDS as readonly string[]).includes(value)) return true;
   return value.startsWith(GOOGLE_PREFIX) && FAMILY_PATTERN.test(value.slice(GOOGLE_PREFIX.length));
-}
-
-export function googleFamilyOf(value: string): string | null {
-  return value.startsWith(GOOGLE_PREFIX) ? value.slice(GOOGLE_PREFIX.length) : null;
 }
 
 function slugify(family: string) {

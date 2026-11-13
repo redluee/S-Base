@@ -1,26 +1,17 @@
 import type { ResumeFull, ResumePeriod } from "@backend/types/shared";
+import { COLUMN_WIDTH, FONT_SCALE, GOOGLE_PREFIX, snapToRange, type CuratedFontId } from "@backend/shared/resume";
 
 const MONTHS_NL = [
   "Januari", "Februari", "Maart", "April", "Mei", "Juni",
   "Juli", "Augustus", "September", "Oktober", "November", "December",
 ];
 
-export const RESUME_COLUMN_MIN = 50;
-export const RESUME_COLUMN_MAX = 80;
-export const RESUME_COLUMN_STEP = 2.5;
-
 export function snapColumnWidth(value: number): number {
-  const snapped = Math.round(value / RESUME_COLUMN_STEP) * RESUME_COLUMN_STEP;
-  return Math.min(RESUME_COLUMN_MAX, Math.max(RESUME_COLUMN_MIN, snapped));
+  return snapToRange(value, COLUMN_WIDTH);
 }
 
-export const RESUME_SCALE_MIN = 80;
-export const RESUME_SCALE_MAX = 140;
-export const RESUME_SCALE_STEP = 5;
-
 export function snapScale(value: number): number {
-  const snapped = Math.round(value / RESUME_SCALE_STEP) * RESUME_SCALE_STEP;
-  return Math.min(RESUME_SCALE_MAX, Math.max(RESUME_SCALE_MIN, snapped));
+  return snapToRange(value, FONT_SCALE);
 }
 
 export function formatMonthYear(month: number | null, year: number | null): string {
@@ -37,12 +28,12 @@ export function formatPeriod(p: ResumePeriod, currentLabel = "HEDEN"): string {
 export const MONTH_OPTIONS = MONTHS_NL.map((label, i) => ({ value: i + 1, label }));
 
 export interface CuratedFont {
-  id: string;
+  id: CuratedFontId;
   label: string;
   files: { regular: string; bold: string };
 }
 
-const curated = (id: string, label: string, regular?: string, bold?: string): CuratedFont => ({
+const curated = (id: CuratedFontId, label: string, regular?: string, bold?: string): CuratedFont => ({
   id,
   label,
   files: {
@@ -62,7 +53,7 @@ export const CURATED_FONTS: CuratedFont[] = [
   curated("epilogue", "Epilogue", "/fonts/epilogue.ttf", "/fonts/epilogue.ttf"),
 ];
 
-export const GOOGLE_PREFIX = "google:";
+export { GOOGLE_PREFIX };
 
 export interface ResolvedFont {
   value: string;

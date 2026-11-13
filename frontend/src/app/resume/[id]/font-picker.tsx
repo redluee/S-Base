@@ -4,6 +4,7 @@ import { useState } from "react";
 import { t } from "@/lib/lang";
 import { CURATED_FONTS, GOOGLE_PREFIX } from "../resume";
 import { resolveResumeFont } from "../resume-fonts";
+import { apiErrorMessage } from "@/lib/api";
 
 const selectCls =
   "w-full min-h-[44px] sm:min-h-[36px] rounded-lg bg-zinc-950 border border-border px-3 text-sm text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand";
@@ -13,16 +14,18 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
   const [showGoogle, setShowGoogle] = useState(isGoogle);
   const [family, setFamily] = useState(isGoogle ? value.slice(GOOGLE_PREFIX.length) : "");
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState("");
 
   async function loadGoogle() {
     const name = family.trim();
     if (!name) return;
     setState("loading");
-    const resolved = await resolveResumeFont(`${GOOGLE_PREFIX}${name}`);
-    if (resolved) {
+    try {
+      await resolveResumeFont(`${GOOGLE_PREFIX}${name}`);
       setState("idle");
       onChange(`${GOOGLE_PREFIX}${name}`);
-    } else {
+    } catch (err) {
+      setError(apiErrorMessage(err, "Font niet gevonden of niet beschikbaar als TTF."));
       setState("error");
     }
   }
@@ -77,7 +80,7 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
           </button>
         </div>
       )}
-      {state === "error" && <p role="alert" className="text-xs text-red-400">{t("Font niet gevonden of niet beschikbaar als TTF.")}</p>}
+      {state === "error" && <p role="alert" className="text-xs text-red-400">{error}</p>}
     </div>
   );
 }

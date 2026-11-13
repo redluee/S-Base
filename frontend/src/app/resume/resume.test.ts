@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { COLUMN_WIDTH, isInRange } from "@backend/shared/resume";
 import { formatPeriod, formatMonthYear, snapColumnWidth, resolveCuratedFont, fontLabel } from "./resume";
 
 describe("resume helpers", () => {
@@ -8,11 +9,11 @@ describe("resume helpers", () => {
     expect(formatPeriod({ startMonth: 9, startYear: 2025, endMonth: 1, endYear: 2026, isCurrent: false })).toBe("September 2025 – Januari 2026");
   });
 
-  it("snaps column widths to 2.5% steps within bounds", () => {
-    expect(snapColumnWidth(71)).toBe(70);
+  it("snaps column widths to values the backend accepts", () => {
+    for (const raw of [10, 52.5, 71, 74, 99]) {
+      expect(isInRange(snapColumnWidth(raw), COLUMN_WIDTH)).toBe(true);
+    }
     expect(snapColumnWidth(74)).toBe(75);
-    expect(snapColumnWidth(10)).toBe(50);
-    expect(snapColumnWidth(99)).toBe(80);
   });
 
   it("resolves curated fonts", () => {

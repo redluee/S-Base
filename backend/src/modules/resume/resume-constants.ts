@@ -1,6 +1,5 @@
 import type { ResumeLink, ResumeProfile, ResumeSection } from "../../types/shared";
 
-export const RESUME_SECTIONS_MAX = 5;
 export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 export const EMPTY_PROFILE: ResumeProfile = {

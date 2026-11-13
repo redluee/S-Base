@@ -14,7 +14,8 @@ import type {
 } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
-import { formatPeriod, snapColumnWidth, RESUME_COLUMN_MIN, RESUME_COLUMN_MAX, RESUME_COLUMN_STEP, RESUME_SCALE_MIN, RESUME_SCALE_MAX, RESUME_SCALE_STEP, snapScale } from "../resume";
+import { formatPeriod, snapColumnWidth, snapScale } from "../resume";
+import { COLUMN_WIDTH, FONT_SCALE } from "@backend/shared/resume";
 import { ResumePdfPreview } from "../pdf/resume-pdf-preview";
 import { downloadResumePDF } from "../pdf/resume-pdf";
 import { FontPicker, SliderField } from "./font-picker";
@@ -354,9 +355,9 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
           <SliderField
             label={t("Grootte titels")}
             display={`${settings.titleScalePct}%`}
-            min={RESUME_SCALE_MIN}
-            max={RESUME_SCALE_MAX}
-            step={RESUME_SCALE_STEP}
+            min={FONT_SCALE.min}
+            max={FONT_SCALE.max}
+            step={FONT_SCALE.step}
             value={settings.titleScalePct}
             onChange={(v) => changeSettings({ titleScalePct: snapScale(v) })}
           />
@@ -367,9 +368,9 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
           <SliderField
             label={t("Grootte tekst")}
             display={`${settings.textScalePct}%`}
-            min={RESUME_SCALE_MIN}
-            max={RESUME_SCALE_MAX}
-            step={RESUME_SCALE_STEP}
+            min={FONT_SCALE.min}
+            max={FONT_SCALE.max}
+            step={FONT_SCALE.step}
             value={settings.textScalePct}
             onChange={(v) => changeSettings({ textScalePct: snapScale(v) })}
           />
@@ -378,9 +379,9 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
           <SliderField
             label={t("Kolombreedte")}
             display={settings.swapColumns ? `${100 - settings.leftWidthPct} / ${settings.leftWidthPct}` : `${settings.leftWidthPct} / ${100 - settings.leftWidthPct}`}
-            min={RESUME_COLUMN_MIN}
-            max={RESUME_COLUMN_MAX}
-            step={RESUME_COLUMN_STEP}
+            min={COLUMN_WIDTH.min}
+            max={COLUMN_WIDTH.max}
+            step={COLUMN_WIDTH.step}
             value={settings.leftWidthPct}
             onChange={(v) => changeSettings({ leftWidthPct: snapColumnWidth(v) })}
             inverted={settings.swapColumns}

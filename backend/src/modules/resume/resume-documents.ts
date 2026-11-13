@@ -18,15 +18,12 @@ import {
   type ResumeInput,
   type ResumeSettings,
 } from "./resume-constants";
+import { COLUMN_WIDTH, FONT_SCALE, isInRange } from "../../shared/resume";
 import { isValidFontValue } from "./fonts";
 import type { ResumeLibrary } from "./resume-library";
 import type { ResumeProfiles } from "./resume-profile";
 
 type Kind = "experience" | "education";
-
-function validScale(value: number, min: number, max: number) {
-  return Number.isInteger(value) && value % 5 === 0 && value >= min && value <= max;
-}
 
 export class ResumeDocuments {
   constructor(
@@ -64,11 +61,11 @@ export class ResumeDocuments {
     const accentColor = data.accentColor !== undefined ? data.accentColor : base.accentColor;
     if (!HEX_COLOR.test(accentColor)) throw new ValidationError("resume.invalidAccentColor");
     const leftWidthPct = data.leftWidthPct !== undefined ? data.leftWidthPct : base.leftWidthPct;
-    if (!validScale(leftWidthPct, 50, 80)) throw new ValidationError("resume.invalidColumnWidth");
+    if (!isInRange(leftWidthPct, COLUMN_WIDTH)) throw new ValidationError("resume.invalidColumnWidth");
     const titleScalePct = data.titleScalePct !== undefined ? data.titleScalePct : base.titleScalePct;
     const textScalePct = data.textScalePct !== undefined ? data.textScalePct : base.textScalePct;
     for (const scale of [titleScalePct, textScalePct]) {
-      if (!validScale(scale, 80, 140)) throw new ValidationError("resume.invalidFontSize");
+      if (!isInRange(scale, FONT_SCALE)) throw new ValidationError("resume.invalidFontSize");
     }
     const swapColumns = data.swapColumns !== undefined ? data.swapColumns : base.swapColumns;
     return { name, titleFont, textFont, accentColor, leftWidthPct, swapColumns, titleScalePct, textScalePct };
