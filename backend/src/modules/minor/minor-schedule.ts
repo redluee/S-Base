@@ -3,6 +3,7 @@ import db from "../../db/client";
 import { minorVacations } from "../../db/schema";
 import type { MinorVacation } from "../../types/shared";
 import { orNotFound, ValidationError } from "../../utils/errors";
+import { isCalendarDate, today } from "../../shared/dates";
 import { addDays, DEFAULT_SPRINT_DAYS, formatDate, parseDate } from "../../shared/minor";
 
 export interface VacationInput {
@@ -10,8 +11,6 @@ export interface VacationInput {
   startDate?: string;
   endDate?: string;
 }
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export class MinorSchedule {
   listVacations(userId: number): MinorVacation[] {
@@ -59,8 +58,8 @@ export class MinorSchedule {
   }
 
   calculateSprintDates(userId: number, startDateStr?: string, durationDays?: number) {
-    const startInput = startDateStr || new Date().toISOString().slice(0, 10);
-    if (!DATE_PATTERN.test(startInput)) throw new ValidationError("minor.invalidDate");
+    const startInput = startDateStr || today();
+    if (!isCalendarDate(startInput)) throw new ValidationError("minor.invalidDate");
     const duration = durationDays || DEFAULT_SPRINT_DAYS;
     const vacations = this.listVacations(userId);
     const start = parseDate(startInput);

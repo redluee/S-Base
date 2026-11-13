@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Users, X } from "lucide-react";
-import { today } from "@backend/shared/minor";
+import { today } from "@backend/shared/dates";
 import { api, apiErrorMessage, type MinorPeerHelp, type MinorSprint } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { InlineAlert } from "@/components/ui/inline-alert";

@@ -18,7 +18,8 @@ import { useSprintDates } from "./sprints/use-sprint-dates";
 import { useActionError } from "@/lib/use-action-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { LEARNING_OUTCOMES, TOTAL_REQUIRED_PASSES, LEARNING_OUTCOME_INFO } from "@/app/minor/learning-outcomes";
-import { today, DEFAULT_SPRINT_DAYS } from "@backend/shared/minor";
+import { today } from "@backend/shared/dates";
+import { DEFAULT_SPRINT_DAYS } from "@backend/shared/minor";
 
 interface MinorDashboardClientProps {
   initialStats: MinorDashboardStats;

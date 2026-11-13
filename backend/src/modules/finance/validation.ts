@@ -1,21 +1,11 @@
+import { isCalendarDate, today } from "../../shared/dates";
 import { ValidationError } from "../../utils/errors";
 import { requireObject } from "../../utils/validation";
 
 export const MAX_CENTS = 1_000_000_000_000;
-export function today() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Amsterdam",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
+export { today };
 export function calendarDate(value: unknown, allowFuture = false): string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value < "1900-01-01")
-    throw new ValidationError("finance.invalidDate");
-  const parsed = new Date(`${value}T12:00:00Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value)
-    throw new ValidationError("finance.invalidDate");
+  if (!isCalendarDate(value) || value < "1900-01-01") throw new ValidationError("finance.invalidDate");
   if (!allowFuture && value > today()) throw new ValidationError("finance.futureDate");
   return value;
 }

@@ -1,6 +1,7 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { measurements, measurementPhotos } from "../../db/schema";
+import { isCalendarDate } from "../../shared/dates";
 import { ConflictError, ValidationError, orNotFound } from "../../utils/errors";
 import { IMAGE_EXTENSIONS, removeUpload, uploadFilenameOf, uploadOwnerOf } from "../../utils/uploads";
 import type { MeasurementSaveInput, MeasurementUpdateInput } from "./workout-schemas";
@@ -24,13 +25,7 @@ const MEASUREMENT_FIELDS = [
 ] as const;
 
 function requireMeasurementDate(value: unknown): string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new ValidationError("workout.invalidMeasurementDate");
-  }
-  const parsed = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
-    throw new ValidationError("workout.invalidMeasurementDate");
-  }
+  if (!isCalendarDate(value)) throw new ValidationError("workout.invalidMeasurementDate");
   return value;
 }
 

@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useState } from "react";
 import type { MinorSprintFull, MinorSelfEvaluation, MinorTeacherAssessment } from "@/lib/api";
 import { draftArgumentation, noStoriesArgumentation } from "@backend/shared/minor";
-import { today } from "@backend/shared/minor";
+import { today } from "@backend/shared/dates";
 
 export function useSprintData(initialSprint: MinorSprintFull, report: (err: unknown, fallbackKey: string) => void) {
   const [sprint, setSprint] = useState<MinorSprintFull>(initialSprint);

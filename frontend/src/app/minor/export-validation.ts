@@ -1,5 +1,6 @@
 import type { MinorSprintFull } from "@/lib/api";
-import { isSprintFinished, LEARNING_OUTCOMES, today } from "@backend/shared/minor";
+import { today } from "@backend/shared/dates";
+import { isSprintFinished, LEARNING_OUTCOMES } from "@backend/shared/minor";
 
 const filled = (value: string | null | undefined) => Boolean(value?.trim());
 

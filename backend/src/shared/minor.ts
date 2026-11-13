@@ -1,3 +1,5 @@
+import { today } from "./dates";
+
 export const LEARNING_OUTCOMES = [1, 2, 3, 4, 5] as const;
 export type LearningOutcome = (typeof LEARNING_OUTCOMES)[number];
 
@@ -29,10 +31,6 @@ export function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
-}
-
-export function today(): string {
-  return formatDate(new Date());
 }
 
 export function calculateSprintStatus(

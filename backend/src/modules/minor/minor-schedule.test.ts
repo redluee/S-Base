@@ -22,6 +22,11 @@ describe("MinorSchedule", () => {
     expect(calc.showAndGrowDate).toBe("2026-09-16"); // 2nd Wednesday
   });
 
+  it("rejects start dates that do not exist on the calendar", () => {
+    expect(() => minor.schedule.calculateSprintDates(adminId, "2026-02-31", 14)).toThrow("minor.invalidDate");
+    expect(() => minor.schedule.calculateSprintDates(adminId, "2026-9-7", 14)).toThrow("minor.invalidDate");
+  });
+
   it("manages vacations and automatically extends overlapping sprints", () => {
     // Add Herfstvakantie (Oct 19 to Oct 25, 2026 = 7 days)
     const vac = minor.schedule.createVacation(adminId, {

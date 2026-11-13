@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import db from "../../db/client";
 import { minorSelfEvaluations, minorStories, minorTeacherAssessments } from "../../db/schema";
+import { today as localToday } from "../../shared/dates";
 import type { MinorDashboardStats, MinorSprint } from "../../types/shared";
 import {
   FEW_LEARNING_OUTCOMES,
@@ -9,7 +10,6 @@ import {
   isProjectedPass,
   LEARNING_OUTCOMES,
   parseDate,
-  today as localToday,
 } from "../../shared/minor";
 import type { MinorPeerHelpLog } from "./minor-peer-help";
 import type { MinorSprints } from "./minor-sprints";

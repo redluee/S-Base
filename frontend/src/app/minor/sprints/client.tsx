@@ -13,7 +13,8 @@ import { SprintFormModal } from "./sprint-form-modal";
 import { useSprintDates } from "./use-sprint-dates";
 import { useActionError } from "@/lib/use-action-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { today, DEFAULT_SPRINT_DAYS, formatDate } from "@backend/shared/minor";
+import { today } from "@backend/shared/dates";
+import { DEFAULT_SPRINT_DAYS, formatDate } from "@backend/shared/minor";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface MinorSprintsClientProps {
