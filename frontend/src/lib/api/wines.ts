@@ -22,7 +22,7 @@ export const winesApi = {
     request<{ success: boolean }>(`/wines/${id}`, { method: "DELETE" }),
   uploadPhoto: async (file: File | Blob, fileName?: string, onProgress?: (progress: number) => void) => {
     return uploadFormDataWithProgress<{ filePath: string }>(
-      "/api/wines/upload",
+      "/wines/upload",
       file,
       fileName,
       onProgress

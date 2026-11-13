@@ -32,15 +32,11 @@ export const kitchens: Kitchen[] = [
   { name: "Vietnamees", flag: "🇻🇳" },
 ];
 
-export const kitchensByFlag: Record<string, string> = Object.fromEntries(
-  kitchens.map((k) => [k.flag, k.name]),
-);
-
-export const kitchensByName: Record<string, Kitchen> = Object.fromEntries(
+const kitchensByName: Record<string, Kitchen> = Object.fromEntries(
   kitchens.map((k) => [k.name.toLowerCase(), k]),
 );
 
-export function findKitchen(name: string): Kitchen | undefined {
+function findKitchen(name: string): Kitchen | undefined {
   return kitchensByName[name.toLowerCase().trim()];
 }
 

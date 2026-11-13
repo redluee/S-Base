@@ -16,6 +16,8 @@ export const commonNl: Record<string, string> = {
   "auth.adminUnavailable": "Het beheerdersaccount is niet beschikbaar.",
   "auth.missingCfHeader": "Cloudflare-identiteit ontbreekt.",
   "auth.emailMismatch": "E-mailadres komt niet overeen met de Cloudflare-identiteit.",
+  "upload.invalidResponse": "Ongeldig antwoord van de server.",
+  "upload.networkError": "Netwerkfout tijdens het uploaden.",
   "upload.noFile": "Geen bestand geüpload.",
   "upload.tooLarge": "Bestand is te groot.",
   "upload.typeNotAllowed": "Bestandstype niet toegestaan. Toegestaan: {allowed}",

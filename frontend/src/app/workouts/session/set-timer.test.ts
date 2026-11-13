@@ -1,13 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { pauseAccumulate, setTimerElapsedMs } from "./set-timer";
+import { pauseAccumulate } from "./set-timer";
 
 describe("set timer pause accounting", () => {
   it("only counts running time, not paused time", () => {
     let acc = 0;
     acc = pauseAccumulate(acc, 1000, 11000);
     expect(acc).toBe(10000);
-    expect(setTimerElapsedMs(acc, null, 500000)).toBe(10000);
-    expect(setTimerElapsedMs(acc, 600000, 605000)).toBe(15000);
   });
 
   it("never goes negative on clock skew and ignores pause when not running", () => {

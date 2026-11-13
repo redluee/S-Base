@@ -3,24 +3,16 @@
 import { useState, useEffect } from "react";
 import quotes from "@/app/workouts/workout-quotes.json";
 
+export function quoteOfTheDay(date: Date): string {
+  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000);
+  return quotes[(dayOfYear - 1) % quotes.length];
+}
+
 export function MotivationalQuote() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
-    const today = new Date();
-    // Compute day of the year
-    const startOfYear = new Date(today.getFullYear(), 0, 0);
-    const diff = today.getTime() - startOfYear.getTime();
-    const oneDay = 1000 * 60 * 60 * 24;
-    const dayOfYear = Math.floor(diff / oneDay);
-    
-    // Choose index deterministically
-    const index = (dayOfYear - 1) % quotes.length;
-
-    // Use setTimeout to avoid synchronous setState in useEffect error
-    const timer = setTimeout(() => {
-      setQuote(quotes[index]);
-    }, 0);
+    const timer = setTimeout(() => setQuote(quoteOfTheDay(new Date())), 0);
     return () => clearTimeout(timer);
   }, []);
 

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
-import { kitchens } from "@/lib/kitchens";
+import { kitchens } from "@/app/recipes/kitchens";
 import { t } from "@/lib/lang";
 
 interface Suggestion {

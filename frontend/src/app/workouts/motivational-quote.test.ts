@@ -1,22 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import { quoteOfTheDay } from "./motivational-quote";
 import quotes from "./workout-quotes.json";
 
-describe("Motivational quotes data and selection algorithm", () => {
-  it("contains structured quotes in Dutch", () => {
-    expect(quotes.length).toBeGreaterThan(300);
-    expect(quotes[0]).toContain("Consistentie");
-  });
-
-  it("calculates deterministic daily quote index for any day of year", () => {
-    const today = new Date(2026, 7, 12);
-    const startOfYear = new Date(today.getFullYear(), 0, 0);
-    const diff = today.getTime() - startOfYear.getTime();
-    const oneDay = 1000 * 60 * 60 * 24;
-    const dayOfYear = Math.floor(diff / oneDay);
-
-    const index = (dayOfYear - 1) % quotes.length;
-    expect(index).toBeGreaterThanOrEqual(0);
-    expect(index).toBeLessThan(quotes.length);
-    expect(typeof quotes[index]).toBe("string");
+describe("quoteOfTheDay", () => {
+  it("shows the same quote all day, the next one tomorrow, and starts at the first quote on 1 January", () => {
+    expect(quoteOfTheDay(new Date(2026, 7, 12, 1))).toBe(quoteOfTheDay(new Date(2026, 7, 12, 23)));
+    expect(quoteOfTheDay(new Date(2026, 7, 13))).not.toBe(quoteOfTheDay(new Date(2026, 7, 12)));
+    expect(quoteOfTheDay(new Date(2026, 0, 1))).toBe(quotes[0]);
   });
 });

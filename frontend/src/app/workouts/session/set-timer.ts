@@ -3,10 +3,6 @@ export function pauseAccumulate(accumulatedMs: number, runStartMs: number | null
   return accumulatedMs + Math.max(0, nowMs - runStartMs);
 }
 
-export function setTimerElapsedMs(accumulatedMs: number, runStartMs: number | null, nowMs: number): number {
-  return pauseAccumulate(accumulatedMs, runStartMs, nowMs);
-}
-
 export interface SetTimerSnapshot {
   sessionId: number;
   exIdx: number;
@@ -57,7 +53,7 @@ export function restoreSetTimer(snapshot: SetTimerSnapshot, nowMs: number) {
     isRunning: runStartMs !== null,
     accumulatedMs: snapshot.accumulatedMs,
     runStartMs,
-    elapsedMs: setTimerElapsedMs(snapshot.accumulatedMs, runStartMs, nowMs),
+    elapsedMs: pauseAccumulate(snapshot.accumulatedMs, runStartMs, nowMs),
   };
 }
 

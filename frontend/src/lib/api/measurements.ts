@@ -24,7 +24,7 @@ export const measurementsApi = {
     }),
   uploadPhoto: async (file: File | Blob, fileName?: string, onProgress?: (progress: number) => void) => {
     return uploadFormDataWithProgress<{ filePath: string }>(
-      "/api/measurements/upload",
+      "/measurements/upload",
       file,
       fileName,
       onProgress

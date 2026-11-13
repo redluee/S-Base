@@ -5,7 +5,7 @@ import { Play, Pause, RotateCcw, Check, X, Plus, Minus, Timer as TimerIcon, Targ
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { t } from "@/lib/lang";
-import { pauseAccumulate, restoreSetTimer, saveSetTimerSnapshot, setTimerElapsedMs, type SetTimerSnapshot } from "@/app/workouts/session/set-timer";
+import { pauseAccumulate, restoreSetTimer, saveSetTimerSnapshot, type SetTimerSnapshot } from "@/app/workouts/session/set-timer";
 import {
   triggerSetTimerCompletion,
   scheduleSetEndSound,
@@ -84,7 +84,7 @@ export function RepTimerModal({
     setSoundEnabledState(next);
     setSoundEnabled(next);
     if (isRunning && targetDurationSeconds && targetDurationSeconds > 0 && !targetChimeTriggeredRef.current) {
-      const currentElapsedSec = Math.floor(setTimerElapsedMs(accumulatedMsRef.current, startTimeRef.current, Date.now()) / 1000);
+      const currentElapsedSec = Math.floor(pauseAccumulate(accumulatedMsRef.current, startTimeRef.current, Date.now()) / 1000);
       const remainingSecs = targetTime - currentElapsedSec;
       if (remainingSecs > 0) {
         scheduleSetEndSound(remainingSecs, exerciseName, setNumber);
@@ -113,7 +113,7 @@ export function RepTimerModal({
   // Schedule background sound & vibration notification whenever running state or target changes
   useEffect(() => {
     if (isRunning && targetDurationSeconds && targetDurationSeconds > 0 && !targetChimeTriggeredRef.current) {
-      const currentElapsedSec = Math.floor(setTimerElapsedMs(accumulatedMsRef.current, startTimeRef.current, Date.now()) / 1000);
+      const currentElapsedSec = Math.floor(pauseAccumulate(accumulatedMsRef.current, startTimeRef.current, Date.now()) / 1000);
       const remainingSecs = targetTime - currentElapsedSec;
       if (remainingSecs > 0) {
         scheduleSetEndSound(remainingSecs, exerciseName, setNumber);

@@ -1,3 +1,4 @@
+import { compressImage } from "../image";
 import { request, uploadFormDataWithProgress } from "./core";
 import type {
   ResumeProfile,
@@ -14,8 +15,8 @@ export const resumeApi = {
     get: () => request<ResumeProfile>("/resume/profile"),
     update: (data: Partial<ResumeProfile>) =>
       request<ResumeProfile>("/resume/profile", { method: "PUT", body: JSON.stringify(data) }),
-    uploadPhoto: (file: File | Blob, onProgress?: (progress: number) => void) =>
-      uploadFormDataWithProgress<ResumeProfile>("/api/resume/profile/photo", file, "photo.jpg", onProgress),
+    uploadPhoto: async (file: File | Blob, onProgress?: (progress: number) => void) =>
+      uploadFormDataWithProgress<ResumeProfile>("/resume/profile/photo", await compressImage(file), "photo.jpg", onProgress),
     deletePhoto: () => request<ResumeProfile>("/resume/profile/photo", { method: "DELETE" }),
   },
   experiences: {

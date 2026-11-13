@@ -1,4 +1,3 @@
-import { compressImage } from "../image";
 import { t } from "../lang";
 
 export class ApiError extends Error {
@@ -26,15 +25,18 @@ export function apiErrorMessage(error: unknown, fallbackKey: string): string {
   return error instanceof ApiError ? error.message : t(fallbackKey);
 }
 
-export function errorFromBody(status: number, statusText: string, text: string): ApiError {
+function parseJsonObject(text: string): Record<string, unknown> | null {
   try {
     const json = JSON.parse(text);
-    if (json && typeof json === "object" && !Array.isArray(json)) {
-      return new ApiError(typeof json.error === "string" ? json.error : statusText, status, json);
-    }
+    return json && typeof json === "object" && !Array.isArray(json) ? json : null;
   } catch {
-    // body was not JSON
+    return null;
   }
+}
+
+export function errorFromBody(status: number, statusText: string, text: string): ApiError {
+  const json = parseJsonObject(text);
+  if (json) return new ApiError(typeof json.error === "string" ? json.error : statusText, status, json);
   return new ApiError(text || statusText, status);
 }
 
@@ -73,15 +75,14 @@ const MIME_TYPE_EXTENSIONS: Record<string, string> = {
 };
 
 export async function uploadFormDataWithProgress<T>(
-  url: string,
+  path: string,
   file: File | Blob,
   fileName?: string,
   onProgress?: (progress: number) => void
 ): Promise<T> {
-  const compressedFile = await compressImage(file);
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", url, true);
+    xhr.open("POST", `/api${path}`, true);
     xhr.withCredentials = true;
 
     if (xhr.upload && onProgress) {
@@ -99,7 +100,7 @@ export async function uploadFormDataWithProgress<T>(
           const res = JSON.parse(xhr.responseText);
           resolve(res);
         } catch {
-          reject(new Error("Invalid server response"));
+          reject(new ApiError("upload.invalidResponse", xhr.status));
         }
       } else {
         reject(errorFromBody(xhr.status, xhr.statusText || `Upload failed with status ${xhr.status}`, xhr.responseText));
@@ -107,19 +108,18 @@ export async function uploadFormDataWithProgress<T>(
     };
 
     xhr.onerror = () => {
-      reject(new Error("Network error during upload"));
+      reject(new ApiError("upload.networkError", 0));
     };
 
     const formData = new FormData();
-    // compressImage may re-encode to a different format (e.g. JPEG), so the
-    // extension must match the actual bytes being uploaded, not the original
-    // filename - the backend trusts the extension and serves it with a
-    // matching Content-Type + nosniff, so a mismatch breaks rendering.
-    const baseName = fileName || (compressedFile as File).name || (file as File).name || "upload";
+    // The backend trusts the extension and serves uploads with a matching
+    // Content-Type + nosniff, so the name must follow the actual (possibly
+    // re-encoded) bytes rather than the original filename.
+    const baseName = fileName || (file as File).name || "upload";
     const nameWithoutExt = baseName.replace(/\.[^./]+$/, "") || "upload";
-    const ext = MIME_TYPE_EXTENSIONS[compressedFile.type] ?? baseName.split(".").pop() ?? "jpg";
+    const ext = MIME_TYPE_EXTENSIONS[file.type] ?? baseName.split(".").pop() ?? "jpg";
     const name = `${nameWithoutExt}.${ext}`;
-    formData.append("file", compressedFile, name);
+    formData.append("file", file, name);
     xhr.send(formData);
   });
 }
