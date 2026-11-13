@@ -1,7 +1,14 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import db from "../db/client";
 import { modules, sessions, usermodulepermissions, users } from "../db/schema";
-import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from "../utils/errors";
+import { type RateLimiter, loginLimiter } from "../security";
+import {
+  ForbiddenError,
+  NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
+  ValidationError,
+} from "../utils/errors";
 import { SESSION_TTL_SECONDS } from "./session-cookie";
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
@@ -37,7 +44,25 @@ export function hashPassword(password: string): Promise<string> {
 }
 
 export class AuthService {
-  async login(username: string, password: string): Promise<{ sessionId: string; user: AuthUser }> {
+  constructor(private readonly limiter: RateLimiter = loginLimiter) {}
+
+  async login(username: string, password: string, ip: string): Promise<{ sessionId: string; user: AuthUser }> {
+    const ipKey = `ip:${ip}`;
+    const userKey = `user:${username.toLowerCase()}`;
+    const blocked = [this.limiter.check(ipKey), this.limiter.check(userKey)].find((l) => !l.allowed);
+    if (blocked) throw new TooManyRequestsError("auth.tooManyAttempts", blocked.retryAfter);
+    try {
+      const session = await this.verifyCredentials(username, password);
+      this.limiter.reset(userKey);
+      return session;
+    } catch (err) {
+      this.limiter.hit(ipKey);
+      this.limiter.hit(userKey);
+      throw err;
+    }
+  }
+
+  private async verifyCredentials(username: string, password: string) {
     const user = db.select().from(users).where(eq(users.username, username)).get();
     if (!user) throw new UnauthorizedError("auth.userNotFound");
     if (user.isPaused === 1) throw new ForbiddenError("auth.accountPaused");

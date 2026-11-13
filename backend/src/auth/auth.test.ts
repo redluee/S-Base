@@ -3,7 +3,10 @@ import { eq } from "drizzle-orm";
 import db from "../db/client";
 import { users } from "../db/schema";
 import { setupTestDb } from "../test-utils";
+import { RateLimiter } from "../security";
 import { AuthService } from "./index";
+
+const IP = "203.0.113.1";
 
 async function rejection(promiseOrFn: Promise<unknown> | (() => unknown)) {
   try {
@@ -31,17 +34,36 @@ describe("AuthService", () => {
   });
 
   it("logs in with valid credentials and returns the user with role and modules", async () => {
-    const { sessionId, user } = await auth.login("admin", "admin");
+    const { sessionId, user } = await auth.login("admin", "admin", IP);
     expect(user).toMatchObject({ id: adminId, username: "admin", role: "admin", isImpersonated: false });
     expect(user.modules).toContain("workout");
     expect(auth.currentUser(sessionId).id).toBe(adminId);
   });
 
   it("rejects unknown users, wrong passwords and paused accounts with distinct keys", async () => {
-    expect(await rejection(auth.login("nonexistent", "pass"))).toMatchObject({ status: 401, key: "auth.userNotFound" });
-    expect(await rejection(auth.login("admin", "wrong"))).toMatchObject({ status: 401, key: "auth.wrongPassword" });
+    expect(await rejection(auth.login("nonexistent", "pass", IP))).toMatchObject({
+      status: 401,
+      key: "auth.userNotFound",
+    });
+    expect(await rejection(auth.login("admin", "wrong", IP))).toMatchObject({ status: 401, key: "auth.wrongPassword" });
     db.update(users).set({ isPaused: 1 }).where(eq(users.userId, testerId)).run();
-    expect(await rejection(auth.login("tester", "tester"))).toMatchObject({ status: 403, key: "auth.accountPaused" });
+    expect(await rejection(auth.login("tester", "tester", IP))).toMatchObject({
+      status: 403,
+      key: "auth.accountPaused",
+    });
+  });
+
+  it("rate limits failed logins per user and per ip, and resets the user on success", async () => {
+    const limited = new AuthService(new RateLimiter(2, 60_000));
+    await rejection(limited.login("admin", "wrong", IP));
+    expect((await limited.login("admin", "admin", IP)).user.id).toBe(adminId);
+    await rejection(limited.login("admin", "wrong", IP));
+    await rejection(limited.login("admin", "wrong", "198.51.100.7"));
+    expect(await rejection(limited.login("admin", "admin", "198.51.100.8"))).toMatchObject({
+      status: 429,
+      key: "auth.tooManyAttempts",
+    });
+    expect(await rejection(limited.login("tester", "tester", IP))).toMatchObject({ status: 429 });
   });
 
   it("logs in by email case-insensitively and refuses unknown addresses", async () => {
@@ -53,7 +75,7 @@ describe("AuthService", () => {
   });
 
   it("invalidates a session after logout", async () => {
-    const { sessionId } = await auth.login("admin", "admin");
+    const { sessionId } = await auth.login("admin", "admin", IP);
     auth.deleteSession(sessionId);
     expect(await rejection(() => auth.currentUser(sessionId))).toMatchObject({ status: 401 });
   });
@@ -76,7 +98,7 @@ describe("AuthService", () => {
   });
 
   it("refreshes last seen at most every five minutes and never for impersonated sessions", async () => {
-    const { sessionId } = await auth.login("admin", "admin");
+    const { sessionId } = await auth.login("admin", "admin", IP);
     const recent = new Date(Date.now() - 60 * 1000).toISOString();
     db.update(users).set({ lastLoginAt: recent }).where(eq(users.userId, adminId)).run();
     auth.currentUser(sessionId);
