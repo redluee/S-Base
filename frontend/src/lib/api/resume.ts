@@ -1,5 +1,5 @@
 import { compressImage } from "../image";
-import { request as clientRequest, uploadFormDataWithProgress, type Fetcher } from "./core";
+import { request as clientRequest, fetchBlob, uploadFormDataWithProgress, type Fetcher } from "./core";
 import type {
   ResumeProfile,
   ResumeExperience,
@@ -47,10 +47,7 @@ export const createResumeApi = (request: Fetcher) => ({
     setItems: (id: number, items: ResumeItemInput[]) =>
       request<ResumeItemInput[]>(`/resume/resumes/${id}/items`, { method: "PUT", body: JSON.stringify({ items }) }),
   },
-  photo: async (path: string): Promise<Blob | null> => {
-    const res = await fetch(path, { credentials: "include" });
-    return res.ok ? res.blob() : null;
-  },
+  photo: (path: string) => fetchBlob(path),
   fonts: {
     google: (family: string) =>
       request<ResumeGoogleFont>(`/resume/fonts/google?family=${encodeURIComponent(family)}`),

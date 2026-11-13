@@ -58,6 +58,11 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export async function fetchBlob(url: string): Promise<Blob | null> {
+  const res = await fetch(url, { credentials: "include" });
+  return res.ok ? res.blob() : null;
+}
+
 export async function requestForm<T>(path: string, body: FormData): Promise<T> {
   const res = await fetch(`/api${path}`, { method: "POST", body, credentials: "include" });
   if (!res.ok) {
