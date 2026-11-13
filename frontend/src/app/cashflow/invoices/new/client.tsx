@@ -74,7 +74,7 @@ export function NewInvoiceClient({
   const inv = initialInvoice;
 
   const [clients, setClients] = useState<CashflowClient[]>(initialClients);
-  const [projects] = useState<CashflowProject[]>(initialProjects);
+  const projects = initialProjects;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});

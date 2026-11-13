@@ -24,9 +24,9 @@ import { lastLoginTime } from "./pulse-format";
 export function PulseClient({
   username,
   initialUsers,
-  initialModules,
+  initialModules: modulesList,
   initialStats,
-  initialServers = [],
+  initialServers: serversList = [],
   initialShutdownSchedule,
   initialSystemUpdate,
 }: {
@@ -40,8 +40,6 @@ export function PulseClient({
 }) {
   const router = useRouter();
   const [usersList, setUsersList] = useState<PulseUser[]>(initialUsers);
-  const [modulesList] = useState<PulseModuleInfo[]>(initialModules);
-  const [serversList] = useState<McServer[]>(initialServers);
   const [stats, setStats] = useState<PulseStats>(initialStats);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);

@@ -13,13 +13,12 @@ import { defaultMotd, SLUG_MAX_LENGTH, SLUG_PATTERN, toServerSlug, type Engine }
 import { ServerSettingsStep } from "../components/ServerSettingsStep";
 import { settingsToProperties, useServerSettings } from "../components/useServerSettings";
 
-export default function NewServerPage({ initialTemplates }: { initialTemplates: McTemplate[] }) {
+export default function NewServerPage({ initialTemplates: templates }: { initialTemplates: McTemplate[] }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [versions, setVersions] = useState<string[]>([]);
-  const [templates] = useState<McTemplate[]>(initialTemplates);
   const [displayName, setDisplayName] = useState("");
   const [slug, setSlug] = useState("");
   const [mcVersion, setMcVersion] = useState("");

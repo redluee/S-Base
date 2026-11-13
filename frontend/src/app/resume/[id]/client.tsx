@@ -10,7 +10,6 @@ import type {
   ResumeExperience,
   ResumeEducation,
   ResumeItemInput,
-  ResumeProfile,
 } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
@@ -67,7 +66,7 @@ export function ResumeEditorClient({ initial, experiences, educations }: Props) 
   const [selection, setSelection] = useState<Selection[]>(
     initial.selected.map((s) => ({ kind: s.kind, refId: s.refId, override: s.descriptionOverride ?? null }))
   );
-  const [profile] = useState<ResumeProfile>(initial.profile);
+  const profile = initial.profile;
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
