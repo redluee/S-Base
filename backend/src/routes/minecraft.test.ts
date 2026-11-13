@@ -1,8 +1,9 @@
 import * as http from "../test-http";
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import { mkdir, readFile, rm } from "fs/promises";
 import { join } from "path";
+import { minecraft } from "../context";
 import db from "../db/client";
 import { modules, usermodulepermissions } from "../db/schema";
 import { mc_servers, mc_templates } from "../db/schema/minecraft";
@@ -275,6 +276,13 @@ describe("minecraft routes error contract", () => {
       const stop = await call(tester, "POST", `/servers/${SLUG}/stop`);
       expect(stop.status).toBe(403);
       expect(await stop.json()).toEqual({ error: "minecraft.fullAccessRequired" });
+      const start = spyOn(minecraft.lifecycle, "startServer").mockResolvedValue({ ok: true });
+      try {
+        expect((await call(tester, "POST", `/servers/${SLUG}/start`)).status).toBe(200);
+        expect(start).toHaveBeenCalledWith(SLUG);
+      } finally {
+        start.mockRestore();
+      }
     } finally {
       db.delete(mc_servers).where(eq(mc_servers.slug, "monitor-private")).run();
       db.insert(usermodulepermissions).values({ userId: testerId, moduleId: full.moduleId }).run();

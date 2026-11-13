@@ -18,18 +18,19 @@ function uploadedFiles(body: { files?: File | File[]; file?: File | File[] }): F
   return [body.files, body.file].flat().filter((f): f is File => !!f);
 }
 
-const START_ROUTE = "/api/minecraft/servers/:slug/start";
+const PREFIX = "/api/minecraft";
+const START_PATH = "/servers/:slug/start";
 
 function actionFor(method: string, route: string): MinecraftAction {
   if (method === "GET") return "read";
-  return route === START_ROUTE ? "start" : "manage";
+  return route === `${PREFIX}${START_PATH}` ? "start" : "manage";
 }
 
 function mapResponse(file: MapFile) {
   return new Response(file.data, { status: file.status, headers: file.headers });
 }
 
-export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
+export const minecraftRoutes = new Elysia().group(PREFIX, (app) =>
   app
     .use(minecraftAuth)
     .onBeforeHandle(({ request, route, params, userId }) =>
@@ -84,7 +85,7 @@ export const minecraftRoutes = new Elysia().group("/api/minecraft", (app) =>
         query: t.Object({ deleteDisk: t.Optional(t.String()) }),
       },
     )
-    .post("/servers/:slug/start", ({ params: { slug } }) => minecraft.lifecycle.startServer(slug), {
+    .post(START_PATH, ({ params: { slug } }) => minecraft.lifecycle.startServer(slug), {
       params: slugParams,
     })
     .post("/servers/:slug/stop", ({ params: { slug } }) => minecraft.lifecycle.stopServer(slug), { params: slugParams })
