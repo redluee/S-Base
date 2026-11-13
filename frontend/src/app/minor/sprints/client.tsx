@@ -7,15 +7,20 @@ import { Plus, Download } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint } from "@/lib/api";
 import { MinorSprintImportModal } from "@/app/minor/sprints/sprint-import-modal";
-import { copySprintJsonToClipboard } from "@/app/minor/sprint-export";
+import { copySprintJson } from "@/app/minor/export-files";
 import { SprintList } from "./sprint-list";
-import { SprintFormModal, type SprintCalculatedDates } from "./sprint-form-modal";
+import { SprintFormModal } from "./sprint-form-modal";
+import { useSprintDates } from "./use-sprint-dates";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { today, DEFAULT_SPRINT_DAYS, formatDate } from "@backend/shared/minor";
 
 interface MinorSprintsClientProps {
   initialSprints: MinorSprint[];
 }
 
 export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) {
+  const { error: actionError, report } = useActionError();
   const router = useRouter();
   const [sprints, setSprints] = useState<MinorSprint[]>(initialSprints);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -26,49 +31,36 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
   // Form state
   const [sprintNumber, setSprintNumber] = useState("");
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
-  const [durationDays, setDurationDays] = useState(14);
-  const [calculatedDates, setCalculatedDates] = useState<SprintCalculatedDates>(null);
+  const [startDate, setStartDate] = useState(today());
+  const [durationDays, setDurationDays] = useState(DEFAULT_SPRINT_DAYS);
   const [saving, setSaving] = useState(false);
 
-  // Load next sprint number suggestion when opening new sprint modal
   useEffect(() => {
     if (isModalOpen && !editingSprint) {
       api.minor.sprints.nextNumber().then((res) => {
         setSprintNumber(res.nextNumber);
-      }).catch(() => {});
+      }).catch((err) => report(err, "minor.actionFailed"));
     }
-  }, [isModalOpen, editingSprint]);
+  }, [isModalOpen, editingSprint, report]);
 
-  // Recalculate dates whenever startDate or durationDays changes
-  useEffect(() => {
-    if (!startDate) return;
-    api.minor.sprints.calculateDates(startDate, durationDays).then((res) => {
-      setCalculatedDates({
-        endDate: res.endDate,
-        showAndGrowDate: res.showAndGrowDate,
-        extendedDays: res.extendedDays,
-        extensionReason: res.extensionReason,
-      });
-    }).catch(() => {});
-  }, [startDate, durationDays]);
+  const calculatedDates = useSprintDates(startDate, durationDays, isModalOpen, report);
 
   function openCreateModal() {
     setEditingSprint(null);
     setStartDate(getDefaultStartDate());
-    setDurationDays(14);
+    setDurationDays(DEFAULT_SPRINT_DAYS);
     setIsModalOpen(true);
   }
 
   function getDefaultStartDate() {
-    if (sprints.length === 0) return new Date().toISOString().slice(0, 10);
+    if (sprints.length === 0) return today();
     const latestEndDate = sprints.reduce(
       (latest, s) => (s.endDate > latest ? s.endDate : latest),
       sprints[0].endDate
     );
     const dayAfter = new Date(`${latestEndDate}T00:00:00`);
     dayAfter.setDate(dayAfter.getDate() + 1);
-    return dayAfter.toISOString().slice(0, 10);
+    return formatDate(dayAfter);
   }
 
   function openEditModal(sprint: MinorSprint) {
@@ -76,12 +68,6 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
     setSprintNumber(sprint.sprintNumber);
     setStartDate(sprint.startDate);
     setDurationDays(sprint.durationDays);
-    setCalculatedDates({
-      endDate: sprint.endDate,
-      showAndGrowDate: sprint.showAndGrowDate,
-      extendedDays: sprint.extendedDays,
-      extensionReason: sprint.extensionReason,
-    });
     setIsModalOpen(true);
   }
 
@@ -107,7 +93,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
       }
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Failed to save sprint:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSaving(false);
     }
@@ -122,18 +108,17 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
       setSprints((prev) => prev.filter((s) => s.id !== id));
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Failed to delete sprint:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
   async function handleExportSprint(sprintItem: MinorSprint) {
     try {
-      const fullSprint = await api.minor.sprints.get(sprintItem.id);
-      await copySprintJsonToClipboard(fullSprint);
+      await copySprintJson(sprintItem.id);
       setCopiedSprintId(sprintItem.id);
       setTimeout(() => setCopiedSprintId(null), 2500);
     } catch (err) {
-      console.error("Failed to export sprint:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -144,6 +129,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

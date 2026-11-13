@@ -1,3 +1,4 @@
+import type { StoryInput } from "@backend/modules/minor/minor-stories";
 import { request, requestForm } from "./core";
 import type {
   MinorSprint,
@@ -14,7 +15,6 @@ import type {
   MinorPeerHelp,
   MinorSettings,
   MinorDashboardStats,
-  MinorStoryPresentationData,
   MinorSprintExportData,
 } from "@backend/types/shared";
 
@@ -90,94 +90,28 @@ export const minorApi = {
         request<MinorFeedbackEntry>(`/minor/feedback/${id}`, { method: "PUT", body: JSON.stringify(data) }),
       delete: (id: number) => request<{ success: boolean }>(`/minor/feedback/${id}`, { method: "DELETE" }),
     },
-    stories: {
-      listAll: () => request<MinorStoryWithSprint[]>("/minor/stories"),
-      reorder: (sprintId: number, storyIds: number[]) =>
-        request<{ success: boolean }>(`/minor/sprints/${sprintId}/stories/reorder`, {
-          method: "PUT",
-          body: JSON.stringify({ storyIds }),
-        }),
-      create: (sprintId: number | null | undefined, data: {
-        storyTypeCode?: string;
-        storyNumber?: string;
-        title: string;
-        asA?: string;
-        iWant?: string;
-        soThat?: string;
-        learningOutcomes?: number[];
-        status?: "todo" | "in_progress" | "done";
-        orderIndex?: number;
-        acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
-        qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
-        evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
-        presentationData?: MinorStoryPresentationData | null;
-      }) =>
-        sprintId
-          ? request<MinorStory>(`/minor/sprints/${sprintId}/stories`, { method: "POST", body: JSON.stringify(data) })
-          : request<MinorStory>("/minor/stories", { method: "POST", body: JSON.stringify({ ...data, sprintId: null }) }),
-      update: (id: number, data: {
-        sprintId?: number | null;
-        storyTypeCode?: string;
-        storyNumber?: string;
-        title?: string;
-        asA?: string | null;
-        iWant?: string | null;
-        soThat?: string | null;
-        learningOutcomes?: number[];
-        status?: "todo" | "in_progress" | "done";
-        orderIndex?: number;
-        presentationData?: MinorStoryPresentationData | null;
-        acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
-        qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
-        evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
-      }) => request<MinorStory>(`/minor/stories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-      delete: (id: number) => request<{ success: boolean }>(`/minor/stories/${id}`, { method: "DELETE" }),
-      toggleCriterion: (criterionId: number, isCompleted: boolean) =>
-        request<MinorStoryCriterion>(`/minor/criteria/${criterionId}/toggle`, { method: "PATCH", body: JSON.stringify({ isCompleted }) }),
-    },
   },
   stories: {
     list: () => request<MinorStoryWithSprint[]>("/minor/stories"),
+    create: (sprintId: number | null | undefined, data: StoryInput & { title: string }) =>
+      sprintId
+        ? request<MinorStory>(`/minor/sprints/${sprintId}/stories`, { method: "POST", body: JSON.stringify(data) })
+        : request<MinorStory>("/minor/stories", { method: "POST", body: JSON.stringify({ ...data, sprintId: null }) }),
+    importJson: (sprintId: number, data: unknown) =>
+      request<MinorStory>(`/minor/sprints/${sprintId}/stories/import`, { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: StoryInput) =>
+      request<MinorStory>(`/minor/stories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: number) => request<{ success: boolean }>(`/minor/stories/${id}`, { method: "DELETE" }),
     reorder: (sprintId: number, storyIds: number[]) =>
       request<{ success: boolean }>(`/minor/sprints/${sprintId}/stories/reorder`, {
         method: "PUT",
         body: JSON.stringify({ storyIds }),
       }),
-    create: (data: {
-      sprintId?: number | null;
-      storyTypeCode?: string;
-      storyNumber?: string;
-      title: string;
-      asA?: string;
-      iWant?: string;
-      soThat?: string;
-      learningOutcomes?: number[];
-      status?: "todo" | "in_progress" | "done";
-      orderIndex?: number;
-      presentationData?: MinorStoryPresentationData | null;
-      acceptanceCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
-      qualityCriteria?: { text: string; isCompleted?: boolean; indent?: number }[];
-      evidence?: { type: "link" | "github" | "document" | "app"; title: string; url: string }[];
-    }) => request<MinorStory>("/minor/stories", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: number, data: {
-      sprintId?: number | null;
-      storyTypeCode?: string;
-      storyNumber?: string;
-      title?: string;
-      asA?: string | null;
-      iWant?: string | null;
-      soThat?: string | null;
-      learningOutcomes?: number[];
-      status?: "todo" | "in_progress" | "done";
-      orderIndex?: number;
-      presentationData?: MinorStoryPresentationData | null;
-      acceptanceCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
-      qualityCriteria?: { id?: number; text: string; isCompleted?: boolean; indent?: number }[];
-      evidence?: { id?: number; type: "link" | "github" | "document" | "app"; title: string; url: string }[];
-    }) => request<MinorStory>(`/minor/stories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    delete: (id: number) => request<{ success: boolean }>(`/minor/stories/${id}`, { method: "DELETE" }),
     toggleCriterion: (criterionId: number, isCompleted: boolean) =>
-      request<MinorStoryCriterion>(`/minor/criteria/${criterionId}/toggle`, { method: "PATCH", body: JSON.stringify({ isCompleted }) }),
+      request<MinorStoryCriterion>(`/minor/criteria/${criterionId}/toggle`, {
+        method: "PATCH",
+        body: JSON.stringify({ isCompleted }),
+      }),
   },
   vacations: {
     list: () => request<MinorVacation[]>("/minor/vacations"),

@@ -4,9 +4,9 @@ import { ExternalLink, ChevronDown, ChevronUp, CheckSquare, Square } from "lucid
 import Link from "next/link";
 import { t } from "@/lib/lang";
 import { toExternalHref } from "@/lib/uri";
-import { StoryTypeBadge, getStoryTypeDetails } from "@/app/minor/story-type-badge";
-import { getLUShortDesc } from "@/app/minor/constants";
+import { StoryTypeBadge, getStoryTypeDetails, STORY_TYPE_HOVER_BORDER, STORY_TYPE_HOVER_TEXT } from "@/app/minor/story-type-badge";
 import type { MinorSprint, MinorStoryWithSprint, MinorStoryType } from "@/lib/api";
+import { learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface StoryCardProps {
   story: MinorStoryWithSprint;
@@ -48,7 +48,7 @@ export function StoryCard({
       }}
       aria-label={story.title}
       style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-      className={`p-4 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 transition-all space-y-3 sm:space-y-4 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand`}
+      className={`p-4 sm:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 ${STORY_TYPE_HOVER_BORDER} hover:bg-zinc-800/40 transition-all space-y-3 sm:space-y-4 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand`}
     >
       {/* Top Row: Type Badge, Story Number, Sprint Tag, Status Select & Story Title */}
       <div className="space-y-2">
@@ -88,7 +88,7 @@ export function StoryCard({
               {story.learningOutcomes.map((lu) => (
                 <span
                   key={lu}
-                  title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                  title={learningOutcomeShort(lu) ? `LU ${lu} · ${learningOutcomeShort(lu)}` : `LU ${lu}`}
                   className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5 whitespace-nowrap"
                 >
                   LU {lu}
@@ -116,7 +116,7 @@ export function StoryCard({
         </div>
 
         {/* Title: Unconstrained width for long titles with break-words */}
-        <h3 className={`text-base sm:text-lg font-bold text-white tracking-tight break-words ${typeDetails.hoverTextClass} transition-colors`}>
+        <h3 className={`text-base sm:text-lg font-bold text-white tracking-tight break-words ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
           {story.title}
         </h3>
 
@@ -126,7 +126,7 @@ export function StoryCard({
             {story.learningOutcomes.map((lu) => (
               <span
                 key={lu}
-                title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                title={learningOutcomeShort(lu) ? `LU ${lu} · ${learningOutcomeShort(lu)}` : `LU ${lu}`}
                 className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/5 whitespace-nowrap"
               >
                 LU {lu}

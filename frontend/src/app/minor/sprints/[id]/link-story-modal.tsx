@@ -4,11 +4,11 @@ import type { MinorStoryType } from "@/lib/api";
 import { Plus, Link2, Search, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import { StoryTypeBadge } from "@/app/minor/story-type-badge";
-import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";
 import type { useStoryLinking } from "./use-story-linking";
+import { learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface LinkStoryModalProps {
   storyTypes: MinorStoryType[];
@@ -134,7 +134,7 @@ export function LinkStoryModal({ storyTypes, data, editor, linking }: LinkStoryM
                         {st.learningOutcomes.map((lu) => (
                           <span
                             key={lu}
-                            title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                            title={learningOutcomeShort(lu) ? `LU ${lu} · ${learningOutcomeShort(lu)}` : `LU ${lu}`}
                             className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-white/5"
                           >
                             LU {lu}

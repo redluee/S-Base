@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -9,12 +9,16 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorDashboardStats, type MinorSprint } from "@/lib/api";
-import { TOTAL_REQUIRED_LUS, LU_MIN_TARGETS } from "./dashboard-constants";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardLuProgress } from "./dashboard-lu-progress";
 import { DashboardOverview } from "./dashboard-overview";
 import { PeerHelpModal } from "./peer-help-modal";
-import { SprintCreateModal, type CalculatedDates } from "./sprint-create-modal";
+import { SprintFormModal } from "./sprints/sprint-form-modal";
+import { useSprintDates } from "./sprints/use-sprint-dates";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { LEARNING_OUTCOMES, TOTAL_REQUIRED_PASSES, LEARNING_OUTCOME_INFO } from "@/app/minor/learning-outcomes";
+import { today, DEFAULT_SPRINT_DAYS } from "@backend/shared/minor";
 
 interface MinorDashboardClientProps {
   initialStats: MinorDashboardStats;
@@ -22,10 +26,11 @@ interface MinorDashboardClientProps {
 }
 
 export function MinorDashboardClient({ initialStats, initialSprints }: MinorDashboardClientProps) {
+  const { error: actionError, report } = useActionError();
   const [stats, setStats] = useState<MinorDashboardStats>(initialStats);
   const [sprints, setSprints] = useState<MinorSprint[]>(initialSprints);
   const [isPeerModalOpen, setIsPeerModalOpen] = useState(false);
-  const [peerDate, setPeerDate] = useState(new Date().toISOString().slice(0, 10));
+  const [peerDate, setPeerDate] = useState(today());
   const [peerName, setPeerName] = useState("");
   const [peerDesc, setPeerDesc] = useState("");
   const [peerLinks, setPeerLinks] = useState("");
@@ -34,39 +39,24 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
   // Sprint Create Modal State
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [sprintNumber, setSprintNumber] = useState("");
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
-  const [durationDays, setDurationDays] = useState(14);
-  const [calculatedDates, setCalculatedDates] = useState<CalculatedDates>(null);
+  const [startDate, setStartDate] = useState(today());
+  const [durationDays, setDurationDays] = useState(DEFAULT_SPRINT_DAYS);
   const [savingSprint, setSavingSprint] = useState(false);
 
-  useEffect(() => {
-    if (!startDate || durationDays <= 0 || !isSprintModalOpen) return;
-    let isCurrent = true;
-    api.minor.sprints
-      .calculateDates(startDate, durationDays)
-      .then((res) => {
-        if (isCurrent) setCalculatedDates(res);
-      })
-      .catch((err) => console.error("Date calculation error:", err));
-    return () => {
-      isCurrent = false;
-    };
-  }, [startDate, durationDays, isSprintModalOpen]);
+  const calculatedDates = useSprintDates(startDate, durationDays, isSprintModalOpen, report);
 
   async function openCreateSprintModal() {
     setSprintNumber("");
-    setDurationDays(14);
-    const today = new Date().toISOString().slice(0, 10);
-    setStartDate(today);
+    setDurationDays(DEFAULT_SPRINT_DAYS);
+    const startOn = today();
+    setStartDate(startOn);
 
     try {
       const nextNum = await api.minor.sprints.nextNumber();
       setSprintNumber(nextNum.nextNumber);
 
-      const calc = await api.minor.sprints.calculateDates(today, 14);
-      setCalculatedDates(calc);
     } catch (err) {
-      console.error("Failed to precalculate sprint:", err);
+      report(err, "minor.actionFailed");
     }
 
     setIsSprintModalOpen(true);
@@ -87,7 +77,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
       setStats(updatedStats);
       setIsSprintModalOpen(false);
     } catch (err) {
-      console.error("Failed to create sprint:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingSprint(false);
     }
@@ -112,7 +102,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
       setPeerDesc("");
       setPeerLinks("");
     } catch (err) {
-      console.error("Failed to add peer help:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingPeer(false);
     }
@@ -123,15 +113,16 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
 
   const totalOfficial = Object.values(stats.officialPasses).reduce((a, b) => a + b, 0);
   const totalProjected = Object.values(stats.projectedPasses).reduce((a, b) => a + b, 0);
-  const officialPercentage = Math.min(100, Math.round((totalOfficial / TOTAL_REQUIRED_LUS) * 100));
-  const projectedPercentage = Math.min(100, Math.round((totalProjected / TOTAL_REQUIRED_LUS) * 100));
-  const allMinimumsMet = [1, 2, 3, 4, 5].every(
-    (lu) => (stats.officialPasses[lu] || 0) >= LU_MIN_TARGETS[lu]
+  const officialPercentage = Math.min(100, Math.round((totalOfficial / TOTAL_REQUIRED_PASSES) * 100));
+  const projectedPercentage = Math.min(100, Math.round((totalProjected / TOTAL_REQUIRED_PASSES) * 100));
+  const allMinimumsMet = LEARNING_OUTCOMES.every(
+    (lu) => (stats.officialPasses[lu] || 0) >= LEARNING_OUTCOME_INFO[lu].target
   );
-  const totalTargetMet = totalOfficial >= TOTAL_REQUIRED_LUS;
+  const totalTargetMet = totalOfficial >= TOTAL_REQUIRED_PASSES;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <InlineAlert>{actionError}</InlineAlert>
       {/* Page Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -225,7 +216,8 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
       )}
 
       {isSprintModalOpen && (
-        <SprintCreateModal
+        <SprintFormModal
+          editingSprint={null}
           sprintNumber={sprintNumber}
           setSprintNumber={setSprintNumber}
           startDate={startDate}
@@ -233,7 +225,7 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
           durationDays={durationDays}
           setDurationDays={setDurationDays}
           calculatedDates={calculatedDates}
-          savingSprint={savingSprint}
+          saving={savingSprint}
           onClose={() => setIsSprintModalOpen(false)}
           onSubmit={handleSaveSprint}
         />

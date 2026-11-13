@@ -4,7 +4,7 @@ import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprintFull, MinorStory, MinorStoryType } from "@/lib/api";
 import { StoryTypeBadge } from "@/app/minor/story-type-badge";
-import { getLUShortDesc } from "@/app/minor/constants";
+import { learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface SlideIntroProps {
   sprint: MinorSprintFull;
@@ -101,7 +101,7 @@ export function SlideIntro({ sprint, stories, storyTypes, onStart }: SlideIntroP
                 <span
                   key={lu}
                   className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-zinc-800 border border-white/10 text-brand"
-                  title={getLUShortDesc(lu)}
+                  title={learningOutcomeShort(lu)}
                 >
                   LU {lu}
                 </span>

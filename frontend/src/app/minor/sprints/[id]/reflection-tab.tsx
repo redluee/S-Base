@@ -2,8 +2,8 @@
 
 import { CheckSquare, Square, Save } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/app/minor/constants";
 import type { useSprintData } from "./use-sprint-data";
+import { LEARNING_OUTCOMES, learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface ReflectionTabProps {
   data: ReturnType<typeof useSprintData>;
@@ -99,7 +99,7 @@ export function ReflectionTab({ data }: ReflectionTabProps) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
-              {[1, 2, 3, 4, 5].map((luNum) => {
+              {LEARNING_OUTCOMES.map((luNum) => {
                 const assessItem = teacherAssessments.find((a) => a.learningOutcome === luNum);
                 const isPassed = assessItem?.assessment === "V";
                 return (
@@ -129,7 +129,7 @@ export function ReflectionTab({ data }: ReflectionTabProps) {
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold flex items-center gap-1.5">
-                        <span>LU {luNum}: {getLUShortDesc(luNum)}</span>
+                        <span>LU {luNum}: {learningOutcomeShort(luNum)}</span>
                         {isPassed && (
                           <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
                             V

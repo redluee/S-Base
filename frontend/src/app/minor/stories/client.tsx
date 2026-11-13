@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Layers, Plus } from "lucide-react";
 import { t } from "@/lib/lang";
 import {
@@ -14,15 +14,18 @@ import { StoryFilters } from "./story-filters";
 import { StoryList } from "./story-list";
 import { StoryViewModal } from "./story-view-modal";
 import { StoryCreateModal } from "./story-create-modal";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 interface MinorStoriesClientProps {
+  storyTypes: MinorStoryType[];
   initialStories: MinorStoryWithSprint[];
   sprints: MinorSprint[];
 }
 
-export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClientProps) {
+export function MinorStoriesClient({ initialStories, sprints, storyTypes }: MinorStoriesClientProps) {
+  const { error: actionError, report } = useActionError();
   const [stories, setStories] = useState<MinorStoryWithSprint[]>(initialStories);
-  const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>([]);
   const [viewingStoryId, setViewingStoryId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSprintId, setSelectedSprintId] = useState<string>("all");
@@ -49,9 +52,6 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
   const [newQualityCriteria, setNewQualityCriteria] = useState<{ text: string; isCompleted: boolean; indent?: number }[]>([]);
   const [savingNewStory, setSavingNewStory] = useState(false);
 
-  useEffect(() => {
-    api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
-  }, []);
 
   const viewingStory = stories.find((s) => s.id === viewingStoryId) || null;
 
@@ -90,8 +90,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
       const targetSprint = sprints.find((sp) => String(sp.id) === newSprintId);
       const sprintIdNum = newSprintId ? Number(newSprintId) : null;
 
-      const created = await api.minor.stories.create({
-        sprintId: sprintIdNum,
+      const created = await api.minor.stories.create(sprintIdNum, {
         storyTypeCode: newStoryTypeCode,
         storyNumber: newStoryNumber.trim() || undefined,
         title: newStoryTitle.trim(),
@@ -117,7 +116,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
         setViewingStoryId(created.id);
       }
     } catch (err) {
-      console.error("Failed to create story:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingNewStory(false);
     }
@@ -141,7 +140,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
         )
       );
     } catch (err) {
-      console.error("Failed to update story sprint:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -156,7 +155,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
 
   async function handleToggleCriterion(criterionId: number, isCompleted: boolean) {
     try {
-      await api.minor.sprints.stories.toggleCriterion(criterionId, isCompleted);
+      await api.minor.stories.toggleCriterion(criterionId, isCompleted);
       setStories((prev) =>
         prev.map((st) => ({
           ...st,
@@ -164,18 +163,18 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
         }))
       );
     } catch (err) {
-      console.error("Failed to toggle criterion:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
   async function handleStatusChange(storyId: number, newStatus: "todo" | "in_progress" | "done") {
     try {
-      await api.minor.sprints.stories.update(storyId, { status: newStatus });
+      await api.minor.stories.update(storyId, { status: newStatus });
       setStories((prev) =>
         prev.map((st) => (st.id === storyId ? { ...st, status: newStatus } : st))
       );
     } catch (err) {
-      console.error("Failed to update story status:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -287,6 +286,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <InlineAlert>{actionError}</InlineAlert>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -340,6 +340,7 @@ export function MinorStoriesClient({ initialStories, sprints }: MinorStoriesClie
       />
 
       <StoryFilters
+        storyTypes={storyTypes}
         sprints={sprints}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}

@@ -2,9 +2,8 @@
 
 import { GraduationCap, Check } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/app/minor/constants";
-import { LU_MIN_TARGETS } from "./dashboard-constants";
 import type { MinorDashboardStats } from "@/lib/api";
+import { LEARNING_OUTCOMES, learningOutcomeShort, LEARNING_OUTCOME_INFO } from "@/app/minor/learning-outcomes";
 
 interface DashboardLuProgressProps {
   stats: MinorDashboardStats;
@@ -92,9 +91,9 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
         {/* Minimum Target Requirements Status Pills */}
         <div className="pt-3 border-t border-white/5">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5].map((luNum) => {
+            {LEARNING_OUTCOMES.map((luNum) => {
               const count = stats.officialPasses[luNum] || 0;
-              const minTarget = LU_MIN_TARGETS[luNum];
+              const minTarget = LEARNING_OUTCOME_INFO[luNum].target;
               const isMet = count >= minTarget;
               const projectedCount = stats.projectedPasses[luNum] || 0;
               const isProjectedMet = projectedCount >= minTarget;
@@ -103,7 +102,7 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
               return (
                 <div
                   key={luNum}
-                  title={getLUShortDesc(luNum) || undefined}
+                  title={learningOutcomeShort(luNum) || undefined}
                   className={`px-3 py-2 rounded-xl border text-xs flex items-center justify-between ${
                     isMet
                       ? "bg-brand/10 border-brand/30 text-brand"
@@ -124,9 +123,9 @@ export function DashboardLuProgress({ stats, totalOfficial, totalProjected, offi
                     )}
                     <span className="font-semibold font-mono truncate">
                       LU {luNum}
-                      {getLUShortDesc(luNum) && (
+                      {learningOutcomeShort(luNum) && (
                         <span className="hidden sm:inline text-[10px] font-sans font-normal opacity-70 ml-1">
-                          · {getLUShortDesc(luNum)}
+                          · {learningOutcomeShort(luNum)}
                         </span>
                       )}
                     </span>

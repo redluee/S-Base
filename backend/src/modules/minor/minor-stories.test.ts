@@ -178,4 +178,17 @@ describe("MinorStories", () => {
     // Verify user isolation: tester cannot reorder admin's sprint
     expect(() => minor.stories.reorder(sprint.id, testerId, [story1.id, story2.id, story3.id])).toThrow(NotFoundError);
   });
+  it("imports a story from loosely shaped JSON and rejects JSON without a title", () => {
+    const sprint = minor.sprints.create(adminId, { startDate: "2031-09-01" });
+    const story = minor.stories.importFromJson(adminId, sprint.id, {
+      type: "rs",
+      name: "Imported",
+      lus: [2, 9],
+      criteria: [{ text: "Q", type: "quality" }],
+    });
+    expect(story).toMatchObject({ storyTypeCode: "RS", title: "Imported", learningOutcomes: [2] });
+    expect(story.criteria?.map((c) => c.type)).toEqual(["quality"]);
+    expect(() => minor.stories.importFromJson(adminId, sprint.id, { foo: 1 })).toThrow("minor.invalidStoryJson");
+    expect(() => minor.stories.importFromJson(testerId, sprint.id, { title: "x" })).toThrow("minor.sprintNotFound");
+  });
 });

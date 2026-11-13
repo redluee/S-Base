@@ -31,7 +31,7 @@ export function PresentationCriteriaModal({
     return getStoryTypeDetails(story.storyTypeCode, storyTypes);
   }, [story.storyTypeCode, storyTypes]);
 
-  const storyColor = typeDetails.color || "#00e3a4";
+  const storyColor = typeDetails.color;
 
   // Filter criteria by type
   const acceptanceCriteria = useMemo(() => {
@@ -52,7 +52,7 @@ export function PresentationCriteriaModal({
   // Toggle criterion completion status
   async function handleToggleCriterion(critId: number, currentStatus: boolean) {
     try {
-      await api.minor.sprints.stories.toggleCriterion(critId, !currentStatus);
+      await api.minor.stories.toggleCriterion(critId, !currentStatus);
       const updatedStory: MinorStory = {
         ...story,
         criteria: (story.criteria || []).map((c) =>

@@ -1,4 +1,8 @@
 export const minorNl: Record<string, string> = {
+  "minor.actionFailed": "Actie mislukt. Probeer het opnieuw.",
+  "minor.exportFailed": "Exporteren mislukt.",
+  "minor.saveFailed": "Opslaan mislukt.",
+  "Alle typen": "Alle typen",
   "minor.sprintNotFound": "Sprint niet gevonden.",
   "minor.targetSprintNotFound": "Doelsprint niet gevonden.",
   "minor.storyNotFound": "Story niet gevonden.",
@@ -13,6 +17,7 @@ export const minorNl: Record<string, string> = {
   "minor.storyTypeFieldsRequired": "Code en naam zijn verplicht.",
   "minor.peerHelpFieldsRequired": "Naam en beschrijving zijn verplicht.",
   "minor.feedbackFieldsRequired": "Alle feedbackvelden zijn verplicht.",
+  "minor.invalidStoryJson": "Deze JSON bevat geen geldige story (titel ontbreekt).",
   "minor.invalidDate": "Ongeldige datum. Gebruik het formaat JJJJ-MM-DD.",
   "Light theme": "Licht thema",
   "Dark theme": "Donker thema",

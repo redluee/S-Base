@@ -4,6 +4,7 @@ import { Calendar, Trash2, Sparkles, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprint } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { calculateSprintStatus } from "@backend/shared/minor";
 
 export type SprintCalculatedDates = {
   endDate: string;
@@ -22,7 +23,7 @@ interface SprintFormModalProps {
   setDurationDays: (v: number) => void;
   calculatedDates: SprintCalculatedDates;
   saving: boolean;
-  handleDeleteSprint: (id: number) => void;
+  handleDeleteSprint?: (id: number) => void;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -94,13 +95,7 @@ export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, 
 
             {/* Real-time Calculation Summary Box */}
             {calculatedDates && (() => {
-              const todayStr = new Date().toISOString().slice(0, 10);
-              const computedStatus =
-                startDate > todayStr
-                  ? "planned"
-                  : calculatedDates.endDate < todayStr
-                  ? "completed"
-                  : "active";
+              const computedStatus = calculateSprintStatus(startDate, calculatedDates.endDate);
 
               return (
                 <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2 text-xs">
@@ -139,7 +134,7 @@ export function SprintFormModal({ editingSprint, sprintNumber, setSprintNumber, 
             })()}
 
             <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-              {editingSprint ? (
+              {editingSprint && handleDeleteSprint ? (
                 <button
                   type="button"
                   onClick={() => handleDeleteSprint(editingSprint.id)}

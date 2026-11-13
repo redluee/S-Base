@@ -1,5 +1,6 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import db from "../../db/client";
+import { parseStory } from "./minor-import-parse";
 import { requireOwnedSprint } from "./minor-ownership";
 import { minorSprints, minorStories, minorStoryCriteria, minorStoryEvidence } from "../../db/schema";
 import type { MinorStory, MinorStoryPresentationData, MinorStoryWithSprint } from "../../types/shared";
@@ -76,6 +77,12 @@ export class MinorStories {
       sprintName: r.sprintName ?? undefined,
       sprintStatus: r.sprintStatus ?? undefined,
     }));
+  }
+
+  importFromJson(userId: number, sprintId: number, raw: unknown): MinorStory {
+    const story = parseStory(raw, 0);
+    if (!story) throw new ValidationError("minor.invalidStoryJson");
+    return this.create(userId, sprintId, story);
   }
 
   create(userId: number, sprintId: number | null | undefined, data: StoryInput & { title: string }): MinorStory {

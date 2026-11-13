@@ -1,11 +1,8 @@
 import React from "react";
 import { Page, Text, View } from "@react-pdf/renderer";
 import type { MinorSprintFull } from "@/lib/api";
-import {
-  LU_MASTER_DEFINITIONS,
-  findSprintByNumber,
-  resolveSprintLuLevel,
-} from "@/app/minor/excel/workbook";
+import { LU_MASTER_DEFINITIONS, luLevelGrid } from "@/app/minor/excel/lu";
+import { LEARNING_OUTCOMES, SPRINT_NUMBERS } from "@/app/minor/learning-outcomes";
 import { COLOR_TEXT_DARK, styles } from "./styles";
 
 interface DashboardPageProps {
@@ -14,21 +11,13 @@ interface DashboardPageProps {
 }
 
 export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) {
-  // Pre-calculate evaluation levels across all 8 sprints for dashboard
-  const sprintLuLevels: Record<number, Record<number, string>> = {};
-  for (let sNum = 1; sNum <= 8; sNum++) {
-    sprintLuLevels[sNum] = {};
-    const sp = findSprintByNumber(sprints, sNum);
-    for (let lu = 1; lu <= 5; lu++) {
-      sprintLuLevels[sNum][lu] = resolveSprintLuLevel(sp, lu);
-    }
-  }
+  const sprintLuLevels = luLevelGrid(sprints);
 
   let totalAchieved = 0;
   const luCounts: Record<number, number> = {};
-  for (let lu = 1; lu <= 5; lu++) {
+  for (const lu of LEARNING_OUTCOMES) {
     let count = 0;
-    for (let sNum = 1; sNum <= 8; sNum++) {
+    for (const sNum of SPRINT_NUMBERS) {
       if (sprintLuLevels[sNum][lu] === "V") count++;
     }
     luCounts[lu] = count;
@@ -36,9 +25,9 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
   }
 
   const sprintTotals: Record<number, number> = {};
-  for (let sNum = 1; sNum <= 8; sNum++) {
+  for (const sNum of SPRINT_NUMBERS) {
     let count = 0;
-    for (let lu = 1; lu <= 5; lu++) {
+    for (const lu of LEARNING_OUTCOMES) {
       if (sprintLuLevels[sNum][lu] === "V") count++;
     }
     sprintTotals[sNum] = count;
@@ -67,13 +56,13 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
           <View style={[styles.dashHeaderCell, { width: "9.5%" }]}>
             <Text style={styles.dashHeaderTextWhite}>Behaald</Text>
           </View>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((sNum) => (
+          {SPRINT_NUMBERS.map((sNum) => (
             <View
               key={sNum}
               style={[
                 styles.dashHeaderCell,
                 { width: "8.75%" },
-                sNum === 8 ? { borderRightWidth: 0 } : {},
+                sNum === SPRINT_NUMBERS.length ? { borderRightWidth: 0 } : {},
               ]}
             >
               <Text style={styles.dashHeaderTextLink}>Sprint {sNum}</Text>
@@ -93,13 +82,13 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
             <View style={[styles.tableCell, { width: "9.5%", alignItems: "center" }]}>
               <Text style={styles.dashDataTextBold}>{luCounts[luDef.lu]}</Text>
             </View>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((sNum) => (
+            {SPRINT_NUMBERS.map((sNum) => (
               <View
                 key={sNum}
                 style={[
                   styles.tableCell,
                   { width: "8.75%", alignItems: "center" },
-                  sNum === 8 ? styles.tableCellLast : {},
+                  sNum === SPRINT_NUMBERS.length ? styles.tableCellLast : {},
                 ]}
               >
                 <Text style={styles.dashDataText}>{sprintLuLevels[sNum][luDef.lu] || "-"}</Text>
@@ -119,13 +108,13 @@ export function DashboardPdfPage({ sprints, portfolioUrl }: DashboardPageProps) 
           <View style={[styles.tableCell, { width: "9.5%", alignItems: "center" }]}>
             <Text style={styles.dashDataTextBold}>{totalAchieved}</Text>
           </View>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((sNum) => (
+          {SPRINT_NUMBERS.map((sNum) => (
             <View
               key={sNum}
               style={[
                 styles.tableCell,
                 { width: "8.75%", alignItems: "center" },
-                sNum === 8 ? styles.tableCellLast : {},
+                sNum === SPRINT_NUMBERS.length ? styles.tableCellLast : {},
               ]}
             >
               <Text style={styles.dashDataTextBold}>{sprintTotals[sNum]}</Text>

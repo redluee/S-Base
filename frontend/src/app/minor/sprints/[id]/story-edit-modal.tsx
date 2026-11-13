@@ -3,13 +3,14 @@ import type { MinorStoryType } from "@/lib/api";
 
 import { Trash2, CheckSquare, Square, Sparkles, Unlink, Copy, Check, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { useStoryEditor } from "./use-story-editor";
 import type { useStoryLinking } from "./use-story-linking";
 
 import { StoryEditCriteria } from "./story-edit-criteria";
 import { StoryEditEvidence } from "./story-edit-evidence";
+import { LEARNING_OUTCOMES, learningOutcomeShort } from "@/app/minor/learning-outcomes";
+import { StoryTypeOptions } from "@/app/minor/story-type-badge";
 
 interface StoryEditModalProps {
   storyTypes: MinorStoryType[];
@@ -74,16 +75,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
                 }}
                 className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand cursor-pointer"
               >
-                <option value="US">{t("US - User Story")}</option>
-                <option value="RS">{t("RS - Research Story")}</option>
-                <option value="LS">{t("LS - Learning Story")}</option>
-                {storyTypes
-                  .filter((t) => !["US", "RS", "LS"].includes(t.code))
-                  .map((t) => (
-                    <option key={t.id} value={t.code}>
-                      {t.name} ({t.code})
-                    </option>
-                  ))}
+                <StoryTypeOptions storyTypes={storyTypes} />
               </select>
             </div>
             <div>
@@ -155,7 +147,7 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
               {t("Gekoppelde Leeruitkomsten (1 t/m 5)")}
             </label>
             <div className="flex flex-wrap gap-2">
-              {[1, 2, 3, 4, 5].map((lu) => {
+              {LEARNING_OUTCOMES.map((lu) => {
                 const isChecked = selectedLUs.includes(lu);
                 return (
                   <button
@@ -175,9 +167,9 @@ export function StoryEditModal({ storyTypes, editor, linking }: StoryEditModalPr
                     {isChecked ? <CheckSquare className="size-4 shrink-0" /> : <Square className="size-4 shrink-0" />}
                     <span>
                       <span className="font-mono font-bold">LU {lu}</span>
-                      {getLUShortDesc(lu) && (
+                      {learningOutcomeShort(lu) && (
                         <span className={isChecked ? "text-brand/90 font-medium ml-1" : "text-zinc-400 font-normal ml-1"}>
-                          · {getLUShortDesc(lu)}
+                          · {learningOutcomeShort(lu)}
                         </span>
                       )}
                     </span>

@@ -1,10 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import ExcelJS from "exceljs";
-import {
-  buildIntegraalSprintLogboekWorkbook,
-  generateIntegraalSprintLogboekBlob,
-  validateSprintForExport,
-} from "./workbook";
+import { buildIntegraalSprintLogboekWorkbook, generateIntegraalSprintLogboekBlob } from "./workbook";
+import { validateSprintForExport } from "../export-validation";
 import type { MinorSprintFull } from "@/lib/api";
 
 describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
@@ -288,7 +285,7 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     expect(blob.size).toBeGreaterThan(5000);
   });
 
-  it("automatically resolves 'V' for realized LUs (completed stories) in Logboek and Dashboard even if selfEvaluations has '-'", () => {
+  it("uses the shared pass rule: self-evaluated or teacher V passes, teacher O or NV fails, and drafts missing argumentation from stories", () => {
     const mockSprints: MinorSprintFull[] = [
       {
         id: 1,
@@ -334,14 +331,16 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
         ],
         feedback: [],
         selfEvaluations: [
-          // Level is "-" for both LU 1 and LU 2, and empty argumentation for LU 2
-          { id: 1, sprintId: 1, learningOutcome: 1, level: "-", argumentation: "Custom LU1 argumentation", updatedAt: "" },
-          { id: 2, sprintId: 1, learningOutcome: 2, level: "-", argumentation: "", updatedAt: "" },
-          { id: 3, sprintId: 1, learningOutcome: 3, level: "-", argumentation: "", updatedAt: "" },
+          { id: 1, sprintId: 1, learningOutcome: 1, level: "V", argumentation: "Custom LU1 argumentation", updatedAt: "" },
+          { id: 2, sprintId: 1, learningOutcome: 2, level: "V", argumentation: "", updatedAt: "" },
+          { id: 3, sprintId: 1, learningOutcome: 3, level: "NV", argumentation: "", updatedAt: "" },
           { id: 4, sprintId: 1, learningOutcome: 4, level: "-", argumentation: "", updatedAt: "" },
           { id: 5, sprintId: 1, learningOutcome: 5, level: "-", argumentation: "", updatedAt: "" },
         ],
-        teacherAssessments: [],
+        teacherAssessments: [
+          { id: 1, sprintId: 1, learningOutcome: 2, assessment: "O", notes: "", evaluatedAt: "" },
+          { id: 2, sprintId: 1, learningOutcome: 5, assessment: "V", notes: "", evaluatedAt: "" },
+        ],
         reflection: null,
       },
     ];
@@ -350,87 +349,12 @@ describe("minor-excel export (Integraal_Sprint_Logboek_v5.xlsx)", () => {
     const wsLog = wb.getWorksheet("Logboek")!;
     const wsDash = wb.getWorksheet("Dashboard")!;
 
-    // Logboek:
-    // LU 1 (Row 18) - realized via story 101 -> level "V", custom argumentation preserved
-    expect(wsLog.getCell("C18").value).toBe("V");
+    expect(["C18", "C19", "C20", "C21", "C22"].map((cell) => wsLog.getCell(cell).value)).toEqual(["V", "O", "O", "-", "V"]);
     expect(wsLog.getCell("D18").value).toBe("Custom LU1 argumentation");
-
-    // LU 2 (Row 19) - realized via story 101 -> level "V", fallback argumentation with PR link
-    expect(wsLog.getCell("C19").value).toBe("V");
     expect(wsLog.getCell("D19").value as string).toContain("Voltooide stories voor LU 2:");
-    expect(wsLog.getCell("D19").value as string).toContain("Realized LU 1 and LU 2 story");
     expect(wsLog.getCell("D19").value as string).toContain("PR #42");
-
-    // LU 3 (Row 20) - not selected in any story in sprint -> "O" instead of "-"
-    expect(wsLog.getCell("C20").value).toBe("O");
-
-    // Dashboard:
-    // D2 (Sprint 1 LU 1): formula pointing to Logboek!C18 with result "V"
-    const cellD2 = wsDash.getCell("D2").value as { formula: string; result: string };
-    expect(cellD2.result).toBe("V");
-
-    // D3 (Sprint 1 LU 2): formula pointing to Logboek!C19 with result "V"
-    const cellD3 = wsDash.getCell("D3").value as { formula: string; result: string };
-    expect(cellD3.result).toBe("V");
-
-    // D4 (Sprint 1 LU 3): not selected in any story -> result "O"
-    const cellD4 = wsDash.getCell("D4").value as { formula: string; result: string };
-    expect(cellD4.result).toBe("O");
-  });
-
-  it("resolves '-' when an LU is selected in a story that is not yet completed (and not rated), and 'O' when not selected", () => {
-    const mockSprints: MinorSprintFull[] = [
-      {
-        id: 1,
-        userId: 1,
-        sprintNumber: "1",
-        name: "Sprint 1",
-        startDate: "2026-09-01",
-        endDate: "2026-09-14",
-        durationDays: 14,
-        showAndGrowDate: "2026-09-14",
-        extendedDays: 0,
-        extensionReason: null,
-        status: "active",
-        createdAt: "2026-09-01T00:00:00Z",
-        updatedAt: "2026-09-01T00:00:00Z",
-        stories: [
-          {
-            id: 101,
-            sprintId: 1,
-            userId: 1,
-            storyTypeCode: "US",
-            storyNumber: "1.1",
-            title: "In progress story for LU 4",
-            asA: "student",
-            iWant: "in progress",
-            soThat: "learning",
-            learningOutcomes: [4],
-            status: "todo",
-            orderIndex: 0,
-            createdAt: "2026-09-01T00:00:00Z",
-            criteria: [],
-            evidence: [],
-          },
-        ],
-        feedback: [],
-        selfEvaluations: [],
-        teacherAssessments: [],
-        reflection: null,
-      },
-    ];
-
-    const wb = buildIntegraalSprintLogboekWorkbook(mockSprints);
-    const wsLog = wb.getWorksheet("Logboek")!;
-
-    // LU 4 is selected in a planned/todo story, but not yet completed and not rated -> "-"
-    expect(wsLog.getCell("C21").value).toBe("-");
-
-    // LU 1, 2, 3, 5 are not selected in any story in this sprint -> "O"
-    expect(wsLog.getCell("C18").value).toBe("O");
-    expect(wsLog.getCell("C19").value).toBe("O");
-    expect(wsLog.getCell("C20").value).toBe("O");
-    expect(wsLog.getCell("C22").value).toBe("O");
+    const dashboardResults = ["D2", "D3", "D4"].map((cell) => (wsDash.getCell(cell).value as { result: string }).result);
+    expect(dashboardResults).toEqual(["V", "O", "O"]);
   });
 
   describe("validateSprintForExport", () => {

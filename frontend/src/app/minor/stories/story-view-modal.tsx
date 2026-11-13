@@ -5,9 +5,9 @@ import Link from "next/link";
 import { t } from "@/lib/lang";
 import { toExternalHref } from "@/lib/uri";
 import { StoryTypeBadge } from "@/app/minor/story-type-badge";
-import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { MinorSprint, MinorStoryWithSprint, MinorStoryType } from "@/lib/api";
+import { learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface StoryViewModalProps {
   storyTypes: MinorStoryType[];
@@ -163,9 +163,9 @@ export function StoryViewModal({ storyTypes, sprints, viewingStory, handleToggle
                       <CheckSquare className="size-4" />
                       <span>
                         LU {lu}
-                        {getLUShortDesc(lu) && (
+                        {learningOutcomeShort(lu) && (
                           <span className="text-brand/80 font-normal ml-1">
-                            · {getLUShortDesc(lu)}
+                            · {learningOutcomeShort(lu)}
                           </span>
                         )}
                       </span>

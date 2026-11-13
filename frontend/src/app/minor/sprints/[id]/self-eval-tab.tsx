@@ -3,8 +3,8 @@
 import { Sparkles, Save, Check } from "lucide-react";
 import { toExternalHref } from "@/lib/uri";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/app/minor/constants";
 import type { useSprintData } from "./use-sprint-data";
+import { LEARNING_OUTCOMES, learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface SelfEvalTabProps {
   data: ReturnType<typeof useSprintData>;
@@ -68,7 +68,7 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
         </div>
 
         <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map((luNum) => {
+          {LEARNING_OUTCOMES.map((luNum) => {
             const evalItem = selfEvals.find((e) => e.learningOutcome === luNum);
             const assessItem = teacherAssessments.find((a) => a.learningOutcome === luNum);
 
@@ -103,9 +103,9 @@ export function SelfEvalTab({ data }: SelfEvalTabProps) {
                     </span>
                     <h3 className="text-sm font-bold text-white">
                       {t(`Leeruitkomst ${luNum}`)}
-                      {getLUShortDesc(luNum) && (
+                      {learningOutcomeShort(luNum) && (
                         <span className="text-zinc-400 font-normal text-xs ml-1 sm:ml-2">
-                          ({getLUShortDesc(luNum)})
+                          ({learningOutcomeShort(luNum)})
                         </span>
                       )}
                     </h3>

@@ -3,8 +3,12 @@
 import { Search } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprint } from "@/lib/api";
+import { LEARNING_OUTCOMES } from "@/app/minor/learning-outcomes";
+import { StoryTypeOptions } from "@/app/minor/story-type-badge";
+import type { MinorStoryType } from "@/lib/api";
 
 interface StoryFiltersProps {
+  storyTypes: MinorStoryType[];
   sprints: MinorSprint[];
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -18,7 +22,7 @@ interface StoryFiltersProps {
   setSelectedLU: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export function StoryFilters({ sprints, searchQuery, setSearchQuery, selectedSprintId, setSelectedSprintId, selectedType, setSelectedType, selectedStatus, setSelectedStatus, selectedLU, setSelectedLU }: StoryFiltersProps) {
+export function StoryFilters({ storyTypes, sprints, searchQuery, setSearchQuery, selectedSprintId, setSelectedSprintId, selectedType, setSelectedType, selectedStatus, setSelectedStatus, selectedLU, setSelectedLU }: StoryFiltersProps) {
   return (
     <div className="p-4 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -55,10 +59,8 @@ export function StoryFilters({ sprints, searchQuery, setSearchQuery, selectedSpr
           onChange={(e) => setSelectedType(e.target.value)}
           className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-brand transition-colors cursor-pointer"
         >
-          <option value="all">{t("Alle Typen (US / RS / LS)")}</option>
-          <option value="US">{t("US - User Story")}</option>
-          <option value="RS">{t("RS - Research Story")}</option>
-          <option value="LS">{t("LS - Learning Story")}</option>
+          <option value="all">{t("Alle typen")}</option>
+          <StoryTypeOptions storyTypes={storyTypes} />
         </select>
 
         {/* Status Filter */}
@@ -87,7 +89,7 @@ export function StoryFilters({ sprints, searchQuery, setSearchQuery, selectedSpr
         >
           {t("Alle")}
         </button>
-        {[1, 2, 3, 4, 5].map((lu) => (
+        {LEARNING_OUTCOMES.map((lu) => (
           <button
             key={lu}
             onClick={() => setSelectedLU(selectedLU === String(lu) ? "all" : String(lu))}

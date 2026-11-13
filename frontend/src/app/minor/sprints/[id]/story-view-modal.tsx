@@ -6,10 +6,10 @@ import { toExternalHref } from "@/lib/uri";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
 import { StoryTypeBadge } from "@/app/minor/story-type-badge";
-import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";
+import { learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface StoryViewModalProps {
   storyTypes: MinorStoryType[];
@@ -68,7 +68,7 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
                 value={viewingStory.status}
                 onChange={async (e) => {
                   const newStatus = e.target.value as "todo" | "in_progress" | "done";
-                  await api.minor.sprints.stories.update(viewingStory.id, { status: newStatus });
+                  await api.minor.stories.update(viewingStory.id, { status: newStatus });
                   await reloadSprint();
                 }}
                 className={`text-xs font-semibold uppercase px-3 py-1.5 rounded-lg border cursor-pointer ${
@@ -125,9 +125,9 @@ export function StoryViewModal({ storyTypes, viewingStory, setViewingStoryId, se
                     <CheckSquare className="size-4" />
                     <span>
                       LU {lu}
-                      {getLUShortDesc(lu) && (
+                      {learningOutcomeShort(lu) && (
                         <span className="text-brand/80 font-normal ml-1">
-                          · {getLUShortDesc(lu)}
+                          · {learningOutcomeShort(lu)}
                         </span>
                       )}
                     </span>

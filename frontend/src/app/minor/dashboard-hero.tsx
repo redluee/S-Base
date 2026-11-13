@@ -3,8 +3,8 @@
 import { Calendar, Clock, ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { t } from "@/lib/lang";
-import { TOTAL_REQUIRED_LUS } from "./dashboard-constants";
 import type { MinorDashboardStats } from "@/lib/api";
+import { TOTAL_REQUIRED_PASSES } from "@/app/minor/learning-outcomes";
 
 interface DashboardHeroProps {
   stats: MinorDashboardStats;
@@ -130,7 +130,7 @@ export function DashboardHero({ stats, activeSprint, totalOfficial, totalProject
                   <span className="text-xl font-bold text-brand font-mono">
                     {totalOfficial}
                   </span>
-                  <span className="text-xs font-mono text-zinc-500">/ {TOTAL_REQUIRED_LUS}</span>
+                  <span className="text-xs font-mono text-zinc-500">/ {TOTAL_REQUIRED_PASSES}</span>
                 </div>
               </div>
               <div className="w-full bg-zinc-900 rounded-full h-1 mt-2 overflow-hidden">
@@ -148,7 +148,7 @@ export function DashboardHero({ stats, activeSprint, totalOfficial, totalProject
               {t("Prognose inclusief actieve sprints")}:
             </span>
             <span className="font-mono text-emerald-400 font-semibold">
-              {totalProjected} / {TOTAL_REQUIRED_LUS} {t("voldoendes verwacht")} ({projectedPercentage}%)
+              {totalProjected} / {TOTAL_REQUIRED_PASSES} {t("voldoendes verwacht")} ({projectedPercentage}%)
             </span>
             <span className="text-[11px] text-zinc-500 block mt-0.5">
               {t("Max. 1 voldoende per leeruitkomst per sprint")}

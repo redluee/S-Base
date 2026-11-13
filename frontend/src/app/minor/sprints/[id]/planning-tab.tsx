@@ -4,12 +4,12 @@ import type { MinorStoryType, MinorStory } from "@/lib/api";
 import { Layers, Plus, Edit3, CheckSquare, Presentation, Download, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
-import { StoryTypeBadge, getStoryTypeDetails } from "@/app/minor/story-type-badge";
-import { getLUShortDesc } from "@/app/minor/constants";
+import { StoryTypeBadge, getStoryTypeDetails, STORY_TYPE_HOVER_BORDER, STORY_TYPE_HOVER_TEXT } from "@/app/minor/story-type-badge";
 import type { useSprintData } from "./use-sprint-data";
 import type { useStoryEditor } from "./use-story-editor";
 import type { useStoryLinking } from "./use-story-linking";
 import type { useStoryImport } from "./use-story-import";
+import { learningOutcomeShort } from "@/app/minor/learning-outcomes";
 
 interface PlanningTabProps {
   storyTypes: MinorStoryType[];
@@ -119,7 +119,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                   data-story-id={st.id}
                   onClick={() => setViewingStoryId(st.id)}
                   style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-                  className={`scroll-mt-24 p-3.5 sm:p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/50 transition-all cursor-pointer flex flex-col gap-2.5 sm:gap-3 group`}
+                  className={`scroll-mt-24 p-3.5 sm:p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${STORY_TYPE_HOVER_BORDER} hover:bg-zinc-800/50 transition-all cursor-pointer flex flex-col gap-2.5 sm:gap-3 group`}
                 >
                   {/* Top Row: Type Badge + Story Number (Left) & Status Dropdown / Desktop Title */}
                   <div className="flex items-center justify-between gap-2.5">
@@ -140,7 +140,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
 
                     {/* Desktop only: Title placed inline */}
                     <div className="hidden sm:flex items-center min-w-0 flex-1 ml-1">
-                      <h3 className={`text-sm font-semibold text-white tracking-tight truncate ${typeDetails.hoverTextClass} transition-colors`}>
+                      <h3 className={`text-sm font-semibold text-white tracking-tight truncate ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
                         {st.title}
                       </h3>
                     </div>
@@ -151,7 +151,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                         value={st.status}
                         onChange={async (e) => {
                           const newStatus = e.target.value as "todo" | "in_progress" | "done";
-                          await api.minor.sprints.stories.update(st.id, { status: newStatus });
+                          await api.minor.stories.update(st.id, { status: newStatus });
                           await reloadSprint();
                         }}
                         className={`text-[10px] font-semibold uppercase px-2 py-1 rounded border cursor-pointer ${
@@ -171,7 +171,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
 
                   {/* Mobile Title Row: Full width, clean wrapping */}
                   <div className="sm:hidden">
-                    <h3 className={`text-sm font-semibold text-white tracking-tight break-words leading-snug ${typeDetails.hoverTextClass} transition-colors`}>
+                    <h3 className={`text-sm font-semibold text-white tracking-tight break-words leading-snug ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
                       {st.title}
                     </h3>
                   </div>
@@ -187,7 +187,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                           {st.learningOutcomes.map((lu) => (
                             <span
                               key={lu}
-                              title={getLUShortDesc(lu) ? `LU ${lu} · ${getLUShortDesc(lu)}` : `LU ${lu}`}
+                              title={learningOutcomeShort(lu) ? `LU ${lu} · ${learningOutcomeShort(lu)}` : `LU ${lu}`}
                               className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-white/5 whitespace-nowrap"
                             >
                               LU {lu}
@@ -220,7 +220,7 @@ export function PlanningTab({ storyTypes, setViewingStoryId, setEditingPresentat
                           value={st.status}
                           onChange={async (e) => {
                             const newStatus = e.target.value as "todo" | "in_progress" | "done";
-                            await api.minor.sprints.stories.update(st.id, { status: newStatus });
+                            await api.minor.stories.update(st.id, { status: newStatus });
                             await reloadSprint();
                           }}
                           className={`text-[10px] font-semibold uppercase px-2 py-1 rounded border cursor-pointer ${

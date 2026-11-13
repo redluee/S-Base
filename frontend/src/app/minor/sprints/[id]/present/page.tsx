@@ -9,7 +9,7 @@ export default async function MinorSprintPresentPage({ params }: { params: Promi
 
   const [sprint, storyTypes] = await Promise.all([
     notFoundOn404(serverApi.minor.sprints.get(sprintId)),
-    serverApi.minor.storyTypes.list().catch(() => []),
+    serverApi.minor.storyTypes.list(),
   ]);
 
   return <SprintPresentClient initialSprint={sprint} initialStoryTypes={storyTypes} />;

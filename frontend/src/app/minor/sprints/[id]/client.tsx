@@ -24,6 +24,8 @@ import { StoryImportModal } from "./story-import-modal";
 import { LinkStoryModal } from "./link-story-modal";
 import { UnlinkStoryModal } from "./unlink-story-modal";
 import { ExportWarningModal } from "./export-warning-modal";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 interface MinorSprintDetailClientProps {
   initialSprint: MinorSprintFull;
@@ -31,16 +33,17 @@ interface MinorSprintDetailClientProps {
 }
 
 export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: MinorSprintDetailClientProps) {
-  const data = useSprintData(initialSprint);
+  const { error: actionError, report } = useActionError();
+  const data = useSprintData(initialSprint, report);
   const { sprint, setSprint, reloadSprint, getCurrentFullSprint, selfEvals, handleSaveEvalsAndAssessments, handleSaveReflection } = data;
   const [activeTab, setActiveTab] = useState<Tab>("planning");
-  const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
+  const storyTypes = initialStoryTypes;
   const [viewingStoryId, setViewingStoryId] = useState<number | null>(null);
 
-  const editor = useStoryEditor(sprint, setSprint, storyTypes, reloadSprint, setViewingStoryId);
-  const linking = useStoryLinking(sprint, setSprint, reloadSprint, setViewingStoryId);
-  const importer = useStoryImport(sprint, reloadSprint, setViewingStoryId);
-  const exporter = useSprintExport(sprint, selfEvals, getCurrentFullSprint);
+  const editor = useStoryEditor(sprint, setSprint, storyTypes, reloadSprint, setViewingStoryId, report);
+  const linking = useStoryLinking(sprint, setSprint, reloadSprint, setViewingStoryId, report);
+  const importer = useStoryImport(sprint, reloadSprint, setViewingStoryId, report);
+  const exporter = useSprintExport(sprint, selfEvals, getCurrentFullSprint, report);
 
   // Presentation State
   const [isPresentationOpen, setIsPresentationOpen] = useState(() => {
@@ -52,10 +55,6 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
   const [editingPresentationStory, setEditingPresentationStory] = useState<MinorStory | null>(null);
 
   const viewingStory = sprint.stories.find((s) => s.id === viewingStoryId) || null;
-
-  useEffect(() => {
-    api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
-  }, []);
 
   // Keyboard shortcut Ctrl+S / Cmd+S
   const saveActionRef = useRef<() => void>(() => {});
@@ -90,6 +89,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
       <SprintHeader setIsPresentationOpen={setIsPresentationOpen} data={data} exporter={exporter} />
 
       <SprintBanners hasFewLUs={hasFewLUs} missingLU5={missingLU5} uniqueLUsInSprint={uniqueLUsInSprint} data={data} />
@@ -182,7 +182,7 @@ export function MinorSprintDetailClient({ initialSprint, initialStoryTypes }: Mi
         <PresentationStoryEditor
           story={editingPresentationStory}
           onSave={async (data) => {
-            const updated = await api.minor.sprints.stories.update(editingPresentationStory.id, {
+            const updated = await api.minor.stories.update(editingPresentationStory.id, {
               presentationData: data,
             });
             if (updated) {

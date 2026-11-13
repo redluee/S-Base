@@ -2,26 +2,35 @@
 
 import { api } from "@/lib/api";
 import { useState } from "react";
-import { downloadSprintPDF } from "@/app/minor/pdf/portfolio-pdf";
-import { downloadSprintExcel, validateSprintForExport } from "@/app/minor/excel/workbook";
-import { copySprintJsonToClipboard } from "@/app/minor/sprint-export";
+import { copySprintJson, downloadLogboek } from "@/app/minor/export-files";
+import { validateSprintForExport } from "@/app/minor/export-validation";
 import type { MinorSprintFull, MinorSelfEvaluation } from "@/lib/api";
 
-export function useSprintExport(sprint: MinorSprintFull, selfEvals: MinorSelfEvaluation[], getCurrentFullSprint: () => MinorSprintFull) {
+export function useSprintExport(
+  sprint: MinorSprintFull,
+  selfEvals: MinorSelfEvaluation[],
+  getCurrentFullSprint: () => MinorSprintFull,
+  report: (err: unknown, fallbackKey: string) => void,
+) {
   const [copiedSprintExport, setCopiedSprintExport] = useState(false);
 
   const [pendingExportType, setPendingExportType] = useState<"pdf" | "excel" | null>(null);
   const [exportValidationIssues, setExportValidationIssues] = useState<string[]>([]);
 
   function handleExportSprintJson() {
-    copySprintJsonToClipboard(sprint);
-    setCopiedSprintExport(true);
-    setTimeout(() => setCopiedSprintExport(false), 2500);
+    copySprintJson(sprint.id)
+      .then(() => {
+        setCopiedSprintExport(true);
+        setTimeout(() => setCopiedSprintExport(false), 2500);
+      })
+      .catch((err) => report(err, "minor.exportFailed"));
   }
 
-  // Export with Pre-check (US 6.2)
+  function download(type: "pdf" | "excel", data: MinorSprintFull) {
+    downloadLogboek(type === "pdf" ? "pdf" : "xlsx", [data]).catch((err) => report(err, "minor.exportFailed"));
+  }
+
   function handleTriggerExport(type: "pdf" | "excel") {
-    // Auto-save evaluations to backend in background if exporting
     api.minor.sprints.saveSelfEvaluations(
       sprint.id,
       selfEvals.map((e) => ({
@@ -29,7 +38,7 @@ export function useSprintExport(sprint: MinorSprintFull, selfEvals: MinorSelfEva
         level: e.level,
         argumentation: e.argumentation || "",
       }))
-    ).catch(() => {});
+    ).catch((err) => report(err, "minor.saveFailed"));
 
     const currentData = getCurrentFullSprint();
     const issues = validateSprintForExport(currentData);
@@ -38,18 +47,13 @@ export function useSprintExport(sprint: MinorSprintFull, selfEvals: MinorSelfEva
       setPendingExportType(type);
     } else {
       setExportValidationIssues([]);
-      if (type === "pdf") downloadSprintPDF(currentData);
-      else downloadSprintExcel(currentData);
+      download(type, currentData);
     }
   }
 
   function handleConfirmExportIgnore() {
     const currentData = getCurrentFullSprint();
-    if (pendingExportType === "pdf") {
-      downloadSprintPDF(currentData);
-    } else if (pendingExportType === "excel") {
-      downloadSprintExcel(currentData);
-    }
+    if (pendingExportType) download(pendingExportType, currentData);
     setPendingExportType(null);
     setExportValidationIssues([]);
   }

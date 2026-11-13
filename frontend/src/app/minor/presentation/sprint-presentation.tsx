@@ -113,7 +113,7 @@ export function SprintPresentation({
       return "#00e3a4"; // Brand signal green
     }
     const typeDetails = getStoryTypeDetails(currentStory.storyTypeCode, storyTypes);
-    return typeDetails.color || "#00e3a4";
+    return typeDetails.color;
   }, [isIntroSlide, isOutroSlide, currentStory, storyTypes]);
 
   const currentStoryTypeCode = useMemo(() => {
@@ -281,7 +281,7 @@ export function SprintPresentation({
   async function handleSaveStoryPresentation(data: MinorStoryPresentationData) {
     if (!editingStory) return;
     try {
-      const updated = await api.minor.sprints.stories.update(editingStory.id, {
+      const updated = await api.minor.stories.update(editingStory.id, {
         presentationData: data,
       });
       if (updated && onStoryUpdated) {

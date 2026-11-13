@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { t } from "@/lib/lang";
 import { api, type MinorVacation, type MinorStoryType, type MinorSettings } from "@/lib/api";
 import { ExportSettingsSection } from "./export-settings-section";
@@ -8,6 +8,8 @@ import { VacationSection } from "./vacation-section";
 import { StoryTypeSection } from "./story-type-section";
 import { VacationModal } from "./vacation-modal";
 import { StoryTypeModal } from "./story-type-modal";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 interface MinorSettingsClientProps {
   initialVacations: MinorVacation[];
@@ -16,6 +18,7 @@ interface MinorSettingsClientProps {
 }
 
 export function MinorSettingsClient({ initialVacations, initialStoryTypes, initialSettings }: MinorSettingsClientProps) {
+  const { error: actionError, report } = useActionError();
   const [vacations, setVacations] = useState<MinorVacation[]>(initialVacations);
   const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
 
@@ -44,9 +47,6 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   const [typeFocusTarget, setTypeFocusTarget] = useState<number | null>(null);
   const [savingType, setSavingType] = useState(false);
 
-  useEffect(() => {
-    api.minor.storyTypes.list().then(setStoryTypes).catch(() => {});
-  }, []);
 
   // Export Settings Handlers
   async function handleSaveExportSettings(e: React.FormEvent) {
@@ -63,7 +63,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
       setPortfolioUrlSaved(true);
       setTimeout(() => setPortfolioUrlSaved(false), 2000);
     } catch (err) {
-      console.error("Failed to save export settings:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingPortfolioUrl(false);
     }
@@ -108,7 +108,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
       }
       setIsVacModalOpen(false);
     } catch (err) {
-      console.error("Failed to save vacation:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingVac(false);
     }
@@ -120,7 +120,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
       await api.minor.vacations.delete(id);
       setVacations((prev) => prev.filter((v) => v.id !== id));
     } catch (err) {
-      console.error("Failed to delete vacation:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -187,7 +187,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
       setStoryTypes(updatedList);
       setIsTypeModalOpen(false);
     } catch (err) {
-      console.error("Failed to save story type:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingType(false);
     }
@@ -199,12 +199,13 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
       await api.minor.storyTypes.delete(id);
       setStoryTypes((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
-      console.error("Failed to delete story type:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <InlineAlert>{actionError}</InlineAlert>
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">

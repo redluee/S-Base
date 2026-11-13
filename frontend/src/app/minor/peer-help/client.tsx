@@ -6,6 +6,9 @@ import { Users, Plus, Trash2, Edit2, ExternalLink, Search, X } from "lucide-reac
 import { t } from "@/lib/lang";
 import { api, type MinorPeerHelp, type MinorSprint } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { today } from "@backend/shared/minor";
 
 interface MinorPeerHelpClientProps {
   initialPeerHelp: MinorPeerHelp[];
@@ -13,6 +16,7 @@ interface MinorPeerHelpClientProps {
 }
 
 export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPeerHelpClientProps) {
+  const { error: actionError, report } = useActionError();
   const [peerHelpList, setPeerHelpList] = useState<MinorPeerHelp[]>(initialPeerHelp);
   const [sprints] = useState<MinorSprint[]>(initialSprints);
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,7 +24,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
   const [editingEntry, setEditingEntry] = useState<MinorPeerHelp | null>(null);
 
   // Form state
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(today());
   const [sprintId, setSprintId] = useState<number | undefined>(undefined);
   const [peerName, setPeerName] = useState("");
   const [description, setDescription] = useState("");
@@ -29,7 +33,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
 
   function openCreateModal() {
     setEditingEntry(null);
-    setDate(new Date().toISOString().slice(0, 10));
+    setDate(today());
     setSprintId(undefined);
     setPeerName("");
     setDescription("");
@@ -73,7 +77,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
       }
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Failed to save peer help:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSaving(false);
     }
@@ -85,7 +89,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
       await api.minor.peerHelp.delete(id);
       setPeerHelpList((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      console.error("Failed to delete peer help:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -101,6 +105,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <InlineAlert>{actionError}</InlineAlert>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

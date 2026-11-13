@@ -5,7 +5,7 @@ import {
   LU_MASTER_DEFINITIONS,
   resolveSprintLuLevel,
   resolveSprintLuArgumentation,
-} from "@/app/minor/excel/workbook";
+} from "@/app/minor/excel/lu";
 import {
   COLOR_EVEN_BANNER,
   COLOR_EVEN_CELL,

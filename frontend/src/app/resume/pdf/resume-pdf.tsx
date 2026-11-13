@@ -3,6 +3,7 @@ import { PAGE, scaledTheme, formatPeriod, detailRows, type ResolvedFont } from "
 import { resolveResumeFont } from "../resume-fonts";
 import { t } from "@/lib/lang";
 import { api } from "@/lib/api";
+import { downloadBlob } from "@/lib/download";
 
 const registeredFonts = new Set<string>();
 const photoCache = new Map<string, Promise<string | null>>();
@@ -174,13 +175,6 @@ export async function buildResumePDFBlob(data: ResumeFull): Promise<Blob> {
 }
 
 export async function downloadResumePDF(data: ResumeFull) {
-  const blob = await buildResumePDFBlob(data);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${(data.resume.name || "cv").replace(/[^a-zA-Z0-9-_ ]+/g, "").trim() || "cv"}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const name = (data.resume.name || "cv").replace(/[^a-zA-Z0-9-_ ]+/g, "").trim() || "cv";
+  downloadBlob(await buildResumePDFBlob(data), `${name}.pdf`);
 }

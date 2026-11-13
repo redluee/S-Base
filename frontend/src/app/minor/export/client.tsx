@@ -14,9 +14,10 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorSprint, type MinorSprintFull } from "@/lib/api";
-import { downloadAllSprintsPDF } from "@/app/minor/pdf/portfolio-pdf";
-import { downloadAllSprintsExcel, validateSprintForExport } from "@/app/minor/excel/workbook";
-import { downloadMultipleSprintsJson } from "@/app/minor/sprint-export";
+import { downloadLogboek, downloadSprintsJson, logboekOwner } from "@/app/minor/export-files";
+import { validateSprintForExport } from "@/app/minor/export-validation";
+import { useActionError } from "@/lib/use-action-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 
 interface MinorExportClientProps {
@@ -40,16 +41,13 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
   const [pendingExcelSprints, setPendingExcelSprints] = useState<MinorSprintFull[] | null>(null);
   const [filename, setFilename] = useState("");
 
+  const { error, report } = useActionError();
+
   useEffect(() => {
-    Promise.all([api.me().catch(() => null), api.minor.settings.get().catch(() => null)]).then(
-      ([me, settings]) => {
-        const username = me?.user?.username;
-        const lastName = settings?.lastName;
-        const name = username && lastName ? `${username}_${lastName}` : lastName || username;
-        setFilename(name ? `Integraal_Sprint_Logboek_${name}` : "Integraal_Sprint_Logboek");
-      }
-    );
-  }, []);
+    logboekOwner()
+      .then(({ baseName }) => setFilename(baseName))
+      .catch((err) => report(err, "minor.exportFailed"));
+  }, [report]);
 
   function handleToggleAll() {
     if (selectedSprintIds.length === sprints.length) {
@@ -65,13 +63,8 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     );
   }
 
-  async function fetchFullSprints(): Promise<MinorSprintFull[]> {
-    const fullSprints: MinorSprintFull[] = [];
-    for (const id of selectedSprintIds) {
-      const full = await api.minor.sprints.get(id);
-      fullSprints.push(full);
-    }
-    return fullSprints;
+  function fetchFullSprints(): Promise<MinorSprintFull[]> {
+    return Promise.all(selectedSprintIds.map((id) => api.minor.sprints.get(id)));
   }
 
   async function handleExportPDF() {
@@ -79,9 +72,9 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     setExportingPdf(true);
     try {
       const fullSprints = await fetchFullSprints();
-      await downloadAllSprintsPDF(fullSprints, filename.trim() || undefined);
+      await downloadLogboek("pdf", fullSprints, filename);
     } catch (err) {
-      console.error("Batch PDF export failed:", err);
+      report(err, "minor.exportFailed");
     } finally {
       setExportingPdf(false);
     }
@@ -109,10 +102,10 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
         setExportIssues(allIssues);
         setPendingExcelSprints(fullSprints);
       } else {
-        await downloadAllSprintsExcel(fullSprints, filename.trim() || undefined);
+        await downloadLogboek("xlsx", fullSprints, filename);
       }
     } catch (err) {
-      console.error("Batch Excel export failed:", err);
+      report(err, "minor.exportFailed");
     } finally {
       setExportingExcel(false);
     }
@@ -122,9 +115,9 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     if (!pendingExcelSprints) return;
     setExportingExcel(true);
     try {
-      await downloadAllSprintsExcel(pendingExcelSprints, filename.trim() || undefined);
+      await downloadLogboek("xlsx", pendingExcelSprints, filename);
     } catch (err) {
-      console.error("Batch Excel export failed:", err);
+      report(err, "minor.exportFailed");
     } finally {
       setPendingExcelSprints(null);
       setExportIssues([]);
@@ -138,11 +131,9 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
     if (selectedSprintIds.length === 0) return;
     setExportingJson(true);
     try {
-      const fullSprints = await fetchFullSprints();
-      const base = filename.trim() || "sprints_portfolio_export";
-      downloadMultipleSprintsJson(fullSprints, `${base}.json`);
+      await downloadSprintsJson(selectedSprintIds, `${filename.trim() || "sprints_portfolio_export"}.json`);
     } catch (err) {
-      console.error("Batch JSON export failed:", err);
+      report(err, "minor.exportFailed");
     } finally {
       setExportingJson(false);
     }
@@ -150,6 +141,7 @@ export function MinorExportClient({ initialSprints }: MinorExportClientProps) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <InlineAlert>{error}</InlineAlert>
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">

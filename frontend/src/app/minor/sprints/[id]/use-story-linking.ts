@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useState, useEffect } from "react";
 import type { MinorSprint, MinorSprintFull, MinorStory, MinorStoryWithSprint } from "@/lib/api";
 
-export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispatch<React.SetStateAction<MinorSprintFull>>, reloadSprint: (keepLocalEvals?: boolean) => Promise<void>, setViewingStoryId: (id: number | null) => void) {
+export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispatch<React.SetStateAction<MinorSprintFull>>, reloadSprint: (keepLocalEvals?: boolean) => Promise<void>, setViewingStoryId: (id: number | null) => void, report: (err: unknown, fallbackKey: string) => void) {
   const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
   const [storyToUnlink, setStoryToUnlink] = useState<MinorStory | null>(null);
   const [targetSprintIdForUnlink, setTargetSprintIdForUnlink] = useState<string>("");
@@ -27,7 +27,7 @@ export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispat
       const unassigned = all.filter((s) => !s.sprintId);
       setAvailableConceptStories(unassigned);
     } catch (err) {
-      console.error("Failed to load concept stories:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setLoadingConceptStories(false);
     }
@@ -41,7 +41,7 @@ export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispat
       setAvailableConceptStories((prev) => prev.filter((s) => s.id !== storyId));
       setIsLinkStoryModalOpen(false);
     } catch (err) {
-      console.error("Failed to link story:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setLinkingStoryId(null);
     }
@@ -69,12 +69,12 @@ export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispat
     setSprint({ ...sprint, stories: reindexed });
 
     try {
-      await api.minor.sprints.stories.reorder(
+      await api.minor.stories.reorder(
         sprint.id,
         reindexed.map((s) => s.id)
       );
     } catch (err) {
-      console.error("Failed to persist reordered stories", err);
+      report(err, "minor.actionFailed");
       await reloadSprint();
     }
 
@@ -110,14 +110,14 @@ export function useStoryLinking(sprint: MinorSprintFull, setSprint: React.Dispat
       setViewingStoryId(null);
       await reloadSprint();
     } catch (err) {
-      console.error("Failed to unlink or move story:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setUnlinkingStory(false);
     }
   }
   useEffect(() => {
-    api.minor.sprints.list().then(setAllSprints).catch(() => {});
-  }, []);
+    api.minor.sprints.list().then(setAllSprints).catch((err) => report(err, "minor.actionFailed"));
+  }, [report]);
 
   return {
     isUnlinkModalOpen,

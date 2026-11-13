@@ -77,6 +77,11 @@ export const minorRoutes = new Elysia()
       .post("/stories", ({ userId, body }) => minor.stories.create(userId, body.sprintId, body), {
         body: schema.storyCreateBody,
       })
+      .post(
+        "/sprints/:id/stories/import",
+        ({ params: { id }, userId, body }) => minor.stories.importFromJson(userId, id, body),
+        { params: schema.idParams, body: schema.importBody },
+      )
       .post("/sprints/:id/stories", ({ params: { id }, userId, body }) => minor.stories.create(userId, id, body), {
         params: schema.idParams,
         body: schema.storyCreateBody,

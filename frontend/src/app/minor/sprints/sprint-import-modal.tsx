@@ -41,7 +41,7 @@ export function MinorSprintImportModal({
       api.minor.sprints
         .list()
         .then((data) => setFetchedSprints(data))
-        .catch(() => {});
+        .catch((err) => setError(apiErrorMessage(err, "minor.actionFailed")));
     }
   }, [isOpen, sprints]);
 
@@ -90,7 +90,7 @@ export function MinorSprintImportModal({
         }
       }
     } catch (err) {
-      console.error("Failed to read clipboard:", err);
+      setError(apiErrorMessage(err, "minor.actionFailed"));
     }
   }
 
@@ -177,7 +177,7 @@ export function MinorSprintImportModal({
       onSuccess(result);
       onClose();
     } catch (err: unknown) {
-      console.error("Sprint import failed:", err);
+      setError(apiErrorMessage(err, "minor.actionFailed"));
       setError(apiErrorMessage(err, "Fout bij importeren van sprint."));
     } finally {
       setIsImporting(false);

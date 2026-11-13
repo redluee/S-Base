@@ -9,6 +9,7 @@ import type { CashflowInvoiceFull } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { buildInvoicePDFBlob } from "./cashflow-pdf-builder";
 import { invoicePdfFilename } from "@backend/shared/cashflow";
+import { downloadBlob } from "@/lib/download";
 
 export { buildInvoicePDFBlob };
 
@@ -205,13 +206,5 @@ export function CashflowPDFButton({ invoice: initialInvoice, invoiceId, iconOnly
 }
 
 async function buildAndDownloadPDF(invoice: CashflowInvoiceFull) {
-  const blob = await buildInvoicePDFBlob(invoice);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = invoicePdfFilename(invoice.invoiceNumber);
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(await buildInvoicePDFBlob(invoice), invoicePdfFilename(invoice.invoiceNumber));
 }

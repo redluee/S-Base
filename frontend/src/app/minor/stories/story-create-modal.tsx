@@ -2,9 +2,10 @@
 
 import { Sparkles, Plus, Check, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { getLUShortDesc } from "@/app/minor/constants";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { MinorSprint, MinorStoryType } from "@/lib/api";
+import { LEARNING_OUTCOMES, learningOutcomeShort } from "@/app/minor/learning-outcomes";
+import { StoryTypeOptions } from "@/app/minor/story-type-badge";
 
 interface StoryCreateModalProps {
   storyTypes: MinorStoryType[];
@@ -75,16 +76,7 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
                   }}
                   className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-zinc-200 text-xs focus:outline-none focus:border-brand"
                 >
-                  <option value="US">{t("US - User Story")}</option>
-                  <option value="RS">{t("RS - Research Story")}</option>
-                  <option value="LS">{t("LS - Learning Story")}</option>
-                  {storyTypes
-                    .filter((t) => !["US", "RS", "LS"].includes(t.code.toUpperCase()))
-                    .map((t) => (
-                      <option key={t.id} value={t.code}>
-                        {t.code} - {t.name}
-                      </option>
-                    ))}
+                  <StoryTypeOptions storyTypes={storyTypes} />
                 </select>
               </div>
 
@@ -164,7 +156,7 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
             <div className="space-y-1">
               <label className="text-zinc-400 font-medium block">{t("Leeruitkomsten (LU)")}</label>
               <div className="flex gap-2 flex-wrap">
-                {[1, 2, 3, 4, 5].map((lu) => {
+                {LEARNING_OUTCOMES.map((lu) => {
                   const selected = newSelectedLUs.includes(lu);
                   return (
                     <button
@@ -182,9 +174,9 @@ export function StoryCreateModal({ storyTypes, sprints, getDefaultQualityCriteri
                       }`}
                     >
                       <span className="font-mono font-bold">LU {lu}</span>
-                      {getLUShortDesc(lu) && (
+                      {learningOutcomeShort(lu) && (
                         <span className={selected ? "text-brand/90 font-medium" : "text-zinc-400 font-normal"}>
-                          · {getLUShortDesc(lu)}
+                          · {learningOutcomeShort(lu)}
                         </span>
                       )}
                     </button>

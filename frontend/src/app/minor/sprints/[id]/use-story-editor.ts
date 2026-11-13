@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useState } from "react";
 import type { MinorSprintFull, MinorStory, MinorStoryType } from "@/lib/api";
 
-export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatch<React.SetStateAction<MinorSprintFull>>, storyTypes: MinorStoryType[], reloadSprint: (keepLocalEvals?: boolean) => Promise<void>, setViewingStoryId: (id: number | null) => void) {
+export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatch<React.SetStateAction<MinorSprintFull>>, storyTypes: MinorStoryType[], reloadSprint: (keepLocalEvals?: boolean) => Promise<void>, setViewingStoryId: (id: number | null) => void, report: (err: unknown, fallbackKey: string) => void) {
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
 
   const [editingStory, setEditingStory] = useState<MinorStory | null>(null);
@@ -119,10 +119,10 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
 
       let targetStoryId: number | null = null;
       if (editingStory) {
-        const updated = await api.minor.sprints.stories.update(editingStory.id, payload);
+        const updated = await api.minor.stories.update(editingStory.id, payload);
         targetStoryId = updated?.id ?? editingStory.id;
       } else {
-        const created = await api.minor.sprints.stories.create(sprint.id, payload);
+        const created = await api.minor.stories.create(sprint.id, payload);
         targetStoryId = created?.id ?? null;
       }
 
@@ -132,7 +132,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
         setViewingStoryId(targetStoryId);
       }
     } catch (err) {
-      console.error("Failed to save story:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setSavingStory(false);
     }
@@ -146,7 +146,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
       setIsStoryModalOpen(false);
       setViewingStoryId(null);
     } catch (err) {
-      console.error("Failed to delete story:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -175,14 +175,14 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
         setCopiedExport(true);
         setTimeout(() => setCopiedExport(false), 2000);
       }).catch((err) => {
-        console.error("Clipboard write failed:", err);
+        report(err, "minor.actionFailed");
       });
     }
   }
 
   async function handleToggleCriterion(critId: number, current: boolean) {
     try {
-      await api.minor.sprints.stories.toggleCriterion(critId, !current);
+      await api.minor.stories.toggleCriterion(critId, !current);
       setSprint((prev) => ({
         ...prev,
         stories: prev.stories.map((s) => ({
@@ -191,7 +191,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
         })),
       }));
     } catch (err) {
-      console.error("Failed to toggle criterion:", err);
+      report(err, "minor.actionFailed");
     }
   }
 
@@ -208,7 +208,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
         },
       ]);
     } catch (err) {
-      console.error("File upload failed:", err);
+      report(err, "minor.actionFailed");
     } finally {
       setUploadingFile(false);
     }
@@ -241,7 +241,7 @@ export function useStoryEditor(sprint: MinorSprintFull, setSprint: React.Dispatc
         setCopiedExport(true);
         setTimeout(() => setCopiedExport(false), 2000);
       }).catch((err) => {
-        console.error("Clipboard write failed:", err);
+        report(err, "minor.actionFailed");
       });
     }
   }

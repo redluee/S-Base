@@ -74,7 +74,7 @@ export function PresentationOverview({
           const slideNum = idx + 1;
           const isCurrent = currentSlideIndex === slideNum;
           const typeDetails = getStoryTypeDetails(st.storyTypeCode, storyTypes);
-          const color = typeDetails.color || "#00e3a4";
+          const color = typeDetails.color;
           return (
             <button
               type="button"

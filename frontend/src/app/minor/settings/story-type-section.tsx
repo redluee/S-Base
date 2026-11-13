@@ -3,7 +3,7 @@
 import { Tag, Plus, Trash2, Edit2, CheckSquare } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorStoryType } from "@/lib/api";
-import { getStoryTypeDetails } from "@/app/minor/story-type-badge";
+import { getStoryTypeDetails, STORY_TYPE_HOVER_BORDER, STORY_TYPE_HOVER_TEXT } from "@/app/minor/story-type-badge";
 
 interface StoryTypeSectionProps {
   storyTypes: MinorStoryType[];
@@ -44,7 +44,7 @@ export function StoryTypeSection({ storyTypes, onCreate, onEdit, onDelete }: Sto
               key={st.id}
               onClick={() => onEdit(st)}
               style={{ ["--story-type-color" as string]: typeDetails.color } as React.CSSProperties}
-              className={`p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${typeDetails.hoverBorderClass} hover:bg-zinc-800/40 flex flex-col justify-between gap-3 group cursor-pointer transition-all`}
+              className={`p-4 rounded-xl bg-zinc-900/80 border border-white/10 ${STORY_TYPE_HOVER_BORDER} hover:bg-zinc-800/40 flex flex-col justify-between gap-3 group cursor-pointer transition-all`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -59,7 +59,7 @@ export function StoryTypeSection({ storyTypes, onCreate, onEdit, onDelete }: Sto
                     >
                       {st.code}
                     </span>
-                    <span className={`text-xs font-bold text-white ${typeDetails.hoverTextClass} transition-colors`}>
+                    <span className={`text-xs font-bold text-white ${STORY_TYPE_HOVER_TEXT} transition-colors`}>
                       {st.name}
                     </span>
                   </div>
@@ -68,7 +68,7 @@ export function StoryTypeSection({ storyTypes, onCreate, onEdit, onDelete }: Sto
                     <button
                       type="button"
                       onClick={() => onEdit(st)}
-                      className={`text-zinc-400 ${typeDetails.hoverTextClass} p-1 rounded hover:bg-zinc-800 transition-all cursor-pointer`}
+                      className={`text-zinc-400 ${STORY_TYPE_HOVER_TEXT} p-1 rounded hover:bg-zinc-800 transition-all cursor-pointer`}
                       title={t("Story type en kwaliteitscriteria bewerken")}
                     >
                       <Edit2 className="size-3.5 transition-all group-hover:stroke-[2.75]" />
