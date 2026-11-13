@@ -1,4 +1,4 @@
-import { serverApi } from "@/lib/server-api";
+import { notFoundOn404, serverApi } from "@/lib/server-api";
 import { NewInvoiceClient } from "./client";
 
 export const metadata = { title: "Nieuwe factuur — Cashflow" };
@@ -15,7 +15,7 @@ export default async function NewInvoicePage({
     serverApi.cashflow.projects.list(),
     serverApi.cashflow.tradeNames.list(),
     serverApi.cashflow.invoices.nextNumber(),
-    editId ? serverApi.cashflow.invoices.get(Number(editId)).catch(() => null) : Promise.resolve(null),
+    editId ? notFoundOn404(serverApi.cashflow.invoices.get(Number(editId))) : Promise.resolve(null),
   ]);
   return (
     <NewInvoiceClient
