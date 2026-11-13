@@ -62,25 +62,10 @@ export interface ResolvedFont {
   bold: string;
 }
 
-export function fontLabel(value: string): string {
-  if (value.startsWith(GOOGLE_PREFIX)) return value.slice(GOOGLE_PREFIX.length);
-  return CURATED_FONTS.find((f) => f.id === value)?.label ?? value;
-}
-
 export function resolveCuratedFont(value: string): ResolvedFont | null {
   const font = CURATED_FONTS.find((f) => f.id === value);
   if (!font) return null;
   return { value, family: `resume-${font.id}`, regular: font.files.regular, bold: font.files.bold };
-}
-
-export function fontFaceCss(fonts: ResolvedFont[]): string {
-  return fonts
-    .map(
-      (f) =>
-        `@font-face{font-family:'${f.family}';src:url('${f.regular}') format('truetype');font-weight:400;font-style:normal;}` +
-        `@font-face{font-family:'${f.family}';src:url('${f.bold}') format('truetype');font-weight:700;font-style:normal;}`
-    )
-    .join("");
 }
 
 export const PAGE = { width: 595.28, height: 841.89, padding: 40, gap: 22 };

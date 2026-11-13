@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { COLUMN_WIDTH, isInRange } from "@backend/shared/resume";
-import { formatPeriod, formatMonthYear, snapColumnWidth, resolveCuratedFont, fontLabel } from "./resume";
+import { formatPeriod, formatMonthYear, snapColumnWidth, resolveCuratedFont } from "./resume";
 
 describe("resume helpers", () => {
   it("formats periods with Dutch months", () => {
@@ -19,6 +19,5 @@ describe("resume helpers", () => {
   it("resolves curated fonts", () => {
     expect(resolveCuratedFont("carlito")?.family).toBe("resume-carlito");
     expect(resolveCuratedFont("nope")).toBeNull();
-    expect(fontLabel("google:Open Sans")).toBe("Open Sans");
   });
 });
