@@ -14,7 +14,7 @@ Bun workspace monorepo (`backend/`, `frontend/`). Features automated test suites
 | `bun run pre-push` | Pre-push checks (`test:all` + `build`) |
 | `bun run db:migrate` | Run Drizzle SQLite migrations |
 | `bun run db:seed` | Seed sample data (admin/admin, tester/tester) |
-| `bun run db:user` | User management CLI (`user-manager.ts` - create, pause, edit permissions) |
+| `bun run db:user` | User management CLI (`backend/src/scripts/user-manager.ts` - create, pause, edit permissions) |
 | `bun run --cwd backend db:push` | Push schema directly (drizzle-kit push) |
 | `bun run --cwd backend db:generate` | Generate migration files (drizzle-kit generate) |
 | `bun run --cwd frontend lint` | ESLint (frontend only) |

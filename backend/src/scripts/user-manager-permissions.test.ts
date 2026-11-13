@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { AuthService } from "../auth";
 import { MinecraftPermissions } from "../modules/minecraft/minecraft-permissions";
 import { setupTestDb } from "../test-utils";
-import db from "./client";
-import { mc_servers } from "./schema";
+import db from "../db/client";
+import { mc_servers } from "../db/schema";
 import {
   grantPermission,
   grantServerPermission,

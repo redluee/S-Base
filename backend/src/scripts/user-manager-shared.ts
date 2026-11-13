@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import db from "./client";
-import { users, modules, mc_servers } from "./schema";
+import db from "../db/client";
+import { users, modules, mc_servers } from "../db/schema";
 
 export const cliState = { isInteractive: false };
 

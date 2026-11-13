@@ -1,7 +1,7 @@
 import { hashPassword } from "../auth";
 import { eq } from "drizzle-orm";
-import db from "./client";
-import { users, usermodulepermissions, modules } from "./schema";
+import db from "../db/client";
+import { users, usermodulepermissions, modules } from "../db/schema";
 import { handleError, findUser } from "./user-manager-shared";
 
 export async function listUsers() {

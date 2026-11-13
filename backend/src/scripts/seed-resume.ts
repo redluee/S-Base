@@ -1,5 +1,5 @@
-import db from "./client";
-import { users, modules, usermodulepermissions } from "./schema";
+import db from "../db/client";
+import { users, modules, usermodulepermissions } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { ResumeService } from "../modules/resume";
 import { ensureDefaultModules } from "../auth/modules";

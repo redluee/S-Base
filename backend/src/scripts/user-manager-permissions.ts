@@ -1,8 +1,8 @@
 import { AuthService } from "../auth";
 import { grantModule, revokeModule } from "../auth/modules";
 import { MinecraftPermissions } from "../modules/minecraft/minecraft-permissions";
-import db from "./client";
-import { mc_servers, modules } from "./schema";
+import db from "../db/client";
+import { mc_servers, modules } from "../db/schema";
 import { findModule, findServer, findUser, handleError } from "./user-manager-shared";
 
 const auth = new AuthService();

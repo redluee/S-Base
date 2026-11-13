@@ -1,7 +1,7 @@
 import * as readline from "readline/promises";
 import { stdin as input, stdout as output } from "process";
-import db from "./client";
-import { modules } from "./schema";
+import db from "../db/client";
+import { modules } from "../db/schema";
 import { listUsers, createUser, deleteUser, changePassword, renameUser, setEmail } from "./user-manager-users";
 import {
   listPermissions,

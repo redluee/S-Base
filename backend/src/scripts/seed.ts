@@ -1,4 +1,4 @@
-import db from "./client";
+import db from "../db/client";
 import { normalizeCategory } from "../shared/workout";
 import { hashPassword } from "../auth";
 import { ensureDefaultModules } from "../auth/modules";
@@ -15,7 +15,7 @@ import {
   sessionSets,
   measurements,
   wines,
-} from "./schema";
+} from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 
 if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "1") {
