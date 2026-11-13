@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { t } from "@/lib/lang";
 import type { Wine } from "@/lib/api";
 import { WineCard } from "./wine-card";
+import { WINE_TYPES } from "@backend/shared/recipes";
 
-const wineTypes = ["", "red", "white", "rose", "sparkling", "dessert"] as const;
+const wineTypes = ["", ...WINE_TYPES] as const;
 
 const sortFields = [
   { key: "brand", label: t("Brand / Winery") },

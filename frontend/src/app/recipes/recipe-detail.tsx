@@ -19,22 +19,7 @@ import { getFlag } from "@/lib/kitchens";
 import Link from "next/link";
 import { ArrowLeft, CircleDashed } from "lucide-react";
 import type { FullRecipe } from "@backend/types/shared";
-
-const statusColors: Record<string, string> = {
-	"to try": "bg-muted text-black",
-	success: "bg-brand/20 text-brand",
-	"needs tweak": "bg-amber-900/30 text-amber-400",
-	failure: "bg-destructive/10 text-destructive",
-	archived: "bg-zinc-800 text-zinc-400",
-};
-
-const activeStatusColors: Record<string, string> = {
-	"to try": "bg-muted text-black",
-	success: "bg-brand text-zinc-900",
-	"needs tweak": "bg-amber-600 text-black",
-	failure: "bg-destructive text-white",
-	archived: "bg-zinc-800 text-zinc-400",
-};
+import { RECIPE_STATUSES, STATUS_SELECTED, statusBadge } from "./recipe-status";
 
 const unitLabels: Record<string, string> = {
 	g: t("g"),
@@ -83,7 +68,7 @@ export function RecipeDetail({ recipe }: { recipe: FullRecipe }) {
 						{recipe.name}
 					</h1>
 					<div className="flex items-center gap-3 text-sm text-muted-foreground">
-						<Badge className={statusColors[recipe.status]}>
+						<Badge className={statusBadge(recipe.status)}>
 							{t(recipe.status)}
 						</Badge>
 						{recipe.cookingTime && (
@@ -196,14 +181,14 @@ export function RecipeDetail({ recipe }: { recipe: FullRecipe }) {
 					{t("Status")}
 				</h2>
 				<div className="flex gap-2 flex-wrap">
-					{["to try", "success", "needs tweak", "failure", "archived"].map(
+					{RECIPE_STATUSES.map(
 						(s) => (
 							<button
 								key={s}
 								onClick={() => handleStatusChange(s)}
 								className={`px-3 py-1.5 rounded-lg text-sm font-medium origin-center transition-[transform,background-color,border-color,color,box-shadow] duration-150 ease-out active:scale-[1.03] ${
 									recipe.status === s
-										? activeStatusColors[s]
+										? STATUS_SELECTED[s]
 										: "bg-zinc-800/60 border border-zinc-700 text-foreground hover:bg-zinc-700/60 hover:border-zinc-600"
 								}`}
 							>

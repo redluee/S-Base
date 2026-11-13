@@ -8,44 +8,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/lang";
 import { api, type Wine } from "@/lib/api";
+import { PURCHASE_LOCATIONS, WINE_TYPES, type PurchaseLocation, type WineType } from "@backend/shared/recipes";
 
-const wineTypeStyles: Record<
-  string,
-  { card: string; badge: string; accent: string; label: string }
-> = {
+const wineTypeStyles: Record<WineType, { card: string; badge: string; accent: string }> = {
   red: {
     card: "bg-gradient-to-br from-[#2d0f16] to-[#1a080d] border-[#5e1927]/70 hover:border-[#8e253c] text-rose-50 shadow-md hover:shadow-rose-950/40",
     badge: "bg-[#5e1927] text-rose-200 border-[#852338]",
     accent: "text-rose-400",
-    label: "Rood",
   },
   white: {
     card: "bg-gradient-to-br from-[#202712] to-[#13190a] border-[#495723]/70 hover:border-[#6f8435] text-amber-50 shadow-md hover:shadow-amber-950/40",
     badge: "bg-[#495723] text-amber-200 border-[#677a31]",
     accent: "text-yellow-400",
-    label: "Wit",
   },
   rose: {
     card: "bg-gradient-to-br from-[#2e1320] to-[#1c0a13] border-[#662548]/70 hover:border-[#96376b] text-pink-50 shadow-md hover:shadow-pink-950/40",
     badge: "bg-[#662548] text-pink-200 border-[#8a3262]",
     accent: "text-pink-400",
-    label: "Rosé",
   },
   sparkling: {
     card: "bg-gradient-to-br from-[#2b220e] to-[#181307] border-[#5e4b1c]/70 hover:border-[#8e722a] text-amber-50 shadow-md hover:shadow-amber-950/40",
     badge: "bg-[#5e4b1c] text-amber-200 border-[#856a27]",
     accent: "text-amber-300",
-    label: "Mousserend",
   },
   dessert: {
     card: "bg-gradient-to-br from-[#24112c] to-[#14091a] border-[#532264]/70 hover:border-[#7d3396] text-purple-50 shadow-md hover:shadow-purple-950/40",
     badge: "bg-[#532264] text-purple-200 border-[#74308c]",
     accent: "text-purple-300",
-    label: "Dessert",
   },
 };
 
-const purchaseLocationIcons: Record<string, string> = {
+const purchaseLocationIcons: Record<PurchaseLocation, string> = {
   supermarket: "🛒",
   wine_shop: "🍷",
   winery: "🏰",
@@ -60,7 +53,7 @@ export function WineCard({ wine }: { wine: Wine }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
-  const style = wineTypeStyles[wine.type] ?? wineTypeStyles.red;
+  const style = wineTypeStyles[WINE_TYPES.find((type) => type === wine.type) ?? "red"];
 
   const handleDelete = async () => {
     try {
@@ -178,7 +171,7 @@ export function WineCard({ wine }: { wine: Wine }) {
           )}
           {wine.purchaseLocation && (
             <span className="inline-flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-md border border-white/10">
-              {purchaseLocationIcons[wine.purchaseLocation] ?? "🛍️"} {t(wine.purchaseLocation)}
+              {purchaseLocationIcons[PURCHASE_LOCATIONS.find((loc) => loc === wine.purchaseLocation) ?? "other"]} {t(wine.purchaseLocation)}
             </span>
           )}
           {wine.rating != null && (

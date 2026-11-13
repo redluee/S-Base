@@ -3,7 +3,7 @@ import db from "../../db/client";
 import { ingredients, recipeIngredients, recipeSteps, recipes } from "../../db/schema";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { normalizeSearchString, sqlNormalize } from "../../utils/search";
-import { isRecipeStatus } from "./recipes-constants";
+import { isRating, isRecipeStatus } from "../../shared/recipes";
 import type { IngredientInput, RecipeIngredients, StepInput } from "./recipes-ingredients";
 
 export interface RecipeInput {
@@ -146,14 +146,14 @@ export class RecipeCatalog {
   }
 
   updateStatus(id: number, status: string) {
-    if (!isRecipeStatus(status)) throw new ValidationError("recipes.invalidStatus");
+    this.assertValid({ status });
     this.findRecipe(id);
     db.update(recipes).set({ status }).where(eq(recipes.recipeId, id)).run();
     return this.getById(id);
   }
 
   updateRating(id: number, rating: number) {
-    if (rating < 0 || rating > 10) throw new ValidationError("recipes.invalidRating");
+    this.assertValid({ rating });
     this.findRecipe(id);
     db.update(recipes).set({ rating }).where(eq(recipes.recipeId, id)).run();
     return this.getById(id);
@@ -166,6 +166,8 @@ export class RecipeCatalog {
   }
 
   private assertValid(data: RecipeInput) {
+    if (data.status !== undefined && !isRecipeStatus(data.status)) throw new ValidationError("recipes.invalidStatus");
+    if (data.rating != null && !isRating(data.rating)) throw new ValidationError("recipes.invalidRating");
     if (data.cookingTime !== undefined && data.cookingTime < 0)
       throw new ValidationError("recipes.cookingTimeNegative");
     this.ingredients.assertValid(data.ingredients);

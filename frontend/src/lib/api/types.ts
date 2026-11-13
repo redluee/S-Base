@@ -71,34 +71,6 @@ export interface McUnregisteredServerScan {
   inspection: McServerInspection;
 }
 
-export interface MeasurementPhoto {
-  photoId: number;
-  measurementId: number;
-  filePath: string;
-  createdAt: string;
-}
-
-export interface Measurement {
-  measurementId: number;
-  userId: number;
-  date: string;
-  height: number | null;
-  weight: number | null;
-  bodyFat: number | null;
-  skeletalMuscle: number | null;
-  fatMass: number | null;
-  waist?: number | null;
-  chest?: number | null;
-  hips?: number | null;
-  biceps?: number | null;
-  thighs?: number | null;
-  shoulders?: number | null;
-  neck?: number | null;
-  calves?: number | null;
-  createdAt: string;
-  photos: MeasurementPhoto[];
-}
-
 export type { AuthUser } from "@backend/auth";
 
 export type {
@@ -183,23 +155,6 @@ export interface SystemUpdateState {
   error: string | null;
 }
 
-export interface Wine {
-  wineId: number;
-  userId: number;
-  brand: string;
-  type: "red" | "white" | "rose" | "sparkling" | "dessert";
-  variety: string;
-  vintage: number | null;
-  countryRegion: string | null;
-  purchaseLocation: string | null;
-  rating: number | null;
-  notes: string | null;
-  imageUrl: string | null;
-  createdAt: string;
-}
-
-
-
 export type {
   CashflowClient,
   CashflowDashboardStats,
@@ -211,3 +166,5 @@ export type {
   CashflowProjectDetail,
   CashflowTradeName,
 } from "@backend/types/cashflow";
+
+export type { Measurement, MeasurementPhoto, Wine } from "@backend/types/recipes";

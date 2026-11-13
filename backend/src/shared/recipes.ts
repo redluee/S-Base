@@ -15,6 +15,12 @@ export const PURCHASE_LOCATIONS = [
 ] as const;
 export type PurchaseLocation = (typeof PURCHASE_LOCATIONS)[number];
 
+export const RATING_RANGE = { min: 0, max: 10 } as const;
+
+export function isRating(value: number): boolean {
+  return value >= RATING_RANGE.min && value <= RATING_RANGE.max;
+}
+
 export function isRecipeStatus(value: unknown): value is RecipeStatus {
   return RECIPE_STATUSES.includes(value as RecipeStatus);
 }

@@ -12,24 +12,7 @@ import { api, apiErrorMessage, type Wine } from "@/lib/api";
 
 import { compressImage } from "@/lib/image";
 import { Loader2 } from "lucide-react";
-
-const WINE_TYPES = [
-  { value: "red", label: "Rood (Red)" },
-  { value: "white", label: "Wit (White)" },
-  { value: "rose", label: "Rosé" },
-  { value: "sparkling", label: "Mousserend (Sparkling)" },
-  { value: "dessert", label: "Dessertwijn" },
-];
-
-const PURCHASE_LOCATIONS = [
-  { value: "supermarket", label: "Supermarkt" },
-  { value: "wine_shop", label: "Wijnwinkel" },
-  { value: "winery", label: "Wijnhuis" },
-  { value: "online", label: "Webshop / Online" },
-  { value: "restaurant", label: "Horeca / Restaurant" },
-  { value: "gift", label: "Cadeau gekregen" },
-  { value: "other", label: "Overig" },
-];
+import { PURCHASE_LOCATIONS, WINE_TYPES } from "@backend/shared/recipes";
 
 export function WineForm({ wine }: { wine?: Wine }) {
   const router = useRouter();
@@ -171,8 +154,8 @@ export function WineForm({ wine }: { wine?: Wine }) {
             className="w-full h-10 px-3 text-sm leading-none rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {WINE_TYPES.map((wt) => (
-              <option key={wt.value} value={wt.value}>
-                {wt.label}
+              <option key={wt} value={wt}>
+                {t(wt)}
               </option>
             ))}
           </select>
@@ -238,8 +221,8 @@ export function WineForm({ wine }: { wine?: Wine }) {
         >
           <option value="">-- {t("Select location")} --</option>
           {PURCHASE_LOCATIONS.map((loc) => (
-            <option key={loc.value} value={loc.value}>
-              {t(loc.value)}
+            <option key={loc} value={loc}>
+              {t(loc)}
             </option>
           ))}
         </select>

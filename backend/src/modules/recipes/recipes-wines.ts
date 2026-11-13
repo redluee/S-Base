@@ -3,7 +3,7 @@ import db from "../../db/client";
 import { wines } from "../../db/schema";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { normalizeSearchString, sqlNormalize } from "../../utils/search";
-import { isPurchaseLocation, isWineType } from "./recipes-constants";
+import { isPurchaseLocation, isRating, isWineType } from "../../shared/recipes";
 
 export interface WineInput {
   brand?: string;
@@ -69,7 +69,7 @@ export class RecipeWines {
   create(userId: number, data: WineInput & { brand: string; type: string; variety: string }) {
     if (!data.brand.trim()) throw new ValidationError("recipes.wineBrandRequired");
     if (!data.variety.trim()) throw new ValidationError("recipes.wineVarietyRequired");
-    this.assertEnums(data);
+    this.assertValid(data);
     return db
       .insert(wines)
       .values({
@@ -90,7 +90,7 @@ export class RecipeWines {
 
   update(id: number, data: WineInput) {
     const existing = this.getById(id);
-    this.assertEnums(data);
+    this.assertValid(data);
     return db
       .update(wines)
       .set({
@@ -116,8 +116,9 @@ export class RecipeWines {
     return { success: true };
   }
 
-  private assertEnums(data: WineInput) {
+  private assertValid(data: WineInput) {
     if (data.type !== undefined && !isWineType(data.type)) throw new ValidationError("recipes.invalidWineType");
+    if (data.rating != null && !isRating(data.rating)) throw new ValidationError("recipes.invalidRating");
     if (data.purchaseLocation && !isPurchaseLocation(data.purchaseLocation)) {
       throw new ValidationError("recipes.invalidPurchaseLocation");
     }

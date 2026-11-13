@@ -13,24 +13,7 @@ import { RecipeIngredientList, IngredientRow } from "./recipe-ingredient-list";
 import { RecipeStepList, StepRow } from "./recipe-step-list";
 import { Loader2 } from "lucide-react";
 import type { FullRecipe } from "@backend/types/shared";
-
-const STATUSES = ["to try", "success", "needs tweak", "failure", "archived"];
-
-const statusStyles: Record<string, string> = {
-  "to try": "bg-zinc-600 text-white",
-  success: "bg-brand text-zinc-900",
-  "needs tweak": "bg-amber-600 text-black",
-  failure: "bg-red-600 text-white",
-  archived: "bg-zinc-700 text-zinc-300",
-};
-
-const statusIdleStyles: Record<string, string> = {
-  "to try": "bg-transparent text-muted-foreground ring-1 ring-border hover:ring-zinc-600 hover:text-foreground",
-  success: "bg-transparent text-muted-foreground ring-1 ring-border hover:ring-zinc-600 hover:text-foreground",
-  "needs tweak": "bg-transparent text-muted-foreground ring-1 ring-border hover:ring-zinc-600 hover:text-foreground",
-  failure: "bg-transparent text-muted-foreground ring-1 ring-border hover:ring-zinc-600 hover:text-foreground",
-  archived: "bg-transparent text-muted-foreground ring-1 ring-border hover:ring-zinc-600 hover:text-foreground",
-};
+import { RECIPE_STATUSES, STATUS_IDLE, STATUS_SELECTED } from "./recipe-status";
 
 export function RecipeForm({
   initial,
@@ -288,13 +271,13 @@ export function RecipeForm({
             <div className="grid gap-1.5 sm:gap-2">
               <Label>{t("Status")}</Label>
               <div className="flex gap-1.5 flex-wrap">
-                {STATUSES.map((s) => (
+                {RECIPE_STATUSES.map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setStatus(s)}
                     className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-[0.97] ${
-                      status === s ? statusStyles[s] : statusIdleStyles[s]
+                      status === s ? STATUS_SELECTED[s] : STATUS_IDLE
                     }`}
                   >
                     {t(s)}

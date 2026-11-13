@@ -93,4 +93,8 @@ describe("RecipeCatalog", () => {
     expect(() => recipeService.getById(recipeId)).toThrow(NotFoundError);
     expect(() => recipeService.remove(recipeId)).toThrow(new NotFoundError("recipes.notFound"));
   });
+  it("rejects an invalid status or rating on create and update, not only on the dedicated patches", () => {
+    expect(() => recipeService.create({ name: "Bad status", status: "nope" })).toThrow("recipes.invalidStatus");
+    expect(() => recipeService.create({ name: "Bad rating", rating: 11 })).toThrow("recipes.invalidRating");
+  });
 });

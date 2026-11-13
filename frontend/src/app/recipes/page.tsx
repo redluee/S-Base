@@ -6,14 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getFlag } from "@/lib/kitchens";
 import { t } from "@/lib/lang";
 import type { Recipe } from "@backend/types/shared";
-
-const statusColors: Record<string, string> = {
-  "to try": "bg-muted text-black",
-  success: "bg-brand/20 text-brand",
-  "needs tweak": "bg-amber-900/30 text-amber-400",
-  failure: "bg-destructive/10 text-destructive",
-  archived: "bg-zinc-800 text-zinc-400",
-};
+import { RECIPE_STATUSES, statusBadge } from "./recipe-status";
 
 const sortFields = [
   { key: "name", label: t("Name") },
@@ -59,7 +52,7 @@ export default async function RecipesPage({
         </div>
 
         <div className="flex gap-1.5 overflow-x-auto flex-nowrap sm:flex-wrap -mx-4 sm:mx-0 px-4 sm:px-0 mb-4 [&::-webkit-scrollbar]:hidden">
-          {["", "to try", "success", "needs tweak", "failure", "archived"].map((s) => {
+          {["", ...RECIPE_STATUSES].map((s) => {
             const params = new URLSearchParams();
             if (s) params.set("status", s);
             if (sortBy) params.set("sortBy", sortBy);
@@ -189,7 +182,7 @@ export default async function RecipesPage({
                     </div>
                     <Badge
                       variant="outline"
-                      className={`shrink-0 text-[10px] sm:text-xs ${(recipe.status && statusColors[recipe.status]) ?? "border-border text-muted-foreground"}`}
+                      className={`shrink-0 text-[10px] sm:text-xs ${statusBadge(recipe.status) ?? "border-border text-muted-foreground"}`}
                     >
                       {t(recipe.status)}
                     </Badge>
