@@ -1,5 +1,6 @@
 "use client";
 
+import { today } from "@backend/shared/dates";
 import { useState, useRef } from "react";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
@@ -34,7 +35,7 @@ export function ExpenseForm({
 }) {
   const [description, setDescription] = useState(initial?.description ?? "");
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? "");
-  const [category, setCategory] = useState(initial?.category ?? "Software & Abonnementen");
+  const [category, setCategory] = useState(initial?.category ?? DEFAULT_CATEGORIES[0]);
   const [customCategory, setCustomCategory] = useState("");
   const [isCustomCategory, setIsCustomCategory] = useState(
     initial?.category ? !DEFAULT_CATEGORIES.includes(initial.category) : false
@@ -43,7 +44,7 @@ export function ExpenseForm({
     if (initial?.date) {
       return new Date(initial.date).toISOString().slice(0, 10);
     }
-    return new Date().toISOString().slice(0, 10);
+    return today();
   });
   const [tradeNameId, setTradeNameId] = useState<string>(
     initial?.tradeNameId ? String(initial.tradeNameId) : ""

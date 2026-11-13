@@ -1,5 +1,6 @@
 "use client";
 
+import { today } from "@backend/shared/dates";
 import { getServicePeriod, formatServicePeriod } from "../../cashflow-service-period";
 import { useState } from "react";
 import Link from "next/link";
@@ -25,7 +26,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
   const [markingPaid, setMarkingPaid] = useState(false);
   const [editingPaidDate, setEditingPaidDate] = useState(false);
   const [paidDateInput, setPaidDateInput] = useState(() =>
-    new Date(initialInvoice.datePaid || Date.now()).toISOString().split("T")[0]
+    initialInvoice.datePaid ? new Date(initialInvoice.datePaid).toISOString().split("T")[0] : today()
   );
 
   const [deleting, setDeleting] = useState(false);
@@ -163,7 +164,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Cashfl
                     <div className="flex items-center gap-1">
                       <input
                         type="date"
-                        defaultValue={invoice.datePaid ? new Date(invoice.datePaid).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}
+                        defaultValue={invoice.datePaid ? new Date(invoice.datePaid).toISOString().split("T")[0] : today()}
                         onChange={e => handleUpdatePaidDate(e.target.value)}
                         className="text-xs bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-white focus:outline-none focus:border-brand"
                       />

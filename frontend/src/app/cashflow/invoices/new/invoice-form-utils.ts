@@ -28,7 +28,7 @@ export function toDate(ts: number | null | undefined): string {
 export function addDays(dateStr: string, days: number): string {
   if (!dateStr) return "";
   const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().split("T")[0];
 }
 

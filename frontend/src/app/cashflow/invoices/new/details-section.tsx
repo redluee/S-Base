@@ -1,5 +1,6 @@
 "use client";
 
+import { today } from "@backend/shared/dates";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,7 +110,7 @@ export function DetailsSection({
                   if (newStatus !== "paid") {
                     setDatePaid("");
                   } else if (!datePaid) {
-                    setDatePaid(new Date().toISOString().split("T")[0]);
+                    setDatePaid(today());
                   }
                 }}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
