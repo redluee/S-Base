@@ -1,16 +1,7 @@
+import type { UpdatePhase } from "../../shared/pulse";
 import { ConflictError } from "../../utils/errors";
 
-export type UpdatePhase =
-  | "starting"
-  | "repositories"
-  | "resolving"
-  | "downloading"
-  | "installing"
-  | "cleanup"
-  | "verifying"
-  | "complete"
-  | "nothing"
-  | "error";
+export type { UpdatePhase };
 
 export interface SystemUpdateState {
   status: "idle" | "running" | "success" | "failed";

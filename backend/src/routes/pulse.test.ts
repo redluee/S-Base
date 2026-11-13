@@ -1,5 +1,5 @@
 import { call, login } from "../test-http";
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { pulse } from "../context";
 import { setupTestDb } from "../test-utils";
 
@@ -80,9 +80,7 @@ describe("pulse routes error contract", () => {
   });
 
   it("answers 409 while a system update is running", async () => {
-    const run = pulse.systemUpdate as unknown as { state: { status: string } };
-    const original = run.state.status;
-    run.state.status = "running";
+    const running = spyOn(pulse.systemUpdate, "isRunning").mockReturnValue(true);
     try {
       const start = await call(cookie, "POST", "/api/pulse/system-update");
       expect(start.status).toBe(409);
@@ -92,7 +90,7 @@ describe("pulse routes error contract", () => {
       expect(reboot.status).toBe(409);
       expect(await reboot.json()).toEqual({ error: "pulse.updateRunning" });
     } finally {
-      run.state.status = original;
+      running.mockRestore();
     }
   });
 

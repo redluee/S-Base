@@ -4,6 +4,7 @@ import { RecipesService } from "./modules/recipes";
 import { WorkoutService } from "./modules/workout";
 import { CashflowService } from "./modules/cashflow";
 import { PulseService } from "./modules/pulse";
+import { inertPower } from "./modules/pulse/pulse-power";
 import { MinecraftService } from "./modules/minecraft";
 import { MinorService } from "./modules/minor";
 import { FinanceService } from "./modules/finance";
@@ -19,7 +20,10 @@ export const recipes = new RecipesService();
 export const workout = new WorkoutService();
 export const cashflow = new CashflowService();
 export const minecraft = new MinecraftService();
-export const pulse = new PulseService({ minecraft });
+export const pulse = new PulseService({
+  minecraft: minecraft.lifecycle,
+  power: process.env.NODE_ENV === "test" ? inertPower : undefined,
+});
 export const minor = new MinorService();
 export const resume = new ResumeService();
 export const finance = new FinanceService();
@@ -53,7 +57,3 @@ export const minecraftAuth = createAuthPlugin("minecraft", "minecraft:monitor");
 export const minorAuth = createAuthPlugin("minor");
 export const resumeAuth = createAuthPlugin("resume");
 export const financeAuth = createAuthPlugin("finance");
-
-export const requireFullMinecraftAccess = ({ userId }: { userId: number }) => {
-  if (!auth.moduleAccessCheck(userId, "minecraft")) throw new ForbiddenError("minecraft.fullAccessRequired");
-};

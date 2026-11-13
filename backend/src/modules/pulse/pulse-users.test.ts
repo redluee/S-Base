@@ -36,6 +36,25 @@ describe("PulseUsers", () => {
     expect(unpaused?.isPaused).toBe(0);
   });
 
+  it("applies the same email rules on update as on create", () => {
+    expect(pulse.updateEmail(testerId, "  Mixed@Example.com ").email).toBe("mixed@example.com");
+    expect(pulse.updateEmail(testerId, "mixed@example.com").email).toBe("mixed@example.com");
+    expect(() => pulse.updateEmail(testerId, "not-an-email")).toThrow(
+      expect.objectContaining({ key: "pulse.emailInvalid", status: 400 }),
+    );
+    expect(() => pulse.updateEmail(testerId, "ADMIN@example.com")).toThrow(
+      expect.objectContaining({ key: "pulse.emailExists", status: 409 }),
+    );
+    expect(pulse.updateEmail(testerId, "  ").email).toBeNull();
+    pulse.updateEmail(testerId, "tester@example.com");
+  });
+
+  it("returns one user with their modules", () => {
+    const user = pulse.getUser(testerId);
+    expect(user.userId).toBe(testerId);
+    expect(user.modules).toContain("recipes");
+  });
+
   it("updates user module permissions", () => {
     const updatedUser = pulse.updateModules(testerId, ["recipes", "workout"]);
     expect(updatedUser?.modules).toContain("recipes");

@@ -15,7 +15,7 @@ import { resumeRoutes } from "./routes/resume";
 import { pulseRoutes } from "./routes/pulse";
 import { minecraftRoutes } from "./routes/minecraft";
 import { uploadRoutes } from "./routes/uploads";
-import { PORT, HOST, auth, minecraft } from "./context";
+import { PORT, HOST, auth, minecraft, pulse } from "./context";
 import { ensureDefaultModules } from "./auth/modules";
 import { AppError, errorResponse, NotFoundError, ValidationError } from "./utils/errors";
 
@@ -87,6 +87,8 @@ if (process.env.NODE_ENV !== "test") {
 
   if (isProduction() && !IN_MEMORY_DB) startBackupSchedule(sqlite);
 
+  minecraft.idle.start();
+  pulse.shutdown.startScheduler();
   const discordBot = createDiscordBot(minecraft);
 
   const shutdown = () => {

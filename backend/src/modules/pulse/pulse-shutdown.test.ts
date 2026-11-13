@@ -1,175 +1,118 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { eq } from "drizzle-orm";
+import db from "../../db/client";
+import { systemSettings } from "../../db/schema/system";
 import { setupTestDb } from "../../test-utils";
-import type { MinecraftService } from "../minecraft";
 import { ValidationError } from "../../utils/errors";
-import { PulseShutdown } from "./pulse-shutdown";
+import type { PowerControl } from "./pulse-power";
+import { PulseShutdown, type ShutdownTarget } from "./pulse-shutdown";
 
-interface McMock {
-  listServers: () => { slug: string }[];
-  isRunning: (slug: string) => boolean;
-  getOnlinePlayers: (slug: string) => object[];
-  sendCommand: (slug: string, cmd: string) => Promise<void>;
-  stopServer: (slug: string) => Promise<{ ok: boolean }>;
+function localTime(day: number, hours: number, minutes: number, seconds = 0) {
+  return new Date(2026, 8, day, hours, minutes, seconds);
 }
 
-function mockMinecraft(mock: McMock): MinecraftService {
-  const parts = {
-    servers: { rows: mock.listServers },
-    lifecycle: { isRunning: mock.isRunning, sendCommand: mock.sendCommand, stopServer: mock.stopServer },
-    players: { getOnline: mock.getOnlinePlayers },
+function fakeHost() {
+  const calls: string[] = [];
+  const power: PowerControl = {
+    reboot: async () => {
+      calls.push("reboot");
+    },
+    powerOff: async () => {
+      calls.push("powerOff");
+    },
   };
-  return parts as unknown as MinecraftService;
+  const minecraft: ShutdownTarget = {
+    broadcastShutdownWarning: async (minutes) => {
+      calls.push(`warn:${minutes}`);
+    },
+    stopAll: async () => {
+      calls.push("stopAll");
+    },
+  };
+  return { calls, power, minecraft };
 }
 
 describe("PulseShutdown", () => {
-  let shutdownService: PulseShutdown;
+  let host: ReturnType<typeof fakeHost>;
+  let shutdown: PulseShutdown;
 
   beforeEach(async () => {
     await setupTestDb();
-    shutdownService = new PulseShutdown(undefined, false);
+    db.delete(systemSettings).where(eq(systemSettings.key, "shutdown_schedule")).run();
+    host = fakeHost();
+    shutdown = new PulseShutdown(host.power, host.minecraft);
   });
 
-  it("loads default schedule status", () => {
-    const status = shutdownService.getStatus(new Date("2026-09-07T23:00:00Z"));
-    expect(status.enabled).toBe(true);
-    expect(status.time).toBe("01:00");
-    expect(status.isBlocked).toBe(false);
-    expect(status.nextShutdownAt).toBeDefined();
+  it("loads the default schedule without persisting it", () => {
+    const status = shutdown.getStatus(localTime(7, 23, 0));
+    expect(status).toMatchObject({ enabled: true, time: "01:00", isBlocked: false, blockedUntil: null });
+    expect(status.nextShutdownAt).toBe(localTime(8, 1, 0).toISOString());
+    expect(status.minutesUntilShutdown).toBe(120);
   });
 
-  it("computes next shutdown date correctly across day boundaries", () => {
-    const fromEvening = new Date("2026-09-07T23:00:00.000Z");
-    const next1 = shutdownService.getNextShutdownDate("01:00", fromEvening);
-    expect(next1.getDate()).toBe(8);
-    expect(next1.getHours()).toBe(1);
-
-    const fromPastTarget = new Date("2026-09-08T01:10:00.000Z");
-    const next2 = shutdownService.getNextShutdownDate("01:00", fromPastTarget);
-    expect(next2.getDate()).toBe(9);
-    expect(next2.getHours()).toBe(1);
+  it("rolls the next shutdown over to the next day once the time has passed", () => {
+    expect(shutdown.getNextShutdownDate("01:00", localTime(7, 23, 0))).toEqual(localTime(8, 1, 0));
+    expect(shutdown.getNextShutdownDate("01:00", localTime(8, 1, 0, 30))).toEqual(localTime(8, 1, 0));
+    expect(shutdown.getNextShutdownDate("01:00", localTime(8, 1, 10))).toEqual(localTime(9, 1, 0));
   });
 
   it("updates schedule time and validates format", () => {
-    const updated = shutdownService.updateSchedule({ time: "02:30" });
-    expect(updated.time).toBe("02:30");
-
-    expect(() => shutdownService.updateSchedule({ time: "25:00" })).toThrow(ValidationError);
-
-    try {
-      shutdownService.updateSchedule({ time: "invalid" });
-      throw new Error("expected ValidationError");
-    } catch (err) {
-      expect(err).toBeInstanceOf(ValidationError);
-      expect((err as ValidationError).key).toBe("pulse.invalidTime");
-      expect((err as ValidationError).status).toBe(400);
-    }
-    expect(shutdownService.getConfig().time).toBe("02:30");
-
-    const disabled = shutdownService.updateSchedule({ enabled: false });
-    expect(disabled.enabled).toBe(false);
+    expect(shutdown.updateSchedule({ time: "02:30" }).time).toBe("02:30");
+    expect(() => shutdown.updateSchedule({ time: "25:00" })).toThrow(ValidationError);
+    expect(() => shutdown.updateSchedule({ time: "invalid" })).toThrow(
+      expect.objectContaining({ key: "pulse.invalidTime", status: 400 }),
+    );
+    expect(shutdown.getConfig().time).toBe("02:30");
+    expect(shutdown.updateSchedule({ enabled: false }).enabled).toBe(false);
   });
 
-  it("handles blocking and unblocking upcoming shutdown", () => {
-    const fromTime = new Date("2026-09-07T23:00:00.000Z");
-    const blockedStatus = shutdownService.blockShutdown(fromTime);
-    expect(blockedStatus.isBlocked).toBe(true);
-    expect(blockedStatus.blockedUntil).toBeDefined();
+  it("blocks the upcoming shutdown until four hours after it and can unblock", () => {
+    const from = localTime(7, 23, 0);
+    const blocked = shutdown.blockShutdown(from);
+    expect(blocked.isBlocked).toBe(true);
+    expect(blocked.blockedUntil).toBe(localTime(8, 5, 0).toISOString());
 
-    const unblockedStatus = shutdownService.unblockShutdown(fromTime);
-    expect(unblockedStatus.isBlocked).toBe(false);
-    expect(unblockedStatus.blockedUntil).toBeNull();
+    const unblocked = shutdown.unblockShutdown(from);
+    expect(unblocked.isBlocked).toBe(false);
+    expect(unblocked.blockedUntil).toBeNull();
   });
 
-  it("dispatches chat warnings to running servers only when players are online", async () => {
-    const sentCommands: { slug: string; cmd: string }[] = [];
-    const stoppedServers: string[] = [];
+  it("warns players at 10, 5 and 1 minutes once, then stops Minecraft before powering off", async () => {
+    shutdown.updateSchedule({ time: "01:00", enabled: true });
+    await shutdown.checkScheduleTick(localTime(8, 0, 50, 10));
+    await shutdown.checkScheduleTick(localTime(8, 0, 50, 25));
+    await shutdown.checkScheduleTick(localTime(8, 0, 55, 10));
+    await shutdown.checkScheduleTick(localTime(8, 0, 59, 10));
+    expect(host.calls).toEqual(["warn:10", "warn:5", "warn:1"]);
 
-    const mockMc = mockMinecraft({
-      listServers: () => [{ slug: "server-a" }, { slug: "server-b" }],
-      isRunning: () => true,
-      getOnlinePlayers: (slug: string) => (slug === "server-a" ? [{ username: "Steve" }] : []),
-      sendCommand: async (slug: string, cmd: string) => {
-        sentCommands.push({ slug, cmd });
-      },
-      stopServer: async (slug: string) => {
-        stoppedServers.push(slug);
-        return { ok: true };
-      },
-    });
-
-    const serviceWithMock = new PulseShutdown(mockMc, false);
-
-    // Test 10 minutes warning
-    const testNow10m = new Date("2026-09-08T00:50:10.000Z"); // 9m 50s before 01:00
-    // Force target to 01:00
-    serviceWithMock.updateSchedule({ time: "01:00", enabled: true });
-    await serviceWithMock.checkScheduleTick(testNow10m);
-
-    // Only server-a had players online
-    expect(sentCommands.length).toBe(1);
-    expect(sentCommands[0].slug).toBe("server-a");
-    expect(sentCommands[0].cmd).toContain("10 minuten");
-
-    // Clear and test 5 minutes warning
-    sentCommands.length = 0;
-    const testNow5m = new Date("2026-09-08T00:55:10.000Z");
-    await serviceWithMock.checkScheduleTick(testNow5m);
-    expect(sentCommands.length).toBe(1);
-    expect(sentCommands[0].slug).toBe("server-a");
-    expect(sentCommands[0].cmd).toContain("5 minuten");
-
-    // Clear and test 1 minute warning
-    sentCommands.length = 0;
-    const testNow1m = new Date("2026-09-08T00:59:10.000Z");
-    await serviceWithMock.checkScheduleTick(testNow1m);
-    expect(sentCommands.length).toBe(1);
-    expect(sentCommands[0].slug).toBe("server-a");
-    expect(sentCommands[0].cmd).toContain("1 minuut");
-
-    // Test shutdown trigger at 01:00:00
-    const testNow0m = new Date("2026-09-08T01:00:00.000Z");
-    await serviceWithMock.checkScheduleTick(testNow0m);
-    expect(stoppedServers).toContain("server-a");
-    expect(stoppedServers).toContain("server-b");
+    await shutdown.checkScheduleTick(localTime(8, 1, 0));
+    await shutdown.checkScheduleTick(localTime(8, 1, 0, 15));
+    expect(host.calls.slice(3)).toEqual(["stopAll", "powerOff"]);
   });
 
-  it("does not send warnings or execute shutdown when blocked", async () => {
-    const sentCommands: { slug: string; cmd: string }[] = [];
-    const mockMc = mockMinecraft({
-      listServers: () => [{ slug: "server-a" }],
-      isRunning: () => true,
-      getOnlinePlayers: () => [{ username: "Player" }],
-      sendCommand: async (slug: string, cmd: string) => {
-        sentCommands.push({ slug, cmd });
-      },
-      stopServer: async () => ({ ok: true }),
-    });
-
-    const service = new PulseShutdown(mockMc, false);
-    service.blockShutdown(new Date("2026-09-08T00:00:00.000Z"));
-
-    const testNow10m = new Date("2026-09-08T00:50:10.000Z");
-    await service.checkScheduleTick(testNow10m);
-    expect(sentCommands.length).toBe(0);
+  it("does nothing while disabled or blocked", async () => {
+    shutdown.updateSchedule({ enabled: false });
+    await shutdown.checkScheduleTick(localTime(8, 0, 50, 10));
+    shutdown.updateSchedule({ enabled: true });
+    shutdown.blockShutdown(localTime(8, 0, 0));
+    await shutdown.checkScheduleTick(localTime(8, 0, 50, 10));
+    await shutdown.checkScheduleTick(localTime(8, 1, 0));
+    expect(host.calls).toEqual([]);
   });
 
-  it("stops all running servers immediately on manual shutdown trigger", async () => {
-    const stoppedServers: string[] = [];
-    const mockMc = mockMinecraft({
-      listServers: () => [{ slug: "server-a" }, { slug: "server-b" }],
-      isRunning: () => true,
-      getOnlinePlayers: () => [],
-      sendCommand: async () => {},
-      stopServer: async (slug: string) => {
-        stoppedServers.push(slug);
-        return { ok: true };
+  it("stops Minecraft before a manual power off or reboot, even when stopping fails", async () => {
+    await shutdown.powerOff();
+    await shutdown.reboot();
+    expect(host.calls).toEqual(["stopAll", "powerOff", "stopAll", "reboot"]);
+
+    const failing = new PulseShutdown(host.power, {
+      broadcastShutdownWarning: async () => {},
+      stopAll: async () => {
+        throw new Error("tmux gone");
       },
     });
-
-    const service = new PulseShutdown(mockMc, false);
-    await service.triggerManualShutdown();
-
-    expect(stoppedServers).toContain("server-a");
-    expect(stoppedServers).toContain("server-b");
+    host.calls.length = 0;
+    await failing.powerOff();
+    expect(host.calls).toEqual(["powerOff"]);
   });
 });

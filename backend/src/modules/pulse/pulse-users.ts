@@ -1,5 +1,5 @@
 import { hashPassword } from "../../auth";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, type SQL, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { ConflictError, NotFoundError, ValidationError, orNotFound } from "../../utils/errors";
 import { users, modules, usermodulepermissions, mc_servers, mc_server_permissions } from "../../db/schema";
@@ -29,9 +29,26 @@ export interface PulseStats {
   totalPermissions: number;
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_USERNAME_LENGTH = 50;
+const MIN_PASSWORD_LENGTH = 8;
+
+function groupBy<T>(rows: T[], key: (row: T) => number, value: (row: T) => string): Map<number, string[]> {
+  const map = new Map<number, string[]>();
+  for (const row of rows) map.set(key(row), [...(map.get(key(row)) ?? []), value(row)]);
+  return map;
+}
+
+function normalizeEmail(input: string): string {
+  const email = input.trim().toLowerCase();
+  if (email.length > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.test(email)) throw new ValidationError("pulse.emailInvalid");
+  return email;
+}
+
 export class PulseUsers {
-  listUsers(): PulseUser[] {
-    const allUsers = db
+  private queryUsers(where?: SQL): PulseUser[] {
+    const userRows = db
       .select({
         userId: users.userId,
         username: users.username,
@@ -41,45 +58,55 @@ export class PulseUsers {
         createdAt: users.createdAt,
       })
       .from(users)
+      .where(where)
       .all();
+    if (userRows.length === 0) return [];
+    const ids = userRows.map((u) => u.userId);
 
-    const allPerms = db
-      .select({
-        userId: usermodulepermissions.userId,
-        moduleName: modules.moduleName,
-      })
-      .from(usermodulepermissions)
-      .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
-      .all();
+    const modulesByUser = groupBy(
+      db
+        .select({ userId: usermodulepermissions.userId, moduleName: modules.moduleName })
+        .from(usermodulepermissions)
+        .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
+        .where(inArray(usermodulepermissions.userId, ids))
+        .all(),
+      (p) => p.userId,
+      (p) => p.moduleName,
+    );
+    const serversByUser = groupBy(
+      db
+        .select({ userId: mc_server_permissions.userId, slug: mc_servers.slug })
+        .from(mc_server_permissions)
+        .innerJoin(mc_servers, eq(mc_server_permissions.serverId, mc_servers.serverId))
+        .where(inArray(mc_server_permissions.userId, ids))
+        .all(),
+      (p) => p.userId,
+      (p) => p.slug,
+    );
 
-    const permsByUser = new Map<number, string[]>();
-    for (const p of allPerms) {
-      const list = permsByUser.get(p.userId) ?? [];
-      list.push(p.moduleName);
-      permsByUser.set(p.userId, list);
-    }
-
-    const allServerPerms = db
-      .select({
-        userId: mc_server_permissions.userId,
-        slug: mc_servers.slug,
-      })
-      .from(mc_server_permissions)
-      .innerJoin(mc_servers, eq(mc_server_permissions.serverId, mc_servers.serverId))
-      .all();
-
-    const mcServersByUser = new Map<number, string[]>();
-    for (const p of allServerPerms) {
-      const list = mcServersByUser.get(p.userId) ?? [];
-      list.push(p.slug);
-      mcServersByUser.set(p.userId, list);
-    }
-
-    return allUsers.map((u) => ({
+    return userRows.map((u) => ({
       ...u,
-      modules: permsByUser.get(u.userId) ?? [],
-      mcServers: mcServersByUser.get(u.userId) ?? [],
+      modules: modulesByUser.get(u.userId) ?? [],
+      mcServers: serversByUser.get(u.userId) ?? [],
     }));
+  }
+
+  listUsers(): PulseUser[] {
+    return this.queryUsers();
+  }
+
+  getUser(userId: number): PulseUser {
+    return orNotFound(this.queryUsers(eq(users.userId, userId))[0], "pulse.userNotFound");
+  }
+
+  private requireFreeEmail(email: string, exceptUserId?: number) {
+    const sameEmail = sql`lower(${users.email}) = ${email}`;
+    const existing = db
+      .select({ userId: users.userId })
+      .from(users)
+      .where(exceptUserId === undefined ? sameEmail : and(sameEmail, ne(users.userId, exceptUserId)))
+      .get();
+    if (existing) throw new ConflictError("pulse.emailExists");
   }
 
   listModules(): PulseModuleInfo[] {
@@ -96,24 +123,14 @@ export class PulseUsers {
 
   async createUser(usernameInput: string, emailInput: string, password: string): Promise<PulseUser> {
     const username = usernameInput.trim();
-    const email = emailInput.trim().toLowerCase();
-
     if (!username) throw new ValidationError("pulse.usernameRequired");
-    if (username.length > 50) throw new ValidationError("pulse.usernameTooLong");
-    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new ValidationError("pulse.emailInvalid");
-    }
-    if (password.length < 8) throw new ValidationError("pulse.passwordTooShort");
+    if (username.length > MAX_USERNAME_LENGTH) throw new ValidationError("pulse.usernameTooLong");
+    const email = normalizeEmail(emailInput);
+    if (password.length < MIN_PASSWORD_LENGTH) throw new ValidationError("pulse.passwordTooShort");
 
     const existingUsername = db.select({ userId: users.userId }).from(users).where(eq(users.username, username)).get();
     if (existingUsername) throw new ConflictError("pulse.usernameExists");
-
-    const existingEmail = db
-      .select({ userId: users.userId })
-      .from(users)
-      .where(sql`lower(${users.email}) = ${email}`)
-      .get();
-    if (existingEmail) throw new ConflictError("pulse.emailExists");
+    this.requireFreeEmail(email);
 
     const pswdHash = await hashPassword(password);
     const created = db.insert(users).values({ username, email, pswdHash }).returning({ userId: users.userId }).get();
@@ -121,17 +138,11 @@ export class PulseUsers {
     return this.getUser(created.userId);
   }
 
-  getUser(userId: number): PulseUser {
-    return orNotFound(
-      this.listUsers().find((u) => u.userId === userId),
-      "pulse.userNotFound",
-    );
-  }
-
-  updateEmail(userId: number, email: string | null): PulseUser {
-    const trimmedEmail = email ? email.trim().toLowerCase() : null;
-    db.update(users).set({ email: trimmedEmail }).where(eq(users.userId, userId)).run();
-
+  updateEmail(userId: number, emailInput: string | null): PulseUser {
+    this.getUser(userId);
+    const email = emailInput?.trim() ? normalizeEmail(emailInput) : null;
+    if (email) this.requireFreeEmail(email, userId);
+    db.update(users).set({ email }).where(eq(users.userId, userId)).run();
     return this.getUser(userId);
   }
 
@@ -146,38 +157,32 @@ export class PulseUsers {
 
   updateModules(userId: number, moduleNames: string[]): PulseUser {
     this.getUser(userId);
-    db.delete(usermodulepermissions).where(eq(usermodulepermissions.userId, userId)).run();
-
-    if (moduleNames.length > 0) {
-      const targetModules = db
-        .select({ moduleId: modules.moduleId, moduleName: modules.moduleName })
+    db.transaction((tx) => {
+      tx.delete(usermodulepermissions).where(eq(usermodulepermissions.userId, userId)).run();
+      if (moduleNames.length === 0) return;
+      const targets = tx
+        .select({ moduleId: modules.moduleId })
         .from(modules)
         .where(inArray(modules.moduleName, moduleNames))
         .all();
-
-      for (const m of targetModules) {
-        db.insert(usermodulepermissions).values({ userId, moduleId: m.moduleId }).run();
-      }
-    }
+      for (const m of targets) tx.insert(usermodulepermissions).values({ userId, moduleId: m.moduleId }).run();
+    });
 
     return this.getUser(userId);
   }
 
   updateServerPermissions(userId: number, serverSlugs: string[]): PulseUser {
     this.getUser(userId);
-    db.delete(mc_server_permissions).where(eq(mc_server_permissions.userId, userId)).run();
-
-    if (serverSlugs.length > 0) {
-      const targetServers = db
-        .select({ serverId: mc_servers.serverId, slug: mc_servers.slug })
+    db.transaction((tx) => {
+      tx.delete(mc_server_permissions).where(eq(mc_server_permissions.userId, userId)).run();
+      if (serverSlugs.length === 0) return;
+      const targets = tx
+        .select({ serverId: mc_servers.serverId })
         .from(mc_servers)
         .where(inArray(mc_servers.slug, serverSlugs))
         .all();
-
-      for (const s of targetServers) {
-        db.insert(mc_server_permissions).values({ userId, serverId: s.serverId }).run();
-      }
-    }
+      for (const t of targets) tx.insert(mc_server_permissions).values({ userId, serverId: t.serverId }).run();
+    });
 
     return this.getUser(userId);
   }
