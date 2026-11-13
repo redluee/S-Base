@@ -62,7 +62,11 @@ Backend routes and frontend views are structured around discrete domain modules:
 - **Responsive**: Every page must be fully functional and designed for both mobile (min 44×44px tap targets) and desktop.
 - **Testing**: Run `bun run test` or `bun run test:all` before pushing. Backend tests use in-memory SQLite (`DB_PATH=:memory: bun test`).
 - Backend uses `bun:sqlite` with WAL pragma + foreign keys enabled.
-- Path alias `@/*` → `frontend/src/*` (configured in frontend tsconfig).
+- Path alias `@/*` → `frontend/src/*` and `@backend/*` → `backend/src/*` (configured in frontend tsconfig).
+- **Shared rules**: pure, framework-free rules and vocabularies that both sides need (statuses, enums, defaults, limits, calculations) live in `backend/src/shared/<module>.ts` and are imported by the frontend via `@backend/shared/...`. Frontend API types come from `backend/src/types/*` (derived from schema/service types), never hand-copied. Never duplicate such a rule on the frontend.
+- **Modules registry**: backend permission keys live in `backend/src/auth/modules.ts` (`DEFAULT_MODULES`); the frontend module list (titles, colours, routes, protected paths, nav) lives in `frontend/src/lib/modules.ts`. Module layouts use `components/module-shell.tsx`, which fetches the user and enforces the permission once.
+- **Sessions & uploads**: cookie handling is in `backend/src/auth/session-cookie.ts`; uploads (prefix per owning module, dir, URLs, serving) in `backend/src/utils/uploads.ts` + `routes/uploads.ts`.
+- **Tests**: route tests use `backend/src/test-http.ts` (`login`, `call`, `upload`); `setupTestDb()` runs the real migrations.
 
 ## Development rules
 
