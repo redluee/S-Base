@@ -7,6 +7,7 @@ import { Search, X, Filter, Folder, Dumbbell, ChevronRight, RotateCcw } from "lu
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/lang";
+import { DEFAULT_CATEGORY } from "@backend/shared/workout";
 
 export interface ExerciseListItem {
   name: string;
@@ -112,7 +113,7 @@ export function ExerciseList({
       if (selectedCategory) {
         const cats = ex.categories && ex.categories.length > 0
           ? ex.categories
-          : (ex.category ? [ex.category] : ["Free Weights"]);
+          : (ex.category ? [ex.category] : [DEFAULT_CATEGORY]);
         const matchesCat = cats.some(
           (c) => c.toLowerCase() === selectedCategory.toLowerCase()
         );
@@ -260,7 +261,7 @@ export function ExerciseList({
                 : ex.equipment
                 ? [ex.equipment]
                 : [];
-            const category = ex.category || (ex.categories && ex.categories[0]) || "Free Weights";
+            const category = ex.category || (ex.categories && ex.categories[0]) || DEFAULT_CATEGORY;
 
             return (
               <Link

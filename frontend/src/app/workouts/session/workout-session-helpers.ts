@@ -1,4 +1,4 @@
-import { DEFAULT_REPS, DEFAULT_REST_SECONDS, DEFAULT_SETS, highestCompletedWeight, normalizeCategory, normalizeEquipment, trackingKind, effectiveVolume } from "@backend/shared/workout";
+import { DEFAULT_CATEGORY, DEFAULT_REPS, DEFAULT_REST_SECONDS, DEFAULT_SETS, highestCompletedWeight, normalizeCategory, normalizeEquipment, trackingKind, effectiveVolume } from "@backend/shared/workout";
 import { api } from "@/lib/api";
 import { parseDecimal, toInputString } from "@/app/workouts/number-input";
 import { isTimedExercise } from "@/app/workouts/session/workout-exercise-card";
@@ -105,7 +105,7 @@ export async function fetchLastCompletedSets(name: string) {
 export function blankExerciseDraft(name: string): ExerciseRowData {
   return {
     name,
-    category: "Free Weights",
+    category: DEFAULT_CATEGORY,
     sets: String(DEFAULT_SETS),
     reps: String(DEFAULT_REPS),
     weight: "",
@@ -134,7 +134,7 @@ export function draftFromSuggestion(
 ): ExerciseRowData {
   return {
     name,
-    category: "Free Weights",
+    category: DEFAULT_CATEGORY,
     sets: (sets ?? 3).toString(),
     reps: (reps ?? 8).toString(),
     weight: defaultWeight != null ? toInputString(Math.abs(defaultWeight)) : "",

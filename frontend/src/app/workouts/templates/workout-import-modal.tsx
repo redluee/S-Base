@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { formatNumberNl } from "@/app/workouts/number-input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Download, Upload, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { DEFAULT_CATEGORY } from "@backend/shared/workout";
 
 export function normalizeImportedWorkout(data: any) {
   if (!data || typeof data !== "object") {
@@ -78,7 +79,7 @@ export function normalizeImportedWorkout(data: any) {
     const rpe = rpeRaw != null && rpeRaw !== "" ? Number(rpeRaw) : undefined;
     const heartRateRaw = ex.defaultHeartRate ?? ex.heartRate;
     const heartRate = heartRateRaw != null && heartRateRaw !== "" ? Number(heartRateRaw) : undefined;
-    const category = ex.category ? String(ex.category).trim() : "Free Weights";
+    const category = ex.category ? String(ex.category).trim() : DEFAULT_CATEGORY;
 
     return {
       exerciseName,

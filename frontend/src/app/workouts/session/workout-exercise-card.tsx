@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { ExerciseCardHeader } from "@/app/workouts/session/workout-exercise-card-header";
 import { SetsTable } from "@/app/workouts/session/workout-sets-table";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
+import { DEFAULT_CATEGORY } from "@backend/shared/workout";
 
 export { isTimedExercise, isSetZero, describeTarget } from "@/app/workouts/session/workout-exercise-card-utils";
 
@@ -146,7 +147,7 @@ export function WorkoutExerciseCard({
       {replacingExerciseId !== ex.sessionExerciseId && (
         <div className="mb-4">
           <ExerciseCategorySelector
-            category={ex.category ?? "Free Weights"}
+            category={ex.category ?? DEFAULT_CATEGORY}
             equipment={ex.equipment ?? ""}
             readOnlyCategory={true}
             onChange={(cat, eq) => {
