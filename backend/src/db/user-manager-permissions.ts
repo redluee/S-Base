@@ -1,7 +1,28 @@
-import { eq, and } from "drizzle-orm";
+import { AuthService } from "../auth";
+import { grantModule, revokeModule } from "../auth/modules";
+import { MinecraftPermissions } from "../modules/minecraft/minecraft-permissions";
 import db from "./client";
-import { usermodulepermissions, modules, mc_servers, mc_server_permissions } from "./schema";
-import { handleError, findUser, findModule } from "./user-manager-shared";
+import { mc_servers, modules } from "./schema";
+import { findModule, findServer, findUser, handleError } from "./user-manager-shared";
+
+const auth = new AuthService();
+const serverPermissions = new MinecraftPermissions();
+
+function missingModule(targetModule: string, allModules: { moduleName: string; moduleId: number }[]) {
+  handleError(
+    `Fout: Module '${targetModule}' bestaat niet.\nBeschikbare modules: ${allModules
+      .map((m) => `${m.moduleName} (ID: ${m.moduleId})`)
+      .join(", ")}`,
+  );
+}
+
+function missingServer(targetServer: string, allServers: { slug: string; serverId: number }[]) {
+  handleError(
+    `Fout: Server '${targetServer}' bestaat niet.\nBeschikbare servers: ${allServers
+      .map((s) => `${s.slug} (ID: ${s.serverId})`)
+      .join(", ")}`,
+  );
+}
 
 export async function listPermissions(identifier: string) {
   try {
@@ -13,13 +34,7 @@ export async function listPermissions(identifier: string) {
     }
 
     const allModules = db.select().from(modules).all();
-    const userPerms = db
-      .select()
-      .from(usermodulepermissions)
-      .where(eq(usermodulepermissions.userId, user.userId))
-      .all();
-
-    const grantedModuleIds = new Set(userPerms.map((p) => p.moduleId));
+    const granted = new Set(auth.getUserModules(user.userId));
 
     console.log(`\nModule-permissies voor gebruiker '${user.username}' (ID: ${user.userId}):`);
     if (allModules.length === 0) {
@@ -28,8 +43,7 @@ export async function listPermissions(identifier: string) {
     }
 
     for (const mod of allModules) {
-      const hasAccess = grantedModuleIds.has(mod.moduleId);
-      const status = hasAccess ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
+      const status = granted.has(mod.moduleName) ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
       console.log(
         `  ${status} ID: ${mod.moduleId} | ${mod.moduleName}${mod.moduleAlias ? ` (${mod.moduleAlias})` : ""}`,
       );
@@ -51,33 +65,16 @@ export async function grantPermission(identifier: string, targetModule: string) 
     const { mod, allModules } = findModule(targetModule);
 
     if (!mod) {
-      handleError(
-        `Fout: Module '${targetModule}' bestaat niet.\nBeschikbare modules: ${allModules
-          .map((m) => `${m.moduleName} (ID: ${m.moduleId})`)
-          .join(", ")}`,
-      );
+      missingModule(targetModule, allModules);
       return;
     }
 
-    const existingPerm = db
-      .select()
-      .from(usermodulepermissions)
-      .where(and(eq(usermodulepermissions.userId, user.userId), eq(usermodulepermissions.moduleId, mod.moduleId)))
-      .get();
-
-    if (existingPerm) {
+    if (!grantModule(user.userId, mod.moduleId)) {
       console.log(
         `Gebruiker '${user.username}' heeft al permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}).`,
       );
       return;
     }
-
-    db.insert(usermodulepermissions)
-      .values({
-        userId: user.userId,
-        moduleId: mod.moduleId,
-      })
-      .run();
 
     console.log(
       `Permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}) succesvol toegekend aan '${user.username}'.`,
@@ -99,30 +96,16 @@ export async function revokePermission(identifier: string, targetModule: string)
     const { mod, allModules } = findModule(targetModule);
 
     if (!mod) {
-      handleError(
-        `Fout: Module '${targetModule}' bestaat niet.\nBeschikbare modules: ${allModules
-          .map((m) => `${m.moduleName} (ID: ${m.moduleId})`)
-          .join(", ")}`,
-      );
+      missingModule(targetModule, allModules);
       return;
     }
 
-    const existingPerm = db
-      .select()
-      .from(usermodulepermissions)
-      .where(and(eq(usermodulepermissions.userId, user.userId), eq(usermodulepermissions.moduleId, mod.moduleId)))
-      .get();
-
-    if (existingPerm) {
+    if (!revokeModule(user.userId, mod.moduleId)) {
       console.log(
         `Gebruiker '${user.username}' heeft geen permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}).`,
       );
       return;
     }
-
-    db.delete(usermodulepermissions)
-      .where(and(eq(usermodulepermissions.userId, user.userId), eq(usermodulepermissions.moduleId, mod.moduleId)))
-      .run();
 
     console.log(
       `Permissie voor module '${mod.moduleName}' (ID: ${mod.moduleId}) succesvol ingetrokken van '${user.username}'.`,
@@ -130,22 +113,6 @@ export async function revokePermission(identifier: string, targetModule: string)
   } catch (error) {
     handleError(`Er is een fout opgetreden bij het intrekken van de permissie: ${error}`);
   }
-}
-
-export function findServer(targetServer: string) {
-  const allServers = db.select().from(mc_servers).all();
-  const isNumeric = /^\d+$/.test(targetServer);
-  if (isNumeric) {
-    const srvIdNum = parseInt(targetServer, 10);
-    const srvById = allServers.find((s) => s.serverId === srvIdNum);
-    if (srvById) return { server: srvById, allServers };
-  }
-
-  const srv = allServers.find(
-    (s) =>
-      s.slug.toLowerCase() === targetServer.toLowerCase() || s.displayName.toLowerCase() === targetServer.toLowerCase(),
-  );
-  return { server: srv, allServers };
 }
 
 export async function listServerPermissions(identifier: string) {
@@ -157,13 +124,7 @@ export async function listServerPermissions(identifier: string) {
     }
 
     const allServers = db.select().from(mc_servers).all();
-    const userServerPerms = db
-      .select()
-      .from(mc_server_permissions)
-      .where(eq(mc_server_permissions.userId, user.userId))
-      .all();
-
-    const grantedServerIds = new Set(userServerPerms.map((p) => p.serverId));
+    const grantedServerIds = serverPermissions.serverIdsOf(user.userId);
 
     console.log(`\nMinecraft server monitor-permissies voor gebruiker '${user.username}' (ID: ${user.userId}):`);
     if (allServers.length === 0) {
@@ -172,8 +133,7 @@ export async function listServerPermissions(identifier: string) {
     }
 
     for (const srv of allServers) {
-      const hasAccess = grantedServerIds.has(srv.serverId);
-      const status = hasAccess ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
+      const status = grantedServerIds.has(srv.serverId) ? "[TOEGESTAAN]" : "[GEWEIGERD] ";
       console.log(`  ${status} ID: ${srv.serverId} | ${srv.displayName} (${srv.slug})`);
     }
   } catch (error) {
@@ -191,33 +151,16 @@ export async function grantServerPermission(identifier: string, targetServer: st
 
     const { server, allServers } = findServer(targetServer);
     if (!server) {
-      handleError(
-        `Fout: Server '${targetServer}' bestaat niet.\nBeschikbare servers: ${allServers
-          .map((s) => `${s.slug} (ID: ${s.serverId})`)
-          .join(", ")}`,
-      );
+      missingServer(targetServer, allServers);
       return;
     }
 
-    const existingPerm = db
-      .select()
-      .from(mc_server_permissions)
-      .where(and(eq(mc_server_permissions.userId, user.userId), eq(mc_server_permissions.serverId, server.serverId)))
-      .get();
-
-    if (existingPerm) {
+    if (!serverPermissions.grant(user.userId, server.serverId)) {
       console.log(
         `Gebruiker '${user.username}' heeft al monitor-toegang tot server '${server.displayName}' (${server.slug}).`,
       );
       return;
     }
-
-    db.insert(mc_server_permissions)
-      .values({
-        userId: user.userId,
-        serverId: server.serverId,
-      })
-      .run();
 
     console.log(
       `Monitor-toegang tot server '${server.displayName}' (${server.slug}) succesvol toegekend aan '${user.username}'.`,
@@ -237,30 +180,16 @@ export async function revokeServerPermission(identifier: string, targetServer: s
 
     const { server, allServers } = findServer(targetServer);
     if (!server) {
-      handleError(
-        `Fout: Server '${targetServer}' bestaat niet.\nBeschikbare servers: ${allServers
-          .map((s) => `${s.slug} (ID: ${s.serverId})`)
-          .join(", ")}`,
-      );
+      missingServer(targetServer, allServers);
       return;
     }
 
-    const existingPerm = db
-      .select()
-      .from(mc_server_permissions)
-      .where(and(eq(mc_server_permissions.userId, user.userId), eq(mc_server_permissions.serverId, server.serverId)))
-      .get();
-
-    if (!existingPerm) {
+    if (!serverPermissions.revoke(user.userId, server.serverId)) {
       console.log(
         `Gebruiker '${user.username}' heeft geen monitor-toegang tot server '${server.displayName}' (${server.slug}).`,
       );
       return;
     }
-
-    db.delete(mc_server_permissions)
-      .where(and(eq(mc_server_permissions.userId, user.userId), eq(mc_server_permissions.serverId, server.serverId)))
-      .run();
 
     console.log(
       `Monitor-toegang tot server '${server.displayName}' (${server.slug}) succesvol ingetrokken van '${user.username}'.`,

@@ -1,8 +1,9 @@
 import { hashPassword } from "../../auth";
-import { and, eq, inArray, ne, type SQL, sql } from "drizzle-orm";
+import { moduleNamesByUser, setUserModules } from "../../auth/modules";
+import { and, eq, ne, type SQL, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { ConflictError, NotFoundError, ValidationError, orNotFound } from "../../utils/errors";
-import { users, modules, usermodulepermissions, mc_servers, mc_server_permissions } from "../../db/schema";
+import { users, modules } from "../../db/schema";
 
 export interface PulseUser {
   userId: number;
@@ -34,19 +35,20 @@ const MAX_EMAIL_LENGTH = 254;
 const MAX_USERNAME_LENGTH = 50;
 const MIN_PASSWORD_LENGTH = 8;
 
-function groupBy<T>(rows: T[], key: (row: T) => number, value: (row: T) => string): Map<number, string[]> {
-  const map = new Map<number, string[]>();
-  for (const row of rows) map.set(key(row), [...(map.get(key(row)) ?? []), value(row)]);
-  return map;
-}
-
 function normalizeEmail(input: string): string {
   const email = input.trim().toLowerCase();
   if (email.length > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.test(email)) throw new ValidationError("pulse.emailInvalid");
   return email;
 }
 
+export interface PulseServerPermissions {
+  slugsByUser(userIds: number[]): Map<number, string[]>;
+  setServerPermissions(userId: number, slugs: string[]): void;
+}
+
 export class PulseUsers {
+  constructor(private readonly serverPermissions: PulseServerPermissions) {}
+
   private queryUsers(where?: SQL): PulseUser[] {
     const userRows = db
       .select({
@@ -63,26 +65,8 @@ export class PulseUsers {
     if (userRows.length === 0) return [];
     const ids = userRows.map((u) => u.userId);
 
-    const modulesByUser = groupBy(
-      db
-        .select({ userId: usermodulepermissions.userId, moduleName: modules.moduleName })
-        .from(usermodulepermissions)
-        .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
-        .where(inArray(usermodulepermissions.userId, ids))
-        .all(),
-      (p) => p.userId,
-      (p) => p.moduleName,
-    );
-    const serversByUser = groupBy(
-      db
-        .select({ userId: mc_server_permissions.userId, slug: mc_servers.slug })
-        .from(mc_server_permissions)
-        .innerJoin(mc_servers, eq(mc_server_permissions.serverId, mc_servers.serverId))
-        .where(inArray(mc_server_permissions.userId, ids))
-        .all(),
-      (p) => p.userId,
-      (p) => p.slug,
-    );
+    const modulesByUser = moduleNamesByUser(ids);
+    const serversByUser = this.serverPermissions.slugsByUser(ids);
 
     return userRows.map((u) => ({
       ...u,
@@ -157,32 +141,14 @@ export class PulseUsers {
 
   updateModules(userId: number, moduleNames: string[]): PulseUser {
     this.getUser(userId);
-    db.transaction((tx) => {
-      tx.delete(usermodulepermissions).where(eq(usermodulepermissions.userId, userId)).run();
-      if (moduleNames.length === 0) return;
-      const targets = tx
-        .select({ moduleId: modules.moduleId })
-        .from(modules)
-        .where(inArray(modules.moduleName, moduleNames))
-        .all();
-      for (const m of targets) tx.insert(usermodulepermissions).values({ userId, moduleId: m.moduleId }).run();
-    });
+    setUserModules(userId, moduleNames);
 
     return this.getUser(userId);
   }
 
   updateServerPermissions(userId: number, serverSlugs: string[]): PulseUser {
     this.getUser(userId);
-    db.transaction((tx) => {
-      tx.delete(mc_server_permissions).where(eq(mc_server_permissions.userId, userId)).run();
-      if (serverSlugs.length === 0) return;
-      const targets = tx
-        .select({ serverId: mc_servers.serverId })
-        .from(mc_servers)
-        .where(inArray(mc_servers.slug, serverSlugs))
-        .all();
-      for (const t of targets) tx.insert(mc_server_permissions).values({ userId, serverId: t.serverId }).run();
-    });
+    this.serverPermissions.setServerPermissions(userId, serverSlugs);
 
     return this.getUser(userId);
   }

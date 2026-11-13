@@ -7,6 +7,7 @@ import { MinecraftIdle } from "./minecraft-idle";
 import { MinecraftImporter } from "./minecraft-importer";
 import { MinecraftLifecycle } from "./minecraft-lifecycle";
 import { MinecraftMap } from "./minecraft-map";
+import { MinecraftPermissions } from "./minecraft-permissions";
 import { MinecraftPlayers } from "./minecraft-players";
 import { MinecraftProcesses } from "./minecraft-processes";
 import { MinecraftProperties } from "./minecraft-properties";
@@ -17,6 +18,7 @@ export class MinecraftService {
   readonly dirs: MinecraftDirs = new MinecraftDirs();
   readonly processes: MinecraftProcesses = new MinecraftProcesses();
   readonly servers: MinecraftServers = new MinecraftServers(this);
+  readonly permissions: MinecraftPermissions = new MinecraftPermissions();
   readonly access: MinecraftAccess = new MinecraftAccess(this);
   readonly lifecycle: MinecraftLifecycle = new MinecraftLifecycle(this);
   readonly idle: MinecraftIdle = new MinecraftIdle(this);

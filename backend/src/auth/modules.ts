@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import db from "../db/client";
-import { modules } from "../db/schema";
+import { modules, usermodulepermissions } from "../db/schema";
 
 export const DEFAULT_MODULES = [
   { name: "finance", alias: "Finance", description: "Persoonlijke rekeningen, saldoverloop en abonnementen" },
@@ -46,4 +46,52 @@ export function ensureDefaultModules(): void {
         .run();
     }
   }
+}
+
+export function moduleNamesByUser(userIds: number[]): Map<number, string[]> {
+  const map = new Map<number, string[]>();
+  if (userIds.length === 0) return map;
+  const rows = db
+    .select({ userId: usermodulepermissions.userId, moduleName: modules.moduleName })
+    .from(usermodulepermissions)
+    .innerJoin(modules, eq(usermodulepermissions.moduleId, modules.moduleId))
+    .where(inArray(usermodulepermissions.userId, userIds))
+    .all();
+  for (const row of rows) map.set(row.userId, [...(map.get(row.userId) ?? []), row.moduleName]);
+  return map;
+}
+
+export function setUserModules(userId: number, moduleNames: string[]): void {
+  db.transaction((tx) => {
+    tx.delete(usermodulepermissions).where(eq(usermodulepermissions.userId, userId)).run();
+    if (moduleNames.length === 0) return;
+    const targets = tx
+      .select({ moduleId: modules.moduleId })
+      .from(modules)
+      .where(inArray(modules.moduleName, moduleNames))
+      .all();
+    for (const m of targets) tx.insert(usermodulepermissions).values({ userId, moduleId: m.moduleId }).run();
+  });
+}
+
+function hasModuleGrant(userId: number, moduleId: number): boolean {
+  return !!db
+    .select({ userId: usermodulepermissions.userId })
+    .from(usermodulepermissions)
+    .where(and(eq(usermodulepermissions.userId, userId), eq(usermodulepermissions.moduleId, moduleId)))
+    .get();
+}
+
+export function grantModule(userId: number, moduleId: number): boolean {
+  if (hasModuleGrant(userId, moduleId)) return false;
+  db.insert(usermodulepermissions).values({ userId, moduleId }).run();
+  return true;
+}
+
+export function revokeModule(userId: number, moduleId: number): boolean {
+  if (!hasModuleGrant(userId, moduleId)) return false;
+  db.delete(usermodulepermissions)
+    .where(and(eq(usermodulepermissions.userId, userId), eq(usermodulepermissions.moduleId, moduleId)))
+    .run();
+  return true;
 }

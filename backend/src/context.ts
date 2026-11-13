@@ -22,7 +22,7 @@ export const workout = new WorkoutService();
 export const cashflow = new CashflowService();
 export const minecraft = new MinecraftService();
 export const pulse = new PulseService({
-  minecraft: minecraft.lifecycle,
+  minecraft,
   power: process.env.NODE_ENV === "test" ? inertPower : undefined,
 });
 export const minor = new MinorService();

@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { setupTestDb } from "../../test-utils";
 import { ConflictError, NotFoundError, ValidationError } from "../../utils/errors";
+import { MinecraftPermissions } from "../minecraft/minecraft-permissions";
 import { PulseUsers } from "./pulse-users";
 
 describe("PulseUsers", () => {
@@ -12,7 +13,7 @@ describe("PulseUsers", () => {
     const ids = await setupTestDb();
     adminId = ids.adminId;
     testerId = ids.testerId;
-    pulse = new PulseUsers();
+    pulse = new PulseUsers(new MinecraftPermissions());
   });
 
   it("lists users and system modules", () => {
