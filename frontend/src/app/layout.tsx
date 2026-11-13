@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ModuleTransitionProvider } from "@/components/module-transition-provider";
-import { OfflineSyncProvider } from "@/components/offline-sync-provider";
+import { OfflineSyncProvider } from "@/app/workouts/offline-sync-provider";
 
 export const metadata: Metadata = {
   title: "S-Base",
