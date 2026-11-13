@@ -1,34 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { buildTemplateMeta } from "@/app/workouts/templates/template-payload";
-import { parseDecimal, toInputString } from "@/lib/number-input";
+import { parseDecimal, toInputString } from "@/app/workouts/number-input";
 import { t } from "@/lib/lang";
-
-export function mapCategory(cat: string) {
-  if (cat === "resistance") return "Free Weights";
-  if (cat === "bodyweight") return "Bodyweight";
-  if (cat === "cardio") return "Cardio";
-  if (cat === "isometric") return "Functional";
-  return cat || "Free Weights";
-}
-
-export function mapEquipment(eq: string) {
-  if (eq === "none") return "Bodyweight";
-  if (eq === "barbell") return "Barbell";
-  if (eq === "dumbbell") return "Dumbbell";
-  if (eq === "kettlebell") return "Kettlebell";
-  if (eq === "cable") return "Cable";
-  if (eq === "machine") return "Machine";
-  if (eq === "band") return "Resistance Band";
-  if (eq === "ball" || eq === "bal") return "Medicine Ball";
-  return eq || "Dumbbell";
-}
-
-export interface TrackingFields {
-  reps: boolean;
-  time: boolean;
-  weight: boolean;
-  distance: boolean;
-}
+import { DEFAULT_CATEGORY, DEFAULT_REPS, DEFAULT_REST_SECONDS, DEFAULT_SETS, normalizeCategory, normalizeEquipment, type ExerciseCategory } from "@backend/shared/workout";
+import { defaultTracking, type TrackingFields } from "@/app/workouts/(main)/exercises/tracking-fields";
+import { formatClockInput, parseClock } from "@/app/workouts/duration";
 
 export interface ExerciseRow {
   id: string;
@@ -49,33 +25,10 @@ export interface ExerciseRow {
   trackingFields: TrackingFields;
 }
 
-export function parseDuration(val: string): number | undefined {
-  if (!val || !val.trim()) return undefined;
-  if (val.includes(":")) {
-    const parts = val.split(":");
-    const min = parseInt(parts[0], 10) || 0;
-    const sec = parseInt(parts[1], 10) || 0;
-    return min * 60 + sec;
-  }
-  const parsed = parseInt(val, 10);
-  return isNaN(parsed) ? undefined : parsed;
-}
 
-export function formatDuration(secVal: number | null | undefined): string {
-  if (secVal === null || secVal === undefined) return "";
-  const min = Math.floor(secVal / 60);
-  const sec = secVal % 60;
-  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
 
-export function getDefaultTracking(category: string): TrackingFields {
-  if (category === "Cardio") return { reps: false, time: true, weight: false, distance: true };
-  if (category === "Functional") return { reps: true, time: false, weight: true, distance: false };
-  return { reps: true, time: false, weight: true, distance: false };
-}
-
-export function getInitialTracking(e: any, category: string): TrackingFields {
-  const defaults = getDefaultTracking(category);
+export function getInitialTracking(e: any, category: ExerciseCategory): TrackingFields {
+  const defaults = defaultTracking(category);
   if (!e) return defaults;
   
   return {
@@ -90,16 +43,16 @@ export function createBlankExercise(id: string): ExerciseRow {
   return {
     id,
     name: "",
-    category: "Free Weights",
-    sets: "3",
-    reps: "8",
+    category: DEFAULT_CATEGORY,
+    sets: String(DEFAULT_SETS),
+    reps: String(DEFAULT_REPS),
     weight: "",
     distance: "",
     distanceUnit: "km",
     duration: "",
     heartRate: "",
     rpe: "",
-    defaultRestTime: "01:30",
+    defaultRestTime: formatClockInput(DEFAULT_REST_SECONDS),
     equipment: "",
     perSide: false,
     isAssisted: false,
@@ -110,21 +63,21 @@ export function createBlankExercise(id: string): ExerciseRow {
 export function buildInitialExercises(initial: any): ExerciseRow[] {
   return (
     initial?.exercises?.map((e: any, i: number) => {
-      const cat = mapCategory(e.category);
+      const cat = normalizeCategory(e.category);
       return {
         id: `ex-${i}`,
         name: e.exerciseName,
         category: cat,
-        sets: e.defaultSets?.toString() || "3",
-        reps: e.defaultReps?.toString() ?? "8",
+        sets: e.defaultSets?.toString() || String(DEFAULT_SETS),
+        reps: e.defaultReps?.toString() ?? String(DEFAULT_REPS),
         weight: e.defaultWeight != null ? toInputString(Math.abs(e.defaultWeight)) : "",
         distance: toInputString(e.defaultDistance),
         distanceUnit: "km",
-        duration: formatDuration(e.defaultDuration),
+        duration: formatClockInput(e.defaultDuration),
         heartRate: e.defaultHeartRate?.toString() ?? "",
         rpe: e.defaultRpe?.toString() ?? "",
-        defaultRestTime: formatDuration(e.defaultRestTime ?? 90),
-        equipment: mapEquipment(e.equipment),
+        defaultRestTime: formatClockInput(e.defaultRestTime ?? DEFAULT_REST_SECONDS),
+        equipment: normalizeEquipment(e.equipment) ?? "",
         perSide: Boolean(e.perSide),
         isAssisted: Boolean(e.isAssisted),
         trackingFields: getInitialTracking(e, cat),
@@ -181,10 +134,10 @@ export function buildTemplatePayload(
               ? (ex.isAssisted ? -Math.abs(parsedWeight) : Math.abs(parsedWeight))
               : null,
             distance: (ex.trackingFields.distance && dist) ? dist : null,
-            duration: ex.trackingFields.time ? (parseDuration(ex.duration) ?? null) : null,
+            duration: ex.trackingFields.time ? (parseClock(ex.duration) ?? null) : null,
             heartRate: parsedHeartRate !== null ? parsedHeartRate : undefined,
             rpe: parsedRpe !== null ? parsedRpe : undefined,
-            defaultRestTime: parseDuration(ex.defaultRestTime) ?? 90,
+            defaultRestTime: parseClock(ex.defaultRestTime) ?? DEFAULT_REST_SECONDS,
             equipment: ex.equipment || "none",
             perSide: ex.perSide ? 1 : 0,
             isAssisted: ex.isAssisted ? 1 : 0,

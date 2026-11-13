@@ -1,4 +1,5 @@
 import db from "./client";
+import { normalizeCategory } from "../shared/workout";
 import { hashPassword } from "../auth";
 import { ensureDefaultModules } from "../auth/modules";
 import {
@@ -332,7 +333,7 @@ async function seed() {
             templateId: insertedTemplate.templateId,
             exerciseName: ex.exerciseName,
             sortOrder: ex.sortOrder,
-            category: ex.category,
+            category: normalizeCategory(ex.category),
             defaultSets: ex.defaultSets,
             defaultReps: ex.defaultReps,
             defaultWeight: ex.defaultWeight,
@@ -374,7 +375,7 @@ async function seed() {
               sessionId: insertedSession.sessionId,
               exerciseName: ex.exerciseName,
               sortOrder: ex.sortOrder,
-              category: ex.category,
+              category: normalizeCategory(ex.category),
               equipment: ex.equipment,
             })
             .returning()

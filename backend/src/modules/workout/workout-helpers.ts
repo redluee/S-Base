@@ -1,3 +1,5 @@
+import { normalizeCategory, normalizeEquipment } from "../../shared/workout";
+import { parseDateString } from "../../shared/dates";
 import { normalizeSearchString } from "../../utils/search";
 import type { TemplateExerciseInput } from "./workout-schemas";
 
@@ -6,7 +8,7 @@ export function templateExerciseValues(templateId: number, ex: TemplateExerciseI
     templateId,
     exerciseName: ex.exerciseName,
     sortOrder: index,
-    category: ex.category ?? "Free Weights",
+    category: normalizeCategory(ex.category),
     defaultSets: ex.sets,
     defaultReps: ex.reps ?? undefined,
     defaultWeight: ex.weight,
@@ -15,42 +17,10 @@ export function templateExerciseValues(templateId: number, ex: TemplateExerciseI
     defaultRpe: ex.rpe,
     defaultHeartRate: ex.heartRate,
     defaultRestTime: ex.defaultRestTime,
-    equipment: ex.equipment,
+    equipment: normalizeEquipment(ex.equipment),
     perSide: ex.perSide ?? 0,
     isAssisted: ex.isAssisted ?? 0,
   };
-}
-
-export function parseDateString(dateStr: string): Date {
-  return new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
-}
-
-export function exerciseKey(name: string): string {
-  return name.trim().toLowerCase();
-}
-
-export function signedWeight(weight: number | null | undefined, assisted: number | null | undefined): number | null {
-  if (weight == null) return null;
-  return assisted ? -Math.abs(weight) : weight;
-}
-
-export function effectiveVolume(weight: number | null | undefined, reps: number | null | undefined): number {
-  return Math.max(0, weight ?? 0) * (reps ?? 0);
-}
-
-export function activeSeconds(
-  session: { startedAt: string; completedAt: string | null; pausedAt: string | null; pausedSeconds: number },
-  nowMs: number,
-): number {
-  const startMs = parseDateString(session.startedAt).getTime();
-  if (session.completedAt) {
-    return Math.max(0, (parseDateString(session.completedAt).getTime() - startMs) / 1000);
-  }
-  let paused = session.pausedSeconds ?? 0;
-  if (session.pausedAt) {
-    paused += Math.max(0, (nowMs - parseDateString(session.pausedAt).getTime()) / 1000);
-  }
-  return Math.max(0, (nowMs - startMs) / 1000 - paused);
 }
 
 export function formatDutchDate(date: Date, options: Intl.DateTimeFormatOptions): string {

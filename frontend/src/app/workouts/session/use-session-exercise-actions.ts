@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { createTempExerciseId, setExerciseAssisted } from "@/lib/offline-workout";
+import { createTempExerciseId, setExerciseAssisted } from "@/app/workouts/session/offline-workout";
 import type { ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import {
   buildEditDraft,
@@ -7,12 +7,13 @@ import {
   draftFromSuggestion,
   fetchLastCompletedSets,
   parseDraftValues,
-  parseDurationHelper,
   scrollToSessionExercise,
   setsFromHistory,
   type HistorySetInput,
 } from "@/app/workouts/session/workout-session-helpers";
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
+import { DEFAULT_REST_SECONDS } from "@backend/shared/workout";
+import { parseClock } from "@/app/workouts/duration";
 
 interface ExerciseActionsArgs {
   session: FullWorkoutSession | null;
@@ -146,7 +147,7 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
       equipment: eq,
       perSide: draft.perSide ? 1 : 0,
       isAssisted: draft.isAssisted ? 1 : 0,
-      restTime: parseDurationHelper(draft.defaultRestTime) ?? 90,
+      restTime: parseClock(draft.defaultRestTime) ?? DEFAULT_REST_SECONDS,
       sets: initialSets,
     });
 
@@ -316,7 +317,7 @@ export function useSessionExerciseActions({ session, setSession, saveExercises, 
       }
     }
 
-    const defaultRestTimeSecs = parseDurationHelper(draft.defaultRestTime) ?? 90;
+    const defaultRestTimeSecs = parseClock(draft.defaultRestTime) ?? DEFAULT_REST_SECONDS;
 
     exercises[exIdx] = {
       ...targetEx,

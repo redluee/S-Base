@@ -1,4 +1,5 @@
-import { parseDateString } from "./utils";
+import { parseDateString } from "@backend/shared/dates";
+import { activeSeconds } from "@backend/shared/workout";
 
 export interface TimedSession {
   startedAt: string;
@@ -8,13 +9,17 @@ export interface TimedSession {
 }
 
 export function sessionElapsedSeconds(session: TimedSession, nowMs: number): number {
-  const startMs = parseDateString(session.startedAt).getTime();
-  if (session.completedAt) {
-    return Math.max(0, Math.floor((parseDateString(session.completedAt).getTime() - startMs) / 1000));
-  }
-  let pausedMs = (session.pausedSeconds ?? 0) * 1000;
-  if (session.pausedAt) pausedMs += Math.max(0, nowMs - parseDateString(session.pausedAt).getTime());
-  return Math.max(0, Math.floor((nowMs - startMs - pausedMs) / 1000));
+  return Math.floor(
+    activeSeconds(
+      {
+        startedAt: session.startedAt,
+        completedAt: session.completedAt ?? null,
+        pausedAt: session.pausedAt ?? null,
+        pausedSeconds: session.pausedSeconds ?? 0,
+      },
+      nowMs,
+    ),
+  );
 }
 
 export function pauseSession<T extends TimedSession>(session: T, nowMs: number): T {

@@ -1,5 +1,5 @@
 import { useEffect, useState, type MutableRefObject } from "react";
-import { loadSetTimerSnapshot, clearSetTimerSnapshot, type SetTimerSnapshot } from "@/lib/set-timer";
+import { loadSetTimerSnapshot, clearSetTimerSnapshot, type SetTimerSnapshot } from "@/app/workouts/session/set-timer";
 import type { FullWorkoutSession } from "@backend/types/shared";
 
 export function useRepTimer({

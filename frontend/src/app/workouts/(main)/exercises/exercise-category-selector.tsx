@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/lang";
 import { X, Plus, ChevronRight, ChevronLeft, ChevronDown, Folder, Check, HeartHandshake } from "lucide-react";
+import { normalizeCategory } from "@backend/shared/workout";
 
 export const CATEGORY_MAP = {
   "Bodyweight": [
@@ -36,18 +37,6 @@ export const CATEGORY_MAP = {
   ],
 };
 
-function normalizeCategoryName(cat?: string): string {
-  if (!cat) return "Free Weights";
-  const c = cat.toLowerCase().trim();
-  if (c === "bodyweight") return "Bodyweight";
-  if (c === "free weights" || c === "freeweights" || c === "resistance") return "Free Weights";
-  if (c === "machines" || c === "machine") return "Machines";
-  if (c === "functional" || c === "isometric") return "Functional";
-  if (c === "cardio") return "Cardio";
-  if (cat in CATEGORY_MAP) return cat;
-  return "Free Weights";
-}
-
 interface ExerciseCategorySelectorProps {
   category: string;
   equipment: string; // Comma separated string e.g. "Plyo Box, Dumbbell"
@@ -74,7 +63,7 @@ export function ExerciseCategorySelector({
   const catMenuRef = useRef<HTMLDivElement>(null);
   const matMenuRef = useRef<HTMLDivElement>(null);
 
-  const currentCategory = normalizeCategoryName(category);
+  const currentCategory = normalizeCategory(category);
 
   // Parse comma separated equipment
   const selectedEquipment = equipment 

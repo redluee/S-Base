@@ -2,7 +2,7 @@ import { notFoundOn404, serverApi } from "@/lib/server-api";
 
 import { WorkoutTemplateForm } from "@/app/workouts/templates/workout-template-form";
 import { sessionToTemplatePrefill } from "@/app/workouts/templates/session-to-template";
-import { parseDateString } from "@/lib/utils";
+import { parseDateString } from "@backend/shared/dates";
 import { t } from "@/lib/lang";
 
 export default async function NewWorkoutPage({

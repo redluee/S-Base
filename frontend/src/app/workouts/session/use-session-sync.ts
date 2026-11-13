@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRe
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { cancelScheduledSound, clearActiveNotifications } from "@/app/workouts/session/sound";
-import { pauseSession, resumeSession, sessionElapsedSeconds } from "@/lib/workout-time";
+import { pauseSession, resumeSession, sessionElapsedSeconds } from "@/app/workouts/workout-time";
 import {
   getOfflineSession,
   saveOfflineSession,
@@ -10,7 +10,7 @@ import {
   syncOfflineSession,
   recordSyncFailure,
   buildSessionExercisesPayload,
-} from "@/lib/offline-workout";
+} from "@/app/workouts/session/offline-workout";
 import type { FullWorkoutSession, SessionExercise } from "@backend/types/shared";
 
 interface SessionSyncArgs {

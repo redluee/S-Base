@@ -1,6 +1,6 @@
 import type { PersonalRecord } from "@backend/types/shared";
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 
 type RecordLike = PersonalRecord & { assisted?: boolean };
 

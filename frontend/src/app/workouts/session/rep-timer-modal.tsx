@@ -5,7 +5,7 @@ import { Play, Pause, RotateCcw, Check, X, Plus, Minus, Timer as TimerIcon, Targ
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { t } from "@/lib/lang";
-import { pauseAccumulate, restoreSetTimer, saveSetTimerSnapshot, setTimerElapsedMs, type SetTimerSnapshot } from "@/lib/set-timer";
+import { pauseAccumulate, restoreSetTimer, saveSetTimerSnapshot, setTimerElapsedMs, type SetTimerSnapshot } from "@/app/workouts/session/set-timer";
 import {
   triggerSetTimerCompletion,
   scheduleSetEndSound,
@@ -20,6 +20,7 @@ import {
   requestScreenWakeLock,
   releaseScreenWakeLock,
 } from "@/app/workouts/session/sound";
+import { formatClock } from "@/app/workouts/duration";
 
 interface RepTimerModalProps {
   sessionId?: number;
@@ -33,14 +34,6 @@ interface RepTimerModalProps {
   onClose: () => void;
 }
 
-function formatSecs(secVal: number): string {
-  const isNeg = secVal < 0;
-  const absSec = Math.abs(secVal);
-  const min = Math.floor(absSec / 60);
-  const sec = absSec % 60;
-  const timeStr = `${min}:${String(sec).padStart(2, "0")}`;
-  return isNeg ? `-${timeStr}` : timeStr;
-}
 
 export function RepTimerModal({
   sessionId,
@@ -346,11 +339,11 @@ export function RepTimerModal({
             <span className={`text-5xl font-extrabold tracking-tight tabular-nums ${
               isCountdown && displaySeconds <= 0 ? "text-brand" : "text-white"
             }`}>
-              {formatSecs(displaySeconds)}
+              {formatClock(displaySeconds)}
             </span>
             <span className="text-xs text-muted-foreground mt-1">
               {isCountdown
-                ? `${t("Elapsed") || "Verstreken"}: ${formatSecs(elapsedSeconds)}`
+                ? `${t("Elapsed") || "Verstreken"}: ${formatClock(elapsedSeconds)}`
                 : `${t("Stopwatch") || "Stopwatch"}`}
             </span>
           </div>
@@ -416,7 +409,7 @@ export function RepTimerModal({
             className="flex-1 bg-brand text-black font-semibold hover:bg-brand/90 min-h-11 rounded-xl text-xs sm:text-sm gap-1.5 px-2"
           >
             <Check className="size-4 stroke-[2.5px] shrink-0" />
-            <span>{t("Save")} ({formatSecs(elapsedSeconds)})</span>
+            <span>{t("Save")} ({formatClock(elapsedSeconds)})</span>
           </Button>
 
           {isCountdown && (
@@ -426,7 +419,7 @@ export function RepTimerModal({
               className="flex-1 border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 min-h-11 rounded-xl text-xs gap-1.5 px-2 font-medium"
             >
               <Target className="size-4 text-brand shrink-0" />
-              <span>{t("Save target time")} ({formatSecs(targetTime)})</span>
+              <span>{t("Save target time")} ({formatClock(targetTime)})</span>
             </Button>
           )}
         </div>

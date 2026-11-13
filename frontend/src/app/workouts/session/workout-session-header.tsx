@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ArrowLeft, Trophy, Timer, Pause, Play, Save } from "lucide-react";
-import { formatTime } from "@/app/workouts/session/workout-session-helpers";
 import type { FullWorkoutSession } from "@backend/types/shared";
+import { formatClock } from "@/app/workouts/duration";
 
 function Check({ className }: { className?: string }) {
   return (
@@ -151,7 +151,7 @@ export function WorkoutSessionHeader({
           ) : (
             <>
               <span className="text-base tabular-nums font-semibold text-zinc-200">
-                {formatTime(elapsed)}
+                {formatClock(elapsed)}
               </span>
               <button
                 type="button"

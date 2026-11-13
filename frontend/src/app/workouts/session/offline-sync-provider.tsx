@@ -11,7 +11,7 @@ import {
   dismissSyncWarning,
   OFFLINE_SYNC_EVENT,
   type SyncWarning,
-} from "@/lib/offline-workout";
+} from "@/app/workouts/session/offline-workout";
 import { t } from "@/lib/lang";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { buildEditDraft, fillCompletedSetDefaults, nextSessionSet, parseDraftValues } from "./workout-session-helpers";
-import { buildSessionExercisesPayload } from "@/lib/offline-workout";
+import { buildSessionExercisesPayload } from "@/app/workouts/session/offline-workout";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
 function exercise(timed = false): SessionExercise {

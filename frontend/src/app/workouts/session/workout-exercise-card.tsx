@@ -11,7 +11,7 @@ import { ExerciseCardHeader } from "@/app/workouts/session/workout-exercise-card
 import { SetsTable } from "@/app/workouts/session/workout-sets-table";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
-export { normalizeCategory, isTimedExercise, isSetZero, describeTarget } from "@/app/workouts/session/workout-exercise-card-utils";
+export { isTimedExercise, isSetZero, describeTarget } from "@/app/workouts/session/workout-exercise-card-utils";
 
 export interface WorkoutExerciseCardProps {
   ex: SessionExercise;

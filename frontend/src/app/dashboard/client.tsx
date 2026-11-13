@@ -5,7 +5,7 @@ import { t } from "@/lib/lang";
 import { compressImage } from "@/lib/image";
 import { api, type AuthUser } from "@/lib/api";
 import type { WorkoutSession } from "@backend/types/shared";
-import { RunningWorkoutCard } from "@/components/running-workout-card";
+import { RunningWorkoutCard } from "@/app/workouts/running-workout-card";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { DEFAULT_BG, DEFAULT_BLUR, DEFAULT_BRIGHTNESS } from "./dashboard-modules";
 import { canOpen, moduleById, type ModuleId } from "@/lib/modules";

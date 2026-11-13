@@ -6,7 +6,9 @@ import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
+import { formatMinutesSeconds } from "@/app/workouts/duration";
+import { effectiveVolume } from "@backend/shared/workout";
 
 interface ExerciseHistoryModalProps {
   exerciseName: string;
@@ -93,7 +95,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               const weightVals = allSets.filter((s: ProgressSet) => s.weight != null).map((s: ProgressSet) => s.weight as number);
               const hasWeightData = weightVals.length > 0;
               const maxWeight = hasWeightData ? Math.max(...weightVals) : 0;
-              const totalVolume = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+              const totalVolume = allSets.reduce((sum: number, s: ProgressSet) => sum + effectiveVolume(s.weight, s.reps), 0);
               const totalReps = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.reps ?? 0), 0);
               const maxReps = allSets.reduce((max: number, s: ProgressSet) => Math.max(max, s.reps ?? 0), 0);
               const totalDuration = allSets.reduce((sum: number, s: ProgressSet) => sum + (s.duration ?? 0), 0);
@@ -102,20 +104,13 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
               const statMode: "weight" | "reps" | "time" =
                 hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
-              const formatSec = (totalSec: number) => {
-                const min = Math.floor(totalSec / 60);
-                const sec = totalSec % 60;
-                if (min === 0) return `${sec}s`;
-                return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
-              };
-
               const topValueText =
                 statMode === "weight"
                   ? `${formatNumberNl(maxWeight)} kg`
                   : statMode === "reps"
                   ? `${maxReps} ${t("reps")}`
                   : maxDuration > 0
-                  ? formatSec(maxDuration)
+                  ? formatMinutesSeconds(maxDuration)
                   : "-";
 
               const topLabel =
@@ -131,7 +126,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                   : statMode === "reps"
                   ? `${totalReps} ${t("reps")}`
                   : totalDuration > 0
-                  ? formatSec(totalDuration)
+                  ? formatMinutesSeconds(totalDuration)
                   : "-";
 
               const totalLabel =
@@ -185,7 +180,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
 
                     const values = historyData.sessions.map((s: ProgressSession) =>
                       statMode === "weight"
-                        ? s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0)
+                        ? s.sets.reduce((sum: number, set: ProgressSet) => sum + effectiveVolume(set.weight, set.reps), 0)
                         : statMode === "reps"
                         ? s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.reps ?? 0), 0)
                         : s.sets.reduce((sum: number, set: ProgressSet) => sum + (set.duration ?? 0), 0)
@@ -233,17 +228,10 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                 const statMode: "weight" | "reps" | "time" =
                   hasWeightData ? "weight" : maxReps > 0 ? "reps" : "time";
 
-                const vol = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.weight ?? 0) * (s.reps ?? 0), 0);
+                const vol = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + effectiveVolume(s.weight, s.reps), 0);
                 const reps = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.reps ?? 0), 0);
                 const dur = sessionItem.sets.reduce((sum: number, s: ProgressSet) => sum + (s.duration ?? 0), 0);
                 const sessionHasWeightTracking = sessionItem.sets.some((s: ProgressSet) => s.weight != null);
-
-                const formatSec = (totalSec: number) => {
-                  const min = Math.floor(totalSec / 60);
-                  const sec = totalSec % 60;
-                  if (min === 0) return `${sec}s`;
-                  return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
-                };
 
                 const sessionBadgeText =
                   statMode === "weight" && sessionHasWeightTracking
@@ -251,7 +239,7 @@ export function ExerciseHistoryModal({ exerciseName, equipment, onClose }: Exerc
                     : statMode === "reps" && reps > 0
                     ? `${reps} ${t("reps")}`
                     : statMode === "time" && dur > 0
-                    ? formatSec(dur)
+                    ? formatMinutesSeconds(dur)
                     : null;
 
                 return (

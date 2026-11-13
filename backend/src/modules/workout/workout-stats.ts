@@ -2,7 +2,8 @@ import { eq, and, desc, sql, ne } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
 import type { PersonalRecord } from "../../types/shared";
-import { parseDateString, exerciseKey, signedWeight, effectiveVolume, activeSeconds } from "./workout-helpers";
+import { activeSeconds, effectiveVolume, exerciseKey, signedWeight } from "../../shared/workout";
+import { parseDateString } from "../../shared/dates";
 
 export class WorkoutStats {
   summary(userId: number) {

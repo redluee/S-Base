@@ -3,7 +3,8 @@ import db from "../../db/client";
 import { sessionExercises, sessionSets, workoutSessions, workoutTemplates } from "../../db/schema";
 import { ConflictError, orNotFound } from "../../utils/errors";
 import { lastExerciseWeight } from "./workout-history";
-import { activeSeconds, parseDateString } from "./workout-helpers";
+import { activeSeconds, normalizeCategory, normalizeEquipment } from "../../shared/workout";
+import { parseDateString } from "../../shared/dates";
 import { WorkoutSessionReader } from "./workout-session-reader";
 import type { SessionSetInput, SessionUpdateInput } from "./workout-schemas";
 import type { WorkoutTemplates } from "./workout-templates";
@@ -78,7 +79,7 @@ export class WorkoutSessions {
               sessionId: session.sessionId,
               exerciseName: tex.exerciseName,
               sortOrder: tex.sortOrder,
-              category: tex.category ?? "Free Weights",
+              category: normalizeCategory(tex.category),
               equipment: tex.equipment,
               perSide: tex.perSide ?? 0,
               isAssisted: tex.isAssisted ?? 0,
@@ -176,8 +177,8 @@ export class WorkoutSessions {
             .set({
               exerciseName: ex.exerciseName,
               sortOrder: ex.sortOrder,
-              category: ex.category ?? "Free Weights",
-              equipment: ex.equipment,
+              category: normalizeCategory(ex.category),
+              equipment: normalizeEquipment(ex.equipment),
               perSide: ex.perSide ?? 0,
               isAssisted: ex.isAssisted ?? 0,
               ...(ex.restTime !== undefined ? { restTime: ex.restTime } : {}),
@@ -198,8 +199,8 @@ export class WorkoutSessions {
               sessionId: id,
               exerciseName: ex.exerciseName,
               sortOrder: ex.sortOrder,
-              category: ex.category ?? "Free Weights",
-              equipment: ex.equipment,
+              category: normalizeCategory(ex.category),
+              equipment: normalizeEquipment(ex.equipment),
               perSide: ex.perSide ?? 0,
               isAssisted: ex.isAssisted ?? 0,
               restTime: ex.restTime ?? null,

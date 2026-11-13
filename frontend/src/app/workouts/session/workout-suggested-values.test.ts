@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { defaultSetList, fillCompletedSetDefaults, setsFromHistory } from "./workout-session-helpers";
 import { isUntouchedDefault } from "@/app/workouts/session/set-values";
-import { highestCompletedWeight } from "@backend/utils/workout-defaults";
+import { highestCompletedWeight } from "@backend/shared/workout";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
 const history: SessionSet[] = [

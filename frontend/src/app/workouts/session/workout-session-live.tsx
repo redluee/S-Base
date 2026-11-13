@@ -15,7 +15,7 @@ import { RepTimerModal } from "@/app/workouts/session/rep-timer-modal";
 import { SessionConflictDialog } from "@/app/workouts/session/session-conflict-dialog";
 import { parseSessionConflict, type ActiveSessionInfo } from "@/app/workouts/session/session-conflict";
 import type { FullWorkoutSession } from "@backend/types/shared";
-import { getOfflineSession, ensureExerciseIds } from "@/lib/offline-workout";
+import { getOfflineSession, ensureExerciseIds } from "@/app/workouts/session/offline-workout";
 import { calculateTotalVolume } from "@/app/workouts/session/workout-session-helpers";
 import { WorkoutSessionHeader } from "@/app/workouts/session/workout-session-header";
 import { WorkoutSessionExerciseList } from "@/app/workouts/session/workout-session-exercise-list";

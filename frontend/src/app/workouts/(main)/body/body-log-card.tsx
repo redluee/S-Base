@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { Calendar, Camera, Loader2, Pencil, Ruler, Trash2, X } from "lucide-react";
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 import { Button } from "@/components/ui/button";
 import { calculateBMI, hasCircumferences, type CircumferenceKey, type Measurement } from "./body-utils";
 

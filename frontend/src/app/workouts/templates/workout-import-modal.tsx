@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Download, Upload, X, AlertCircle, CheckCircle2 } from "lucide-react";
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { parseDecimal, parseInteger, sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/number-input";
+import { parseDecimal, parseInteger, sanitizeDecimalInput, sanitizeIntegerInput } from "@/app/workouts/number-input";
 import type { InputKind } from "@/app/workouts/session/workout-exercise-card-utils";
 
 interface AutoSaveInputProps

@@ -3,7 +3,8 @@ import db from "../../db/client";
 import { sessionExercises, sessionSets, templateExercises, workoutSessions, workoutTemplates } from "../../db/schema";
 import { orNotFound } from "../../utils/errors";
 import { normalizeSearchString } from "../../utils/search";
-import { exerciseKey, sessionMatchesQuery } from "./workout-helpers";
+import { exerciseKey } from "../../shared/workout";
+import { sessionMatchesQuery } from "./workout-helpers";
 
 type TemplateDefaults = typeof templateExercises.$inferSelect;
 

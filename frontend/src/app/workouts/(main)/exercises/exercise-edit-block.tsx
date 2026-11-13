@@ -7,19 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ExerciseAutocomplete } from "@/app/workouts/(main)/exercises/exercise-autocomplete";
 import { ExerciseCategorySelector } from "@/app/workouts/(main)/exercises/exercise-category-selector";
-import { TimeInput } from "@/components/ui/time-input";
+import { TimeInput } from "@/app/workouts/time-input";
 import { Switch } from "@/components/ui/switch";
 import { ChevronUp, ChevronDown, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toggleTrackingField } from "@/app/workouts/(main)/exercises/tracking-fields";
-import { sanitizeDecimalInput, toInputString } from "@/lib/number-input";
+import { defaultTracking, toggleTrackingField, type TrackingFields } from "@/app/workouts/(main)/exercises/tracking-fields";
+import { normalizeCategory, normalizeEquipment } from "@backend/shared/workout";
+import { sanitizeDecimalInput, toInputString } from "@/app/workouts/number-input";
+import { formatClockInput } from "@/app/workouts/duration";
 
-export interface TrackingFields {
-  reps: boolean;
-  time: boolean;
-  weight: boolean;
-  distance: boolean;
-}
+export type { TrackingFields };
 
 export interface ExerciseRowData {
   id?: string;
@@ -40,50 +37,6 @@ export interface ExerciseRowData {
   trackingFields: TrackingFields;
 }
 
-export function mapCategory(cat: string) {
-  if (!cat) return "Free Weights";
-  const c = cat.toLowerCase().trim();
-  if (c === "resistance" || c === "free weights" || c === "freeweights") return "Free Weights";
-  if (c === "machines" || c === "machine") return "Machines";
-  if (c === "bodyweight") return "Bodyweight";
-  if (c === "cardio") return "Cardio";
-  if (c === "functional" || c === "isometric") return "Functional";
-  return cat;
-}
-
-export function unmapCategory(cat: string): string {
-  if (cat === "Free Weights") return "Free Weights";
-  if (cat === "Machines") return "Machines";
-  if (cat === "Bodyweight") return "Bodyweight";
-  if (cat === "Cardio") return "Cardio";
-  if (cat === "Functional") return "Functional";
-  return cat || "Free Weights";
-}
-
-export function mapEquipment(eq: string) {
-  if (!eq || eq === "none") return "";
-  if (eq === "barbell") return "Barbell";
-  if (eq === "dumbbell") return "Dumbbell";
-  if (eq === "kettlebell") return "Kettlebell";
-  if (eq === "cable") return "Cable";
-  if (eq === "machine") return "Machine";
-  if (eq === "band") return "Resistance Band";
-  if (eq === "ball" || eq === "bal") return "Medicine Ball";
-  return eq;
-}
-
-export function getDefaultTracking(category: string): TrackingFields {
-  if (category === "Cardio") return { reps: false, time: true, weight: false, distance: true };
-  if (category === "Functional") return { reps: true, time: false, weight: true, distance: false };
-  return { reps: true, time: false, weight: true, distance: false };
-}
-
-export function formatDuration(secVal: number | null | undefined): string {
-  if (secVal === null || secVal === undefined) return "";
-  const min = Math.floor(secVal / 60);
-  const sec = secVal % 60;
-  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
 
 export interface ExerciseEditBlockProps {
   exercise: ExerciseRowData;
@@ -132,17 +85,17 @@ export function ExerciseEditBlock({
   ) {
     const updates: Partial<ExerciseRowData> = { name };
     if (category) {
-      const mappedCat = mapCategory(category);
+      const mappedCat = normalizeCategory(category);
       updates.category = mappedCat;
-      updates.trackingFields = getDefaultTracking(mappedCat);
+      updates.trackingFields = defaultTracking(mappedCat);
     }
-    if (equipment) updates.equipment = mapEquipment(equipment);
+    if (equipment) updates.equipment = normalizeEquipment(equipment) ?? "";
     if (sets !== undefined) updates.sets = sets.toString();
     if (reps !== undefined) updates.reps = reps.toString();
     if (defaultWeight !== undefined && defaultWeight !== null) updates.weight = toInputString(Math.abs(defaultWeight));
     if (defaultDistance !== undefined && defaultDistance !== null) updates.distance = toInputString(defaultDistance);
-    if (defaultDuration !== undefined && defaultDuration !== null) updates.duration = formatDuration(defaultDuration);
-    if (defaultRestTime !== undefined && defaultRestTime !== null) updates.defaultRestTime = formatDuration(defaultRestTime);
+    if (defaultDuration !== undefined && defaultDuration !== null) updates.duration = formatClockInput(defaultDuration);
+    if (defaultRestTime !== undefined && defaultRestTime !== null) updates.defaultRestTime = formatClockInput(defaultRestTime);
     if (perSide !== undefined) updates.perSide = Boolean(perSide);
     if (isAssisted !== undefined) updates.isAssisted = Boolean(isAssisted);
 

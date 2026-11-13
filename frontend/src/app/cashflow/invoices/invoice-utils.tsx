@@ -10,7 +10,7 @@ import {
   ArrowDown,
   ArrowUpDown,
 } from "lucide-react";
-import { parseDateString } from "@/lib/utils";
+import { parseDateString } from "@backend/shared/dates";
 
 export type SortField = "number" | "client" | "date" | "dueDate" | "total";
 export type SortOrder = "asc" | "desc";

@@ -4,11 +4,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MotivationalQuote } from "@/app/workouts/motivational-quote";
 import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
-import { RunningWorkoutCard } from "@/components/running-workout-card";
+import { RunningWorkoutCard } from "@/app/workouts/running-workout-card";
 import { WorkoutImportModal } from "@/app/workouts/templates/workout-import-modal";
 import { WorkoutTemplateList } from "@/app/workouts/templates/workout-template-list";
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 
 function getMilestoneStats(totalWorkouts: number) {
   const milestones = [0, 5, 10, 20, 50];

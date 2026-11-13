@@ -1,9 +1,16 @@
-import { highestCompletedWeight } from "../../utils/workout-defaults";
+import {
+  DEFAULT_CATEGORY,
+  DEFAULT_REPS,
+  DEFAULT_SETS,
+  highestCompletedWeight,
+  normalizeEquipment,
+} from "../../shared/workout";
+import { parseDateString } from "../../shared/dates";
 import { eq, and, or, like, desc, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
 import { normalizeSearchString, sqlNormalize } from "../../utils/search";
-import { formatDutchDate, parseDateString, sessionMatchesQuery } from "./workout-helpers";
+import { formatDutchDate, sessionMatchesQuery } from "./workout-helpers";
 
 export class WorkoutSuggestions {
   exercises(userId: number, q: string) {
@@ -117,16 +124,16 @@ export class WorkoutSuggestions {
             .reverse()
             .find((s) => s.reps != null || s.weight != null || s.distance != null || s.duration != null) ??
           sets[sets.length - 1];
-        const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+        const eqNorm = normalizeEquipment(r.equipment);
 
         uniqueExercisesMap.set(key, {
           name: r.name,
-          category: r.category ?? "Free Weights",
+          category: r.category ?? DEFAULT_CATEGORY,
           equipment: eqNorm,
           perSide: r.perSide ?? 0,
           isAssisted: r.isAssisted ?? 0,
-          defaultSets: sets.length > 0 ? sets.length : 3,
-          defaultReps: lastSetWithValues?.reps ?? sets[0]?.reps ?? 10,
+          defaultSets: sets.length > 0 ? sets.length : DEFAULT_SETS,
+          defaultReps: lastSetWithValues?.reps ?? sets[0]?.reps ?? DEFAULT_REPS,
           defaultWeight: highestCompletedWeight(sets),
           defaultDistance: lastSetWithValues?.distance ?? sets[0]?.distance ?? null,
           defaultDuration: lastSetWithValues?.duration ?? sets[0]?.duration ?? null,
@@ -146,7 +153,7 @@ export class WorkoutSuggestions {
 
     for (const r of fromTemplates) {
       const key = r.name.trim().toLowerCase();
-      const eqNorm = r.equipment && r.equipment !== "none" ? r.equipment : null;
+      const eqNorm = normalizeEquipment(r.equipment);
 
       if (uniqueExercisesMap.has(key)) {
         const existing = uniqueExercisesMap.get(key)!;
@@ -157,8 +164,8 @@ export class WorkoutSuggestions {
           existing.isAssisted = r.isAssisted;
         }
       } else {
-        const numSets = r.defaultSets || 3;
-        const numReps = r.defaultReps ?? 10;
+        const numSets = r.defaultSets || DEFAULT_SETS;
+        const numReps = r.defaultReps ?? DEFAULT_REPS;
         const templateSets = [];
         for (let i = 1; i <= numSets; i++) {
           templateSets.push({
@@ -174,7 +181,7 @@ export class WorkoutSuggestions {
 
         uniqueExercisesMap.set(key, {
           name: r.name,
-          category: r.category ?? "Free Weights",
+          category: r.category ?? DEFAULT_CATEGORY,
           equipment: eqNorm,
           perSide: r.perSide ?? 0,
           isAssisted: r.isAssisted ?? 0,

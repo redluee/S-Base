@@ -94,4 +94,19 @@ describe("workout system defaults", () => {
       "",
     ]);
   });
+  it("stores one category vocabulary and no placeholder equipment, whatever the client sends", () => {
+    const session = workout.sessions.create(userId, undefined, true)!;
+    const saved = workout.sessions.update(session.sessionId, userId, {
+      exercises: [
+        { exerciseName: "Legacy", sortOrder: 0, category: "resistance", equipment: "none", sets: [] },
+        { exerciseName: "Plank", sortOrder: 1, category: "isometric", equipment: "undefined", sets: [] },
+        { exerciseName: "Row", sortOrder: 2, category: "Machines", equipment: "cable", sets: [] },
+      ],
+    });
+    expect(saved.exercises.map((e) => [e.category, e.equipment])).toEqual([
+      ["Free Weights", null],
+      ["Functional", null],
+      ["Machines", "Cable"],
+    ]);
+  });
 });

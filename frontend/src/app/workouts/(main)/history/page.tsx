@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WorkoutSubnav } from "@/app/workouts/workout-subnav";
 import { t } from "@/lib/lang";
 import { Calendar } from "lucide-react";
-import { parseDateString } from "@/lib/utils";
+import { parseDateString } from "@backend/shared/dates";
 
 export default async function WorkoutHistoryPage({
   searchParams,

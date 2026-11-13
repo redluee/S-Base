@@ -5,30 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { sessionElapsedSeconds } from "@/lib/workout-time";
-import { clearOfflineSession } from "@/lib/offline-workout";
-import { clearSetTimerSnapshot } from "@/lib/set-timer";
+import { sessionElapsedSeconds } from "@/app/workouts/workout-time";
+import { clearOfflineSession } from "@/app/workouts/session/offline-workout";
+import { clearSetTimerSnapshot } from "@/app/workouts/session/set-timer";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import { DumbbellIcon } from "@/components/icons";
 import { Play, CheckCircle2, Trash2, Timer } from "lucide-react";
 import type { WorkoutSession } from "@backend/types/shared";
+import { formatClock } from "@/app/workouts/duration";
+import { parseDateString } from "@backend/shared/dates";
 
-function parseSessionDate(dateStr: string): Date {
-  if (!dateStr) return new Date();
-  return new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
-}
-
-function formatElapsedTime(seconds: number): string {
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  if (hrs > 0) {
-    return `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  }
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
 
 export function RunningWorkoutCard({
   session,
@@ -50,12 +37,7 @@ export function RunningWorkoutCard({
 
   useEffect(() => {
     const updateElapsed = () => {
-      setElapsed(
-        sessionElapsedSeconds(
-          { ...session, startedAt: parseSessionDate(session.startedAt).toISOString() },
-          Date.now()
-        )
-      );
+      setElapsed(sessionElapsedSeconds(session, Date.now()));
     };
 
     updateElapsed();
@@ -88,7 +70,7 @@ export function RunningWorkoutCard({
   };
 
   const startTimeFormatted = React.useMemo(() => {
-    const date = parseSessionDate(session.startedAt);
+    const date = parseDateString(session.startedAt);
     return date.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
   }, [session.startedAt]);
 
@@ -114,7 +96,7 @@ export function RunningWorkoutCard({
           <div className="flex items-center gap-2 shrink-0">
             <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-brand tabular-nums">
               <Timer className="size-3.5" aria-hidden="true" />
-              <span>{formatElapsedTime(elapsed)}</span>
+              <span>{formatClock(elapsed)}</span>
             </div>
             <Button
               render={<Link href={sessionHref} />}
@@ -148,7 +130,7 @@ export function RunningWorkoutCard({
             className="flex items-center gap-1.5 bg-brand/10 text-brand font-bold text-sm sm:text-base px-3 py-1.5 rounded-lg shrink-0 tabular-nums"
           >
             <Timer className="size-4" aria-hidden="true" />
-            <span>{formatElapsedTime(elapsed)}</span>
+            <span>{formatClock(elapsed)}</span>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 import type { Measurement } from "./body-utils";
 
 export function BodySummaryCards({

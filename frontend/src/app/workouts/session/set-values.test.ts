@@ -1,4 +1,4 @@
-import { buildSessionExercisesPayload } from "@/lib/offline-workout";
+import { buildSessionExercisesPayload } from "@/app/workouts/session/offline-workout";
 import { describe, expect, it } from "bun:test";
 import { applySetUpdate, isUntouchedDefault, type EditableSet } from "./set-values";
 

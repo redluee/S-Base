@@ -2,16 +2,16 @@ import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
-import { parseDateString } from "@/lib/utils";
+import { parseDateString } from "@backend/shared/dates";
 import { isSetZero } from "@/app/workouts/session/workout-exercise-card";
-import { clearSetTimerSnapshot } from "@/lib/set-timer";
-import { sessionElapsedSeconds } from "@/lib/workout-time";
+import { clearSetTimerSnapshot } from "@/app/workouts/session/set-timer";
+import { sessionElapsedSeconds } from "@/app/workouts/workout-time";
 import {
   saveOfflineSession,
   clearOfflineSession,
   syncOfflineSession,
   buildSessionExercisesPayload,
-} from "@/lib/offline-workout";
+} from "@/app/workouts/session/offline-workout";
 import type { FullWorkoutSession, PersonalRecord, SessionSet } from "@backend/types/shared";
 
 interface FinishArgs {

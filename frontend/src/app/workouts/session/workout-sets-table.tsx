@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { Check, Trash, Timer } from "lucide-react";
 import { t } from "@/lib/lang";
-import { parseDecimal, parseInteger } from "@/lib/number-input";
-import { highestCompletedWeight } from "@backend/utils/workout-defaults";
+import { parseDecimal, parseInteger } from "@/app/workouts/number-input";
+import { highestCompletedWeight } from "@backend/shared/workout";
 import { isUntouchedDefault, type SetValueField } from "@/app/workouts/session/set-values";
 import { cn } from "@/lib/utils";
 import { SwipeTr, useCoarsePointer, useSmViewport } from "@/app/workouts/session/swipe-tr";
@@ -16,12 +16,12 @@ import {
   getColumns,
   isSetZero,
   isTimedExercise,
-  normalizeCategory,
-  parseSecs,
   type SetColumn,
 } from "@/app/workouts/session/workout-exercise-card-utils";
 import type { WorkoutExerciseCardProps } from "@/app/workouts/session/workout-exercise-card";
 import type { SessionSet } from "@backend/types/shared";
+import { trackingKind } from "@backend/shared/workout";
+import { parseClock } from "@/app/workouts/duration";
 
 type SetsTableProps = Pick<
   WorkoutExerciseCardProps,
@@ -65,14 +65,14 @@ export function SetsTable({
   soundEnabled,
   toggleSound,
 }: SetsTableProps) {
-  const cat = normalizeCategory(ex.category);
+  const cat = trackingKind(ex.category);
   const coarse = useCoarsePointer();
   const smViewport = useSmViewport();
   const [openSetIdx, setOpenSetIdx] = useState<number | null>(null);
 
   function saveColumn(col: SetColumn, setIdx: number, val: string) {
     if (col.kind === "time") {
-      updateSet(exIdx, setIdx, "duration", parseSecs(val));
+      updateSet(exIdx, setIdx, "duration", parseClock(val));
       return;
     }
     if (col.kind === "integer") {

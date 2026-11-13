@@ -1,8 +1,8 @@
-import { eq, and, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import db from "../../db/client";
 import { workoutTemplates, templateExercises, workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
 import { ValidationError } from "../../utils/errors";
-import { exerciseKey } from "./workout-helpers";
+import { DEFAULT_CATEGORY, exerciseKey } from "../../shared/workout";
 
 export class WorkoutExercises {
   list(userId: number) {
@@ -35,12 +35,8 @@ export class WorkoutExercises {
           map.set(r.name, { eqSet: new Set(), catSet: new Set() });
         }
         const entry = map.get(r.name)!;
-        if (r.equipment && r.equipment !== "none" && r.equipment !== "null" && r.equipment !== "undefined") {
-          entry.eqSet.add(r.equipment);
-        }
-        if (r.category && r.category !== "null" && r.category !== "undefined") {
-          entry.catSet.add(r.category);
-        }
+        if (r.equipment) entry.eqSet.add(r.equipment);
+        if (r.category) entry.catSet.add(r.category);
       }
     }
 
@@ -58,8 +54,8 @@ export class WorkoutExercises {
         name,
         equipment: eqArray[0] ?? null,
         equipments: eqArray,
-        category: catArray[0] ?? "Free Weights",
-        categories: catArray.length > 0 ? catArray : ["Free Weights"],
+        category: catArray[0] ?? DEFAULT_CATEGORY,
+        categories: catArray.length > 0 ? catArray : [DEFAULT_CATEGORY],
       });
     }
 
@@ -83,9 +79,7 @@ export class WorkoutExercises {
 
     const availableEquipmentsSet = new Set<string>();
     for (const row of availableEqRows) {
-      if (row.equipment && row.equipment !== "none" && row.equipment !== "null" && row.equipment !== "undefined") {
-        availableEquipmentsSet.add(row.equipment);
-      }
+      if (row.equipment) availableEquipmentsSet.add(row.equipment);
     }
     const availableEquipments = Array.from(availableEquipmentsSet).sort();
 
@@ -94,11 +88,9 @@ export class WorkoutExercises {
       sql`${workoutSessions.completedAt} IS NOT NULL`,
       eq(workoutSessions.userId, userId),
     ];
-    if (equipment && equipment !== "all" && equipment !== "null" && equipment !== "undefined") {
+    if (equipment && equipment !== "all") {
       if (equipment === "none") {
-        conditions.push(
-          sql`(${sessionExercises.equipment} IS NULL OR ${sessionExercises.equipment} = '' OR ${sessionExercises.equipment} = 'none')`,
-        );
+        conditions.push(isNull(sessionExercises.equipment));
       } else {
         conditions.push(eq(sessionExercises.equipment, equipment));
       }
@@ -150,7 +142,7 @@ export class WorkoutExercises {
 
     return {
       exerciseName: rows[0]?.exerciseName ?? trimmedName,
-      category: rows[0]?.category ?? "Free Weights",
+      category: rows[0]?.category ?? DEFAULT_CATEGORY,
       equipment: equipment && equipment !== "all" ? equipment : null,
       availableEquipments,
       sessions: Array.from(sessionsMap.values()),

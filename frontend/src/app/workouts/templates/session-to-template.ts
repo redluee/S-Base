@@ -1,5 +1,6 @@
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
-import { sessionElapsedSeconds } from "@/lib/workout-time";
+import { sessionElapsedSeconds } from "@/app/workouts/workout-time";
+import { DEFAULT_REST_SECONDS } from "@backend/shared/workout";
 
 export interface TemplatePrefillExercise {
   exerciseName: string;
@@ -65,7 +66,7 @@ export function sessionToTemplatePrefill(session: FullWorkoutSession): TemplateP
         defaultDuration: positive(ref?.duration),
         defaultRpe: ref?.rpe ?? null,
         defaultHeartRate: ref?.heartRate ?? null,
-        defaultRestTime: ex.restTime ?? 90,
+        defaultRestTime: ex.restTime ?? DEFAULT_REST_SECONDS,
         perSide: ex.perSide ? 1 : 0,
         isAssisted: ex.isAssisted ? 1 : 0,
       };

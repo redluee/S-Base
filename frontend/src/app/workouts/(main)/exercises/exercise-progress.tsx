@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 import Link from "next/link";
 import { ArrowLeft, GitMerge } from "lucide-react";
-import { parseDateString } from "@/lib/utils";
+import { parseDateString } from "@backend/shared/dates";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ExerciseMergeModal } from "@/app/workouts/(main)/exercises/exercise-merge-modal";
+import { effectiveVolume } from "@backend/shared/workout";
 
 interface SetItem {
   setNumber: number;
@@ -80,7 +81,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
   const weightVals = allSets.filter((s: SetItem) => s.weight != null).map((s: SetItem) => s.weight as number);
   const hasWeightData = weightVals.length > 0;
   const maxWeight = hasWeightData ? Math.max(...weightVals) : 0;
-  const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
+  const totalVolume = allSets.reduce((sum: number, set: SetItem) => sum + effectiveVolume(set.weight, set.reps), 0);
   const totalReps = allSets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0);
   const maxReps = allSets.reduce((max: number, set: SetItem) => Math.max(max, set.reps ?? 0), 0);
   const totalDuration = allSets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0);
@@ -243,7 +244,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
               {(() => {
                 const values = filteredSessions.map((s: WorkoutSession) =>
                   statMode === "weight"
-                    ? s.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0)
+                    ? s.sets.reduce((sum: number, set: SetItem) => sum + effectiveVolume(set.weight, set.reps), 0)
                     : statMode === "reps"
                     ? s.sets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0)
                     : s.sets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0)
@@ -316,7 +317,7 @@ export function ExerciseProgress({ data }: { data: ExerciseProgressData }) {
 
           {/* Session list */}
           {[...filteredSessions].reverse().map((session: WorkoutSession) => {
-            const vol = session.sets.reduce((sum: number, set: SetItem) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0);
+            const vol = session.sets.reduce((sum: number, set: SetItem) => sum + effectiveVolume(set.weight, set.reps), 0);
             const reps = session.sets.reduce((sum: number, set: SetItem) => sum + (set.reps ?? 0), 0);
             const dur = session.sets.reduce((sum: number, set: SetItem) => sum + (set.duration ?? 0), 0);
             const date = parseDateString(session.startedAt);

@@ -3,7 +3,7 @@
 import { Timer, Volume2, VolumeX } from "lucide-react";
 import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
-import { formatTime } from "@/app/workouts/session/workout-exercise-card-utils";
+import { formatClock } from "@/app/workouts/duration";
 
 const chipButton =
   "min-h-11 min-w-11 px-3 inline-flex items-center justify-center rounded-md bg-zinc-800 text-xs font-medium text-zinc-300 hover:bg-zinc-700 active:scale-95 disabled:opacity-50 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -45,7 +45,7 @@ export function RestTimerRow({
                   aria-label={t("Rest time")}
                   className="text-base font-bold text-brand tabular-nums min-w-12"
                 >
-                  {formatTime(restSecondsLeft)}
+                  {formatClock(restSecondsLeft)}
                 </span>
                 <div className="flex flex-wrap items-center gap-1">
                   <button type="button" onClick={() => adjustRestTimer(15)} className={chipButton}>

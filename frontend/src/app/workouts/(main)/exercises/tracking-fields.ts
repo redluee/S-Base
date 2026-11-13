@@ -1,3 +1,5 @@
+import type { ExerciseCategory } from "@backend/shared/workout";
+
 export interface TrackingFields {
   reps: boolean;
   time: boolean;
@@ -14,4 +16,9 @@ export function toggleTrackingField(fields: TrackingFields, field: TrackingField
     if (field === "time") next.reps = false;
   }
   return next;
+}
+
+export function defaultTracking(category: ExerciseCategory): TrackingFields {
+  if (category === "Cardio") return { reps: false, time: true, weight: false, distance: true };
+  return { reps: true, time: false, weight: true, distance: false };
 }

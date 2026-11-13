@@ -1,18 +1,11 @@
 import { t } from "@/lib/lang";
-import { formatNumberNl, toInputString } from "@/lib/number-input";
+import { formatNumberNl, toInputString } from "@/app/workouts/number-input";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
+import { trackingKind, type TrackingKind } from "@backend/shared/workout";
+import { formatClock } from "@/app/workouts/duration";
 
 export type InputKind = "decimal" | "integer" | "time";
 
-export function normalizeCategory(cat: string | null | undefined): "resistance" | "bodyweight" | "cardio" | "isometric" {
-  if (!cat) return "resistance";
-  const c = cat.toLowerCase().trim();
-  if (c === "free weights" || c === "freeweights" || c === "machines" || c === "resistance") return "resistance";
-  if (c === "bodyweight") return "bodyweight";
-  if (c === "cardio") return "cardio";
-  if (c === "functional" || c === "isometric") return "isometric";
-  return "resistance";
-}
 
 export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
   const hasCurrentRepsSets = ex.sets?.some((s) => s.reps != null && s.reps > 0);
@@ -28,7 +21,7 @@ export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<st
     return true;
   }
 
-  const cat = normalizeCategory(ex.category);
+  const cat = trackingKind(ex.category);
   if (cat === "cardio") return true;
 
   const firstPrevSet = previousSetsMap?.[ex.exerciseName]?.[0];
@@ -49,7 +42,7 @@ export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<st
 export function isSetZero(ex: SessionExercise, set: SessionSet, previousSetsMap?: Record<string, SessionSet[]>): boolean {
   if (set.completed !== 1) return false;
 
-  const cat = normalizeCategory(ex.category);
+  const cat = trackingKind(ex.category);
   if (cat === "cardio") {
     const hasDuration = set.duration != null && set.duration > 0;
     const hasDistance = set.distance != null && set.distance > 0;
@@ -67,24 +60,7 @@ export function isSetZero(ex: SessionExercise, set: SessionSet, previousSetsMap?
   return !hasReps && !hasDuration;
 }
 
-export function formatSecs(secVal: number | null | undefined): string {
-  if (secVal === null || secVal === undefined || isNaN(secVal)) return "";
-  const min = Math.floor(secVal / 60);
-  const sec = secVal % 60;
-  return `${min}:${String(sec).padStart(2, "0")}`;
-}
 
-export function parseSecs(val: string): number | null {
-  if (!val || !val.trim()) return null;
-  if (val.includes(":")) {
-    const parts = val.split(":");
-    const min = parseInt(parts[0], 10) || 0;
-    const sec = parseInt(parts[1], 10) || 0;
-    return min * 60 + sec;
-  }
-  const parsed = parseInt(val, 10);
-  return isNaN(parsed) ? null : parsed;
-}
 export type ColumnKey = "weight" | "reps" | "distance" | "duration" | "heartRate";
 
 export interface SetColumn {
@@ -95,7 +71,7 @@ export interface SetColumn {
 }
 
 export function getColumns(
-  cat: ReturnType<typeof normalizeCategory>,
+  cat: TrackingKind,
   isTimed: boolean,
   isAssisted: boolean,
   perSide: boolean,
@@ -125,17 +101,17 @@ export function getColumns(
 
 export function formatColumnValue(
   col: SetColumn,
-  cat: ReturnType<typeof normalizeCategory>,
+  cat: TrackingKind,
   raw: number | null | undefined
 ): string {
   if (raw === null || raw === undefined) return "";
-  if (col.kind === "time") return formatSecs(raw);
+  if (col.kind === "time") return formatClock(raw);
   if (col.kind === "decimal") return toInputString(cat === "bodyweight" && col.key === "weight" ? Math.abs(raw) : raw);
   return String(raw);
 }
 
 export function describeTarget(
-  cat: ReturnType<typeof normalizeCategory>,
+  cat: TrackingKind,
   isTimed: boolean,
   target: Partial<SessionSet> | null
 ): string {
@@ -146,7 +122,7 @@ export function describeTarget(
     target.duration != null && target.duration > 0 && (target.reps == null || target.reps === 0 || isTimed);
 
   if (hasTimeTarget) {
-    const durStr = formatSecs(target.duration) || `${target.duration}s`;
+    const durStr = formatClock(target.duration) || `${target.duration}s`;
     if (target.weight != null && target.weight !== 0) {
       return `${cat === "bodyweight" ? signed(target.weight) : kg(target.weight)} x ${durStr}`;
     }
@@ -162,23 +138,10 @@ export function describeTarget(
     return `${reps} ${t("reps")}`;
   }
   if (cat === "cardio") {
-    return `${formatNumberNl(target.distance ?? 0)} km x ${formatSecs(target.duration ?? 0) || "0:00"}`;
+    return `${formatNumberNl(target.distance ?? 0)} km x ${formatClock(target.duration ?? 0) || "0:00"}`;
   }
   const reps = target.reps ?? 10;
   if (target.weight != null && target.weight !== 0) return `${reps} x ${kg(target.weight)}`;
   return `${reps} ${t("reps")}`;
 }
 
-export function formatTime(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const paddedMinutes = String(minutes).padStart(2, "0");
-  const paddedSeconds = String(seconds).padStart(2, "0");
-
-  if (hours > 0) {
-    return `${hours}:${paddedMinutes}:${paddedSeconds}`;
-  }
-  return `${minutes}:${paddedSeconds}`;
-}

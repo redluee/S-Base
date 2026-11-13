@@ -1,3 +1,4 @@
+import { DEFAULT_CATEGORY, EXERCISE_CATEGORIES } from "../../shared/workout";
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { users } from "./auth";
@@ -23,7 +24,7 @@ export const templateExercises = sqliteTable("template_exercises", {
     .references(() => workoutTemplates.templateId, { onDelete: "cascade" }),
   exerciseName: text("exercise_name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
-  category: text("category").notNull().default("Free Weights"),
+  category: text("category", { enum: EXERCISE_CATEGORIES }).notNull().default(DEFAULT_CATEGORY),
   defaultSets: integer("default_sets").notNull().default(3),
   defaultReps: integer("default_reps").notNull().default(10),
   defaultWeight: real("default_weight"),
@@ -58,7 +59,7 @@ export const sessionExercises = sqliteTable("session_exercises", {
     .references(() => workoutSessions.sessionId, { onDelete: "cascade" }),
   exerciseName: text("exercise_name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
-  category: text("category").notNull().default("Free Weights"),
+  category: text("category", { enum: EXERCISE_CATEGORIES }).notNull().default(DEFAULT_CATEGORY),
   equipment: text("equipment"),
   perSide: integer("per_side").notNull().default(0),
   isAssisted: integer("is_assisted").notNull().default(0),

@@ -8,12 +8,13 @@ import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Play, Upload, Check } from "lucide-react";
-import { normalizeCategory } from "@/app/workouts/session/workout-exercise-card";
 import { SessionConflictDialog } from "@/app/workouts/session/session-conflict-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 import { parseSessionConflict, type ActiveSessionInfo } from "@/app/workouts/session/session-conflict";
+import { trackingKind } from "@backend/shared/workout";
+import { formatClock } from "@/app/workouts/duration";
 
 export function cleanTemplateForExport(template: any) {
   const cleaned: Record<string, any> = {
@@ -257,12 +258,6 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
         {template.exercises?.length > 0 ? (
           <div className="flex flex-col gap-3">
             {template.exercises.map((ex: any, i: number) => {
-              const formatSecs = (secVal: number | null | undefined) => {
-                if (secVal === null || secVal === undefined) return "";
-                const min = Math.floor(secVal / 60);
-                const sec = secVal % 60;
-                return `${min}:${String(sec).padStart(2, "0")}`;
-              };
 
               const categoryLabels: Record<string, string> = {
                 resistance: t("Free Weights"),
@@ -271,7 +266,7 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
                 isometric: t("Functional"),
               };
 
-              const cat = normalizeCategory(ex.category);
+              const cat = trackingKind(ex.category);
               const categoryLabel = categoryLabels[cat] || ex.category || cat;
 
               const equipmentList = ex.equipment
@@ -320,7 +315,7 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
 
                     {ex.defaultRestTime != null && (
                       <span className="text-xs font-medium text-zinc-200 bg-zinc-800/90 px-2.5 py-1 rounded-md border border-zinc-700 shrink-0">
-                        {t("Rest")}: {formatSecs(ex.defaultRestTime)}
+                        {t("Rest")}: {formatClock(ex.defaultRestTime)}
                       </span>
                     )}
                   </div>
@@ -335,7 +330,7 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
                     )}
 
                     {ex.defaultDuration != null && ex.defaultDuration > 0 && (
-                      <span>• {formatSecs(ex.defaultDuration)}</span>
+                      <span>• {formatClock(ex.defaultDuration)}</span>
                     )}
 
                     {ex.defaultWeight != null && (cat === "bodyweight" || cat === "isometric" ? ex.defaultWeight !== 0 : true) && (

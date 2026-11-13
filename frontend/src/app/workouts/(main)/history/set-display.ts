@@ -1,4 +1,4 @@
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 
 export function formatHistoryWeight(
   weight: number | null | undefined,

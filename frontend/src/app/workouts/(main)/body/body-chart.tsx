@@ -1,6 +1,6 @@
 import { TrendingUp } from "lucide-react";
 import { t } from "@/lib/lang";
-import { formatNumberNl } from "@/lib/number-input";
+import { formatNumberNl } from "@/app/workouts/number-input";
 import { calculateBMI, type ChartTab, type Measurement } from "./body-utils";
 
 export function BodyChart({ logs, chartTab }: { logs: Measurement[]; chartTab: ChartTab }) {

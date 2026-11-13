@@ -1,5 +1,5 @@
 import { useEffect, useState, type MutableRefObject } from "react";
-import { sessionElapsedSeconds } from "@/lib/workout-time";
+import { sessionElapsedSeconds } from "@/app/workouts/workout-time";
 import type { FullWorkoutSession } from "@backend/types/shared";
 
 export function useElapsedTime(

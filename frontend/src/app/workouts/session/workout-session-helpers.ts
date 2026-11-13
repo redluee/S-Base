@@ -1,9 +1,10 @@
-import { highestCompletedWeight } from "@backend/utils/workout-defaults";
+import { DEFAULT_REPS, DEFAULT_REST_SECONDS, DEFAULT_SETS, highestCompletedWeight, normalizeCategory, normalizeEquipment, trackingKind, effectiveVolume } from "@backend/shared/workout";
 import { api } from "@/lib/api";
-import { parseDecimal, toInputString } from "@/lib/number-input";
-import { isTimedExercise, normalizeCategory } from "@/app/workouts/session/workout-exercise-card";
-import { formatDuration, mapCategory, mapEquipment, unmapCategory, type ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
+import { parseDecimal, toInputString } from "@/app/workouts/number-input";
+import { isTimedExercise } from "@/app/workouts/session/workout-exercise-card";
+import { type ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
+import { formatClockInput, parseClock } from "@/app/workouts/duration";
 
 export type HistorySetInput = {
   setNumber: number;
@@ -15,34 +16,10 @@ export type HistorySetInput = {
   heartRate?: number | null;
 };
 
-export function formatTime(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
 
-  const paddedMinutes = String(minutes).padStart(2, "0");
-  const paddedSeconds = String(seconds).padStart(2, "0");
-
-  if (hours > 0) {
-    return `${hours}:${paddedMinutes}:${paddedSeconds}`;
-  }
-  return `${minutes}:${paddedSeconds}`;
-}
-
-export function parseDurationHelper(val: string): number | null {
-  if (!val || !val.trim()) return null;
-  if (val.includes(":")) {
-    const parts = val.split(":");
-    const min = parseInt(parts[0], 10) || 0;
-    const sec = parseInt(parts[1], 10) || 0;
-    return min * 60 + sec;
-  }
-  const parsed = parseInt(val, 10);
-  return isNaN(parsed) ? null : parsed;
-}
 
 export function getExerciseRestTime(ex: SessionExercise): number {
-  return ex.restTime ?? ex.templateExercise?.defaultRestTime ?? 90;
+  return ex.restTime ?? ex.templateExercise?.defaultRestTime ?? DEFAULT_REST_SECONDS;
 }
 
 export function calculateTotalVolume(session: FullWorkoutSession | null): number {
@@ -52,7 +29,7 @@ export function calculateTotalVolume(session: FullWorkoutSession | null): number
       if (ex.sets) {
         for (const s of ex.sets) {
           if (s.completed === 1 && s.weight && s.reps) {
-            vol += Math.max(0, s.weight) * s.reps;
+            vol += effectiveVolume(s.weight, s.reps);
           }
         }
       }
@@ -129,13 +106,13 @@ export function blankExerciseDraft(name: string): ExerciseRowData {
   return {
     name,
     category: "Free Weights",
-    sets: "3",
-    reps: "8",
+    sets: String(DEFAULT_SETS),
+    reps: String(DEFAULT_REPS),
     weight: "",
     distance: "",
     distanceUnit: "km",
     duration: "",
-    defaultRestTime: "01:30",
+    defaultRestTime: formatClockInput(DEFAULT_REST_SECONDS),
     equipment: "",
     perSide: false,
     isAssisted: false,
@@ -163,8 +140,8 @@ export function draftFromSuggestion(
     weight: defaultWeight != null ? toInputString(Math.abs(defaultWeight)) : "",
     distance: toInputString(defaultDistance),
     distanceUnit: "km",
-    duration: defaultDuration ? formatDuration(defaultDuration) : "",
-    defaultRestTime: formatDuration(defaultRestTime ?? 90),
+    duration: defaultDuration ? formatClockInput(defaultDuration) : "",
+    defaultRestTime: formatClockInput(defaultRestTime ?? DEFAULT_REST_SECONDS),
     equipment: equipment || "",
     perSide: Boolean(perSide),
     isAssisted: Boolean(isAssisted),
@@ -175,7 +152,7 @@ export function draftFromSuggestion(
 export function parseDraftValues(draft: ExerciseRowData) {
   const numSets = Math.max(1, parseInt(draft.sets, 10) || 3);
   const numReps = draft.trackingFields.reps ? (parseInt(draft.reps, 10) || 10) : null;
-  const durationSecs = draft.trackingFields.time ? parseDurationHelper(draft.duration) : null;
+  const durationSecs = draft.trackingFields.time ? parseClock(draft.duration) : null;
   const parsedWeight = draft.trackingFields.weight ? parseDecimal(draft.weight) : null;
   const weightVal = parsedWeight !== null
     ? (draft.isAssisted ? -Math.abs(parsedWeight) : Math.abs(parsedWeight))
@@ -185,8 +162,8 @@ export function parseDraftValues(draft: ExerciseRowData) {
     distVal = distVal / 1000;
   }
   return {
-    cat: unmapCategory(draft.category),
-    eq: draft.equipment || "none",
+    cat: normalizeCategory(draft.category),
+    eq: normalizeEquipment(draft.equipment),
     numSets,
     numReps,
     durationSecs,
@@ -197,16 +174,16 @@ export function parseDraftValues(draft: ExerciseRowData) {
 }
 
 export function buildEditDraft(ex: SessionExercise): ExerciseRowData {
-  const cat = mapCategory(ex.category || "resistance");
-  const eq = mapEquipment(ex.equipment || "");
+  const cat = normalizeCategory(ex.category);
+  const eq = normalizeEquipment(ex.equipment) ?? "";
   const firstSet = ex.sets?.[0];
-  const numSets = ex.sets?.length ? String(ex.sets.length) : "3";
+  const numSets = ex.sets?.length ? String(ex.sets.length) : String(DEFAULT_SETS);
 
-  const reps = firstSet?.reps != null ? String(firstSet.reps) : (ex.templateExercise?.defaultReps?.toString() ?? "8");
+  const reps = firstSet?.reps != null ? String(firstSet.reps) : (ex.templateExercise?.defaultReps?.toString() ?? String(DEFAULT_REPS));
   const weight = firstSet?.weight != null ? toInputString(Math.abs(firstSet.weight)) : (ex.templateExercise?.defaultWeight != null ? toInputString(Math.abs(ex.templateExercise.defaultWeight)) : "");
   const distance = firstSet?.distance != null ? toInputString(firstSet.distance) : toInputString(ex.templateExercise?.defaultDistance);
-  const duration = firstSet?.duration != null ? formatDuration(firstSet.duration) : formatDuration(ex.templateExercise?.defaultDuration);
-  const defaultRestTime = formatDuration(getExerciseRestTime(ex));
+  const duration = firstSet?.duration != null ? formatClockInput(firstSet.duration) : formatClockInput(ex.templateExercise?.defaultDuration);
+  const defaultRestTime = formatClockInput(getExerciseRestTime(ex));
   const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
   const isAssisted = ex.isAssisted != null ? Boolean(ex.isAssisted) : Boolean(ex.templateExercise?.isAssisted);
 
@@ -248,13 +225,13 @@ export function fillCompletedSetDefaults(
   const templateEx = ex.templateExercise;
 
   const defaultWeight = prevSets?.length ? highestCompletedWeight(prevSets) : templateEx?.defaultWeight ?? 0;
-  const defaultReps = prevSet?.reps ?? templateEx?.defaultReps ?? 10;
+  const defaultReps = prevSet?.reps ?? templateEx?.defaultReps ?? DEFAULT_REPS;
   const defaultDistance = prevSet?.distance ?? templateEx?.defaultDistance ?? 0;
   const defaultDuration = prevSet?.duration ?? templateEx?.defaultDuration ?? 0;
   const defaultRpe = prevSet?.rpe ?? templateEx?.defaultRpe ?? null;
   const defaultHeartRate = prevSet?.heartRate ?? templateEx?.defaultHeartRate ?? null;
 
-  const cat = normalizeCategory(ex.category);
+  const cat = trackingKind(ex.category);
   const isTimed = isTimedExercise(ex, previousSetsMap);
   const tracksWeight = ex.sets.some((s) => s.weight != null);
   const tracksReps = ex.sets.some((s) => s.reps != null);

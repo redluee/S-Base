@@ -6,9 +6,9 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
-import { parseDateString } from "@/lib/utils";
-import { clearOfflineSession, getOfflineSession, syncOfflineSession } from "@/lib/offline-workout";
-import { clearSetTimerSnapshot } from "@/lib/set-timer";
+import { parseDateString } from "@backend/shared/dates";
+import { clearOfflineSession, getOfflineSession, syncOfflineSession } from "@/app/workouts/session/offline-workout";
+import { clearSetTimerSnapshot } from "@/app/workouts/session/set-timer";
 import {
   closeConflictingSession,
   conflictResolution,

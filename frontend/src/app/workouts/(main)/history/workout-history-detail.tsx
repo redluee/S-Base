@@ -10,16 +10,18 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Trash2, Pencil, FileText, Upload, Check, CopyPlus } from "lucide-react";
 import confetti from "canvas-confetti";
-import { parseDateString } from "@/lib/utils";
+import { parseDateString } from "@backend/shared/dates";
 import type { FullWorkoutSession, SessionSet } from "@backend/types/shared";
-import { normalizeCategory, isTimedExercise } from "@/app/workouts/session/workout-exercise-card";
-import { getOfflineSession, syncOfflineSession } from "@/lib/offline-workout";
+import { isTimedExercise } from "@/app/workouts/session/workout-exercise-card";
+import { getOfflineSession, syncOfflineSession } from "@/app/workouts/session/offline-workout";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { formatNumberNl } from "@/lib/number-input";
-import { formatSessionDuration } from "@/lib/workout-time";
+import { formatNumberNl } from "@/app/workouts/number-input";
+import { formatSessionDuration } from "@/app/workouts/workout-time";
 import { formatHistoryWeight } from "@/app/workouts/(main)/history/set-display";
 import { isQuickStartSession } from "@/app/workouts/templates/session-to-template";
+import { trackingKind } from "@backend/shared/workout";
+import { formatClock } from "@/app/workouts/duration";
 
 export function cleanSessionForExport(session: FullWorkoutSession) {
   const cleaned: Record<string, any> = {
@@ -283,21 +285,15 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
 
             </div>
             {ex.sets?.length > 0 && (() => {
-              const cat = normalizeCategory(ex.category);
+              const cat = trackingKind(ex.category);
               const timed = isTimedExercise(ex);
               const perSide = ex.perSide != null ? Boolean(ex.perSide) : Boolean(ex.templateExercise?.perSide);
               const assisted = Boolean(ex.isAssisted);
               const dash = "—";
-              const formatSecs = (secVal: number | null | undefined) => {
-                if (secVal === null || secVal === undefined || isNaN(secVal)) return dash;
-                const min = Math.floor(secVal / 60);
-                const sec = secVal % 60;
-                return `${min}:${String(sec).padStart(2, "0")}`;
-              };
               const num = (v: number | null | undefined) => (v === null || v === undefined ? dash : formatNumberNl(v));
               const repsOrTime = (set: SessionSet) =>
                 timed || (set.duration != null && set.duration > 0 && (!set.reps || set.reps === 0))
-                  ? formatSecs(set.duration)
+                  ? (formatClock(set.duration) || dash)
                   : (set.reps ?? dash);
               const weightCell = (set: SessionSet) => formatHistoryWeight(set.weight, cat, assisted);
               const timeLabel = timed ? t("Time") : t("Reps");
@@ -346,7 +342,7 @@ export function WorkoutHistoryDetail({ session: initialSession }: { session: Ful
                           {cat === "cardio" ? (
                             <>
                               <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{num(set.distance)}</td>
-                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{formatSecs(set.duration)}</td>
+                              <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{(formatClock(set.duration) || dash)}</td>
                               <td className="py-2 px-1.5 sm:px-2 text-right text-foreground">{set.heartRate ?? dash}</td>
                             </>
                           ) : (

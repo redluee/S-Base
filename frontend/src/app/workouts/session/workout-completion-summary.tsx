@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Trophy, CloudOff } from "lucide-react";
 import { t } from "@/lib/lang";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { formatNumberNl, sanitizeIntegerInput } from "@/lib/number-input";
+import { formatNumberNl, sanitizeIntegerInput } from "@/app/workouts/number-input";
 import { formatPersonalRecord } from "@/app/workouts/session/personal-records";
 
 import type { PersonalRecord } from "@backend/types/shared";
