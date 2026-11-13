@@ -7,8 +7,10 @@ import { Plus, Copy, Trash2, FileText, ArrowUpRight } from "lucide-react";
 import type { Resume } from "@backend/types/shared";
 import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function ResumeListClient({ initialResumes, libraryCount }: { initialResumes: Resume[]; libraryCount: number }) {
+  const { confirm, dialog } = useConfirm();
   const router = useRouter();
   const [resumes, setResumes] = useState(initialResumes);
   const [name, setName] = useState("");
@@ -39,7 +41,7 @@ export function ResumeListClient({ initialResumes, libraryCount }: { initialResu
   }
 
   async function handleDelete(id: number) {
-    if (!confirm(t("Weet je zeker dat je dit CV wilt verwijderen?"))) return;
+    if (!(await confirm(t("Weet je zeker dat je dit CV wilt verwijderen?")))) return;
     try {
       await api.resume.resumes.delete(id);
       setResumes((prev) => prev.filter((r) => r.id !== id));
@@ -50,6 +52,7 @@ export function ResumeListClient({ initialResumes, libraryCount }: { initialResu
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+      {dialog}
       <div>
         <h1 className="font-display text-3xl sm:text-4xl text-zinc-100">{t("CV Builder")}</h1>
         <p className="text-sm text-zinc-400 mt-1">

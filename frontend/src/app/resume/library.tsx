@@ -7,6 +7,7 @@ import { t } from "@/lib/lang";
 import { api, apiErrorMessage } from "@/lib/api";
 import { formatPeriod, MONTH_OPTIONS } from "./resume";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Kind = "experience" | "education";
 type Item = ResumeExperience | ResumeEducation;
@@ -48,6 +49,7 @@ function orgOf(kind: Kind, item: Item) {
 }
 
 export function ResumeLibraryClient({ kind, initialItems }: { kind: Kind; initialItems: Item[] }) {
+  const { confirm, dialog } = useConfirm();
   const isExp = kind === "experience";
   const service = isExp ? api.resume.experiences : api.resume.educations;
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -115,7 +117,7 @@ export function ResumeLibraryClient({ kind, initialItems }: { kind: Kind; initia
   }
 
   async function handleDelete(item: Item) {
-    if (!confirm(t("Weet je zeker dat je dit item wilt verwijderen? Het verdwijnt ook uit je CV's."))) return;
+    if (!(await confirm(t("Weet je zeker dat je dit item wilt verwijderen? Het verdwijnt ook uit je CV's.")))) return;
     try {
       await service.delete(item.id);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
@@ -126,6 +128,7 @@ export function ResumeLibraryClient({ kind, initialItems }: { kind: Kind; initia
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
+      {dialog}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-zinc-100">{isExp ? t("Ervaring") : t("Opleidingen")}</h1>

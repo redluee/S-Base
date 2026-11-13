@@ -14,12 +14,14 @@ import { useSprintDates } from "./use-sprint-dates";
 import { useActionError } from "@/lib/use-action-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { today, DEFAULT_SPRINT_DAYS, formatDate } from "@backend/shared/minor";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface MinorSprintsClientProps {
   initialSprints: MinorSprint[];
 }
 
 export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) {
+  const { confirm, dialog } = useConfirm();
   const { error: actionError, report } = useActionError();
   const router = useRouter();
   const [sprints, setSprints] = useState<MinorSprint[]>(initialSprints);
@@ -99,7 +101,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
   }
 
   async function handleDeleteSprint(id: number) {
-    if (!confirm(t("Weet je zeker dat je deze sprint en alle bijbehorende stories wilt verwijderen?"))) {
+    if (!(await confirm(t("Weet je zeker dat je deze sprint en alle bijbehorende stories wilt verwijderen?")))) {
       return;
     }
     try {
@@ -128,6 +130,7 @@ export function MinorSprintsClient({ initialSprints }: MinorSprintsClientProps) 
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {dialog}
       <InlineAlert>{actionError}</InlineAlert>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

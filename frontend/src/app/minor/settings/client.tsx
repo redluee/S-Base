@@ -10,6 +10,7 @@ import { VacationModal } from "./vacation-modal";
 import { StoryTypeModal } from "./story-type-modal";
 import { useActionError } from "@/lib/use-action-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface MinorSettingsClientProps {
   initialVacations: MinorVacation[];
@@ -18,6 +19,7 @@ interface MinorSettingsClientProps {
 }
 
 export function MinorSettingsClient({ initialVacations, initialStoryTypes, initialSettings }: MinorSettingsClientProps) {
+  const { confirm, dialog } = useConfirm();
   const { error: actionError, report } = useActionError();
   const [vacations, setVacations] = useState<MinorVacation[]>(initialVacations);
   const [storyTypes, setStoryTypes] = useState<MinorStoryType[]>(initialStoryTypes || []);
@@ -110,7 +112,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   }
 
   async function handleDeleteVacation(id: number) {
-    if (!confirm(t("Weet je zeker dat je deze vakantieperiode wilt verwijderen?"))) return;
+    if (!(await confirm(t("Weet je zeker dat je deze vakantieperiode wilt verwijderen?")))) return;
     try {
       await api.minor.vacations.delete(id);
       setVacations((prev) => prev.filter((v) => v.id !== id));
@@ -188,7 +190,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
   }
 
   async function handleDeleteStoryType(id: number) {
-    if (!confirm(t("Weet je zeker dat je dit story type wilt verwijderen?"))) return;
+    if (!(await confirm(t("Weet je zeker dat je dit story type wilt verwijderen?")))) return;
     try {
       await api.minor.storyTypes.delete(id);
       setStoryTypes((prev) => prev.filter((t) => t.id !== id));
@@ -199,6 +201,7 @@ export function MinorSettingsClient({ initialVacations, initialStoryTypes, initi
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      {dialog}
       <InlineAlert>{actionError}</InlineAlert>
       <div>
         <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">

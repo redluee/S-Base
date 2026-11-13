@@ -30,11 +30,6 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
   const [stats, setStats] = useState<MinorDashboardStats>(initialStats);
   const [sprints, setSprints] = useState<MinorSprint[]>(initialSprints);
   const [isPeerModalOpen, setIsPeerModalOpen] = useState(false);
-  const [peerDate, setPeerDate] = useState(today());
-  const [peerName, setPeerName] = useState("");
-  const [peerDesc, setPeerDesc] = useState("");
-  const [peerLinks, setPeerLinks] = useState("");
-  const [savingPeer, setSavingPeer] = useState(false);
 
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [sprintNumber, setSprintNumber] = useState("");
@@ -79,31 +74,6 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
       report(err, "minor.actionFailed");
     } finally {
       setSavingSprint(false);
-    }
-  }
-
-  async function handleAddPeerHelp(e: React.FormEvent) {
-    e.preventDefault();
-    if (!peerName.trim() || !peerDesc.trim()) return;
-    setSavingPeer(true);
-    try {
-      await api.minor.peerHelp.create({
-        date: peerDate,
-        peerName: peerName.trim(),
-        description: peerDesc.trim(),
-        links: peerLinks.trim() || undefined,
-        sprintId: stats.activeSprint?.id ?? null,
-      });
-      const updated = await api.minor.dashboard();
-      setStats(updated);
-      setIsPeerModalOpen(false);
-      setPeerName("");
-      setPeerDesc("");
-      setPeerLinks("");
-    } catch (err) {
-      report(err, "minor.actionFailed");
-    } finally {
-      setSavingPeer(false);
     }
   }
 
@@ -198,17 +168,11 @@ export function MinorDashboardClient({ initialStats, initialSprints }: MinorDash
 
       {isPeerModalOpen && (
         <PeerHelpModal
-          peerDate={peerDate}
-          setPeerDate={setPeerDate}
-          peerName={peerName}
-          setPeerName={setPeerName}
-          peerDesc={peerDesc}
-          setPeerDesc={setPeerDesc}
-          peerLinks={peerLinks}
-          setPeerLinks={setPeerLinks}
-          savingPeer={savingPeer}
+          entry={null}
+          defaultSprintId={stats.activeSprint?.id ?? null}
+          sprints={sprints}
           onClose={() => setIsPeerModalOpen(false)}
-          onSubmit={handleAddPeerHelp}
+          onSaved={() => api.minor.dashboard().then(setStats).catch((err) => report(err, "minor.actionFailed"))}
         />
       )}
 

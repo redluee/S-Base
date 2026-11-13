@@ -2,13 +2,13 @@
 
 import { toExternalHref } from "@/lib/uri";
 import { useState } from "react";
-import { Users, Plus, Trash2, Edit2, ExternalLink, Search, X } from "lucide-react";
+import { Plus, Trash2, Edit2, ExternalLink, Search } from "lucide-react";
 import { t } from "@/lib/lang";
 import { api, type MinorPeerHelp, type MinorSprint } from "@/lib/api";
-import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { useActionError } from "@/lib/use-action-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { today } from "@backend/shared/minor";
+import { PeerHelpModal } from "@/app/minor/peer-help-modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface MinorPeerHelpClientProps {
   initialPeerHelp: MinorPeerHelp[];
@@ -17,73 +17,32 @@ interface MinorPeerHelpClientProps {
 
 export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPeerHelpClientProps) {
   const { error: actionError, report } = useActionError();
+  const { confirm, dialog } = useConfirm();
   const [peerHelpList, setPeerHelpList] = useState<MinorPeerHelp[]>(initialPeerHelp);
   const [sprints] = useState<MinorSprint[]>(initialSprints);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MinorPeerHelp | null>(null);
 
-  const [date, setDate] = useState(today());
-  const [sprintId, setSprintId] = useState<number | undefined>(undefined);
-  const [peerName, setPeerName] = useState("");
-  const [description, setDescription] = useState("");
-  const [links, setLinks] = useState("");
-  const [saving, setSaving] = useState(false);
 
   function openCreateModal() {
     setEditingEntry(null);
-    setDate(today());
-    setSprintId(undefined);
-    setPeerName("");
-    setDescription("");
-    setLinks("");
     setIsModalOpen(true);
   }
 
   function openEditModal(entry: MinorPeerHelp) {
     setEditingEntry(entry);
-    setDate(entry.date);
-    setSprintId(entry.sprintId ?? undefined);
-    setPeerName(entry.peerName);
-    setDescription(entry.description);
-    setLinks(entry.links || "");
     setIsModalOpen(true);
   }
 
-  async function handleSavePeerHelp(e: React.FormEvent) {
-    e.preventDefault();
-    if (!peerName.trim() || !description.trim()) return;
-    setSaving(true);
-    try {
-      if (editingEntry) {
-        const updated = await api.minor.peerHelp.update(editingEntry.id, {
-          date,
-          sprintId: sprintId ?? null,
-          peerName: peerName.trim(),
-          description: description.trim(),
-          links: links.trim() || undefined,
-        });
-        setPeerHelpList((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      } else {
-        const created = await api.minor.peerHelp.create({
-          date,
-          sprintId: sprintId ?? null,
-          peerName: peerName.trim(),
-          description: description.trim(),
-          links: links.trim() || undefined,
-        });
-        setPeerHelpList((prev) => [created, ...prev]);
-      }
-      setIsModalOpen(false);
-    } catch (err) {
-      report(err, "minor.actionFailed");
-    } finally {
-      setSaving(false);
-    }
+  function handleSaved(saved: MinorPeerHelp) {
+    setPeerHelpList((prev) =>
+      prev.some((p) => p.id === saved.id) ? prev.map((p) => (p.id === saved.id ? saved : p)) : [saved, ...prev],
+    );
   }
 
   async function handleDelete(id: number) {
-    if (!confirm(t("Weet je zeker dat je deze registratie wilt verwijderen?"))) return;
+    if (!(await confirm(t("Weet je zeker dat je deze registratie wilt verwijderen?")))) return;
     try {
       await api.minor.peerHelp.delete(id);
       setPeerHelpList((prev) => prev.filter((p) => p.id !== id));
@@ -105,6 +64,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <InlineAlert>{actionError}</InlineAlert>
+      {dialog}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-white tracking-tight">
@@ -282,112 +242,7 @@ export function MinorPeerHelpClient({ initialPeerHelp, initialSprints }: MinorPe
       </div>
 
       {isModalOpen && (
-        <ModalOverlay
-          open
-          onClose={() => setIsModalOpen(false)}
-          label={editingEntry ? t("Kennisdeling Bewerken") : t("Kennisdeling Registreren")}
-          className="p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-2xl my-4 sm:my-8 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Users className="size-4 text-purple-400" />
-                <span>{editingEntry ? t("Kennisdeling Bewerken") : t("Kennisdeling Registreren")}</span>
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="size-8 flex items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all cursor-pointer shrink-0"
-                title={t("Sluiten")}
-                aria-label={t("Sluiten")}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSavePeerHelp} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-zinc-400 mb-1">{t("Datum")}</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-zinc-400 mb-1">{t("Gekoppelde sprint (optioneel)")}</label>
-                  <select
-                    value={sprintId ?? ""}
-                    onChange={(e) => setSprintId(e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand cursor-pointer"
-                  >
-                    <option value="">{t("Geen sprint")}</option>
-                    {sprints.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.startDate})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Naam medestudent")}</label>
-                <input
-                  type="text"
-                  placeholder={t("bijv. Lisa van Dijk")}
-                  value={peerName}
-                  onChange={(e) => setPeerName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Toelichting geboden hulp")}</label>
-                <textarea
-                  rows={3}
-                  placeholder={t("Wat heb je uitgelegd, gereviewed of opgelost?")}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1">{t("Links naar documentatie/code (optioneel)")}</label>
-                <input
-                  type="url"
-                  placeholder="https://github.com/..."
-                  value={links}
-                  onChange={(e) => setLinks(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-brand"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3.5 py-2 rounded-lg text-zinc-400 hover:text-white text-xs cursor-pointer"
-                >
-                  {t("Annuleren")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-brand text-zinc-950 font-semibold text-xs hover:bg-brand-hover transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {saving ? t("Opslaan...") : t("Opslaan")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </ModalOverlay>
+        <PeerHelpModal entry={editingEntry} sprints={sprints} onClose={() => setIsModalOpen(false)} onSaved={handleSaved} />
       )}
     </div>
   );
