@@ -1,4 +1,10 @@
-import type { SelfEvaluationInput, SprintInput, StoryInput, TeacherAssessmentInput } from "@backend/types/minor";
+import type {
+  SelfEvaluationInput,
+  SprintDates,
+  SprintInput,
+  StoryInput,
+  TeacherAssessmentInput,
+} from "@backend/types/minor";
 import { request as clientRequest, requestForm, type Fetcher } from "./core";
 import type {
   MinorSprint,
@@ -24,15 +30,8 @@ export const createMinorApi = (request: Fetcher) => ({
     list: () => request<MinorSprint[]>("/minor/sprints"),
     get: (id: number) => request<MinorSprintFull>(`/minor/sprints/${id}`),
     nextNumber: () => request<{ nextNumber: string; nextName: string }>("/minor/sprints/next-number"),
-    calculateDates: (startDate: string, durationDays: number = 14) =>
-      request<{
-        startDate: string;
-        endDate: string;
-        durationDays: number;
-        extendedDays: number;
-        extensionReason: string | null;
-        showAndGrowDate: string;
-      }>(`/minor/sprints/calculate-dates?startDate=${encodeURIComponent(startDate)}&durationDays=${durationDays}`),
+    calculateDates: (startDate: string, durationDays: number) =>
+      request<SprintDates>(`/minor/sprints/calculate-dates?startDate=${encodeURIComponent(startDate)}&durationDays=${durationDays}`),
     create: (data: SprintInput & { startDate: string }) => request<MinorSprint>("/minor/sprints", { method: "POST", body: JSON.stringify(data) }),
     update: (id: number, data: SprintInput) => request<MinorSprint>(`/minor/sprints/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) => request<{ success: boolean }>(`/minor/sprints/${id}`, { method: "DELETE" }),

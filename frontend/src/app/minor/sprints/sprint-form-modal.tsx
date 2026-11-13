@@ -1,17 +1,13 @@
 "use client";
 
+import type { SprintDates } from "@backend/types/minor";
 import { Calendar, Trash2, Sparkles, X } from "lucide-react";
 import { t } from "@/lib/lang";
 import type { MinorSprint } from "@/lib/api";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { calculateSprintStatus } from "@backend/shared/minor";
 
-export type SprintCalculatedDates = {
-  endDate: string;
-  showAndGrowDate: string;
-  extendedDays: number;
-  extensionReason: string | null;
-} | null;
+export type SprintCalculatedDates = SprintDates | null;
 
 interface SprintFormModalProps {
   editingSprint: MinorSprint | null;
