@@ -10,8 +10,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Verify on a clean install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test:all
+      - run: NEXT_DIST_DIR=.next_build bun run build
+
   deploy:
     name: Update S-Base on Production Server
+    needs: verify
     runs-on: self-hosted
     steps:
       - name: Trigger Production Deployment
