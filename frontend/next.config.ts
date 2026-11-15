@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 import { BACKEND_API_URL } from "./src/lib/backend";
 
+const DEFAULT_DIST_DIR = ".next";
+const distDir = process.env.NEXT_DIST_DIR || DEFAULT_DIST_DIR;
+
 const nextConfig: NextConfig = {
-  distDir: process.env.NEXT_DIST_DIR || ".next",
+  distDir,
+  typescript: {
+    tsconfigPath: distDir === DEFAULT_DIST_DIR ? "tsconfig.json" : "tsconfig.staging.json",
+  },
   allowedDevOrigins: [
     "127.0.0.1",
     "192.168.0.*",

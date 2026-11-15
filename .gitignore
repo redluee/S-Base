@@ -46,6 +46,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # dependencies
 node_modules/
 .next/
+.next_build/
 *.tsbuildinfo
 
 # uploads
