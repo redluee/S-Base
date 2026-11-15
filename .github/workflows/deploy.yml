@@ -25,6 +25,6 @@ jobs:
     needs: verify
     runs-on: self-hosted
     steps:
-      - name: Trigger Production Deployment
-        run: |
-          /home/gsd/deploy.sh
+      - uses: actions/checkout@v4
+      - name: Deploy and verify health
+        run: bash scripts/deploy.sh "${{ github.sha }}"

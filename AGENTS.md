@@ -49,6 +49,7 @@ Backend routes and frontend views are structured around discrete domain modules:
 
 - **Development (`dev`)**: Local environment running via `bun run dev`. Authentication is tested via session cookies with seed users or dev headers.
 - **Production (`prod`)**: Hosted on a private server running **Fedora Linux**. External traffic and authentication pass through `cloudflared` (Cloudflare Access / Tunnels, injecting headers like `cf-access-authenticated-user-email`).
+- **Deploys**: a push to `main` runs `.github/workflows/deploy.yml`: a clean-install `verify` job (`test:all` + staging build) on a GitHub runner, then `scripts/deploy.sh` on the server's self-hosted runner. The script builds into `frontend/.next_build` (typechecked with `frontend/tsconfig.staging.json`), migrates and swaps the build only after it passes, health-checks the restarted service, and rolls code and build back on failure. Logs land in `deploy-logs/` on the server. Keep tracked files on the server unmodified; the script refuses to deploy over local changes.
 - **Debugging & Development Note**: When developing features or fixing issues, always take into account that user-reported errors may have occurred in the production environment. Such issues may not be directly or identically reproducible in the local dev environment due to differences in OS (Fedora Linux), reverse proxy / tunnel behavior (`cloudflared`), proxy headers, cookie policies, or networking. Keep these differences in mind when analyzing stack traces or environment-sensitive features.
 
 ## Key conventions

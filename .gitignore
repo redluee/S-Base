@@ -47,6 +47,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 node_modules/
 .next/
 .next_build/
+.next_old/
+deploy-logs/
 *.tsbuildinfo
 
 # uploads
