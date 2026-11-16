@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import type { SessionExercise } from "@backend/types/shared";
 import { describeTarget } from "./workout-exercise-card";
+import { areAllExercisesFinished, isExerciseFinished } from "./workout-exercise-card-utils";
 
 describe("describeTarget", () => {
   it("uses Dutch number formatting and units", () => {
@@ -18,5 +20,54 @@ describe("describeTarget", () => {
 
   it("falls back to a dash without a target", () => {
     expect(describeTarget("resistance", false, null)).toBe("—");
+  });
+});
+
+function exercise(completed: number[], category = "resistance"): SessionExercise {
+  return {
+    exerciseName: "Oefening",
+    sortOrder: 0,
+    category,
+    sets: completed.map((value, i) => ({ setNumber: i + 1, completed: value, duration: category === "cardio" ? 600 : null })),
+  };
+}
+
+describe("isExerciseFinished", () => {
+  it("is finished when every set is completed", () => {
+    expect(isExerciseFinished(exercise([1, 1, 1]))).toBe(true);
+  });
+
+  it("is not finished with an open set", () => {
+    expect(isExerciseFinished(exercise([1, 0, 1]))).toBe(false);
+  });
+
+  it("is not finished without sets", () => {
+    expect(isExerciseFinished(exercise([]))).toBe(false);
+  });
+});
+
+describe("areAllExercisesFinished", () => {
+  it("is false for an empty workout", () => {
+    expect(areAllExercisesFinished([])).toBe(false);
+  });
+
+  it("is true when every exercise is finished", () => {
+    expect(areAllExercisesFinished([exercise([1, 1]), exercise([1])])).toBe(true);
+  });
+
+  it("is false with one open set", () => {
+    expect(areAllExercisesFinished([exercise([1, 1]), exercise([1, 0])])).toBe(false);
+  });
+
+  it("is false when an exercise has no sets", () => {
+    expect(areAllExercisesFinished([exercise([])])).toBe(false);
+  });
+
+  it("counts cardio and timed exercises with completed sets", () => {
+    expect(areAllExercisesFinished([exercise([1], "cardio"), exercise([1, 1], "isometric")])).toBe(true);
+  });
+
+  it("is false for a mix of finished and zero-set exercises", () => {
+    expect(areAllExercisesFinished([exercise([1, 1]), exercise([])])).toBe(false);
   });
 });

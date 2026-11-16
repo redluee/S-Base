@@ -4,7 +4,10 @@ import { t } from "@/lib/lang";
 import { ExerciseEditBlock, type ExerciseRowData } from "@/app/workouts/(main)/exercises/exercise-edit-block";
 import { WorkoutExerciseCard, type WorkoutExerciseCardProps } from "@/app/workouts/session/workout-exercise-card";
 import { AddExerciseControls, type AddExerciseControlsProps } from "@/app/workouts/session/workout-session-add-exercise";
-import { Dumbbell } from "lucide-react";
+import { areAllExercisesFinished } from "@/app/workouts/session/workout-exercise-card-utils";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Dumbbell, Trophy } from "lucide-react";
 import type { SessionExercise } from "@backend/types/shared";
 
 interface WorkoutSessionExerciseListProps {
@@ -19,6 +22,23 @@ interface WorkoutSessionExerciseListProps {
   setEditingExerciseIdx: (idx: number | null) => void;
   setEditingExerciseDraft: (updater: ((prev: ExerciseRowData | null) => ExerciseRowData | null) | ExerciseRowData | null) => void;
   saveEditedExercise: (exIdx: number, draft: ExerciseRowData) => void;
+  onFinish?: () => void;
+}
+
+function FinishButton({ onFinish, allFinished }: { onFinish: () => void; allFinished: boolean }) {
+  return (
+    <Button
+      variant={allFinished ? "default" : "outline"}
+      onClick={onFinish}
+      className={cn(
+        "w-full sm:w-64 min-h-11 font-semibold",
+        allFinished && "bg-brand hover:bg-brand-hover text-zinc-900"
+      )}
+    >
+      <Trophy className="size-4 mr-1.5" />
+      {t("Finish")}
+    </Button>
+  );
 }
 
 export function WorkoutSessionExerciseList({
@@ -33,7 +53,10 @@ export function WorkoutSessionExerciseList({
   setEditingExerciseIdx,
   setEditingExerciseDraft,
   saveEditedExercise,
+  onFinish,
 }: WorkoutSessionExerciseListProps) {
+  const allFinished = areAllExercisesFinished(exercises);
+
   if (exercises.length === 0) {
     return (
       <div className="flex-1 flex flex-col gap-6 pb-20 max-[375px]:-mx-4">
@@ -59,8 +82,13 @@ export function WorkoutSessionExerciseList({
             </p>
             <AddExerciseControls
               {...addControls}
-              buttonClassName="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold min-h-11"
+              buttonClassName="bg-brand hover:bg-brand-hover text-zinc-900 font-semibold w-full sm:w-64 min-h-11"
             />
+            {onFinish && (
+              <div className="mt-3 flex w-full justify-center">
+                <FinishButton onFinish={onFinish} allFinished={false} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -123,11 +151,12 @@ export function WorkoutSessionExerciseList({
           />
         </div>
       ) : (
-        <div className="mt-4 flex flex-col items-center justify-center">
+        <div className="mt-4 flex flex-col items-center justify-center gap-3">
           <AddExerciseControls
             {...addControls}
             buttonClassName="bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand font-semibold w-full sm:w-64 min-h-11"
           />
+          {onFinish && <FinishButton onFinish={onFinish} allFinished={allFinished} />}
         </div>
       )}
     </div>

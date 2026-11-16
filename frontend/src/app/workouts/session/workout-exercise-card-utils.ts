@@ -6,6 +6,14 @@ import { formatClock } from "@/app/workouts/duration";
 
 export type InputKind = "decimal" | "integer" | "time";
 
+export function isExerciseFinished(ex: SessionExercise): boolean {
+  const sets = ex.sets ?? [];
+  return sets.length > 0 && sets.every((set) => set.completed === 1);
+}
+
+export function areAllExercisesFinished(exercises: SessionExercise[]): boolean {
+  return exercises.length > 0 && exercises.every(isExerciseFinished);
+}
 
 export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
   const hasCurrentRepsSets = ex.sets?.some((s) => s.reps != null && s.reps > 0);

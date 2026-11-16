@@ -11,6 +11,7 @@ import { ExerciseCardHeader } from "@/app/workouts/session/workout-exercise-card
 import { SetsTable } from "@/app/workouts/session/workout-sets-table";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 import { DEFAULT_CATEGORY } from "@backend/shared/workout";
+import { isExerciseFinished } from "@/app/workouts/session/workout-exercise-card-utils";
 
 export { isTimedExercise, isSetZero, describeTarget } from "@/app/workouts/session/workout-exercise-card-utils";
 
@@ -113,7 +114,7 @@ export function WorkoutExerciseCard({
   soundEnabled,
   toggleSound,
 }: WorkoutExerciseCardProps) {
-  const allSetsDone = ex.sets?.length > 0 && ex.sets.every((s: SessionSet) => s.completed === 1);
+  const allSetsDone = isExerciseFinished(ex);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   return (

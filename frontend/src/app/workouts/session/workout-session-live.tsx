@@ -17,6 +17,7 @@ import { parseSessionConflict, type ActiveSessionInfo } from "@/app/workouts/ses
 import type { FullWorkoutSession } from "@backend/types/shared";
 import { getOfflineSession, ensureExerciseIds } from "@/app/workouts/session/offline-workout";
 import { calculateTotalVolume } from "@/app/workouts/session/workout-session-helpers";
+import { areAllExercisesFinished } from "@/app/workouts/session/workout-exercise-card-utils";
 import { WorkoutSessionHeader } from "@/app/workouts/session/workout-session-header";
 import { WorkoutSessionExerciseList } from "@/app/workouts/session/workout-session-exercise-list";
 import { WorkoutSessionDialogs } from "@/app/workouts/session/workout-session-dialogs";
@@ -293,6 +294,7 @@ export function WorkoutSessionLive({
         saving={saving}
         handleSaveHistoryEdit={finish.handleSaveHistoryEdit}
         handleFinishClick={finish.handleFinishClick}
+        allExercisesFinished={areAllExercisesFinished(exercises)}
         unsynced={unsynced}
         actionError={actionError}
       />
@@ -369,6 +371,7 @@ export function WorkoutSessionLive({
         setEditingExerciseIdx={exerciseActions.setEditingExerciseIdx}
         setEditingExerciseDraft={exerciseActions.setEditingExerciseDraft}
         saveEditedExercise={exerciseActions.saveEditedExercise}
+        onFinish={session.completedAt ? undefined : finish.handleFinishClick}
       />
 
       <WorkoutSessionDialogs
