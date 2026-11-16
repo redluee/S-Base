@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 
 import { cn } from "@/lib/utils";
 import { computeDropdownPlacement, type DropdownSide } from "@/lib/dropdown-placement";
+import { isTap, type PointerPoint } from "@/lib/tap-gesture";
 import type { ExerciseSuggestion } from "@backend/types/workout";
 import type { HistorySetInput } from "@/app/workouts/session/workout-session-helpers";
 
@@ -128,21 +129,32 @@ export function ExerciseAutocomplete({
   }, [value, fetchSuggestions]);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent | TouchEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
+    if (!open) return;
+    let outsideDown: PointerPoint | null = null;
+    function handlePointerDown(e: PointerEvent) {
+      const container = containerRef.current;
+      const outside = container !== null && e.target instanceof Node && !container.contains(e.target);
+      outsideDown = outside ? { pointerId: e.pointerId, x: e.clientX, y: e.clientY } : null;
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
+    function handlePointerUp(e: PointerEvent) {
+      const tapped = isTap(outsideDown, { pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+      outsideDown = null;
+      if (!tapped) return;
+      setOpen(false);
+      inputRef.current?.blur();
+    }
+    function handlePointerCancel() {
+      outsideDown = null;
+    }
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("pointerup", handlePointerUp, true);
+    document.addEventListener("pointercancel", handlePointerCancel, true);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("pointerup", handlePointerUp, true);
+      document.removeEventListener("pointercancel", handlePointerCancel, true);
     };
-  }, []);
+  }, [open]);
 
   function select(suggestion: Partial<Suggestion> & { value: string }) {
     onChange(suggestion.value);
@@ -229,6 +241,12 @@ export function ExerciseAutocomplete({
         onFocus={() => {
           if (suggestions.length > 0) {
             setOpen(true);
+          }
+        }}
+        onBlur={(e) => {
+          const next = e.relatedTarget;
+          if (next instanceof Node && !containerRef.current?.contains(next)) {
+            setOpen(false);
           }
         }}
         onKeyDown={handleKeyDown}
