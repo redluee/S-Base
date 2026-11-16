@@ -389,6 +389,7 @@ export const workoutNl: Record<string, string> = {
   "Category label": "Categorie",
   "equipment": "materiaal",
   "Choose equipment category": "Kies materiaal categorie",
+  "Manage category and equipment": "Categorie en materiaal beheren",
   "Back": "Terug",
   "Sets x Reps": "Sets × Reps",
   "Toggle distance unit": "Afstandseenheid wisselen",

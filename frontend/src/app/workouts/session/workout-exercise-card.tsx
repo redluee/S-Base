@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ExerciseCategorySelector } from "@/app/workouts/(main)/exercises/exercise-category-selector";
+import { ExerciseTags } from "@/app/workouts/session/workout-exercise-tags";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
@@ -146,21 +146,19 @@ export function WorkoutExerciseCard({
       />
 
       {replacingExerciseId !== ex.sessionExerciseId && (
-        <div className="mb-4">
-          <ExerciseCategorySelector
-            category={ex.category ?? DEFAULT_CATEGORY}
-            equipment={ex.equipment ?? ""}
-            readOnlyCategory={true}
-            onChange={(cat, eq) => {
-              if (cat !== ex.category) {
-                updateCategory(exIdx, cat);
-              }
-              updateEquipment(exIdx, eq);
-            }}
-            isAssisted={Boolean(ex.isAssisted)}
-            onToggleAssisted={(val) => updateIsAssisted(exIdx, val)}
-          />
-        </div>
+        <ExerciseTags
+          category={ex.category ?? DEFAULT_CATEGORY}
+          equipment={ex.equipment ?? ""}
+          isAssisted={Boolean(ex.isAssisted)}
+          hasSets={ex.sets?.length > 0}
+          onChange={(cat, eq) => {
+            if (cat !== ex.category) {
+              updateCategory(exIdx, cat);
+            }
+            updateEquipment(exIdx, eq);
+          }}
+          onToggleAssisted={(val) => updateIsAssisted(exIdx, val)}
+        />
       )}
 
       {ex.sets?.length > 0 && (

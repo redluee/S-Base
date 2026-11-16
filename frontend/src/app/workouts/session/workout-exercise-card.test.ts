@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { SessionExercise } from "@backend/types/shared";
 import { describeTarget } from "./workout-exercise-card";
-import { areAllExercisesFinished, isExerciseFinished } from "./workout-exercise-card-utils";
+import { areAllExercisesFinished, exerciseTagLabels, isExerciseFinished } from "./workout-exercise-card-utils";
 
 describe("describeTarget", () => {
   it("uses Dutch number formatting and units", () => {
@@ -69,5 +69,38 @@ describe("areAllExercisesFinished", () => {
 
   it("is false for a mix of finished and zero-set exercises", () => {
     expect(areAllExercisesFinished([exercise([1, 1]), exercise([])])).toBe(false);
+  });
+});
+
+describe("exerciseTagLabels", () => {
+  it("shows only the category without equipment", () => {
+    expect(exerciseTagLabels("Free Weights", "", false)).toEqual(["Vrije gewichten"]);
+    expect(exerciseTagLabels("Free Weights", null, false)).toEqual(["Vrije gewichten"]);
+  });
+
+  it("drops the none placeholder", () => {
+    expect(exerciseTagLabels("Bodyweight", "none", false)).toEqual(["Lichaamsgewicht"]);
+    expect(exerciseTagLabels("Bodyweight", " None ", false)).toEqual(["Lichaamsgewicht"]);
+  });
+
+  it("lists multiple equipment items and ignores extra spaces and empty parts", () => {
+    expect(exerciseTagLabels("Free Weights", "  Barbell ,Kettlebell,, ", false)).toEqual([
+      "Vrije gewichten",
+      "Barbell",
+      "Kettlebell",
+    ]);
+  });
+
+  it("appends the assisted label when set", () => {
+    expect(exerciseTagLabels("Bodyweight", "Weighted Vest", true)).toEqual([
+      "Lichaamsgewicht",
+      "Gewichtsvest",
+      "Ondersteund",
+    ]);
+  });
+
+  it("falls back to the default category when it is missing", () => {
+    expect(exerciseTagLabels(null, "Barbell", false)).toEqual(["Vrije gewichten", "Barbell"]);
+    expect(exerciseTagLabels(undefined, "", false)).toEqual(["Vrije gewichten"]);
   });
 });

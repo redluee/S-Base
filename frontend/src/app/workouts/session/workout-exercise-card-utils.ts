@@ -1,7 +1,7 @@
 import { t } from "@/lib/lang";
 import { formatNumberNl, toInputString } from "@/app/workouts/number-input";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
-import { trackingKind, type TrackingKind } from "@backend/shared/workout";
+import { normalizeCategory, trackingKind, type TrackingKind } from "@backend/shared/workout";
 import { formatClock } from "@/app/workouts/duration";
 
 export type InputKind = "decimal" | "integer" | "time";
@@ -13,6 +13,20 @@ export function isExerciseFinished(ex: SessionExercise): boolean {
 
 export function areAllExercisesFinished(exercises: SessionExercise[]): boolean {
   return exercises.length > 0 && exercises.every(isExerciseFinished);
+}
+
+export function exerciseTagLabels(
+  category: string | null | undefined,
+  equipment: string | null | undefined,
+  isAssisted: boolean
+): string[] {
+  const items = (equipment ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item !== "" && item.toLowerCase() !== "none");
+  const labels = [t(normalizeCategory(category)), ...items.map((item) => t(item))];
+  if (isAssisted) labels.push(t("Assisted"));
+  return labels;
 }
 
 export function isTimedExercise(ex: SessionExercise, previousSetsMap?: Record<string, SessionSet[]>): boolean {
