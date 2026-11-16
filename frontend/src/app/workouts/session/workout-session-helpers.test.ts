@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { buildEditDraft, fillCompletedSetDefaults, nextSessionSet, parseDraftValues } from "./workout-session-helpers";
+import {
+  buildEditDraft,
+  fillCompletedSetDefaults,
+  nextSessionSet,
+  parseDraftValues,
+  restIndexAfterSetRemoval,
+} from "./workout-session-helpers";
 import { buildSessionExercisesPayload } from "@/app/workouts/session/offline-workout";
 import type { SessionExercise, SessionSet } from "@backend/types/shared";
 
@@ -162,5 +168,23 @@ describe("fillCompletedSetDefaults", () => {
       restTime: 0,
     });
     expect(ex.sets[0].weight).toBe(-15);
+  });
+});
+
+describe("restIndexAfterSetRemoval", () => {
+  it("shifts the resting set up when a set above it is removed", () => {
+    expect(restIndexAfterSetRemoval(2, 0, 4)).toBe(1);
+    expect(restIndexAfterSetRemoval(2, 1, 4)).toBe(1);
+  });
+  it("keeps the resting set when a set below it is removed", () => {
+    expect(restIndexAfterSetRemoval(1, 3, 4)).toBe(1);
+    expect(restIndexAfterSetRemoval(0, 1, 3)).toBe(0);
+  });
+  it("ends the rest when the resting set itself is removed", () => {
+    expect(restIndexAfterSetRemoval(1, 1, 3)).toBeNull();
+  });
+  it("ends the rest when no set is left after the resting set", () => {
+    expect(restIndexAfterSetRemoval(1, 2, 2)).toBeNull();
+    expect(restIndexAfterSetRemoval(2, 0, 2)).toBeNull();
   });
 });

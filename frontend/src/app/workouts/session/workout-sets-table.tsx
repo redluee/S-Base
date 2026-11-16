@@ -108,7 +108,7 @@ export function SetsTable({
     return (
       <div
         data-swipe-clip
-        className={cn("-mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60", swipeMode && "relative overflow-hidden")}
+        className={cn("-mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60", swipeMode && "relative overflow-clip")}
       >
         <table
           className={cn("table-fixed text-xs sm:text-sm border-collapse", swipeMode ? "w-[calc(100%+2.75rem)]" : "w-full")}
@@ -184,6 +184,10 @@ export function SetsTable({
                     enabled={swipeMode && set.completed !== 1}
                     open={openSetIdx === setIdx}
                     onOpenChange={(o) => setOpenSetIdx(o ? setIdx : null)}
+                    onFullSwipe={() => {
+                      setOpenSetIdx(null);
+                      removeSet(exIdx, setIdx);
+                    }}
                     className={cn(
                       "border-b border-border/20 last:border-0",
                       set.completed ? "bg-brand/5" : "hover:bg-white/[0.01]"
@@ -281,7 +285,13 @@ export function SetsTable({
                       </button>
                     </td>
                     {canDeleteSets && (
-                      <td className={cn("p-0 text-center align-middle", swipeMode && "bg-destructive/10")}>
+                      <td
+                        className={cn(
+                          "p-0 text-center align-middle",
+                          swipeMode &&
+                            "relative bg-destructive/10 transition-colors duration-150 after:pointer-events-none after:absolute after:inset-y-0 after:left-full after:w-screen after:bg-destructive/10 after:transition-colors after:duration-150 after:content-[''] group-data-[swipe-armed]/swipe:bg-destructive group-data-[swipe-armed]/swipe:after:bg-destructive"
+                        )}
+                      >
                         {set.completed !== 1 && (
                           <button
                             type="button"
@@ -292,9 +302,9 @@ export function SetsTable({
                             }}
                             aria-label={`${t("Delete set")} ${set.setNumber}`}
                             title={t("Delete set")}
-                            className="mx-auto size-11 inline-flex items-center justify-center rounded-md text-zinc-500 hover:text-destructive hover:bg-red-950/20 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                            className="mx-auto size-11 inline-flex items-center justify-center rounded-md text-zinc-500 hover:text-destructive hover:bg-red-950/20 group-data-[swipe-armed]/swipe:text-white transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                           >
-                            <Trash className="size-4" />
+                            <Trash className="size-4 transition-transform duration-150 group-data-[swipe-armed]/swipe:scale-125" />
                           </button>
                         )}
                       </td>

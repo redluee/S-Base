@@ -1,7 +1,12 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { clearActiveNotifications } from "@/app/workouts/session/sound";
 import { applySetUpdate, type SetValueField } from "@/app/workouts/session/set-values";
-import { fillCompletedSetDefaults, getExerciseRestTime, nextSessionSet } from "@/app/workouts/session/workout-session-helpers";
+import {
+  fillCompletedSetDefaults,
+  getExerciseRestTime,
+  nextSessionSet,
+  restIndexAfterSetRemoval,
+} from "@/app/workouts/session/workout-session-helpers";
 import type { FullWorkoutSession, SessionExercise, SessionSet } from "@backend/types/shared";
 
 interface SetActionsArgs {
@@ -13,6 +18,7 @@ interface SetActionsArgs {
   activeRestSetIdx: number | null;
   startRestTimer: (exIdx: number, setIdx: number, customTime?: number) => void;
   stopRestTimer: () => void;
+  moveRestTimer: (setIdx: number) => void;
 }
 
 export function useSessionSetActions({
@@ -24,6 +30,7 @@ export function useSessionSetActions({
   activeRestSetIdx,
   startRestTimer,
   stopRestTimer,
+  moveRestTimer,
 }: SetActionsArgs) {
   const touchedRef = useRef<Set<string>>(new Set());
   const [lastCompletedSet, setLastCompletedSet] = useState<{ exIdx: number; setIdx: number } | null>(null);
@@ -37,6 +44,11 @@ export function useSessionSetActions({
     ex.sets = sets.map((s, idx) => ({ ...s, setNumber: idx + 1 }));
     exercises[exerciseIndex] = ex;
     setSession({ ...session, exercises });
+    if (activeRestExerciseIdx === exerciseIndex && activeRestSetIdx !== null) {
+      const restIdx = restIndexAfterSetRemoval(activeRestSetIdx, setIndex, sets.length);
+      if (restIdx === null) stopRestTimer();
+      else if (restIdx !== activeRestSetIdx) moveRestTimer(restIdx);
+    }
     await saveExercises(exercises);
   }
 

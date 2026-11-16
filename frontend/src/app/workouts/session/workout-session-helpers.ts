@@ -267,3 +267,9 @@ export function scrollToSessionExercise(movedId: number) {
     }
   }, 60);
 }
+
+export function restIndexAfterSetRemoval(restSetIdx: number, removedIdx: number, remainingCount: number): number | null {
+  if (removedIdx === restSetIdx) return null;
+  const next = removedIdx < restSetIdx ? restSetIdx - 1 : restSetIdx;
+  return next < remainingCount - 1 ? next : null;
+}

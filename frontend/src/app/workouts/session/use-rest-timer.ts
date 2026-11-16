@@ -148,6 +148,10 @@ export function useRestTimer(exercises: SessionExercise[] | undefined) {
     setActiveRestSetIdx(null);
   }
 
+  function moveRestTimer(setIdx: number) {
+    setActiveRestSetIdx(setIdx);
+  }
+
   function adjustRestTimer(seconds: number) {
     unlockAudio();
     resetTimerTriggerState();
@@ -178,6 +182,7 @@ export function useRestTimer(exercises: SessionExercise[] | undefined) {
     toggleSound,
     startRestTimer,
     stopRestTimer,
+    moveRestTimer,
     adjustRestTimer,
   };
 }

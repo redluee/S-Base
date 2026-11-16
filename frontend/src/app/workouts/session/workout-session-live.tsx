@@ -161,6 +161,7 @@ export function WorkoutSessionLive({
     activeRestSetIdx,
     startRestTimer: restTimer.startRestTimer,
     stopRestTimer: restTimer.stopRestTimer,
+    moveRestTimer: restTimer.moveRestTimer,
   });
 
   const exerciseActions = useSessionExerciseActions({ session, setSession, saveExercises, setPreviousSetsMap });

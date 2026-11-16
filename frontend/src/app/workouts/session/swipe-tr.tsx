@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { clampSwipeOffset, settleSwipeOpen, shouldEngageSwipe } from "@/app/workouts/session/swipe-gesture";
+import {
+  clampSwipeOffset,
+  isSwipeDeleteArmed,
+  resolveSwipeRelease,
+  shouldEngageSwipe,
+  swipeDeleteThreshold,
+} from "@/app/workouts/session/swipe-gesture";
 
 export const SWIPE_ACTION_WIDTH = 44;
 
@@ -29,11 +35,29 @@ interface SwipeTrProps extends React.ComponentProps<"tr"> {
   enabled: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onFullSwipe?: () => void;
 }
 
-export function SwipeTr({ enabled, open, onOpenChange, className, style, children, ...rest }: SwipeTrProps) {
+interface SwipeDrag {
+  id: number;
+  x: number;
+  y: number;
+  t: number;
+  engaged: boolean;
+  base: number;
+  travel: number;
+  threshold: number;
+  armed: boolean;
+}
+
+function setArmed(el: HTMLTableRowElement, armed: boolean) {
+  if (armed) el.setAttribute("data-swipe-armed", "");
+  else el.removeAttribute("data-swipe-armed");
+}
+
+export function SwipeTr({ enabled, open, onOpenChange, onFullSwipe, className, style, children, ...rest }: SwipeTrProps) {
   const ref = React.useRef<HTMLTableRowElement>(null);
-  const drag = React.useRef<{ id: number; x: number; y: number; t: number; engaged: boolean; base: number } | null>(null);
+  const drag = React.useRef<SwipeDrag | null>(null);
   const suppressClick = React.useRef(false);
   const offsetFor = (isOpen: boolean) => (enabled && isOpen ? -SWIPE_ACTION_WIDTH : 0);
 
@@ -70,9 +94,20 @@ export function SwipeTr({ enabled, open, onOpenChange, className, style, childre
   }
 
   const finish = (el: HTMLTableRowElement, nextOpen: boolean) => {
+    setArmed(el, false);
     el.style.transition = "";
     el.style.transform = nextOpen ? `translateX(${-SWIPE_ACTION_WIDTH}px)` : "";
     if (nextOpen !== open) onOpenChange(nextOpen);
+  };
+
+  const finishDeleted = (el: HTMLTableRowElement, fullSwipe: () => void) => {
+    setArmed(el, false);
+    el.style.transition = "none";
+    el.style.transform = "";
+    void el.offsetWidth;
+    el.style.transition = "";
+    onOpenChange(false);
+    fullSwipe();
   };
 
   return (
@@ -80,7 +115,7 @@ export function SwipeTr({ enabled, open, onOpenChange, className, style, childre
       {...rest}
       ref={ref}
       style={style}
-      className={`${className ?? ""} [&>td]:touch-pan-y transition-transform duration-150 ease-out motion-reduce:transition-none`}
+      className={`${className ?? ""} group/swipe [&>td]:touch-pan-y transition-transform duration-150 ease-out motion-reduce:transition-none`}
       onFocusCapture={(e) => {
         if ((e.target as HTMLElement).closest("[data-swipe-action]") && !open) {
           onOpenChange(true);
@@ -103,7 +138,7 @@ export function SwipeTr({ enabled, open, onOpenChange, className, style, childre
         if (target.closest("button, a, [data-swipe-action]")) return;
         const active = document.activeElement;
         if (active && active.tagName === "INPUT" && ref.current?.contains(active)) return;
-        drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, engaged: false, base: offsetFor(open) };
+        drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, engaged: false, base: offsetFor(open), travel: SWIPE_ACTION_WIDTH, threshold: Infinity, armed: false };
       }}
       onPointerMove={(e) => {
         const d = drag.current;
@@ -116,8 +151,20 @@ export function SwipeTr({ enabled, open, onOpenChange, className, style, childre
           d.engaged = true;
           el.setPointerCapture?.(e.pointerId);
           el.style.transition = "none";
+          if (onFullSwipe) {
+            const clip = el.closest<HTMLElement>("[data-swipe-clip]");
+            d.travel = Math.max(SWIPE_ACTION_WIDTH, clip ? clip.clientWidth : el.offsetWidth - SWIPE_ACTION_WIDTH);
+            d.threshold = swipeDeleteThreshold(d.travel);
+          }
         }
-        el.style.transform = `translateX(${clampSwipeOffset(d.base, dx, SWIPE_ACTION_WIDTH)}px)`;
+        const offset = clampSwipeOffset(d.base, dx, d.travel);
+        el.style.transform = `translateX(${offset}px)`;
+        const armed = isSwipeDeleteArmed(offset, d.threshold);
+        if (armed !== d.armed) {
+          d.armed = armed;
+          setArmed(el, armed);
+          if (armed && typeof navigator.vibrate === "function") navigator.vibrate(10);
+        }
       }}
       onPointerUp={(e) => {
         const d = drag.current;
@@ -129,7 +176,9 @@ export function SwipeTr({ enabled, open, onOpenChange, className, style, childre
         setTimeout(() => (suppressClick.current = false), 0);
         const dx = e.clientX - d.x;
         const velocity = (e.clientX - d.x) / Math.max(1, e.timeStamp - d.t);
-        finish(el, settleSwipeOpen(clampSwipeOffset(d.base, dx, SWIPE_ACTION_WIDTH), SWIPE_ACTION_WIDTH, velocity));
+        const release = resolveSwipeRelease(clampSwipeOffset(d.base, dx, d.travel), SWIPE_ACTION_WIDTH, d.threshold, velocity);
+        if (release === "delete" && onFullSwipe) finishDeleted(el, onFullSwipe);
+        else finish(el, release !== "closed");
       }}
       onPointerCancel={() => {
         const d = drag.current;
