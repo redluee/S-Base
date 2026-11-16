@@ -108,7 +108,7 @@ export function SetsTable({
     return (
       <div
         data-swipe-clip
-        className={cn("-mx-4 sm:mx-0 mb-4 max-[375px]:bg-card/60", swipeMode && "relative overflow-clip")}
+        className={cn("-mx-3 sm:mx-0 mb-2 max-[375px]:bg-card/60", swipeMode && "relative overflow-clip")}
       >
         <table
           className={cn("table-fixed text-xs sm:text-sm border-collapse", swipeMode ? "w-[calc(100%+2.75rem)]" : "w-full")}
@@ -124,10 +124,10 @@ export function SetsTable({
           </colgroup>
           <thead>
             <tr className="border-b border-border/40 text-muted-foreground">
-              <th scope="col" className="text-left py-2 pl-3 sm:pl-2 pr-0 font-normal">{t("Set")}</th>
-              <th scope="col" className="hidden sm:table-cell text-left py-2 px-3 font-normal">{t("Target")}</th>
+              <th scope="col" className="text-left py-1 pl-3 sm:pl-2 pr-0 font-normal">{t("Set")}</th>
+              <th scope="col" className="hidden sm:table-cell text-left py-1 px-3 font-normal">{t("Target")}</th>
               {columns.map((col) => (
-                <th key={col.key} scope="col" className="text-center py-2 px-0.5 sm:px-2 font-normal text-[11px] sm:text-xs leading-tight align-bottom">
+                <th key={col.key} scope="col" className="text-center py-1 px-0.5 sm:px-2 font-normal text-[11px] sm:text-xs leading-tight align-bottom">
                   <span>{col.label}</span>
                   {col.perSide && (
                     <span className="block text-[10px] text-muted-foreground font-normal leading-tight mt-0.5">
@@ -136,7 +136,7 @@ export function SetsTable({
                   )}
                 </th>
               ))}
-              <th scope="col" className="text-center py-2 px-0 font-normal text-[11px] sm:text-xs">{t("Done")}</th>
+              <th scope="col" className="text-center py-1 px-0 font-normal text-[11px] sm:text-xs">{t("Done")}</th>
               {canDeleteSets && (
                 <th scope="col" className="p-0">
                   <span className="sr-only">{t("workout.Delete")}</span>
@@ -193,9 +193,9 @@ export function SetsTable({
                       set.completed ? "bg-brand/5" : "hover:bg-white/[0.01]"
                     )}
                   >
-                    <td className="py-1 pl-3 sm:pl-2 pr-0 font-medium text-zinc-400 align-middle">{set.setNumber}</td>
+                    <td className="py-0 pl-3 sm:pl-2 pr-0 font-medium text-zinc-400 align-middle">{set.setNumber}</td>
 
-                    <td className="hidden sm:table-cell py-1 px-3 text-muted-foreground align-middle text-xs">
+                    <td className="hidden sm:table-cell py-0 px-3 text-muted-foreground align-middle text-xs">
                       {ghostText}
                     </td>
 
@@ -221,7 +221,7 @@ export function SetsTable({
                           value={display}
                           onSave={(val) => saveColumn(col, setIdx, val)}
                           className={cn(
-                            "bg-white/5 h-11 text-center text-sm rounded-md px-1 transition-colors placeholder:text-muted-foreground placeholder:italic placeholder:font-normal",
+                            "bg-white/5 h-10 text-center text-sm rounded-md px-1 transition-colors placeholder:text-muted-foreground placeholder:italic placeholder:font-normal",
                             pristine ? "text-muted-foreground italic font-normal" : "text-foreground font-semibold",
                             flagged
                               ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
@@ -231,10 +231,10 @@ export function SetsTable({
                       );
 
                       return (
-                        <td key={col.key} className="py-1 px-0.5 sm:px-2 align-middle">
+                        <td key={col.key} className="p-0 sm:px-1.5 align-middle">
                           {col.kind === "time" && onStartRepTimer ? (
                             <div className="flex items-center">
-                              <div className="flex-1 min-w-0">{input}</div>
+                              <label className="block flex-1 min-w-0 py-0.5 px-0.5">{input}</label>
                               <button
                                 type="button"
                                 onClick={() => onStartRepTimer(exIdx, setIdx, targetSource?.duration)}
@@ -246,7 +246,7 @@ export function SetsTable({
                               </button>
                             </div>
                           ) : (
-                            input
+                            <label className="block py-0.5 px-0.5">{input}</label>
                           )}
                         </td>
                       );
@@ -302,9 +302,9 @@ export function SetsTable({
                             }}
                             aria-label={`${t("Delete set")} ${set.setNumber}`}
                             title={t("Delete set")}
-                            className="mx-auto size-11 inline-flex items-center justify-center rounded-md text-zinc-500 hover:text-destructive hover:bg-red-950/20 group-data-[swipe-armed]/swipe:text-white transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                            className="mx-auto size-11 inline-flex items-center justify-center rounded-md text-zinc-500 hover:text-destructive hover:bg-red-950/20 group-data-[swipe-armed]/swipe:text-white group-data-[swipe-armed]/swipe:hover:text-white group-data-[swipe-armed]/swipe:hover:bg-transparent transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                           >
-                            <Trash className="size-4 transition-transform duration-150 group-data-[swipe-armed]/swipe:scale-125" />
+                            <Trash className="size-4 stroke-[2.5px] transition-transform duration-150 group-data-[swipe-armed]/swipe:scale-125" />
                           </button>
                         )}
                       </td>

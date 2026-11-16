@@ -56,7 +56,7 @@ export function ExerciseCardHeader({
 
   return (
     <>
-        <div className="flex items-start justify-between gap-2 mb-4">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             {replacingExerciseId === ex.sessionExerciseId ? (
               <div className="flex flex-col gap-2 w-full">
@@ -96,20 +96,18 @@ export function ExerciseCardHeader({
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-1">
-                <h3 className="font-semibold text-foreground text-base sm:text-lg flex items-center gap-2 min-h-11 break-words">
-                  <span className="min-w-0">{exIdx + 1}. {ex.exerciseName}</span>
-                  {allSetsDone && (
-                    <span
-                      role="img"
-                      aria-label={t("All sets completed")}
-                      className="inline-flex items-center justify-center size-5 rounded-full bg-brand/20 text-brand animate-scale-in shrink-0"
-                    >
-                      <Check className="size-3 stroke-[3px]" />
-                    </span>
-                  )}
-                </h3>
-              </div>
+              <h3 className="font-semibold text-foreground text-base sm:text-lg flex items-center gap-2 min-h-11 break-words">
+                <span className="min-w-0">{exIdx + 1}. {ex.exerciseName}</span>
+                {allSetsDone && (
+                  <span
+                    role="img"
+                    aria-label={t("All sets completed")}
+                    className="inline-flex items-center justify-center size-5 rounded-full bg-brand/20 text-brand animate-scale-in shrink-0"
+                  >
+                    <Check className="size-3 stroke-[3px]" />
+                  </span>
+                )}
+              </h3>
             )}
           </div>
 

@@ -41,7 +41,7 @@ export function ExerciseTags({ category, equipment, isAssisted, hasSets, onChang
   };
 
   return (
-    <div ref={containerRef} onKeyDown={handleKeyDown} className={cn(expanded || hasSets ? "mb-4" : "mb-5")}>
+    <div ref={containerRef} onKeyDown={handleKeyDown} className={expanded ? "mb-3" : hasSets ? "mb-1" : "mb-5"}>
       <button
         ref={toggleRef}
         type="button"
@@ -51,7 +51,7 @@ export function ExerciseTags({ category, equipment, isAssisted, hasSets, onChang
         onClick={() => setExpanded((open) => !open)}
         className={cn(
           "relative flex w-full items-center gap-1.5 rounded-md text-left text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          expanded ? "min-h-11" : "min-h-6 after:absolute after:inset-x-0 after:top-0 after:-bottom-5 after:content-['']"
+          expanded ? "min-h-11" : "z-10 min-h-6 after:absolute after:inset-x-0 after:top-0 after:-bottom-5 after:content-['']"
         )}
       >
         <span className="min-w-0">{labels.join(" · ")}</span>
