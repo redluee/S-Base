@@ -14,8 +14,8 @@ export function settleSwipeOpen(offset: number, width: number, velocityX = 0): b
   return offset < -width / 2;
 }
 
-export const SWIPE_DELETE_MIN_PX = 140;
-export const SWIPE_DELETE_RATIO = 0.5;
+export const SWIPE_DELETE_MIN_PX = 96;
+export const SWIPE_DELETE_RATIO = 0.28;
 
 export type SwipeRelease = "closed" | "open" | "delete";
 

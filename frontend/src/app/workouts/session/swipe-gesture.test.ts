@@ -37,13 +37,13 @@ describe("swipe gesture", () => {
 });
 
 describe("swipe to delete", () => {
-  it("uses half the row width with a pixel floor as delete threshold", () => {
-    expect(SWIPE_DELETE_MIN_PX).toBe(140);
-    expect(SWIPE_DELETE_RATIO).toBe(0.5);
-    expect(swipeDeleteThreshold(375)).toBe(187.5);
-    expect(swipeDeleteThreshold(320)).toBe(160);
-    expect(swipeDeleteThreshold(240)).toBe(140);
-    expect(swipeDeleteThreshold(0)).toBe(140);
+  it("uses a share of the row width with a pixel floor as delete threshold", () => {
+    expect(SWIPE_DELETE_MIN_PX).toBe(96);
+    expect(SWIPE_DELETE_RATIO).toBe(0.28);
+    expect(swipeDeleteThreshold(375)).toBeCloseTo(105);
+    expect(swipeDeleteThreshold(320)).toBe(96);
+    expect(swipeDeleteThreshold(240)).toBe(96);
+    expect(swipeDeleteThreshold(0)).toBe(96);
   });
   it("arms at the threshold and un-arms below it", () => {
     expect(isSwipeDeleteArmed(-159, 160)).toBe(false);
