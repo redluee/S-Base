@@ -1,15 +1,36 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useId } from "react";
+import { useState, useRef, useEffect, useCallback, useId, useSyncExternalStore } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Input } from "@/components/ui/input";
 
 import { cn } from "@/lib/utils";
+import { computeDropdownPlacement, type DropdownSide } from "@/lib/dropdown-placement";
 import type { ExerciseSuggestion } from "@backend/types/workout";
 import type { HistorySetInput } from "@/app/workouts/session/workout-session-helpers";
 
 type Suggestion = ExerciseSuggestion;
+
+const LIST_MAX_HEIGHT = 224;
+const LIST_GAP = 4;
+const LIST_MIN_USEFUL_HEIGHT = 88;
+const DEFAULT_PLACEMENT = `bottom:${LIST_MAX_HEIGHT}:0`;
+
+function measurePlacement(input: HTMLInputElement): string {
+  const rect = input.getBoundingClientRect();
+  const viewport = window.visualViewport;
+  const { side, maxHeight, cramped } = computeDropdownPlacement({
+    anchorTop: rect.top,
+    anchorBottom: rect.bottom,
+    viewportTop: viewport ? viewport.offsetTop : 0,
+    viewportHeight: viewport ? viewport.height : window.innerHeight,
+    desiredMaxHeight: LIST_MAX_HEIGHT,
+    gap: LIST_GAP,
+    minUsefulHeight: LIST_MIN_USEFUL_HEIGHT,
+  });
+  return `${side}:${maxHeight}:${cramped ? 1 : 0}`;
+}
 
 export function ExerciseAutocomplete({
   value,
@@ -44,6 +65,44 @@ export function ExerciseAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const scrolledIntoViewRef = useRef(false);
+  const listOpen = open && suggestions.length > 0;
+
+  const subscribePlacement = useCallback(
+    (notify: () => void) => {
+      if (!listOpen) return () => {};
+      const viewport = window.visualViewport;
+      viewport?.addEventListener("resize", notify);
+      viewport?.addEventListener("scroll", notify);
+      window.addEventListener("resize", notify);
+      window.addEventListener("scroll", notify, { capture: true, passive: true });
+      return () => {
+        viewport?.removeEventListener("resize", notify);
+        viewport?.removeEventListener("scroll", notify);
+        window.removeEventListener("resize", notify);
+        window.removeEventListener("scroll", notify, { capture: true });
+      };
+    },
+    [listOpen],
+  );
+  const readPlacement = useCallback(
+    () => (listOpen && inputRef.current ? measurePlacement(inputRef.current) : DEFAULT_PLACEMENT),
+    [listOpen],
+  );
+  const placement = useSyncExternalStore(subscribePlacement, readPlacement, () => DEFAULT_PLACEMENT);
+  const [listSide, listMaxHeight, listCramped] = placement.split(":") as [DropdownSide, string, string];
+  const cramped = listCramped === "1";
+
+  useEffect(() => {
+    if (!listOpen) {
+      scrolledIntoViewRef.current = false;
+      return;
+    }
+    if (cramped && !scrolledIntoViewRef.current) {
+      scrolledIntoViewRef.current = true;
+      inputRef.current?.scrollIntoView({ block: "center" });
+    }
+  }, [listOpen, cramped]);
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.length < 1) {
@@ -158,7 +217,7 @@ export function ExerciseAutocomplete({
         ref={inputRef}
         role="combobox"
         aria-autocomplete="list"
-        aria-expanded={open && suggestions.length > 0}
+        aria-expanded={listOpen}
         aria-controls={listId}
         aria-activedescendant={open && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
         autoComplete="off"
@@ -179,11 +238,15 @@ export function ExerciseAutocomplete({
           className
         )}
       />
-      {open && suggestions.length > 0 && (
+      {listOpen && (
         <div
           id={listId}
           role="listbox"
-          className="absolute left-0 top-full mt-1 w-full z-50 max-h-56 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground"
+          style={{ maxHeight: Number(listMaxHeight) }}
+          className={cn(
+            "absolute left-0 w-full z-50 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground",
+            listSide === "top" ? "bottom-full mb-1" : "top-full mt-1",
+          )}
         >
           {suggestions.map((suggestion, i) => (
             <button
