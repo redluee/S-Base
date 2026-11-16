@@ -90,7 +90,9 @@ Missing records throw `NotFoundError` (`minor.<x>NotFound`), bad input `Validati
 
 1. **Passes & Prognosis**:
    - Official pass (`officialPasses`): Teacher assessment `V` on an LU (at most 1 per sprint per LU). Official passes awarded by the teacher always count regardless of reflection state (reflection completeness is checked during export validation).
-   - Prognosis (`projectedPasses`): a teacher `V`, or a self-evaluation `V` unless the teacher assessed `O` (`isProjectedPass` in `shared/minor.ts`). The Excel/PDF export uses the same rule (`learningOutcomeLevel`).
+   - Prognosis (`projectedPasses`, dashboard only): at most 1 per sprint per LU, when `isPrognosisPass` in `shared/minor.ts` holds. That is the evaluation rule `isProjectedPass` (a teacher `V`, or a self-evaluation `V` unless the teacher assessed `O`), or a planned pass: the sprint is not finished (`isSprintFinished`), at least one story in that sprint covers the LU whatever its status (`todo`, `in_progress`, `done`), the teacher did not assess `O` and the self-evaluation is not `NV`. Backlog stories without a sprint and stories of finished sprints never count.
+   - The Excel/PDF export and the public snapshot use the evaluation rule only (`learningOutcomeLevel`, built on `isProjectedPass`); planned stories play no part there.
+   - Setting a sprint story to `done` writes self-evaluation `V` for its LUs (`evaluations.markLearningOutcomesSufficient` from `stories.create`/`stories.update`). Reverting the story does not undo that.
 2. **Vacations**: Overlapping vacations extend sprint duration automatically and adjust the Show & Grow date (Wednesday in the last week).
 3. **Dual Criteria**: Each story has two criteria groups: `acceptance` criteria (story specific) and `quality` criteria (process/DoD related, often pre-filled from story type). Both support 1-level indentation (`indent: 1`).
 4. **Presentation Data**: `presentationData` in `minor_stories` stores JSON for Show & Grow slides (custom title, notes, demo URLs, screenshots, bullet points).

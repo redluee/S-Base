@@ -7,7 +7,8 @@ import {
   FEW_LEARNING_OUTCOMES,
   isLearningOutcome,
   isOfficialPass,
-  isProjectedPass,
+  isPrognosisPass,
+  isSprintFinished,
   LEARNING_OUTCOMES,
 } from "../../shared/minor";
 import type { MinorPeerHelpLog } from "./minor-peer-help";
@@ -75,12 +76,16 @@ export class MinorDashboard {
         .from(minorSelfEvaluations)
         .where(inArray(minorSelfEvaluations.sprintId, sprintIds))
         .all();
-      for (const sprintId of sprintIds) {
+      for (const sprint of sprints) {
+        const sprintFinished = isSprintFinished(sprint, today);
+        const covered = sprintFinished ? new Set<number>() : coveredLearningOutcomes(sprint.id);
         for (const lu of LEARNING_OUTCOMES) {
-          const teacher = assessments.find((a) => a.sprintId === sprintId && a.learningOutcome === lu)?.assessment;
-          const self = selfEvaluations.find((e) => e.sprintId === sprintId && e.learningOutcome === lu)?.level;
+          const teacher = assessments.find((a) => a.sprintId === sprint.id && a.learningOutcome === lu)?.assessment;
+          const self = selfEvaluations.find((e) => e.sprintId === sprint.id && e.learningOutcome === lu)?.level;
           if (isOfficialPass(teacher)) officialPasses[lu] += 1;
-          if (isProjectedPass(self, teacher)) projectedPasses[lu] += 1;
+          if (isPrognosisPass(self, teacher, { sprintFinished, coveredByStory: covered.has(lu) })) {
+            projectedPasses[lu] += 1;
+          }
         }
       }
     }

@@ -82,6 +82,16 @@ export function isProjectedPass(
   return isOfficialPass(teacherAssessment) || (teacherAssessment !== "O" && selfLevel === "V");
 }
 
+export function isPrognosisPass(
+  selfLevel: string | null | undefined,
+  teacherAssessment: string | null | undefined,
+  plan: { sprintFinished: boolean; coveredByStory: boolean },
+): boolean {
+  if (isProjectedPass(selfLevel, teacherAssessment)) return true;
+  if (plan.sprintFinished || !plan.coveredByStory) return false;
+  return teacherAssessment !== "O" && selfLevel !== "NV";
+}
+
 export function learningOutcomeLevel(
   selfLevel: string | null | undefined,
   teacherAssessment: string | null | undefined,
