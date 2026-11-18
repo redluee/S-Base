@@ -7,7 +7,6 @@ import {
   isValidTodoTitle,
   normalizeTodoTitle,
   positionBetween,
-  quickDate,
   rebalancedPositions,
   TODO_COLORS,
   todoColorHex,
@@ -76,22 +75,6 @@ describe("agingOpacity", () => {
     expect(agingOpacity(task("2026-01-01T10:00:00Z", "2026-11-19"), now)).toBe(1);
     expect(agingOpacity(task("2026-01-01T10:00:00Z", null, "cashflow"), now)).toBe(1);
     expect(agingOpacity(task("2026-01-01T10:00:00Z", "2026-11-18"), now)).toBe(0.5);
-  });
-});
-
-describe("quickDate", () => {
-  it("resolves the date chips from a Wednesday", () => {
-    const wed = at("2026-11-18T10:00:00Z");
-    expect(quickDate("today", wed)).toBe("2026-11-18");
-    expect(quickDate("tomorrow", wed)).toBe("2026-11-19");
-    expect(quickDate("weekend", wed)).toBe("2026-11-21");
-    expect(quickDate("nextWeek", wed)).toBe("2026-11-23");
-  });
-
-  it("keeps the weekend chip on today during the weekend and jumps a week from Monday", () => {
-    expect(quickDate("weekend", at("2026-11-22T10:00:00Z"))).toBe("2026-11-22");
-    expect(quickDate("nextWeek", at("2026-11-22T10:00:00Z"))).toBe("2026-11-23");
-    expect(quickDate("nextWeek", at("2026-11-23T10:00:00Z"))).toBe("2026-11-30");
   });
 });
 

@@ -107,24 +107,6 @@ export function agingOpacity(task: AgingInput, now: Date = new Date()): number {
   return AGING_STEPS.find((step) => idle >= step.days)?.opacity ?? 1;
 }
 
-export const QUICK_DATES = ["today", "tomorrow", "weekend", "nextWeek"] as const;
-export type QuickDate = (typeof QUICK_DATES)[number];
-
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-export function quickDate(kind: QuickDate, now: Date = new Date()): string {
-  const base = today(now);
-  const weekday = new Date(`${base}T12:00:00Z`).getUTCDay();
-  if (kind === "today") return base;
-  if (kind === "tomorrow") return addDays(base, 1);
-  if (kind === "weekend") return weekday === 6 || weekday === 0 ? base : addDays(base, 6 - weekday);
-  return addDays(base, (8 - weekday) % 7 || 7);
-}
-
 export const POSITION_STEP = 1;
 const MIN_POSITION_GAP = 1e-9;
 
