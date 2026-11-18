@@ -1,13 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import { cleanName, moveId, nextFreeColor, openTaskCount } from "./manage-helpers";
+import { applyMove, cleanName, nextFreeColor, openTaskCount } from "./manage-helpers";
 
 describe("manage helpers", () => {
-  it("moves an id up or down and refuses moves past the ends", () => {
-    expect(moveId([1, 2, 3], 2, -1)).toEqual([2, 1, 3]);
-    expect(moveId([1, 2, 3], 2, 1)).toEqual([1, 3, 2]);
-    expect(moveId([1, 2, 3], 1, -1)).toBeNull();
-    expect(moveId([1, 2, 3], 3, 1)).toBeNull();
-    expect(moveId([1, 2, 3], 9, 1)).toBeNull();
+  it("applies a drag move to an id list", () => {
+    expect(applyMove([1, 2, 3], 3, { afterId: null, beforeId: 1 })).toEqual([3, 1, 2]);
+    expect(applyMove([1, 2, 3], 1, { afterId: 3, beforeId: null })).toEqual([2, 3, 1]);
+    expect(applyMove([1, 2, 3], 1, { afterId: 2, beforeId: null })).toEqual([2, 1, 3]);
+    expect(applyMove([1, 2, 3], 2, { afterId: 1, beforeId: null })).toBeNull();
+    expect(applyMove([1, 2, 3], 9, { afterId: 1, beforeId: null })).toBeNull();
+    expect(applyMove([1, 2, 3], 1, { afterId: 9, beforeId: null })).toBeNull();
   });
 
   it("picks the first unused palette colour", () => {

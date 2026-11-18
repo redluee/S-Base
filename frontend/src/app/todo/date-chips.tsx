@@ -49,12 +49,12 @@ export function DateChips({ value, onChange, disabled = false }: DateChipsProps)
       ))}
       {custom ? (
         <Chip active disabled={disabled} onClick={() => onChange(null)}>
-          <CalendarDays className="size-4" aria-hidden="true" />
+          <CalendarDays className="size-3.5" aria-hidden="true" />
           {customDateLabel(value)}
         </Chip>
       ) : (
         <label className={chipClass(false)} aria-disabled={disabled || undefined}>
-          <CalendarDays className="size-4" aria-hidden="true" />
+          <CalendarDays className="size-3.5" aria-hidden="true" />
           <span>{t("todo.date.pick")}</span>
           <input
             ref={picker}
@@ -63,7 +63,7 @@ export function DateChips({ value, onChange, disabled = false }: DateChipsProps)
             aria-label={t("todo.date.pick")}
             onClick={openPicker}
             onChange={(e) => onChange(e.target.value || null)}
-            className="absolute inset-0 size-full cursor-pointer appearance-none rounded-full opacity-0 disabled:cursor-default"
+            className="absolute inset-0 size-full cursor-pointer appearance-none rounded-lg opacity-0 disabled:cursor-default"
           />
         </label>
       )}

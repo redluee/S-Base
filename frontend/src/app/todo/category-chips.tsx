@@ -3,7 +3,8 @@
 import { todoColorHex } from "@backend/shared/todo";
 import { t } from "@/lib/lang";
 import { toggleCategory, toggleProject } from "./chip-state";
-import { Chip, ChipRow, ColorDot } from "./chip";
+import { CategoryIcon } from "./category-icon";
+import { Chip, ChipRow } from "./chip";
 import { manualCategories, projectsOf } from "./todo-state";
 import { useTodoUi } from "./todo-ui";
 
@@ -32,7 +33,7 @@ export function CategoryChips({ value, onChange }: CategoryChipsProps) {
             active={value.categoryId === category.id}
             onClick={() => onChange(toggleCategory(value, category.id))}
           >
-            <ColorDot color={todoColorHex(category.color)} />
+            <CategoryIcon icon={category.icon} color={todoColorHex(category.color)} />
             {category.name}
           </Chip>
         ))}

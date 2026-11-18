@@ -1,13 +1,14 @@
 import { normalizeTodoTitle, TODO_COLORS, TODO_NAME_MAX, type TodoColor } from "@backend/shared/todo";
-import type { TodoCategory, TodoTask } from "@backend/types/todo";
+import type { TodoCategory, TodoMove, TodoTask } from "@backend/types/todo";
 
-export function moveId(ids: number[], id: number, delta: -1 | 1): number[] | null {
-  const from = ids.indexOf(id);
-  const to = from + delta;
-  if (from === -1 || to < 0 || to >= ids.length) return null;
-  const next = [...ids];
-  [next[from], next[to]] = [next[to], next[from]];
-  return next;
+export function applyMove(ids: number[], id: number, move: TodoMove): number[] | null {
+  if (!ids.includes(id)) return null;
+  const rest = ids.filter((other) => other !== id);
+  const anchor = move.afterId ?? move.beforeId;
+  const at = anchor === null ? 0 : rest.indexOf(anchor) + (move.afterId !== null ? 1 : 0);
+  if (anchor !== null && rest.indexOf(anchor) === -1) return null;
+  const next = [...rest.slice(0, at), id, ...rest.slice(at)];
+  return next.every((value, i) => value === ids[i]) ? null : next;
 }
 
 export function nextFreeColor(categories: Pick<TodoCategory, "color">[]): TodoColor {

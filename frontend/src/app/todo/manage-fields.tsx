@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ArrowUp, Plus } from "lucide-react";
 import { TODO_NAME_MAX } from "@backend/shared/todo";
-import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
 import { cleanName } from "./manage-helpers";
 
@@ -11,9 +10,16 @@ export const iconButtonClass =
   "flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-30 disabled:hover:text-muted-foreground";
 
 const fieldClass =
-  "min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:bg-foreground/5";
+  "min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:bg-foreground/[0.04] focus:bg-foreground/[0.06]";
 
-export function NameField({ value, label, onCommit }: { value: string; label: string; onCommit: (name: string) => void }) {
+interface NameFieldProps {
+  value: string;
+  label: string;
+  onCommit: (name: string) => void;
+  className?: string;
+}
+
+export function NameField({ value, label, onCommit, className }: NameFieldProps) {
   const [draft, setDraft] = useState(value);
   const [source, setSource] = useState(value);
   if (source !== value) {
@@ -42,7 +48,7 @@ export function NameField({ value, label, onCommit }: { value: string; label: st
           setDraft(value);
         }
       }}
-      className={fieldClass}
+      className={cn(fieldClass, className)}
     />
   );
 }
@@ -60,6 +66,9 @@ export function AddField({ label, onAdd }: { label: string; onAdd: (name: string
 
   return (
     <form onSubmit={submit} className="flex items-center gap-1">
+      <span className="flex size-9 shrink-0 items-center justify-center text-muted-foreground" aria-hidden="true">
+        <Plus className="size-4" />
+      </span>
       <input
         value={draft}
         aria-label={label}
@@ -69,56 +78,20 @@ export function AddField({ label, onAdd }: { label: string; onAdd: (name: string
         onChange={(e) => setDraft(e.target.value)}
         className={fieldClass}
       />
-      <button type="submit" disabled={!name} aria-label={label} className={cn(iconButtonClass, "text-foreground")}>
-        <Plus className="size-5" />
+      <button
+        type="submit"
+        disabled={!name}
+        aria-label={label}
+        className="flex size-11 shrink-0 items-center justify-center rounded-full transition-opacity disabled:pointer-events-none disabled:opacity-0 focus-visible:outline-2 focus-visible:outline-brand"
+      >
+        <span className="flex size-8 items-center justify-center rounded-full bg-brand text-zinc-950">
+          <ArrowUp className="size-4" aria-hidden="true" />
+        </span>
       </button>
     </form>
   );
 }
 
-interface RowActionsProps {
-  label: string;
-  onUp: (() => void) | null;
-  onDown: (() => void) | null;
-  onDelete?: () => void;
-  deleteLabel?: string;
-}
-
-export function RowActions({ label, onUp, onDown, onDelete, deleteLabel }: RowActionsProps) {
-  return (
-    <div className="flex shrink-0 items-center">
-      <button
-        type="button"
-        className={iconButtonClass}
-        disabled={!onUp}
-        onClick={onUp ?? undefined}
-        aria-label={`${t("todo.manage.moveUp")}: ${label}`}
-      >
-        <ChevronUp className="size-4" />
-      </button>
-      <button
-        type="button"
-        className={iconButtonClass}
-        disabled={!onDown}
-        onClick={onDown ?? undefined}
-        aria-label={`${t("todo.manage.moveDown")}: ${label}`}
-      >
-        <ChevronDown className="size-4" />
-      </button>
-      {onDelete && (
-        <button
-          type="button"
-          className={cn(iconButtonClass, "hover:text-destructive")}
-          onClick={onDelete}
-          aria-label={`${deleteLabel}: ${label}`}
-        >
-          <Trash2 className="size-4" />
-        </button>
-      )}
-    </div>
-  );
-}
-
 export function SectionLabel({ children }: { children: ReactNode }) {
-  return <p className="px-2 pt-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{children}</p>;
+  return <h3 className="pb-2 text-xs font-medium text-muted-foreground">{children}</h3>;
 }

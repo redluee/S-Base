@@ -5,11 +5,13 @@ import { cn } from "@/lib/utils";
 
 export const chipClass = (active: boolean) =>
   cn(
-    "relative flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm whitespace-nowrap ring-1 transition-colors",
+    "relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium whitespace-nowrap",
+    "transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.97]",
+    "before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-40",
     active
-      ? "bg-brand/15 text-foreground ring-brand"
-      : "bg-foreground/5 text-muted-foreground ring-foreground/10 hover:text-foreground",
+      ? "bg-foreground/[0.12] text-foreground ring-1 ring-foreground/15"
+      : "bg-foreground/[0.04] text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground",
   );
 
 interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
@@ -25,14 +27,23 @@ export function Chip({ active, className, children, ...rest }: ChipProps) {
   );
 }
 
-export function ChipRow({ label, children }: { label: string; children: ReactNode }) {
+export function ChipCount({ value, active }: { value: number; active: boolean }) {
+  if (value === 0) return null;
   return (
-    <div role="group" aria-label={label} className="-mx-4 flex gap-2 overflow-x-auto px-4 py-1 [scrollbar-width:none]">
-      {children}
-    </div>
+    <span className={cn("text-[11px] tabular-nums", active ? "text-foreground/60" : "text-muted-foreground/60")}>
+      {value}
+    </span>
   );
 }
 
-export function ColorDot({ color }: { color: string }) {
-  return <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />;
+export function ChipRow({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className={cn("-mx-4 flex gap-1.5 overflow-x-auto px-4 py-2 [scrollbar-width:none]", className)}
+    >
+      {children}
+    </div>
+  );
 }

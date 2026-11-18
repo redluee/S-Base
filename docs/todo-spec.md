@@ -10,7 +10,7 @@ Personal task list. Principle: tasks you can see at a glance and that matter. No
 
 ## Data
 
-- **Category**: name, colour (fixed palette of ~10 tones that read well on black), sort order. Created/edited only in the manage sheet (gear icon). Deleting one with tasks: confirm with count; tasks become uncategorised; history keeps the old name/colour.
+- **Category**: name, colour (fixed palette of ~10 tones that read well on black), icon (fixed set of 24), sort order. Created/edited only in the manage sheet (gear icon): a list of categories (drag to reorder, tap to edit) and an editor with name, colour, icon, projects (drag to reorder) and delete. Deleting one with tasks: confirm with count; tasks become uncategorised; history keeps the old name/colour.
 - **System category "Automatisch"**: holds all linked tasks; cannot be deleted or used for manual tasks; colour editable. Its projects are the sources: "Cashflow", "Minor".
 - **Project**: name, belongs to one category. A task can only have a project if it has a category.
 - **Task**: title, category?, project?, due date? (day only, no time), flagged, notes (light markdown), subtasks, position (fractional index, global order), lastEditedAt, completedAt?, link? (source module + id).

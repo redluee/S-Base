@@ -2,6 +2,9 @@
 
 import type { TodoCategory, TodoProject } from "@backend/types/todo";
 import { todoColorHex } from "@backend/shared/todo";
+import { t } from "@/lib/lang";
+import { CategoryIcon } from "./category-icon";
+import { Chip, ChipRow } from "./chip";
 import type { HistoryParams } from "./use-history";
 
 interface HistoryFiltersProps {
@@ -11,54 +14,36 @@ interface HistoryFiltersProps {
   onChange: (patch: Partial<HistoryParams>) => void;
 }
 
-function chipClass(active: boolean): string {
-  return `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm transition-colors ${
-    active ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"
-  }`;
-}
-
 export function HistoryFilters({ categories, projects, value, onChange }: HistoryFiltersProps) {
   const visibleProjects = value.categoryId === null ? [] : projects.filter((p) => p.categoryId === value.categoryId);
   return (
     <div className="flex flex-col">
-      <div className="flex gap-2 overflow-x-auto">
+      <ChipRow label={t("todo.filter.label")} className="mx-0 px-0">
         {categories.map((category) => {
           const active = value.categoryId === category.id;
           return (
-            <button
+            <Chip
               key={category.id}
-              type="button"
-              aria-pressed={active}
-              className={chipClass(active)}
+              active={active}
               onClick={() => onChange({ categoryId: active ? null : category.id, projectId: null })}
             >
-              <span
-                aria-hidden="true"
-                className="size-2 rounded-full"
-                style={{ backgroundColor: todoColorHex(category.color) }}
-              />
+              <CategoryIcon icon={category.icon} color={todoColorHex(category.color)} />
               {category.name}
-            </button>
+            </Chip>
           );
         })}
-      </div>
+      </ChipRow>
       {visibleProjects.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto">
+        <ChipRow label={t("todo.filter.projects")} className="mx-0 -mt-1 px-0 pt-0">
           {visibleProjects.map((project) => {
             const active = value.projectId === project.id;
             return (
-              <button
-                key={project.id}
-                type="button"
-                aria-pressed={active}
-                className={chipClass(active)}
-                onClick={() => onChange({ projectId: active ? null : project.id })}
-              >
+              <Chip key={project.id} active={active} onClick={() => onChange({ projectId: active ? null : project.id })}>
                 {project.name}
-              </button>
+              </Chip>
             );
           })}
-        </div>
+        </ChipRow>
       ) : null}
     </div>
   );

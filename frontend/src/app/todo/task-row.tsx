@@ -8,6 +8,7 @@ import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
 import { useCompletionRow } from "./completion/completion-row";
 import { dueBadge, taskColor, type DueTone } from "./due-label";
+import { CategoryIcon } from "./category-icon";
 import { TaskCheck } from "./task-check";
 import { useTodoUi } from "./todo-ui";
 
@@ -66,7 +67,7 @@ export function TaskRow({ task }: { task: TodoTask }) {
               {due && <span className={cn("shrink-0 font-medium", TONE[due.tone])}>{due.label}</span>}
               {showCategory && (
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  <CategoryIcon icon={category.icon} color={color} className="size-3" />
                   <span className="truncate">{category.name}</span>
                 </span>
               )}
