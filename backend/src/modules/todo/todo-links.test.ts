@@ -14,7 +14,7 @@ import {
 import { today } from "../../shared/dates";
 import { setupTestDb } from "../../test-utils";
 import { TodoLinks } from "./todo-links";
-import { listOpenRows } from "./todo-records";
+import { listOpenRows, nowIso } from "./todo-records";
 
 const DAY = 86_400_000;
 const links = new TodoLinks();
@@ -162,6 +162,55 @@ describe("todo links", () => {
     expect(db.select().from(todoHiddenLinks).all()).toHaveLength(0);
     links.sync(userId);
     expect(db.select().from(todoTasks).all()).toHaveLength(2);
+  });
+
+  it("brings a silently removed task back when its source qualifies again", () => {
+    const invoice = addInvoice();
+    links.sync(userId);
+    const id = taskFor("cashflow", invoice.id)?.id;
+    db.update(cashflowInvoices).set({ status: "draft" }).where(eq(cashflowInvoices.id, invoice.id)).run();
+    links.sync(userId);
+    db.update(cashflowInvoices).set({ status: "sent" }).where(eq(cashflowInvoices.id, invoice.id)).run();
+    links.sync(userId);
+    expect(taskFor("cashflow", invoice.id)).toMatchObject({ id, deletedAt: null, completedAt: null });
+  });
+
+  it("leaves the list when the date moves past the window and returns inside it", () => {
+    const invoice = addInvoice();
+    links.sync(userId);
+    const later = Date.now() + 30 * DAY;
+    db.update(cashflowInvoices).set({ paymentDueDate: later }).where(eq(cashflowInvoices.id, invoice.id)).run();
+    links.sync(userId);
+    expect(taskFor("cashflow", invoice.id)?.deletedAt).not.toBeNull();
+    expect(listOpenRows(userId)).toHaveLength(0);
+    const sooner = Date.now() + 2 * DAY;
+    db.update(cashflowInvoices).set({ paymentDueDate: sooner }).where(eq(cashflowInvoices.id, invoice.id)).run();
+    links.sync(userId);
+    expect(taskFor("cashflow", invoice.id)).toMatchObject({ deletedAt: null, dueDate: dayFromNow(2) });
+  });
+
+  it("does not hide a deleted task's source behind a revival", () => {
+    const invoice = addInvoice();
+    links.sync(userId);
+    const row = taskFor("cashflow", invoice.id);
+    const ref = { userId, sourceModule: "cashflow" as const, sourceId: invoice.id, sourcePreviousStatus: null };
+    db.update(todoTasks)
+      .set({ deletedAt: nowIso() })
+      .where(eq(todoTasks.id, row?.id ?? 0))
+      .run();
+    links.hide(ref);
+    links.sync(userId);
+    expect(taskFor("cashflow", invoice.id)?.deletedAt).not.toBeNull();
+  });
+
+  it("keeps the real payment date when the invoice was already paid", () => {
+    const paidAt = Date.now() - 5 * DAY;
+    const invoice = addInvoice({ status: "paid", datePaid: paidAt });
+    const ref = { userId, sourceModule: "cashflow" as const, sourceId: invoice.id, sourcePreviousStatus: null };
+    expect(links.onComplete(ref)).toBeNull();
+    links.onRevert(ref);
+    const row = db.select().from(cashflowInvoices).where(eq(cashflowInvoices.id, invoice.id)).get();
+    expect(row).toMatchObject({ status: "paid", datePaid: paidAt });
   });
 
   it("completes silently when the invoice is paid", () => {

@@ -83,12 +83,25 @@ export class TodoLinks {
       );
 
       for (const row of existing) {
-        if (row.completedAt || row.deletedAt || !row.sourceModule || row.sourceId === null) continue;
+        if (row.completedAt || !row.sourceModule || row.sourceId === null) continue;
+        const key = `${row.sourceModule}:${row.sourceId}`;
         const want = desired[row.sourceModule]?.get(row.sourceId);
+        const visible = !!want && isLinkedTaskVisible(want.dueDate, now);
+        if (row.deletedAt) {
+          if (want && visible && !blocked.has(key)) {
+            db.update(todoTasks)
+              .set({ title: want.title, dueDate: want.dueDate, deletedAt: null, position: topPosition(userId) })
+              .where(eq(todoTasks.id, row.id))
+              .run();
+          }
+          continue;
+        }
         if (!want) {
           const patch =
             row.sourceModule === "cashflow" && paid.has(row.sourceId) ? { completedAt: at } : { deletedAt: at };
           db.update(todoTasks).set(patch).where(eq(todoTasks.id, row.id)).run();
+        } else if (!visible) {
+          db.update(todoTasks).set({ deletedAt: at }).where(eq(todoTasks.id, row.id)).run();
         } else if (row.title !== want.title || row.dueDate !== want.dueDate) {
           db.update(todoTasks).set({ title: want.title, dueDate: want.dueDate }).where(eq(todoTasks.id, row.id)).run();
         }
@@ -125,7 +138,7 @@ export class TodoLinks {
   onComplete(task: LinkedTaskRef): string | null {
     if (task.sourceModule !== "cashflow") return null;
     const previous = ownedInvoiceStatus(task.userId, task.sourceId);
-    if (previous === null) return null;
+    if (previous === null || previous === "paid") return null;
     setOwnedInvoiceStatus(task.userId, task.sourceId, "paid", Date.now());
     return previous;
   }
