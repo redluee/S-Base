@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerDownRight, Flag, Inbox } from "lucide-react";
+import { CornerDownRight, Flag } from "lucide-react";
 import { todoColorHex } from "@backend/shared/todo";
 import { t } from "@/lib/lang";
 import { CategoryIcon } from "./category-icon";
@@ -27,11 +27,6 @@ export function FilterChips() {
   return (
     <div className="mt-3 flex flex-col">
       <ChipRow label={t("todo.filter.label")}>
-        <Chip active={filter.kind === "all"} onClick={() => actions.setFilter({ kind: "all" })}>
-          <Inbox className="size-3.5" aria-hidden="true" />
-          {t("todo.filter.all")}
-          <ChipCount value={tasks.length} active={filter.kind === "all"} />
-        </Chip>
         <Chip active={filter.kind === "flagged"} onClick={() => actions.toggleFilter({ kind: "flagged" })}>
           <Flag className="size-3.5 text-brand" aria-hidden="true" />
           {t("todo.filter.flagged")}

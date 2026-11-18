@@ -11,7 +11,6 @@ export const todoNl: Record<string, string> = {
   "todo.header.manage": "Categorieën beheren",
   "todo.header.offline": "Offline of nog niet gesynchroniseerd",
 
-  "todo.filter.all": "Alles",
   "todo.filter.flagged": "Gemarkeerd",
   "todo.filter.label": "Filter op categorie",
   "todo.filter.projects": "Filter op project",
