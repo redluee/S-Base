@@ -3,10 +3,17 @@ import { eq } from "drizzle-orm";
 import db from "../../db/client";
 import { todoCategories, todoProjects, todoTasks } from "../../db/schema";
 import { setupTestDb } from "../../test-utils";
-import { TodoService } from "./index";
+import { TodoCategories } from "./todo-categories";
+import { TodoLinks } from "./todo-links";
 import { ensureSystemCategory, nowIso } from "./todo-records";
+import { TodoSubtasks } from "./todo-subtasks";
+import { TodoTasks } from "./todo-tasks";
 
-const todo = new TodoService();
+class NoSync extends TodoLinks {
+  override sync(): void {}
+}
+
+const todo = { tasks: new TodoTasks(new TodoCategories(), new NoSync(), new TodoSubtasks()) };
 let userId: number;
 
 function category(name = "Werk") {
