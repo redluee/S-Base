@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Flag, ListChecks, Link2, StickyNote } from "lucide-react";
+import { ChevronRight, Flag, ListChecks, Link2, StickyNote } from "lucide-react";
 import { agingOpacity } from "@backend/shared/todo";
 import type { TodoTask } from "@backend/types/todo";
 import { t } from "@/lib/lang";
@@ -23,14 +23,18 @@ export function TaskRow({ task }: { task: TodoTask }) {
   const ui = useTodoUi();
   const { complete, phase } = useCompletionRow();
   const rowRef = useRef<HTMLDivElement>(null);
-  const { categories, filter } = ui.store;
+  const { categories, projects, filter } = ui.store;
   const color = taskColor(task, categories);
   const due = dueBadge(task.dueDate);
   const done = task.subtasks.filter((s) => s.done).length;
   const category = categories.find((c) => c.id === task.categoryId);
-  const showCategory = category !== undefined && !(filter.kind === "category" && filter.categoryId === category.id);
+  const project = task.projectId === null ? undefined : projects.find((p) => p.id === task.projectId);
+  const filteringCategory = filter.kind === "category" && filter.categoryId === category?.id;
+  const showCategory = category !== undefined && !filteringCategory;
+  const showProject = project !== undefined && !(filteringCategory && filter.projectId === project.id);
   const hasNotes = task.notes.trim() !== "";
-  const hasMeta = due !== null || showCategory || task.subtasks.length > 0 || hasNotes || task.link !== null;
+  const hasMeta =
+    due !== null || showCategory || showProject || task.subtasks.length > 0 || hasNotes || task.link !== null;
   const opacity = agingOpacity({
     lastEditedAt: task.lastEditedAt,
     dueDate: task.dueDate,
@@ -65,10 +69,14 @@ export function TaskRow({ task }: { task: TodoTask }) {
           {hasMeta && (
             <span className="flex min-w-0 items-center gap-x-3 text-xs leading-4 text-muted-foreground">
               {due && <span className={cn("shrink-0 font-medium", TONE[due.tone])}>{due.label}</span>}
-              {showCategory && (
+              {category && (showCategory || showProject) && (
                 <span className="flex min-w-0 items-center gap-1.5">
                   <CategoryIcon icon={category.icon} color={color} className="size-3" />
-                  <span className="truncate">{category.name}</span>
+                  {showCategory && <span className="min-w-0 truncate">{category.name}</span>}
+                  {showCategory && showProject && (
+                    <ChevronRight className="-mx-0.5 size-3 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+                  )}
+                  {showProject && <span className="min-w-0 truncate">{project.name}</span>}
                 </span>
               )}
               {task.subtasks.length > 0 && (

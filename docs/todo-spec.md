@@ -35,7 +35,7 @@ Personal task list. Principle: tasks you can see at a glance and that matter. No
 - **Title**: one line, ellipsis.
 - **Meta line** (only when there is something to show): due label, category (hidden while filtering on it), `2/5` with subtasks, notes icon, link icon for linked tasks. Flag sits at the right of the row.
 - **Due label**: "Vandaag" (green), "Morgen", weekday within a week, short date further out; overdue reads "Gisteren" / "3 dagen te laat" in red.
-- **Projects**: never shown in the row.
+- **Projects**: shown after the category in the meta line ("Werk › Klant A"); hidden while filtering on that project, shown alone while filtering on its category.
 - **Aging**: untouched by edits (title, date, notes, subtask, flag; reordering doesn't count) for 30 days → text at 70% opacity, 60 days → 50%. Tasks with a future date and linked tasks never age.
 
 ## Quick add
