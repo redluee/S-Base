@@ -79,7 +79,7 @@ export function CategoryStrip({
       ref={row}
       role="group"
       aria-label={label}
-      className={cn("-mx-4 flex overflow-x-auto px-4 py-2 [scrollbar-width:none]", className)}
+      className={cn("-mx-4 flex items-center overflow-x-auto px-4 py-2 [scrollbar-width:none]", className)}
     >
       {leading && <Reveal show={!open}>{leading}</Reveal>}
       {categories.map((category) => {
