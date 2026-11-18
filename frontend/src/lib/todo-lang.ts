@@ -32,7 +32,12 @@ export const todoNl: Record<string, string> = {
   "todo.date.dueToday": "vandaag",
   "todo.date.daysAgo": "{days} dagen geleden",
   "todo.date.oneDayAgo": "gisteren",
-  "todo.days": "{days}d",
+  "todo.due.yesterday": "Gisteren",
+  "todo.due.late": "{days} dagen te laat",
+  "todo.summary.open": "{count} open",
+  "todo.summary.overdue": "{count} te laat",
+  "todo.summary.today": "{count} vandaag",
+  "todo.summary.clear": "Alles afgevinkt",
 
   "todo.row.complete": "Voltooi {title}",
   "todo.row.open": "Open {title}",
@@ -63,7 +68,12 @@ export const todoNl: Record<string, string> = {
   "todo.undo": "Ongedaan maken",
   "todo.undo.countdown": "{seconds}s",
 
-  "todo.empty": "Niks meer te doen.",
+  "todo.empty": "Alles gedaan.",
+  "todo.empty.hint": "Je lijst is leeg. Zet erop wat er nog moet gebeuren.",
+  "todo.empty.filtered": "Niks in dit filter.",
+  "todo.empty.filteredHint": "Kies een ander filter of voeg hier een taak toe.",
+  "todo.recent": "Net afgerond",
+  "todo.date.clearLabel": "Datum weghalen",
 
   "todo.history.title": "Geschiedenis",
   "todo.history.close": "Sluiten",

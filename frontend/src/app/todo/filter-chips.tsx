@@ -1,12 +1,13 @@
 "use client";
 
+import { todoColorHex } from "@backend/shared/todo";
 import { t } from "@/lib/lang";
 import { manualCategories, projectsOf } from "./todo-state";
 import { useTodoUi } from "./todo-ui";
 
 const chip =
-  "inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-brand";
-const idle = "bg-white/10 text-muted-foreground hover:text-foreground";
+  "inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm transition-[background-color,color,scale] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-brand";
+const idle = "bg-foreground/[0.06] text-muted-foreground ring-1 ring-foreground/[0.06] hover:text-foreground";
 const active = "bg-brand text-zinc-900";
 
 export function FilterChips() {
@@ -17,6 +18,10 @@ export function FilterChips() {
   const chips = [...manualCategories(categories), ...(showSystem && system ? [system] : [])];
   const activeCategory = filter.kind === "category" ? filter.categoryId : null;
   const activeProjects = projectsOf(projects, activeCategory);
+  const counts = new Map<number, number>();
+  for (const task of tasks) {
+    if (task.categoryId !== null) counts.set(task.categoryId, (counts.get(task.categoryId) ?? 0) + 1);
+  }
 
   return (
     <div className="mt-3 flex flex-col">
@@ -37,7 +42,19 @@ export function FilterChips() {
             className={`${chip} ${activeCategory === category.id ? active : idle}`}
             onClick={() => actions.toggleFilter({ kind: "category", categoryId: category.id, projectId: null })}
           >
+            <span
+              aria-hidden="true"
+              className="mr-2 size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: todoColorHex(category.color) }}
+            />
             {category.name}
+            {counts.get(category.id) ? (
+              <span
+                className={`ml-2 text-xs tabular-nums ${activeCategory === category.id ? "text-zinc-900/60" : "text-muted-foreground/70"}`}
+              >
+                {counts.get(category.id)}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

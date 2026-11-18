@@ -28,19 +28,21 @@ Personal task list. Principle: tasks you can see at a glance and that matter. No
 
 ## Task row (one line)
 
-`[3D blob] title… [2/5] [notes icon] [flag] 3d`
+`[check] title…                [flag]`
+`        Due · category · 2/5 · notes`
 
-- **Blob = checkbox**: a sphere in the category colour (highlight top-left, darker rim). 44×44 hit area.
+- **Checkbox**: a ring in the category colour; hover previews the check; completing fills it, draws the check and sends out a ring pulse. 44×44 hit area. Subtasks and history use the same check.
 - **Title**: one line, ellipsis.
-- **Indicators**: `2/5` only with subtasks, notes icon only with notes, flag only when flagged.
-- **Day counter**: small, `3d` / `0d` / `-2d`; overdue in muted red; nothing without a date.
+- **Meta line** (only when there is something to show): due label, category (hidden while filtering on it), `2/5` with subtasks, notes icon, link icon for linked tasks. Flag sits at the right of the row.
+- **Due label**: "Vandaag" (green), "Morgen", weekday within a week, short date further out; overdue reads "Gisteren" / "3 dagen te laat" in red.
 - **Projects**: never shown in the row.
 - **Aging**: untouched by edits (title, date, notes, subtask, flag; reordering doesn't count) for 30 days → text at 70% opacity, 60 days → 50%. Tasks with a future date and linked tasks never age.
 
 ## Quick add
 
 - **Opening**: tap the add button, or press `N` on desktop. A bottom sheet opens with the input focused inside the tap handler, so the keyboard appears at once.
-- **Chips above the keyboard**: category → then its projects; date (Vandaag, Morgen, Weekend, Volgende week, calendar).
+- **Input row**: title, a calendar button (native date picker; once set it shows the due label with a clear button), submit.
+- **Chips above the keyboard**: category → then its projects.
 - **Preselection**: the active filter's category/project, else none.
 - **Enter**: saves the task to the top of the list; the input clears and the chips stay for the next task. Swipe down, tap outside or Esc closes.
 

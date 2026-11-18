@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { t } from "@/lib/lang";
 import { EASE_OUT } from "./completion/choreography";
 import { prefersReducedMotion } from "./completion/use-reduced-motion";
@@ -57,7 +58,8 @@ export function Counter({ value }: { value: number }) {
   const digits = counterDigits(value);
 
   return (
-    <span className="flex h-11 items-center px-2 text-sm text-muted-foreground tabular-nums">
+    <span className="mr-1 flex h-8 items-center gap-1 rounded-full bg-foreground/[0.06] pr-2.5 pl-2 text-sm text-foreground tabular-nums ring-1 ring-foreground/10">
+      <Check className="size-3.5 text-brand" strokeWidth={3} aria-hidden="true" />
       <span className="sr-only" aria-live="polite">
         {t("todo.header.counter", { count: String(value) })}
       </span>

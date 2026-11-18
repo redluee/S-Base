@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "@/lib/lang";
 import { HistoryDetails } from "./history-details";
 import { groupByDay } from "./history-helpers";
-import { TaskBlob } from "./task-blob";
+import { TaskCheck } from "./task-check";
 
 interface HistoryListProps {
   items: TodoHistoryTask[];
@@ -51,7 +51,7 @@ export function HistoryList({ items, hasMore, loading, onLoadMore, onRestore }: 
                     onClick={() => setOpenId(openId === item.id ? null : item.id)}
                     className="flex min-h-11 min-w-0 flex-1 items-center gap-4 text-left"
                   >
-                    <TaskBlob color={todoColorHex(item.categoryColor)} filled />
+                    <TaskCheck color={todoColorHex(item.categoryColor)} checked animate={false} />
                     <span className="min-w-0 flex-1 truncate">{item.title}</span>
                   </button>
                   <button

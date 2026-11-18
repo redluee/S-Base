@@ -7,7 +7,7 @@ import { t } from "@/lib/lang";
 import { BottomSheet } from "./bottom-sheet";
 import { CategoryChips } from "./category-chips";
 import { NO_SELECTION, quickAddPreselection, type ChipSelection } from "./chip-state";
-import { DateChips } from "./date-chips";
+import { DuePicker } from "./due-picker";
 import { useTodoUi } from "./todo-ui";
 
 let quickAddInput: HTMLInputElement | null = null;
@@ -78,7 +78,7 @@ export function QuickAdd({ open, onClose }: { open: boolean; onClose: () => void
       }}
     >
       <div className="flex flex-col gap-2 px-4 pt-1" onMouseDown={keepInputFocus}>
-        <form onSubmit={submit} className="flex items-center gap-2">
+        <form onSubmit={submit} className="flex items-center gap-1">
           <input
             ref={(el) => {
               input.current = el;
@@ -94,17 +94,17 @@ export function QuickAdd({ open, onClose }: { open: boolean; onClose: () => void
             autoComplete="off"
             className="min-h-12 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           />
+          <DuePicker value={dueDate} onChange={setDueDate} />
           <button
             type="submit"
             aria-label={t("todo.add")}
             disabled={!normalizeTodoTitle(title)}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-zinc-950 transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-30"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-zinc-950 transition-[opacity,scale] duration-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-30"
           >
             <ArrowUp className="size-5" />
           </button>
         </form>
         <CategoryChips value={selection} onChange={setSelection} />
-        <DateChips value={dueDate} onChange={setDueDate} />
       </div>
     </BottomSheet>
   );

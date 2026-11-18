@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, GripVertical, Trash2 } from "lucide-react";
+import { GripVertical, Trash2 } from "lucide-react";
+import { TaskCheck } from "./task-check";
 import type { TodoSubtask } from "@backend/types/todo";
 import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
@@ -151,14 +152,9 @@ export function SubtaskRow({ subtask, color, dragOffset, handle, rowRef, onToggl
             haptic("tick");
             onToggle(!subtask.done);
           }}
-          className="relative flex size-11 shrink-0 items-center justify-center"
+          className="group relative flex size-11 shrink-0 items-center justify-center"
         >
-          <span
-            className="flex size-5 items-center justify-center rounded-full border-2 transition-colors"
-            style={{ borderColor: color, backgroundColor: subtask.done ? color : "transparent" }}
-          >
-            {subtask.done && <Check className="size-3 text-black" strokeWidth={3.5} />}
-          </span>
+          <TaskCheck color={color} checked={subtask.done} size="sm" />
         </button>
         <input
           value={title}
