@@ -1,6 +1,7 @@
 import { positionBetween, rebalancedPositions } from "@backend/shared/todo";
 import type {
   TodoCategory,
+  TodoHistoryTask,
   TodoMove,
   TodoProject,
   TodoSnapshot,
@@ -24,8 +25,31 @@ export function emptyState(): TodoState {
   return { tasks: [], categories: [], projects: [], completedCount: 0, recentCompleted: [], filter: ALL_TASKS };
 }
 
+export const RECENT_COMPLETED = 3;
+
 export function fromSnapshot(snapshot: TodoSnapshot, filter: TodoFilter): TodoState {
-  return { ...snapshot, tasks: sortByPosition(snapshot.tasks), filter: validFilter(filter, snapshot) };
+  return {
+    ...snapshot,
+    tasks: sortByPosition(snapshot.tasks),
+    recentCompleted: snapshot.recentCompleted.slice(0, RECENT_COMPLETED),
+    filter: validFilter(filter, snapshot),
+  };
+}
+
+export function withRecentCompletion(
+  recent: TodoHistoryTask[],
+  task: TodoTask,
+  categories: TodoCategory[],
+  completedAt: string,
+): TodoHistoryTask[] {
+  const category = categories.find((c) => c.id === task.categoryId);
+  const entry: TodoHistoryTask = {
+    ...task,
+    completedAt,
+    categoryName: category?.name ?? null,
+    categoryColor: category?.color ?? null,
+  };
+  return [entry, ...recent.filter((r) => r.id !== task.id)].slice(0, RECENT_COMPLETED);
 }
 
 export function sortByPosition<T extends { position: number; id: number }>(items: T[]): T[] {

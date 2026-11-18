@@ -29,6 +29,7 @@ import {
   toggleFilter,
   upsertTask,
   validFilter,
+  withRecentCompletion,
   type TodoFilter,
   type TodoState,
 } from "./todo-state";
@@ -90,6 +91,7 @@ export function useTodoStore(initial: TodoSnapshot | null, userId: number): Todo
   const { transport, offline, pending } = useTodoTransport({
     onRemap: (tempId, task) => setState((s) => ({ ...s, tasks: replaceTaskId(s.tasks, tempId, task) })),
     onSynced: () => void refreshRef.current(),
+    onSnapshot: (snapshot) => setState((s) => fromSnapshot(snapshot, s.filter)),
   }, userId);
 
   const load = useCallback(
@@ -156,7 +158,12 @@ export function useTodoStore(initial: TodoSnapshot | null, userId: number): Todo
       complete: (id) =>
         run(async () => {
           const task = findTask(id);
-          setState((s) => ({ ...s, tasks: removeTask(s.tasks, id), completedCount: s.completedCount + 1 }));
+          setState((s) => ({
+            ...s,
+            tasks: removeTask(s.tasks, id),
+            completedCount: s.completedCount + 1,
+            recentCompleted: task ? withRecentCompletion(s.recentCompleted, task, s.categories, now()) : s.recentCompleted,
+          }));
           const result = await transport.tasks.complete(id);
           setState((s) => ({ ...s, completedCount: result.completedCount }));
           return task ?? result.task;
@@ -166,6 +173,7 @@ export function useTodoStore(initial: TodoSnapshot | null, userId: number): Todo
           ...s,
           tasks: upsertTask(s.tasks, { ...task, completedAt: null }),
           completedCount: Math.max(0, s.completedCount - 1),
+          recentCompleted: s.recentCompleted.filter((r) => r.id !== task.id),
         }));
         await run(async () => {
           const result = await transport.tasks.uncomplete(task.id);
@@ -193,6 +201,7 @@ export function useTodoStore(initial: TodoSnapshot | null, userId: number): Todo
             ...s,
             tasks: upsertTask(s.tasks, task),
             completedCount: Math.max(0, s.completedCount - 1),
+            recentCompleted: s.recentCompleted.filter((r) => r.id !== id),
           }));
           return true;
         });

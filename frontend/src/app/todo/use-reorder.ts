@@ -59,7 +59,16 @@ export function useReorder(ids: number[], onMove: (id: number, move: TodoMove) =
     onMoveRef.current = onMove;
   });
 
-  useEffect(() => () => cleanup.current(), []);
+  useEffect(
+    () => () => {
+      const p = press.current;
+      press.current = null;
+      if (p?.timer != null) window.clearTimeout(p.timer);
+      if (p) releaseGesture(p.pointerId);
+      cleanup.current();
+    },
+    [],
+  );
 
   const refresh = useCallback(() => {
     const p = press.current;

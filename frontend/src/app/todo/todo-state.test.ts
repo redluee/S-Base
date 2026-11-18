@@ -9,6 +9,7 @@ import {
   removeCategoryLocally,
   toggleFilter,
   upsertTask,
+  withRecentCompletion,
   type TodoState,
 } from "./todo-state";
 
@@ -99,5 +100,20 @@ describe("category removal", () => {
     expect(next.tasks[1].categoryId).toBe(6);
     expect(next.projects).toEqual([]);
     expect(next.filter).toEqual(ALL_TASKS);
+  });
+});
+
+describe("recent completions", () => {
+  it("keeps the three most recent, newest first, with the live category", () => {
+    const categories = [{ id: 5, name: "Werk", color: "sky" as const, sortOrder: 0, isSystem: false }];
+    const older = [1, 2, 3].map((id) => ({
+      ...task(id, id),
+      completedAt: "2026-11-17T10:00:00.000Z",
+      categoryName: null,
+      categoryColor: null,
+    }));
+    const next = withRecentCompletion(older, task(9, 0, { categoryId: 5 }), categories, "2026-11-18T10:00:00.000Z");
+    expect(next.map((t) => t.id)).toEqual([9, 1, 2]);
+    expect(next[0]).toMatchObject({ categoryName: "Werk", categoryColor: "sky", completedAt: "2026-11-18T10:00:00.000Z" });
   });
 });

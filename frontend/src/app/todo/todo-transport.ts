@@ -1,6 +1,6 @@
 "use client";
 
-import type { TodoTask } from "@backend/types/todo";
+import type { TodoSnapshot, TodoTask } from "@backend/types/todo";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { todoApi, type TodoApi } from "@/lib/api/todo";
 import { createTodoEngine } from "./todo-engine";
@@ -11,6 +11,7 @@ export type TodoTransport = Omit<TodoApi, "count" | "history">;
 export interface TodoTransportEvents {
   onRemap: (tempId: number, task: TodoTask) => void;
   onSynced: () => void;
+  onSnapshot?: (snapshot: TodoSnapshot) => void;
 }
 
 export interface TodoTransportState {
@@ -36,6 +37,7 @@ export function useTodoTransport(events: TodoTransportEvents, userId: number): T
         events: () => ({
           onRemap: (tempId, task) => eventsRef.current.onRemap(tempId, task),
           onSynced: () => eventsRef.current.onSynced(),
+          onSnapshot: (snapshot) => eventsRef.current.onSnapshot?.(snapshot),
         }),
       }),
     [userId],
