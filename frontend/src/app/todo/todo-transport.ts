@@ -21,7 +21,7 @@ export interface TodoTransportState {
 
 const SERVER_STATUS = { offline: false, pending: false };
 
-export function useTodoTransport(events: TodoTransportEvents): TodoTransportState {
+export function useTodoTransport(events: TodoTransportEvents, userId: number): TodoTransportState {
   const eventsRef = useRef(events);
   useEffect(() => {
     eventsRef.current = events;
@@ -31,14 +31,14 @@ export function useTodoTransport(events: TodoTransportEvents): TodoTransportStat
     () =>
       createTodoEngine({
         api: todoApi,
-        storage: browserStorage(),
+        storage: browserStorage(userId),
         isOnline: () => typeof navigator === "undefined" || navigator.onLine !== false,
         events: () => ({
           onRemap: (tempId, task) => eventsRef.current.onRemap(tempId, task),
           onSynced: () => eventsRef.current.onSynced(),
         }),
       }),
-    [],
+    [userId],
   );
 
   useEffect(() => {

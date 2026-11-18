@@ -4,6 +4,7 @@ import { todoColorHex } from "@backend/shared/todo";
 import type { TodoHistoryTask } from "@backend/types/todo";
 import { t } from "@/lib/lang";
 import { formatCompletedDate } from "./history-helpers";
+import { LightMarkdown } from "./light-markdown";
 
 export function HistoryDetails({ item, onClose }: { item: TodoHistoryTask; onClose: () => void }) {
   const color = todoColorHex(item.categoryColor);
@@ -26,7 +27,11 @@ export function HistoryDetails({ item, onClose }: { item: TodoHistoryTask; onClo
           ))}
         </ul>
       ) : null}
-      {item.notes ? <p className="whitespace-pre-wrap break-words text-muted-foreground">{item.notes}</p> : null}
+      {item.notes ? (
+        <div className="break-words text-muted-foreground">
+          <LightMarkdown source={item.notes} />
+        </div>
+      ) : null}
       <button
         type="button"
         onClick={onClose}

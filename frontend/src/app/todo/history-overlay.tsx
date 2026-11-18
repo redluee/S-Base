@@ -40,9 +40,8 @@ function HistoryPanel({ onClose }: { onClose: () => void }) {
   const history = useHistory(params);
 
   const filtering = q.trim() !== "" || scope.categoryId !== null;
-  const restore = (id: number) => {
-    history.removeItem(id);
-    void store.actions.restore(id);
+  const restore = async (id: number) => {
+    if (await store.actions.restore(id)) history.removeItem(id);
   };
 
   return (

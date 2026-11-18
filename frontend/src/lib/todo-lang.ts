@@ -4,7 +4,7 @@ export const todoNl: Record<string, string> = {
   "todo.loading": "Taken laden…",
   "todo.loadFailed": "Taken konden niet worden geladen.",
   "todo.saveFailed": "Opslaan mislukt.",
-  "todo.notImplemented": "Deze functie is nog niet beschikbaar.",
+  "todo.dashboardOpenCount": "{count} open taken",
 
   "todo.header.counter": "{count} taken afgerond",
   "todo.header.history": "Geschiedenis",
@@ -95,6 +95,19 @@ export const todoNl: Record<string, string> = {
   "todo.manage.systemHelp":
     "Automatische taken verschijnen 7 dagen voor hun datum. Cashflow: verstuurde facturen met een vervaldatum; afvinken zet de factuur op betaald. Minor: Show & Grow voorbereiden per sprint. Titel en datum volgen de bron; verwijderen verbergt de taak voorgoed.",
   "todo.manage.reorder": "Volgorde wijzigen",
+  "todo.manage.moveUp": "Omhoog",
+  "todo.manage.moveDown": "Omlaag",
+
+  "todo.color.coral": "Koraal",
+  "todo.color.orange": "Oranje",
+  "todo.color.amber": "Amber",
+  "todo.color.lime": "Limoen",
+  "todo.color.teal": "Turquoise",
+  "todo.color.sky": "Hemelsblauw",
+  "todo.color.blue": "Blauw",
+  "todo.color.violet": "Violet",
+  "todo.color.pink": "Roze",
+  "todo.color.slate": "Leisteen",
 
   "todo.source.cashflow": "Cashflow",
   "todo.source.minor": "Minor",

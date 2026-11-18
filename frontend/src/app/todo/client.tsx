@@ -10,7 +10,7 @@ import { TodoUiContext, type TodoUi } from "./todo-ui";
 import { Counter } from "./counter";
 import { FilterChips } from "./filter-chips";
 import { TaskList } from "./task-list";
-import { QuickAdd } from "./quick-add";
+import { focusQuickAdd, QuickAdd } from "./quick-add";
 import { TaskBlock } from "./task-block";
 import { HistoryOverlay } from "./history-overlay";
 import { ManageSheet } from "./manage-sheet";
@@ -23,8 +23,8 @@ type Overlay = { kind: "none" } | { kind: "quickAdd" } | { kind: "history" } | {
 const iconButton =
   "flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand";
 
-export function TodoClient({ initial }: { initial: TodoSnapshot | null }) {
-  const store = useTodoStore(initial);
+export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; userId: number }) {
+  const store = useTodoStore(initial, userId);
   const [overlay, setOverlay] = useState<Overlay>({ kind: "none" });
   const [openTask, setOpenTask] = useState<{ id: number; origin: DOMRect | null } | null>(null);
 
@@ -91,7 +91,10 @@ export function TodoClient({ initial }: { initial: TodoSnapshot | null }) {
             </div>
             <button
               type="button"
-              onClick={ui.openQuickAdd}
+              onClick={() => {
+                focusQuickAdd();
+                ui.openQuickAdd();
+              }}
               aria-label={t("todo.add")}
               className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-brand text-zinc-900 transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >

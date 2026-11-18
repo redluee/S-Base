@@ -47,7 +47,7 @@ export interface TodoActions {
   uncomplete: (task: TodoTask) => Promise<void>;
   remove: (id: number) => Promise<TodoTask | null>;
   undelete: (task: TodoTask) => Promise<void>;
-  restore: (id: number) => Promise<void>;
+  restore: (id: number) => Promise<boolean>;
   subtasks: {
     create: (taskId: number, title: string, afterId?: number | null) => Promise<TodoSubtask | null>;
     update: (id: number, patch: { title?: string; done?: boolean }) => Promise<void>;
@@ -80,7 +80,7 @@ export interface TodoStore extends TodoState {
 
 const now = () => new Date().toISOString();
 
-export function useTodoStore(initial: TodoSnapshot | null = null): TodoStore {
+export function useTodoStore(initial: TodoSnapshot | null, userId: number): TodoStore {
   const [state, setState] = useState<TodoState>(() => (initial ? fromSnapshot(initial, ALL_TASKS) : emptyState()));
   const [status, setStatus] = useState<TodoStatus>(initial ? "ready" : "loading");
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export function useTodoStore(initial: TodoSnapshot | null = null): TodoStore {
   const { transport, offline, pending } = useTodoTransport({
     onRemap: (tempId, task) => setState((s) => ({ ...s, tasks: replaceTaskId(s.tasks, tempId, task) })),
     onSynced: () => void refreshRef.current(),
-  });
+  }, userId);
 
   const load = useCallback(
     () =>
@@ -187,14 +187,16 @@ export function useTodoStore(initial: TodoSnapshot | null = null): TodoStore {
         });
       },
       restore: async (id) => {
-        await run(async () => {
+        const restored = await run(async () => {
           const task = await transport.tasks.restore(id);
           setState((s) => ({
             ...s,
             tasks: upsertTask(s.tasks, task),
             completedCount: Math.max(0, s.completedCount - 1),
           }));
+          return true;
         });
+        return restored === true;
       },
 
       subtasks: {

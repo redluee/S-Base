@@ -10,14 +10,19 @@ export interface TodoStorage {
   remove(key: string): void;
 }
 
-export function browserStorage(): TodoStorage | null {
+export function scopedKey(key: string, scope: number | string): string {
+  return scope === "" ? key : `${key}_${scope}`;
+}
+
+export function browserStorage(scope: number | string = ""): TodoStorage | null {
   if (typeof window === "undefined") return null;
   try {
     const storage = window.localStorage;
+    const scoped = (key: string) => scopedKey(key, scope);
     return {
-      get: (key) => storage.getItem(key),
-      set: (key, value) => storage.setItem(key, value),
-      remove: (key) => storage.removeItem(key),
+      get: (key) => storage.getItem(scoped(key)),
+      set: (key, value) => storage.setItem(scoped(key), value),
+      remove: (key) => storage.removeItem(scoped(key)),
     };
   } catch {
     return null;

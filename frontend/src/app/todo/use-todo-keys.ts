@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { focusQuickAdd } from "./quick-add";
 import type { TodoUi } from "./todo-ui";
 
 function isTyping(target: EventTarget | null): boolean {
@@ -17,13 +18,10 @@ export function useTodoKeys(ui: TodoUi): void {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const current = ref.current;
-      if (event.key === "Escape") {
-        current.closeOverlays();
-        return;
-      }
       if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if (event.key.toLowerCase() !== "n" || isTyping(event.target) || current.overlayOpen) return;
       event.preventDefault();
+      focusQuickAdd();
       current.openQuickAdd();
     };
     window.addEventListener("keydown", onKey);
