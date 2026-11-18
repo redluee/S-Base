@@ -54,3 +54,9 @@ export function isHorizontalCancel(dx: number, pointerType: string): boolean {
 export function exceedsThreshold(dx: number, dy: number, limit: number): boolean {
   return Math.hypot(dx, dy) > limit;
 }
+
+const REORDER_BLOCKERS = "a, input, textarea, select, [contenteditable]";
+
+export function blocksReorder(target: { closest: (selector: string) => unknown } | null): boolean {
+  return target !== null && target.closest(REORDER_BLOCKERS) !== null;
+}

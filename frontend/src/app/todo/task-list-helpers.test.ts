@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { edgeScrollSpeed, moveFromSlot, shiftFor, targetIndex } from "./task-list-helpers";
+import { blocksReorder, edgeScrollSpeed, moveFromSlot, shiftFor, targetIndex } from "./task-list-helpers";
 
 const rects = [0, 1, 2, 3].map((i) => ({ top: i * 50, height: 50 }));
 
@@ -45,5 +45,20 @@ describe("edgeScrollSpeed", () => {
     expect(edgeScrollSpeed(10, 800)).toBeLessThan(0);
     expect(edgeScrollSpeed(790, 800)).toBeGreaterThan(0);
     expect(edgeScrollSpeed(-50, 800)).toBe(-18);
+  });
+});
+
+describe("reorder start target", () => {
+  const target = (matches: string[]) => ({
+    closest: (selector: string) => (selector.split(", ").some((s) => matches.includes(s)) ? {} : null),
+  });
+
+  it("starts a drag from row buttons but not from text fields or links", () => {
+    expect(blocksReorder(target(["button"]))).toBe(false);
+    expect(blocksReorder(target([]))).toBe(false);
+    expect(blocksReorder(null)).toBe(false);
+    expect(blocksReorder(target(["input"]))).toBe(true);
+    expect(blocksReorder(target(["textarea"]))).toBe(true);
+    expect(blocksReorder(target(["a"]))).toBe(true);
   });
 });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Poin
 import type { TodoMove } from "@backend/types/todo";
 import { haptic } from "./haptics";
 import {
+  blocksReorder,
   edgeScrollSpeed,
   exceedsThreshold,
   isHorizontalCancel,
@@ -159,7 +160,7 @@ export function useReorder(ids: number[], onMove: (id: number, move: TodoMove) =
     (event: PointerEvent<HTMLElement>, id: number) => {
       if (press.current || !event.isPrimary) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
-      if ((event.target as HTMLElement).closest("button, a, input, textarea")) return;
+      if (blocksReorder(event.target instanceof Element ? event.target : null)) return;
       const p: Press = {
         id,
         pointerId: event.pointerId,
