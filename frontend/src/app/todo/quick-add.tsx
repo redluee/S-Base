@@ -8,6 +8,7 @@ import { BottomSheet } from "./bottom-sheet";
 import { CategoryChips } from "./category-chips";
 import { NO_SELECTION, quickAddPreselection, type ChipSelection } from "./chip-state";
 import { DuePicker } from "./due-picker";
+import type { SheetOrigin } from "./sheet-morph";
 import { useTodoUi } from "./todo-ui";
 
 let quickAddInput: HTMLInputElement | null = null;
@@ -27,7 +28,13 @@ function keepInputFocus(e: MouseEvent<HTMLDivElement>) {
   e.preventDefault();
 }
 
-export function QuickAdd({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface QuickAddProps {
+  open: boolean;
+  origin: SheetOrigin | "instant" | null;
+  onClose: () => void;
+}
+
+export function QuickAdd({ open, origin, onClose }: QuickAddProps) {
   const { store } = useTodoUi();
   const [title, setTitle] = useState("");
   const [selection, setSelection] = useState<ChipSelection>(NO_SELECTION);
@@ -73,6 +80,7 @@ export function QuickAdd({ open, onClose }: { open: boolean; onClose: () => void
       onClose={onClose}
       label={t("todo.add")}
       autoFocus={false}
+      origin={origin}
       sheetRef={(el) => {
         quickAddPanel = el;
       }}

@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { cn } from "@/lib/utils";
+import { EASE_OUT } from "./completion/choreography";
+import { prefersReducedMotion } from "./completion/use-reduced-motion";
 import { keyboardInset, sheetDragOffset, shouldCloseSheet } from "./sheet-drag";
+import { MORPH_EASING, MORPH_MS, morphFrames, type SheetOrigin } from "./sheet-morph";
 
 interface BottomSheetProps {
   open: boolean;
@@ -13,9 +16,57 @@ interface BottomSheetProps {
   sheetRef?: (el: HTMLDivElement | null) => void;
   autoFocus?: boolean;
   className?: string;
+  origin?: SheetOrigin | "instant" | null;
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
+
+function useOpenMorph(panelRef: RefObject<HTMLDivElement | null>, open: boolean, origin: SheetOrigin | "instant" | null) {
+  const originRef = useRef(origin);
+  useLayoutEffect(() => {
+    originRef.current = origin;
+  });
+
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    const from = originRef.current;
+    if (!el || !open || !from) return;
+    el.style.transition = "none";
+    const box = el.getBoundingClientRect();
+    el.style.transition = "";
+    if (from === "instant" || prefersReducedMotion()) return;
+    const style = getComputedStyle(el);
+    const radius = [
+      style.borderTopLeftRadius,
+      style.borderTopRightRadius,
+      style.borderBottomRightRadius,
+      style.borderBottomLeftRadius,
+    ].join(" ");
+    const animations = [el.animate(morphFrames(from, box, radius), { duration: MORPH_MS, easing: MORPH_EASING })];
+    if (from.color) {
+      animations.push(
+        el.animate([{ backgroundColor: from.color }, { backgroundColor: style.backgroundColor }], {
+          duration: MORPH_MS * 0.55,
+          easing: EASE_OUT,
+        }),
+      );
+    }
+    for (const child of el.children) {
+      animations.push(
+        child.animate(
+          [
+            { opacity: 0, transform: "translateY(6px)" },
+            { opacity: 1, transform: "translateY(0)" },
+          ],
+          { duration: 260, delay: from.color ? 150 : 70, easing: EASE_OUT, fill: "backwards" },
+        ),
+      );
+    }
+    return () => {
+      for (const animation of animations) animation.cancel();
+    };
+  }, [panelRef, open]);
+}
 
 function useKeyboardInset(active: boolean): number {
   const [inset, setInset] = useState(0);
@@ -44,11 +95,13 @@ export function BottomSheet({
   sheetRef,
   autoFocus = true,
   className,
+  origin = null,
 }: BottomSheetProps) {
   const panel = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ pointerId: number; startY: number; startTime: number } | null>(null);
   const [offset, setOffset] = useState(0);
   const inset = useKeyboardInset(open);
+  useOpenMorph(panel, open, origin);
 
   useEffect(() => {
     const el = panel.current;
@@ -139,8 +192,11 @@ export function BottomSheet({
         className={cn(
           "fixed inset-x-0 bottom-0 z-40 mx-auto flex max-h-[85dvh] w-full max-w-[640px] flex-col rounded-t-2xl bg-card text-card-foreground outline-none ring-1 ring-foreground/10",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 sm:rounded-2xl sm:pb-3",
-          offset === 0 && "motion-safe:transition-[translate,opacity] motion-safe:duration-200 motion-safe:ease-out",
-          open ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0",
+          offset === 0 &&
+            "motion-safe:transition-[translate,opacity] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          open
+            ? "translate-y-0 opacity-100 motion-safe:duration-[380ms]"
+            : "pointer-events-none translate-y-[calc(100%+1rem)] opacity-0 motion-safe:duration-200",
           className,
         )}
       >

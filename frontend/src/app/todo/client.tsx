@@ -17,6 +17,7 @@ import { ManageSheet } from "./manage-sheet";
 import { UndoButton } from "./undo-button";
 import { CompletionProvider } from "./completion/completion-provider";
 import { useTodoKeys } from "./use-todo-keys";
+import { originFrom, type SheetOrigin } from "./sheet-morph";
 import { listSummary } from "./due-label";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +59,11 @@ function Summary() {
   );
 }
 
-type Overlay = { kind: "none" } | { kind: "quickAdd" } | { kind: "history" } | { kind: "manage" };
+type Overlay =
+  | { kind: "none" }
+  | { kind: "quickAdd"; origin: SheetOrigin | "instant" }
+  | { kind: "history" }
+  | { kind: "manage" };
 
 const iconButton =
   "flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand";
@@ -72,7 +77,7 @@ export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; 
     () => ({
       store,
       openTask: (id, origin) => setOpenTask({ id, origin }),
-      openQuickAdd: () => setOverlay({ kind: "quickAdd" }),
+      openQuickAdd: (origin) => setOverlay({ kind: "quickAdd", origin }),
       openHistory: () => setOverlay({ kind: "history" }),
       openManage: () => setOverlay({ kind: "manage" }),
       closeOverlays: () => {
@@ -134,19 +139,28 @@ export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; 
             </div>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
                 focusQuickAdd();
-                ui.openQuickAdd();
+                ui.openQuickAdd(originFrom(e.currentTarget, getComputedStyle(e.currentTarget).backgroundColor));
               }}
               aria-label={t("todo.add")}
-              className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-brand text-zinc-900 shadow-[0_0_2rem_#00e3a440] transition-[scale,box-shadow] duration-150 ease-out hover:shadow-[0_0_2rem_#00e3a480] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className={cn(
+                "pointer-events-auto flex size-14 items-center justify-center rounded-full bg-brand text-zinc-900 shadow-[0_0_2rem_#00e3a440] transition-[scale,opacity,box-shadow] ease-[cubic-bezier(0.23,1,0.32,1)] hover:shadow-[0_0_2rem_#00e3a480] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                overlay.kind === "quickAdd"
+                  ? "pointer-events-none scale-75 opacity-0 duration-0"
+                  : "scale-100 opacity-100 delay-150 duration-300",
+              )}
             >
               <Plus className="size-6" />
             </button>
           </div>
         </div>
 
-        <QuickAdd open={overlay.kind === "quickAdd"} onClose={close} />
+        <QuickAdd
+          open={overlay.kind === "quickAdd"}
+          origin={overlay.kind === "quickAdd" ? overlay.origin : null}
+          onClose={close}
+        />
         <ManageSheet open={overlay.kind === "manage"} onClose={close} />
         <HistoryOverlay open={overlay.kind === "history"} onClose={close} />
         <TaskBlock taskId={openTask?.id ?? null} origin={openTask?.origin ?? null} onClose={() => setOpenTask(null)} />

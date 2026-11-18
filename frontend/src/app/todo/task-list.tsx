@@ -5,6 +5,7 @@ import { t } from "@/lib/lang";
 import { CompletionRow } from "./completion/completion-row";
 import { taskColor } from "./due-label";
 import { focusQuickAdd } from "./quick-add";
+import { originFrom } from "./sheet-morph";
 import { TaskCheck } from "./task-check";
 import { TaskRow } from "./task-row";
 import { useTodoUi, type TodoUi } from "./todo-ui";
@@ -12,9 +13,9 @@ import { useReorder } from "./use-reorder";
 
 const surface = "overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/[0.06]";
 
-function startQuickAdd(ui: TodoUi) {
+function startQuickAdd(ui: TodoUi, from: HTMLElement) {
   focusQuickAdd();
-  ui.openQuickAdd();
+  ui.openQuickAdd(originFrom(from));
 }
 
 function Shortcut() {
@@ -30,7 +31,7 @@ function AddRow() {
   return (
     <button
       type="button"
-      onClick={() => startQuickAdd(ui)}
+      onClick={(e) => startQuickAdd(ui, e.currentTarget)}
       className="group flex min-h-14 w-full items-center gap-1 pr-4 pl-1 text-left text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.03] hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
     >
       <span className="flex size-11 shrink-0 items-center justify-center">
@@ -80,7 +81,7 @@ function EmptyState() {
       </p>
       <button
         type="button"
-        onClick={() => startQuickAdd(ui)}
+        onClick={(e) => startQuickAdd(ui, e.currentTarget)}
         className="mt-6 flex min-h-11 items-center gap-2 rounded-full bg-foreground/[0.06] px-4 text-sm text-foreground ring-1 ring-foreground/10 transition-[background-color,scale] duration-150 hover:bg-foreground/10 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <Plus className="size-4" aria-hidden="true" />

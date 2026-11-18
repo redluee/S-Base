@@ -22,7 +22,7 @@ export function useTodoKeys(ui: TodoUi): void {
       if (event.key.toLowerCase() !== "n" || isTyping(event.target) || current.overlayOpen) return;
       event.preventDefault();
       focusQuickAdd();
-      current.openQuickAdd();
+      current.openQuickAdd("instant");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
