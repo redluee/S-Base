@@ -1,8 +1,14 @@
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import db from "../../db/client";
 import { todoCategories, todoProjects, todoTasks } from "../../db/schema";
-import { TODO_NAME_MAX, type TodoColor } from "../../shared/todo";
-import type { TodoCategory, TodoCategoryRemoval, TodoProject } from "../../types/todo";
+import { DEFAULT_TODO_ICON, TODO_NAME_MAX } from "../../shared/todo";
+import type {
+  TodoCategory,
+  TodoCategoryInput,
+  TodoCategoryPatch,
+  TodoCategoryRemoval,
+  TodoProject,
+} from "../../types/todo";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { ensureSystemCategory, listCategories, listProjects, openTask } from "./todo-records";
 
@@ -17,7 +23,14 @@ function cleanName(value: string): string {
 }
 
 function toCategory(row: CategoryRow): TodoCategory {
-  return { id: row.id, name: row.name, color: row.color, sortOrder: row.sortOrder, isSystem: row.isSystem };
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    icon: row.icon,
+    sortOrder: row.sortOrder,
+    isSystem: row.isSystem,
+  };
 }
 
 function toProject(row: ProjectRow): TodoProject {
@@ -62,7 +75,7 @@ export class TodoCategories {
     return ensureSystemCategory(userId).category;
   }
 
-  create(userId: number, input: { name: string; color: TodoColor }): TodoCategory {
+  create(userId: number, input: TodoCategoryInput): TodoCategory {
     const name = cleanName(input.name);
     const last = db
       .select({ sortOrder: todoCategories.sortOrder })
@@ -72,13 +85,19 @@ export class TodoCategories {
       .get();
     const row = db
       .insert(todoCategories)
-      .values({ userId, name, color: input.color, sortOrder: (last?.sortOrder ?? -1) + 1 })
+      .values({
+        userId,
+        name,
+        color: input.color,
+        icon: input.icon ?? DEFAULT_TODO_ICON,
+        sortOrder: (last?.sortOrder ?? -1) + 1,
+      })
       .returning()
       .get();
     return toCategory(row);
   }
 
-  update(userId: number, id: number, patch: { name?: string; color?: TodoColor }): TodoCategory {
+  update(userId: number, id: number, patch: TodoCategoryPatch): TodoCategory {
     const row = findCategoryRow(userId, id);
     const changes: Partial<CategoryRow> = {};
     if (patch.name !== undefined) {
@@ -87,6 +106,7 @@ export class TodoCategories {
       changes.name = name;
     }
     if (patch.color !== undefined) changes.color = patch.color;
+    if (patch.icon !== undefined) changes.icon = patch.icon;
     if (Object.keys(changes).length === 0) return toCategory(row);
     return toCategory(db.update(todoCategories).set(changes).where(eq(todoCategories.id, id)).returning().get());
   }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TodoColor } from "@backend/shared/todo";
 import type {
   TodoCategory,
+  TodoCategoryInput,
+  TodoCategoryPatch,
   TodoMove,
   TodoProject,
   TodoSnapshot,
@@ -56,8 +57,8 @@ export interface TodoActions {
     remove: (id: number) => Promise<void>;
   };
   categories: {
-    create: (input: { name: string; color: TodoColor }) => Promise<TodoCategory | null>;
-    update: (id: number, patch: { name?: string; color?: TodoColor }) => Promise<void>;
+    create: (input: TodoCategoryInput) => Promise<TodoCategory | null>;
+    update: (id: number, patch: TodoCategoryPatch) => Promise<void>;
     reorder: (ids: number[]) => Promise<void>;
     remove: (id: number) => Promise<void>;
   };

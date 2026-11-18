@@ -28,7 +28,7 @@ describe("due labels", () => {
   });
 
   it("uses the category colour or Signal Green", () => {
-    const categories = [{ id: 1, name: "Werk", color: "sky" as const, sortOrder: 0, isSystem: false }];
+    const categories = [{ id: 1, name: "Werk", color: "sky" as const, icon: "folder" as const, sortOrder: 0, isSystem: false }];
     expect(taskColor({ categoryId: 1 }, categories)).toBe("#38bdf8");
     expect(taskColor({ categoryId: null }, categories)).toBe(UNCATEGORISED_COLOR);
   });

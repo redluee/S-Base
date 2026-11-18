@@ -1,11 +1,12 @@
 import { Elysia, t } from "elysia";
 import { todo, todoAuth } from "../context";
-import { TODO_COLORS } from "../shared/todo";
+import { TODO_COLORS, TODO_ICONS } from "../shared/todo";
 
 const idParams = t.Object({ id: t.Numeric() });
 const nullableId = t.Nullable(t.Integer({ minimum: 1 }));
 const dueDate = t.Nullable(t.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$" }));
 const color = t.Union(TODO_COLORS.map((c) => t.Literal(c)));
+const icon = t.Union(TODO_ICONS.map((i) => t.Literal(i)));
 const move = t.Object({ afterId: nullableId, beforeId: nullableId });
 const optionalId = t.Optional(t.Numeric({ minimum: 1 }));
 
@@ -65,11 +66,11 @@ export const todoRoutes = new Elysia().group("/api/todo", (app) =>
     })
     .delete("/subtasks/:id", ({ userId, params: { id } }) => todo.subtasks.remove(userId, id), { params: idParams })
     .post("/categories", ({ userId, body }) => todo.categories.create(userId, body), {
-      body: t.Object({ name: t.String(), color }),
+      body: t.Object({ name: t.String(), color, icon: t.Optional(icon) }),
     })
     .patch("/categories/:id", ({ userId, params: { id }, body }) => todo.categories.update(userId, id, body), {
       params: idParams,
-      body: t.Object({ name: t.Optional(t.String()), color: t.Optional(color) }),
+      body: t.Object({ name: t.Optional(t.String()), color: t.Optional(color), icon: t.Optional(icon) }),
     })
     .post("/categories/reorder", ({ userId, body }) => todo.categories.reorder(userId, body.ids), {
       body: t.Object({ ids: t.Array(t.Integer({ minimum: 1 })) }),

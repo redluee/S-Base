@@ -6,6 +6,7 @@ import {
   positionBefore,
   SOURCE_PROJECT_NAMES,
   SYSTEM_CATEGORY_COLOR,
+  SYSTEM_CATEGORY_ICON,
   SYSTEM_CATEGORY_NAME,
   TODO_SOURCES,
   type TodoSource,
@@ -130,6 +131,7 @@ export function listCategories(userId: number): TodoCategory[] {
       id: todoCategories.id,
       name: todoCategories.name,
       color: todoCategories.color,
+      icon: todoCategories.icon,
       sortOrder: todoCategories.sortOrder,
       isSystem: todoCategories.isSystem,
     })
@@ -184,6 +186,7 @@ export function ensureSystemCategory(userId: number): SystemCategory {
           userId,
           name: SYSTEM_CATEGORY_NAME,
           color: SYSTEM_CATEGORY_COLOR,
+          icon: SYSTEM_CATEGORY_ICON,
           sortOrder: (last?.sortOrder ?? -1) + 1,
           isSystem: true,
         })
@@ -215,6 +218,7 @@ export function ensureSystemCategory(userId: number): SystemCategory {
         id: category.id,
         name: category.name,
         color: category.color,
+        icon: category.icon,
         sortOrder: category.sortOrder,
         isSystem: category.isSystem,
       },

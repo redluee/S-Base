@@ -42,6 +42,18 @@ describe("todo categories", () => {
     expect(categories.list(userId).map((c) => c.name)).toEqual(["Automatisch", "Werk", "Thuis"]);
   });
 
+  it("gives categories an icon, defaulting to a folder and a bolt for the system one", () => {
+    const system = categories.ensureSystem(userId);
+    const work = categories.create(userId, { name: "Werk", color: "blue" });
+    const home = categories.create(userId, { name: "Thuis", color: "pink", icon: "home" });
+    expect(system.icon).toBe("zap");
+    expect(work.icon).toBe("folder");
+    expect(home.icon).toBe("home");
+    expect(categories.update(userId, work.id, { icon: "briefcase" }).icon).toBe("briefcase");
+    expect(categories.update(userId, system.id, { icon: "sparkles" }).icon).toBe("sparkles");
+    expect(categories.list(userId).map((c) => c.icon)).toEqual(["sparkles", "briefcase", "home"]);
+  });
+
   it("validates names", () => {
     expect(() => categories.create(userId, { name: "   ", color: "blue" })).toThrow("todo.nameRequired");
     expect(() => categories.create(userId, { name: "x".repeat(TODO_NAME_MAX + 1), color: "blue" })).toThrow(

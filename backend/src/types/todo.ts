@@ -3,7 +3,14 @@ import type { TodoColor, TodoSource } from "../shared/todo";
 
 type TaskRow = typeof todoTasks.$inferSelect;
 
-export type TodoCategory = Pick<typeof todoCategories.$inferSelect, "id" | "name" | "color" | "sortOrder" | "isSystem">;
+export type TodoCategory = Pick<
+  typeof todoCategories.$inferSelect,
+  "id" | "name" | "color" | "icon" | "sortOrder" | "isSystem"
+>;
+
+export type TodoCategoryInput = Pick<TodoCategory, "name" | "color"> & Partial<Pick<TodoCategory, "icon">>;
+
+export type TodoCategoryPatch = Partial<Pick<TodoCategory, "name" | "color" | "icon">>;
 
 export type TodoProject = Pick<typeof todoProjects.$inferSelect, "id" | "categoryId" | "name" | "sortOrder" | "source">;
 

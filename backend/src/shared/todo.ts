@@ -15,6 +15,35 @@ export const TODO_PALETTE = {
 
 export type TodoColor = keyof typeof TODO_PALETTE;
 export const TODO_COLORS = Object.keys(TODO_PALETTE) as [TodoColor, ...TodoColor[]];
+export const TODO_ICONS = [
+  "folder",
+  "briefcase",
+  "home",
+  "heart",
+  "dumbbell",
+  "book",
+  "code",
+  "cart",
+  "wallet",
+  "plane",
+  "car",
+  "users",
+  "graduation",
+  "music",
+  "palette",
+  "leaf",
+  "wrench",
+  "sparkles",
+  "utensils",
+  "paw",
+  "gamepad",
+  "camera",
+  "lightbulb",
+  "zap",
+] as const;
+export type TodoIcon = (typeof TODO_ICONS)[number];
+export const DEFAULT_TODO_ICON: TodoIcon = "folder";
+export const SYSTEM_CATEGORY_ICON: TodoIcon = "zap";
 export const UNCATEGORISED_COLOR = "#00e3a4";
 export const SYSTEM_CATEGORY_COLOR: TodoColor = "violet";
 

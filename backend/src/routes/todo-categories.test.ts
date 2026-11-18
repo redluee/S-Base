@@ -26,6 +26,8 @@ describe("todo category routes", () => {
     const b = await createCategory("Thuis", "pink");
     const patched = await call(cookie, "PATCH", `/api/todo/categories/${a.id}`, { color: "teal" });
     expect(((await patched.json()) as TodoCategory).color).toBe("teal");
+    const withIcon = await call(cookie, "PATCH", `/api/todo/categories/${b.id}`, { icon: "home" });
+    expect(((await withIcon.json()) as TodoCategory).icon).toBe("home");
 
     const reordered = await call(cookie, "POST", "/api/todo/categories/reorder", { ids: [b.id, a.id] });
     expect(((await reordered.json()) as TodoCategory[]).map((c) => c.id)).toEqual([b.id, a.id]);
@@ -41,6 +43,9 @@ describe("todo category routes", () => {
 
     const badColor = await call(cookie, "POST", "/api/todo/categories", { name: "X", color: "purple" });
     expect(await badColor.json()).toEqual({ error: "common.invalidRequest" });
+
+    const badIcon = await call(cookie, "POST", "/api/todo/categories", { name: "X", color: "blue", icon: "rocket" });
+    expect(await badIcon.json()).toEqual({ error: "common.invalidRequest" });
 
     const missing = await call(cookie, "PATCH", "/api/todo/categories/999999", { color: "teal" });
     expect(missing.status).toBe(404);

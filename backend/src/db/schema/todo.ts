@@ -1,6 +1,6 @@
 import { check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
-import { TODO_COLORS, TODO_SOURCES } from "../../shared/todo";
+import { DEFAULT_TODO_ICON, TODO_COLORS, TODO_ICONS, TODO_SOURCES } from "../../shared/todo";
 import { users } from "./auth";
 
 export const todoCategories = sqliteTable(
@@ -12,6 +12,7 @@ export const todoCategories = sqliteTable(
       .references(() => users.userId, { onDelete: "cascade" }),
     name: text("name").notNull(),
     color: text("color", { enum: TODO_COLORS }).notNull(),
+    icon: text("icon", { enum: TODO_ICONS }).notNull().default(DEFAULT_TODO_ICON),
     sortOrder: integer("sort_order").notNull().default(0),
     isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),

@@ -1,7 +1,8 @@
 import { request as clientRequest, type Fetcher } from "./core";
-import type { TodoColor } from "@backend/shared/todo";
 import type {
   TodoCategory,
+  TodoCategoryInput,
+  TodoCategoryPatch,
   TodoCategoryRemoval,
   TodoCompletionResult,
   TodoHistoryPage,
@@ -56,9 +57,9 @@ export const createTodoApi = (request: Fetcher) => ({
     remove: (id: number) => request<Success>(`/todo/subtasks/${id}`, json("DELETE")),
   },
   categories: {
-    create: (input: { name: string; color: TodoColor }) =>
+    create: (input: TodoCategoryInput) =>
       request<TodoCategory>("/todo/categories", json("POST", input)),
-    update: (id: number, patch: { name?: string; color?: TodoColor }) =>
+    update: (id: number, patch: TodoCategoryPatch) =>
       request<TodoCategory>(`/todo/categories/${id}`, json("PATCH", patch)),
     reorder: (ids: number[]) => request<TodoCategory[]>("/todo/categories/reorder", json("POST", { ids })),
     remove: (id: number) => request<TodoCategoryRemoval>(`/todo/categories/${id}`, json("DELETE")),

@@ -87,8 +87,8 @@ describe("category removal", () => {
     const state: TodoState = {
       tasks: [task(1, 0, { categoryId: 5, projectId: 9 }), task(2, 1, { categoryId: 6 })],
       categories: [
-        { id: 5, name: "Werk", color: "sky", sortOrder: 0, isSystem: false },
-        { id: 6, name: "Thuis", color: "teal", sortOrder: 1, isSystem: false },
+        { id: 5, name: "Werk", color: "sky", icon: "folder" as const, sortOrder: 0, isSystem: false },
+        { id: 6, name: "Thuis", color: "teal", icon: "folder" as const, sortOrder: 1, isSystem: false },
       ],
       projects: [{ id: 9, categoryId: 5, name: "Site", sortOrder: 0, source: null }],
       completedCount: 0,
@@ -105,7 +105,7 @@ describe("category removal", () => {
 
 describe("recent completions", () => {
   it("keeps the three most recent, newest first, with the live category", () => {
-    const categories = [{ id: 5, name: "Werk", color: "sky" as const, sortOrder: 0, isSystem: false }];
+    const categories = [{ id: 5, name: "Werk", color: "sky" as const, icon: "folder" as const, sortOrder: 0, isSystem: false }];
     const older = [1, 2, 3].map((id) => ({
       ...task(id, id),
       completedAt: "2026-11-17T10:00:00.000Z",
