@@ -11,6 +11,7 @@ import { minecraftApi } from "./minecraft";
 import { resumeApi } from "./resume";
 import { financeApi } from "./finance";
 import { minorApi } from "./minor";
+import { todoApi } from "./todo";
 
 export const api = {
   login: (username: string, password: string) =>
@@ -40,6 +41,7 @@ export const api = {
   resume: resumeApi,
   minor: minorApi,
   finance: financeApi,
+  todo: todoApi,
 };
 
 export { ApiError, apiErrorMessage } from "./core";

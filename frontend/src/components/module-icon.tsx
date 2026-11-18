@@ -1,5 +1,5 @@
 import { DumbbellIcon } from "@/components/icons";
-import { Activity, ChefHat, FileUser, Gamepad2, GraduationCap, Heart, Music, Wallet } from "lucide-react";
+import { Activity, ChefHat, FileUser, Gamepad2, GraduationCap, Heart, ListChecks, Music, Wallet } from "lucide-react";
 
 export function ModuleIcon({ id }: { id: string }) {
   switch (id) {
@@ -9,6 +9,8 @@ export function ModuleIcon({ id }: { id: string }) {
           <DumbbellIcon className="size-5 anim-dumbbell" />
         </>
       );
+    case "todo":
+      return <ListChecks className="size-5" />;
     case "finance":
       return (
         <>

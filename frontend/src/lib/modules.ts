@@ -2,7 +2,7 @@ import type { ModuleName } from "@backend/auth/modules";
 
 export type ModuleId = Extract<
   ModuleName,
-  "workout" | "finance" | "cashflow" | "recipes" | "minecraft" | "minor" | "resume" | "lyric_quotes" | "you" | "pulse"
+  "workout" | "todo" | "finance" | "cashflow" | "recipes" | "minecraft" | "minor" | "resume" | "lyric_quotes" | "you" | "pulse"
 >;
 
 export interface AppModule {
@@ -24,6 +24,15 @@ export const MODULES: AppModule[] = [
     permissions: ["workout"],
     accentColor: "#00E676",
     href: "/workouts",
+    tile: "wide",
+  },
+  {
+    id: "todo",
+    title: "Get Shit Done",
+    subtitle: "todo.dashboardSubtitle",
+    permissions: ["todo"],
+    accentColor: "#00e3a4",
+    href: "/todo",
     tile: "wide",
   },
   {

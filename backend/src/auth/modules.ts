@@ -30,6 +30,11 @@ export const DEFAULT_MODULES = [
     alias: "CV Builder",
     description: "Module voor het samenstellen en exporteren van CV's op basis van ervaring en opleidingen",
   },
+  {
+    name: "todo",
+    alias: "Get Shit Done",
+    description: "Persoonlijke takenlijst met categorieën, projecten en automatische taken",
+  },
 ] as const;
 
 export type ModuleName = (typeof DEFAULT_MODULES)[number]["name"];

@@ -8,6 +8,7 @@ import { MinecraftService } from "./modules/minecraft";
 import { MinorService } from "./modules/minor";
 import { FinanceService } from "./modules/finance";
 import { ResumeService } from "./modules/resume";
+import { TodoService } from "./modules/todo";
 import { ForbiddenError } from "./utils/errors";
 import { readSessionId } from "./auth/session-cookie";
 import type { ModuleName } from "./auth/modules";
@@ -27,6 +28,7 @@ export const pulse = new PulseService({
 export const minor = new MinorService();
 export const resume = new ResumeService();
 export const finance = new FinanceService();
+export const todo = new TodoService();
 
 const ownMeasurementPhoto = (userId: number, filename: string) =>
   !workout.measurements.isForeignPhoto(userId, filename);
@@ -63,3 +65,4 @@ export const minecraftAuth = createAuthPlugin("minecraft", "minecraft:monitor");
 export const minorAuth = createAuthPlugin("minor");
 export const resumeAuth = createAuthPlugin("resume");
 export const financeAuth = createAuthPlugin("finance");
+export const todoAuth = createAuthPlugin("todo");

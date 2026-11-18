@@ -11,6 +11,7 @@ import { createRecipesApi } from "@/lib/api/recipes";
 import { createResumeApi } from "@/lib/api/resume";
 import { createWinesApi } from "@/lib/api/wines";
 import { createWorkoutsApi } from "@/lib/api/workouts";
+import { createTodoApi } from "@/lib/api/todo";
 import type { AuthUser } from "@/lib/api";
 
 
@@ -92,4 +93,5 @@ export const serverApi = {
   minecraft: createMinecraftApi(serverFetch),
   resume: createResumeApi(serverFetch),
   minor: createMinorApi(serverFetch),
+  todo: createTodoApi(serverFetch),
 };
