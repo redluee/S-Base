@@ -1,32 +1,5 @@
 import type { TodoMove } from "@backend/types/todo";
 
-export interface Box {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-export interface FlipTransform {
-  x: number;
-  y: number;
-  scaleX: number;
-  scaleY: number;
-}
-
-export function flipTransform(origin: Box, target: Box): FlipTransform {
-  return {
-    x: origin.left - target.left,
-    y: origin.top - target.top,
-    scaleX: target.width > 0 ? origin.width / target.width : 1,
-    scaleY: target.height > 0 ? origin.height / target.height : 1,
-  };
-}
-
-export function flipCss(t: FlipTransform): string {
-  return `translate(${t.x}px, ${t.y}px) scale(${t.scaleX}, ${t.scaleY})`;
-}
-
 export const DISMISS_DISTANCE_PX = 96;
 export const DISMISS_VELOCITY = 0.6;
 

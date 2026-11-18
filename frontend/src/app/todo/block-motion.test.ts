@@ -2,20 +2,10 @@ import { afterEach, describe, expect, it, jest } from "bun:test";
 import {
   arrayMove,
   createDebouncedSaver,
-  flipCss,
-  flipTransform,
   moveForReorder,
   reorderIndex,
   shouldDismissDrag,
 } from "./block-motion";
-
-describe("flip", () => {
-  it("maps the target rect onto the origin rect", () => {
-    const t = flipTransform({ left: 20, top: 100, width: 300, height: 50 }, { left: 10, top: 40, width: 600, height: 500 });
-    expect(t).toEqual({ x: 10, y: 60, scaleX: 0.5, scaleY: 0.1 });
-    expect(flipCss(t)).toBe("translate(10px, 60px) scale(0.5, 0.1)");
-  });
-});
 
 describe("dismiss", () => {
   it("needs distance or a quick flick", () => {
