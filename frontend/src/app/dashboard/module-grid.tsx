@@ -10,9 +10,11 @@ import { ModuleIcon } from "@/components/module-icon";
 export function ModuleGrid({
   canAccess,
   hasOnlineServer,
+  openTodoCount = 0,
 }: {
   canAccess: (moduleId: ModuleId) => boolean;
   hasOnlineServer: boolean;
+  openTodoCount?: number;
 }) {
   return (
     <nav className="relative z-10 grid w-full max-w-4xl grid-cols-2 gap-3 sm:gap-4">
@@ -39,6 +41,14 @@ export function ModuleGrid({
                   </h2>
                   {module.id === "minecraft" && hasOnlineServer && (
                     <span className="size-1.5 shrink-0 rounded-full bg-[#76FF03]" />
+                  )}
+                  {module.id === "todo" && openTodoCount > 0 && (
+                    <span
+                      className="shrink-0 rounded-full bg-[var(--tile-tint)] px-1.5 text-xs font-medium tabular-nums text-[var(--tile-color)]"
+                      aria-label={t("todo.dashboardOpenCount", { count: String(openTodoCount) })}
+                    >
+                      {openTodoCount}
+                    </span>
                   )}
                 </div>
                 <p className={`mt-0.5 truncate text-xs font-medium tracking-wide text-zinc-400 ${compact ? "hidden" : fullWidth ? "block" : "hidden sm:block"}`}>

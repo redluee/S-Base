@@ -25,6 +25,7 @@ export function DashboardClient({ user }: { user: AuthUser }) {
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [runningSession, setRunningSession] = useState<WorkoutSession | null>(null);
   const [hasOnlineServer, setHasOnlineServer] = useState<boolean>(false);
+  const [openTodoCount, setOpenTodoCount] = useState<number>(0);
   const { error: sessionsError, report: reportSessionsError } = useActionError();
 
   useEffect(() => {
@@ -48,6 +49,13 @@ export function DashboardClient({ user }: { user: AuthUser }) {
         .catch(() => {
           setHasOnlineServer(false);
         });
+    }
+
+    if (canOpen(moduleById("todo"), userModules)) {
+      api.todo
+        .count()
+        .then((result) => setOpenTodoCount(result.open))
+        .catch(() => setOpenTodoCount(0));
     }
   }, [userModules, reportSessionsError]);
 
@@ -167,6 +175,7 @@ export function DashboardClient({ user }: { user: AuthUser }) {
       <ModuleGrid
         canAccess={canAccess}
         hasOnlineServer={hasOnlineServer}
+        openTodoCount={openTodoCount}
       />
 
       <button
