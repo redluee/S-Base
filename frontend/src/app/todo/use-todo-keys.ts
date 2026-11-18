@@ -1,5 +1,32 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { TodoUi } from "./todo-ui";
 
-export function useTodoKeys(_ui: TodoUi): void {}
+function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+}
+
+export function useTodoKeys(ui: TodoUi): void {
+  const ref = useRef(ui);
+  useEffect(() => {
+    ref.current = ui;
+  });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const current = ref.current;
+      if (event.key === "Escape") {
+        current.closeOverlays();
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      if (event.key.toLowerCase() !== "n" || isTyping(event.target) || current.overlayOpen) return;
+      event.preventDefault();
+      current.openQuickAdd();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+}
