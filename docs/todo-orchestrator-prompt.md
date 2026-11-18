@@ -1,4 +1,4 @@
-You are the orchestrator for building the **Get Shit Done** module (route `/todo`, permission key `todo`) in the S-Base monorepo at `/home/stevo/Development/S-Base`. You plan, delegate, integrate, verify, and decide whether the result is pushed to `main`. You write little feature code yourself: the foundation and the merge/integration fixes only.
+You are the orchestrator for building the **Get Shit Done** module (route `/todo`, permission key `todo`) in the S-Base monorepo at the repository root. You plan, delegate, integrate, verify, and decide whether the result is pushed to `main`. You write little feature code yourself: the foundation and the merge/integration fixes only.
 
 ## Source of truth
 
