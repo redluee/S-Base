@@ -1,5 +1,71 @@
 "use client";
 
+import { useLayoutEffect, useRef, useState } from "react";
+import { t } from "@/lib/lang";
+import { EASE_OUT } from "./completion/choreography";
+import { prefersReducedMotion } from "./completion/use-reduced-motion";
+import { counterDigits } from "./completion/counter-digits";
+
+const ROLL_MS = 320;
+
+interface SlotState {
+  digit: string;
+  previous: string | null;
+  direction: 1 | -1;
+  version: number;
+}
+
+function DigitSlot({ digit, direction }: { digit: string; direction: 1 | -1 }) {
+  const [slot, setSlot] = useState<SlotState>({ digit, previous: null, direction, version: 0 });
+  if (slot.digit !== digit) setSlot({ digit, previous: slot.digit, direction, version: slot.version + 1 });
+  const nextRef = useRef<HTMLSpanElement>(null);
+  const prevRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    if (slot.version === 0 || prefersReducedMotion()) return;
+    const options = { duration: ROLL_MS, easing: EASE_OUT, fill: "forwards" as const };
+    const from = `${slot.direction * 100}%`;
+    const to = `${-slot.direction * 100}%`;
+    const enter = nextRef.current?.animate([{ transform: `translateY(${from})` }, { transform: "translateY(0)" }], options);
+    const exit = prevRef.current?.animate([
+        { transform: "translateY(0)", opacity: 1 },
+        { transform: `translateY(${to})`, opacity: 1 },
+      ], options);
+    return () => {
+      enter?.cancel();
+      exit?.cancel();
+    };
+  }, [slot.version, slot.direction]);
+
+  return (
+    <span className="relative inline-block overflow-hidden">
+      {slot.previous !== null && (
+        <span ref={prevRef} key={`p${slot.version}`} className="absolute inset-0 opacity-0">
+          {slot.previous}
+        </span>
+      )}
+      <span ref={nextRef} key={`n${slot.version}`} className="block">
+        {slot.digit}
+      </span>
+    </span>
+  );
+}
+
 export function Counter({ value }: { value: number }) {
-  return <span className="tabular-nums text-sm text-muted-foreground">{value}</span>;
+  const [state, setState] = useState({ value, direction: 1 as 1 | -1 });
+  if (state.value !== value) setState({ value, direction: value > state.value ? 1 : -1 });
+  const digits = counterDigits(value);
+
+  return (
+    <span className="flex h-11 items-center px-2 text-sm text-muted-foreground tabular-nums">
+      <span className="sr-only" aria-live="polite">
+        {t("todo.header.counter", { count: String(value) })}
+      </span>
+      <span aria-hidden="true" className="flex">
+        {digits.map(({ key, digit }) => (
+          <DigitSlot key={key} digit={digit} direction={state.direction} />
+        ))}
+      </span>
+    </span>
+  );
 }
