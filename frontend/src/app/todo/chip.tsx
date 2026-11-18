@@ -35,15 +35,3 @@ export function ChipCount({ value, active }: { value: number; active: boolean })
     </span>
   );
 }
-
-export function ChipRow({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className={cn("-mx-4 flex gap-1.5 overflow-x-auto px-4 py-2 [scrollbar-width:none]", className)}
-    >
-      {children}
-    </div>
-  );
-}

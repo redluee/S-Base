@@ -1,11 +1,9 @@
 "use client";
 
-import { todoColorHex } from "@backend/shared/todo";
 import { t } from "@/lib/lang";
+import { CategoryStrip } from "./category-strip";
 import { toggleCategory, toggleProject } from "./chip-state";
-import { CategoryIcon } from "./category-icon";
-import { Chip, ChipRow } from "./chip";
-import { manualCategories, projectsOf } from "./todo-state";
+import { manualCategories } from "./todo-state";
 import { useTodoUi } from "./todo-ui";
 
 export interface CategorySelection {
@@ -20,37 +18,15 @@ export interface CategoryChipsProps {
 
 export function CategoryChips({ value, onChange }: CategoryChipsProps) {
   const { store } = useTodoUi();
-  const categories = manualCategories(store.categories);
-  const projects = projectsOf(store.projects, value.categoryId);
-  if (categories.length === 0) return null;
-
   return (
-    <div className="flex flex-col gap-1">
-      <ChipRow label={t("todo.block.category")}>
-        {categories.map((category) => (
-          <Chip
-            key={category.id}
-            active={value.categoryId === category.id}
-            onClick={() => onChange(toggleCategory(value, category.id))}
-          >
-            <CategoryIcon icon={category.icon} color={todoColorHex(category.color)} />
-            {category.name}
-          </Chip>
-        ))}
-      </ChipRow>
-      {projects.length > 0 && (
-        <ChipRow label={t("todo.block.project")}>
-          {projects.map((project) => (
-            <Chip
-              key={project.id}
-              active={value.projectId === project.id}
-              onClick={() => onChange(toggleProject(value, project))}
-            >
-              {project.name}
-            </Chip>
-          ))}
-        </ChipRow>
-      )}
-    </div>
+    <CategoryStrip
+      label={t("todo.block.category")}
+      categories={manualCategories(store.categories)}
+      projects={store.projects}
+      categoryId={value.categoryId}
+      projectId={value.projectId}
+      onCategory={(category) => onChange(toggleCategory(value, category.id))}
+      onProject={(project) => onChange(toggleProject(value, project))}
+    />
   );
 }

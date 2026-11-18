@@ -21,7 +21,7 @@ Personal task list. Principle: tasks you can see at a glance and that matter. No
 
 - **Header row**: title left; right: all-time completed counter, history icon, gear icon, and a small cloud-off icon while offline or with pending sync.
 - **Filter row** (horizontal scroll): "Gemarkeerd", then categories. Single select; tap again clears.
-- **Project row**: appears when a category is active, single select.
+- **Projects**: selecting a category collapses the other chips and slides its projects into the same row ("Werk › Klant A · Intern"); tapping the category again brings every chip back. Quick add, the task block and history use the same row.
 - **List**: manual order, global (reordering in a filtered view keeps the global order consistent).
 - **Add button**: round, bottom-right thumb zone.
 - **Undo button**: bottom-left (see Undo). The list has bottom padding so neither button covers a row.
@@ -49,7 +49,7 @@ Personal task list. Principle: tasks you can see at a glance and that matter. No
 ## Expanded task block
 
 - **Opening**: tap a row (not the blob). It morphs into a larger floating card; the list behind it blurs.
-- **Contents**: title, category/project, date shown prominently ("over 3 dagen") with date chips, flag, subtasks, notes, link to the source for linked tasks.
+- **Contents**: title, category/project, date shown prominently ("over 3 dagen") with one date button (calendar picker, clear), flag, subtasks, notes, link to the source for linked tasks.
 - **Saving and closing**: autosave on every change. Tap the blur or swipe down to morph back.
 - **Subtasks**: "+ Subtaak" row; Enter chains the next. Drag to reorder; swipe left to delete. Ticking one plays a mini wave (no dust). The parent never auto-completes.
 - **Notes**: rendered light markdown (bold, lists, links); tap the text to edit it raw in a textarea; blur renders it again.

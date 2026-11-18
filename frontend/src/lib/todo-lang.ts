@@ -23,8 +23,6 @@ export const todoNl: Record<string, string> = {
 
   "todo.date.today": "Vandaag",
   "todo.date.tomorrow": "Morgen",
-  "todo.date.weekend": "Weekend",
-  "todo.date.nextWeek": "Volgende week",
   "todo.date.pick": "Kies datum",
   "todo.date.clear": "Geen datum",
   "todo.date.inDays": "over {days} dagen",

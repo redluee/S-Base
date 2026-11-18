@@ -1,4 +1,3 @@
-import { QUICK_DATES, quickDate, type QuickDate } from "@backend/shared/todo";
 import type { TodoCategory, TodoProject } from "@backend/types/todo";
 import { filterPreselection, type TodoFilter } from "./todo-state";
 
@@ -28,20 +27,6 @@ export function quickAddPreselection(
   if (!category || category.isSystem) return NO_SELECTION;
   const project = projects.find((p) => p.id === projectId && p.categoryId === category.id);
   return { categoryId: category.id, projectId: project?.id ?? null };
-}
-
-export function activeQuickDates(value: string | null, now: Date = new Date()): QuickDate[] {
-  if (!value) return [];
-  return QUICK_DATES.filter((kind) => quickDate(kind, now) === value);
-}
-
-export function toggleQuickDate(value: string | null, kind: QuickDate, now: Date = new Date()): string | null {
-  const date = quickDate(kind, now);
-  return value === date ? null : date;
-}
-
-export function isCustomDate(value: string | null, now: Date = new Date()): boolean {
-  return value !== null && activeQuickDates(value, now).length === 0;
 }
 
 const shortDate = new Intl.DateTimeFormat("nl-NL", {

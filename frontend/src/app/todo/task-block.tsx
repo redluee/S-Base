@@ -9,7 +9,7 @@ import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
 import { createDebouncedSaver } from "./block-motion";
 import { CategoryChips } from "./category-chips";
-import { DateChips } from "./date-chips";
+import { DuePicker } from "./due-picker";
 import { duePhrase, taskColor } from "./due-label";
 import { NotesField } from "./notes-field";
 import { sourceHref } from "./source-link";
@@ -171,7 +171,12 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
                 onChange={(value) => patch({ categoryId: value.categoryId, projectId: value.projectId })}
               />
             )}
-            <DateChips value={task.dueDate} disabled={locked} onChange={(dueDate) => patch({ dueDate })} />
+            <DuePicker
+              value={task.dueDate}
+              disabled={locked}
+              emptyLabel={t("todo.date.pick")}
+              onChange={(dueDate) => patch({ dueDate })}
+            />
 
             <SubtaskList task={task} color={color} />
 

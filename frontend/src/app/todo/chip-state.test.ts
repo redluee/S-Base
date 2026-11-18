@@ -1,18 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
-  activeQuickDates,
   customDateLabel,
-  isCustomDate,
   NO_SELECTION,
   quickAddPreselection,
   toggleCategory,
   toggleProject,
-  toggleQuickDate,
 } from "./chip-state";
 import { ALL_TASKS } from "./todo-state";
 
-const wednesday = new Date("2026-11-18T12:00:00Z");
-const saturday = new Date("2026-11-21T12:00:00Z");
 
 describe("category chip state", () => {
   it("selects a category, switches category and clears on a second tap", () => {
@@ -70,22 +65,7 @@ describe("quick add preselection", () => {
   });
 });
 
-describe("date chip state", () => {
-  it("toggles a quick date on and off", () => {
-    expect(toggleQuickDate(null, "tomorrow", wednesday)).toBe("2026-11-19");
-    expect(toggleQuickDate("2026-11-19", "tomorrow", wednesday)).toBeNull();
-    expect(toggleQuickDate("2026-11-19", "weekend", wednesday)).toBe("2026-11-21");
-  });
-
-  it("marks every quick date that matches and detects custom dates", () => {
-    expect(activeQuickDates("2026-11-23", wednesday)).toEqual(["nextWeek"]);
-    expect(activeQuickDates("2026-11-21", saturday)).toEqual(["today", "weekend"]);
-    expect(activeQuickDates(null, wednesday)).toEqual([]);
-    expect(isCustomDate("2026-12-01", wednesday)).toBe(true);
-    expect(isCustomDate("2026-11-18", wednesday)).toBe(false);
-    expect(isCustomDate(null, wednesday)).toBe(false);
-  });
-
+describe("date labels", () => {
   it("labels a custom date in Dutch", () => {
     expect(customDateLabel("2026-12-01")).toBe("di 1 dec");
   });

@@ -6,9 +6,17 @@ import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
 import { dueBadge } from "./due-label";
 
-export function DuePicker({ value, onChange }: { value: string | null; onChange: (date: string | null) => void }) {
+interface DuePickerProps {
+  value: string | null;
+  onChange: (date: string | null) => void;
+  emptyLabel?: string;
+  disabled?: boolean;
+}
+
+export function DuePicker({ value, onChange, emptyLabel, disabled = false }: DuePickerProps) {
   const picker = useRef<HTMLInputElement>(null);
   const badge = dueBadge(value);
+  const label = badge?.label ?? emptyLabel;
 
   const openPicker = () => {
     const input = picker.current;
@@ -25,15 +33,19 @@ export function DuePicker({ value, onChange }: { value: string | null; onChange:
       <label
         className={cn(
           "relative flex h-11 items-center gap-1.5 rounded-full text-sm transition-[background-color,color,padding] duration-150 ease-out has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-brand",
-          badge
-            ? "bg-brand/12 pr-1 pl-3 text-foreground"
-            : "w-11 justify-center text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+          badge && "bg-brand/12 pl-3 text-foreground",
+          badge && !disabled && "pr-1",
+          badge && disabled && "pr-3",
+          !badge && emptyLabel && "bg-foreground/[0.06] px-3 text-muted-foreground hover:text-foreground",
+          !badge && !emptyLabel && "w-11 justify-center text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+          disabled && "pointer-events-none",
           badge?.tone === "overdue" && "bg-red-400/12",
         )}
       >
         <CalendarDays className={cn("size-[18px] shrink-0", badge && badge.tone !== "overdue" && "text-brand")} aria-hidden="true" />
-        {badge && <span className="whitespace-nowrap">{badge.label}</span>}
-        <input
+        {label && <span className="whitespace-nowrap">{label}</span>}
+        {!disabled && (
+          <input
           ref={picker}
           type="date"
           value={value ?? ""}
@@ -41,8 +53,9 @@ export function DuePicker({ value, onChange }: { value: string | null; onChange:
           onClick={openPicker}
           onChange={(e) => onChange(e.target.value || null)}
           className="absolute inset-0 size-full cursor-pointer appearance-none rounded-full opacity-0"
-        />
-        {badge && (
+          />
+        )}
+        {badge && !disabled && (
           <button
             type="button"
             aria-label={t("todo.date.clearLabel")}
