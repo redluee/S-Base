@@ -41,7 +41,7 @@ export function useRowSwipe({ enabled, rowWidth, paint, onRelease }: RowSwipeOpt
 
   return {
     onPointerDown: (e: PointerEvent<HTMLElement>) => {
-      if (!e.isPrimary || (e.pointerType === "mouse" && e.button !== 0) || !enabled()) return;
+      if (!e.isPrimary || e.pointerType === "mouse" || !enabled()) return;
       if ((e.target as HTMLElement).closest("input, textarea, select, [contenteditable='true']")) return;
       drag.current = {
         id: e.pointerId,

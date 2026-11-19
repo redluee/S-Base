@@ -16,10 +16,11 @@ export type CompletionPhase = "idle" | "filling" | "waving" | "squashing" | "dus
 
 export interface CompletionRowApi {
   complete: () => void;
+  remove: () => void;
   phase: CompletionPhase;
 }
 
-const CompletionRowContext = createContext<CompletionRowApi>({ complete: () => {}, phase: "idle" });
+const CompletionRowContext = createContext<CompletionRowApi>({ complete: () => {}, remove: () => {}, phase: "idle" });
 
 export function useCompletionRow(): CompletionRowApi {
   return useContext(CompletionRowContext);
@@ -122,7 +123,9 @@ export function CompletionRow({ task, children }: { task: TodoTask; children: Re
     },
   });
 
-  const api = useMemo<CompletionRowApi>(() => ({ complete: () => runCompletion(), phase }), [runCompletion, phase]);
+  const api = useMemo<CompletionRowApi>(() => ({ complete: () => runCompletion(), remove: () => runDeletion(0), phase }),
+    [runCompletion, runDeletion, phase],
+  );
 
   return (
     <CompletionRowContext.Provider value={api}>

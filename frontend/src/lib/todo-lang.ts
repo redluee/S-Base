@@ -33,6 +33,8 @@ export const todoNl: Record<string, string> = {
 
   "todo.row.complete": "Voltooi {title}",
   "todo.row.open": "Open {title}",
+  "todo.row.delete": "{title} verwijderen",
+  "todo.row.deleteHint": "Verwijderen (Delete)",
   "todo.row.subtasks": "{done} van {total} subtaken klaar",
   "todo.row.notes": "Heeft notities",
   "todo.row.flagged": "Gemarkeerd",

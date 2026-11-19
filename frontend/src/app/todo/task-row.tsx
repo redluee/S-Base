@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { ChevronRight, Flag, ListChecks, Link2, StickyNote } from "lucide-react";
+import { ChevronRight, Flag, ListChecks, Link2, StickyNote, Trash2 } from "lucide-react";
 import { agingOpacity } from "@backend/shared/todo";
 import type { TodoTask } from "@backend/types/todo";
 import { t } from "@/lib/lang";
@@ -21,7 +21,7 @@ const TONE: Record<DueTone, string> = {
 
 export function TaskRow({ task }: { task: TodoTask }) {
   const ui = useTodoUi();
-  const { complete, phase } = useCompletionRow();
+  const { complete, remove, phase } = useCompletionRow();
   const rowRef = useRef<HTMLDivElement>(null);
   const { categories, projects, filter } = ui.store;
   const color = taskColor(task, categories);
@@ -42,7 +42,7 @@ export function TaskRow({ task }: { task: TodoTask }) {
   });
 
   return (
-    <div ref={rowRef} className="flex min-h-14 items-center pr-1 pl-1">
+    <div ref={rowRef} className="group/row flex min-h-14 items-center pr-1 pl-1">
       <button
         type="button"
         className="group flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-brand"
@@ -56,6 +56,11 @@ export function TaskRow({ task }: { task: TodoTask }) {
         className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-lg py-2 pr-3 pl-1 text-left focus-visible:outline-2 focus-visible:outline-brand"
         aria-label={t("todo.row.open", { title: task.title })}
         onClick={() => ui.openTask(task.id, rowRef.current?.getBoundingClientRect() ?? null)}
+        onKeyDown={(e) => {
+          if (e.key !== "Delete") return;
+          e.preventDefault();
+          remove();
+        }}
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5" style={{ opacity }}>
           <span
@@ -94,6 +99,15 @@ export function TaskRow({ task }: { task: TodoTask }) {
           )}
         </span>
         {task.flagged && <Flag className="size-4 shrink-0 fill-brand text-brand" aria-label={t("todo.row.flagged")} />}
+      </button>
+      <button
+        type="button"
+        aria-label={t("todo.row.delete", { title: task.title })}
+        title={t("todo.row.deleteHint")}
+        onClick={remove}
+        className="hidden size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-[opacity,color] duration-150 group-hover/row:opacity-100 hover:text-red-400 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand [@media(hover:hover)_and_(pointer:fine)]:flex"
+      >
+        <Trash2 className="size-4" aria-hidden="true" />
       </button>
     </div>
   );
