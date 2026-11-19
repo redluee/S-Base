@@ -46,13 +46,17 @@ export class FinanceBudget {
     const entries = this.budgetEntries(userId, endDate);
     return { entries: entries.slice((page - 1) * 50, page * 50), total: entries.length, page, pageSize: 50 };
   }
-  dashboard(userId: number, period: unknown = "month", date: unknown = today()) {
-    if (period !== "month" && period !== "year" && period !== "all") throw new ValidationError("finance.invalidPeriod");
+  dashboard(userId: number, period: unknown = "month", date: unknown = today(), start?: unknown) {
+    if (period !== "month" && period !== "year" && period !== "all" && period !== "custom")
+      throw new ValidationError("finance.invalidPeriod");
+    const endDate = calendarDate(date);
+    if (period === "custom" && start === undefined) throw new ValidationError("finance.invalidPeriod");
+    const startDate = period === "custom" ? calendarDate(start) : endDate;
+    if (startDate > endDate) throw new ValidationError("finance.invalidPeriod");
     const data = this.accounts.data(userId);
     const { monthlyBudgetCents } = data;
-    const endDate = calendarDate(date);
     const { accounts, observations } = this.transactions.dashboardBalances(userId, data);
-    const report = dashboard(accounts, observations, period, endDate);
+    const report = dashboard(accounts, observations, period, endDate, startDate);
     const activity = this.transactions.activity(userId, report.startDate, report.endDate);
     const budgetSpendingCents =
       monthlyBudgetCents === null

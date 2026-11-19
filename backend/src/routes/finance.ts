@@ -33,8 +33,8 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     .post("/settings/reset", ({ userId, body }) => finance.transactions.resetFinance(userId, body), {
       body: t.Object({ confirmation: t.Optional(t.String()) }),
     })
-    .get("/dashboard", ({ userId, query }) => finance.budget.dashboard(userId, query.period, query.date), {
-      query: t.Object({ period: t.Optional(t.String()), date: t.Optional(t.String()) }),
+    .get("/dashboard", ({ userId, query }) => finance.budget.dashboard(userId, query.period, query.date, query.start), {
+      query: t.Object({ period: t.Optional(t.String()), date: t.Optional(t.String()), start: t.Optional(t.String()) }),
     })
     .get("/breakdown", ({ userId, query }) => finance.breakdowns.breakdown(userId, query), {
       query: t.Object({

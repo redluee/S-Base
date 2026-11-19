@@ -20,7 +20,9 @@ import { YearPicker } from "./year-picker";
 import { FinanceImport } from "./import";
 import { Transactions } from "./transactions";
 import { FinanceSettings } from "./settings";
-import { Upload } from "lucide-react";
+import { CalendarRange, Upload } from "lucide-react";
+import { RangePicker } from "./range-picker";
+import { presetRange, type FinanceRange } from "./lib/finance-range";
 import { Subscriptions } from "./subscriptions";
 
 type Tab = "overview" | "accounts" | "import" | "transactions" | "subscriptions" | "settings";
@@ -47,6 +49,8 @@ function FinanceContent() {
   const [today] = useState(() => calendarToday());
   const [date, setDate] = useState(today);
   const [period, setPeriod] = useState<FinancePeriod>("month");
+  const [range, setRange] = useState<FinanceRange>(() => presetRange("30d", calendarToday()));
+  const [rangeOpen, setRangeOpen] = useState(false);
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -60,7 +64,9 @@ function FinanceContent() {
     try {
       const [nextData, nextReport, nextSubscriptions] = await Promise.all([
         financeApi.data(),
-        financeApi.dashboard(period, financePeriodEnd(period, date, today)),
+        period === "custom"
+          ? financeApi.dashboard(period, financePeriodEnd(period, range.end, today), range.start)
+          : financeApi.dashboard(period, financePeriodEnd(period, date, today)),
         financeApi.subscriptions(),
       ]);
       if (current === revision.current) {
@@ -74,7 +80,7 @@ function FinanceContent() {
     } finally {
       if (current === revision.current) setLoading(false);
     }
-  }, [date, period, today]);
+  }, [date, period, range, today]);
   useEffect(() => {
     let active = true;
     const tracker = revision;
@@ -211,9 +217,25 @@ function FinanceContent() {
                         </Action>
                       ),
                     )}
+                    <Action
+                      variant="outline"
+                      aria-pressed={period === "custom"}
+                      aria-label={t("finance.custom")}
+                      title={t("finance.custom")}
+                      className={`px-2 sm:px-2.5 ${period === "custom" ? "border-foreground text-foreground" : "text-muted-foreground"}`}
+                      onClick={() => {
+                        if (period !== "custom") setPeriod("custom");
+                        setRangeOpen(true);
+                      }}
+                    >
+                      <CalendarRange className="size-4" aria-hidden="true" />
+                    </Action>
                   </div>
                   {period === "month" && (
                     <MonthPicker value={date.slice(0, 7)} today={today} onChange={(month) => setDate(`${month}-01`)} />
+                  )}
+                  {period === "custom" && (
+                    <RangePicker value={range} today={today} open={rangeOpen} onOpenChange={setRangeOpen} onChange={setRange} />
                   )}
                   {period === "year" && (
                     <div className="min-w-0 flex-1 sm:w-48 sm:flex-none">

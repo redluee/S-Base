@@ -36,6 +36,7 @@ export function dateLabel(date: string | null): string {
 }
 export function financePeriodEnd(period: FinancePeriod, date: string, today: string): string {
   if (period === "all") return today;
+  if (period === "custom") return date > today ? today : date;
   const year = Number(date.slice(0, 4));
   const month = Number(date.slice(5, 7));
   const end = period === "year"

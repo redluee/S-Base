@@ -1,7 +1,7 @@
 import type { FinanceAccountIcon } from "../shared/finance";
 
 export type FinanceAccountType = "current" | "savings";
-export type FinancePeriod = "month" | "year" | "all";
+export type FinancePeriod = "month" | "year" | "all" | "custom";
 export interface FinanceObservation {
   id: number;
   accountId: number;

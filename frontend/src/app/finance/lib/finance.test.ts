@@ -44,5 +44,7 @@ describe("Dashboard calendar periods", () => {
     expect(financePeriodEnd("year", "2026-01-01", "2026-10-24")).toBe("2026-10-24");
     expect(financePeriodEnd("month", "2026-10-01", "2026-10-24")).toBe("2026-10-24");
     expect(financePeriodEnd("all", "2024-01-01", "2026-10-24")).toBe("2026-10-24");
+    expect(financePeriodEnd("custom", "2025-03-15", "2026-10-24")).toBe("2025-03-15");
+    expect(financePeriodEnd("custom", "2027-01-01", "2026-10-24")).toBe("2026-10-24");
   });
 });

@@ -128,3 +128,31 @@ describe("Monthly budget excluding subscriptions", () => {
     expect(service.budget.dashboard(owner, "month", "2025-04-01").budget?.remainingCents).toBe(5000);
   });
 });
+
+describe("Custom dashboard period", () => {
+  it("reports activity and history for an arbitrary date range", () => {
+    payment("Sample before", "2025-01-31", -400);
+    payment("Sample start", "2025-02-10", -700);
+    payment("Sample income", "2025-03-05", 3000);
+    payment("Sample end", "2025-03-15", -900);
+    payment("Sample after", "2025-03-16", -1100);
+    const report = service.budget.dashboard(owner, "custom", "2025-03-15", "2025-02-10");
+    expect(report.startDate).toBe("2025-02-10");
+    expect(report.endDate).toBe("2025-03-15");
+    expect(report.history[0].date).toBe("2025-02-10");
+    expect(report.history.at(-1)?.date).toBe("2025-03-15");
+    expect(report.start.date).toBe("2025-02-09");
+    expect(report.activity.spendingCents).toBe(1600);
+    expect(report.activity.incomeCents).toBe(3000);
+    expect(service.budget.dashboard(owner, "custom", "2025-02-10", "2025-02-10").history).toHaveLength(1);
+  });
+
+  it("rejects missing, reversed or future custom ranges", () => {
+    expect(() => service.budget.dashboard(owner, "custom", "2025-03-15")).toThrow("finance.invalidPeriod");
+    expect(() => service.budget.dashboard(owner, "custom", "2025-03-15", "2025-03-16")).toThrow(
+      "finance.invalidPeriod",
+    );
+    expect(() => service.budget.dashboard(owner, "custom", "2025-03-15", "invalid")).toThrow("finance.invalidDate");
+    expect(() => service.budget.dashboard(owner, "custom", "2999-01-02", "2999-01-01")).toThrow("finance.futureDate");
+  });
+});

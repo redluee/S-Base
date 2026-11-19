@@ -106,17 +106,20 @@ export function dashboard(
   observations: FinanceObservation[],
   period: FinancePeriod,
   endDate: string,
+  customStart = endDate,
 ): FinanceDashboard {
   const earliest = accounts
     .map((a) => a.openingDate)
     .filter((d) => d <= endDate)
     .sort()[0];
   const startDate =
-    period === "month"
-      ? `${endDate.slice(0, 7)}-01`
-      : period === "year"
-        ? `${endDate.slice(0, 4)}-01-01`
-        : (earliest ?? endDate);
+    period === "custom"
+      ? customStart
+      : period === "month"
+        ? `${endDate.slice(0, 7)}-01`
+        : period === "year"
+          ? `${endDate.slice(0, 4)}-01-01`
+          : (earliest ?? endDate);
   const history = dailyBalanceHistory(accounts, observations, startDate, endDate);
   const baselineDate = new Date(`${startDate}T00:00:00Z`);
   baselineDate.setUTCDate(baselineDate.getUTCDate() - 1);

@@ -63,9 +63,9 @@ export const createFinanceApi = (request: Fetcher) => ({
   setAccountIcon: (id: number, icon: FinanceAccountIcon | null) =>
     request<FinanceAccount>(`/finance/accounts/${id}/icon`, json("PUT", { icon })),
   data: () => request<FinanceData>("/finance/"),
-  dashboard: (period: FinancePeriod, date: string) =>
+  dashboard: (period: FinancePeriod, date: string, start?: string) =>
     request<FinanceDashboard>(
-      `/finance/dashboard?period=${period}&date=${date}`,
+      `/finance/dashboard?period=${period}&date=${date}${start ? `&start=${start}` : ""}`,
     ),
 });
 
