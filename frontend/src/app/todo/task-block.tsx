@@ -124,12 +124,12 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
         >
           <div
             {...grabber}
-            className="flex h-6 shrink-0 touch-none cursor-grab items-center justify-center"
+            className="flex h-6 shrink-0 touch-none cursor-grab items-center justify-center sm:hidden"
             aria-hidden
           >
             <span className="h-1 w-10 rounded-full bg-muted-foreground/40" />
           </div>
-          <div ref={content} className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-5">
+          <div ref={content} className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-5 sm:pt-4">
             <div className="flex items-start gap-1">
               <span className="mt-4 mr-2 size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
               <TitleField task={task} locked={locked} />
