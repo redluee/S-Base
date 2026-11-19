@@ -3,14 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Flag, Lock, X } from "lucide-react";
-import { daysToDue } from "@backend/shared/todo";
 import type { TodoTask } from "@backend/types/todo";
 import { t } from "@/lib/lang";
 import { cn } from "@/lib/utils";
 import { createDebouncedSaver } from "./block-motion";
 import { CategoryChips } from "./category-chips";
 import { DuePicker } from "./due-picker";
-import { duePhrase, taskColor } from "./due-label";
+import { taskColor } from "./due-label";
 import { NotesField } from "./notes-field";
 import { sourceHref } from "./source-link";
 import { SubtaskList } from "./subtask-list";
@@ -95,7 +94,6 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
   const color = taskColor(task, store.categories);
   const locked = task.link !== null;
   const href = task.link ? sourceHref(task.link) : null;
-  const overdue = task.dueDate !== null && daysToDue(task.dueDate) < 0;
   const category = store.categories.find((c) => c.id === task.categoryId);
   const project = store.projects.find((p) => p.id === task.projectId);
   const patch = (values: Parameters<typeof store.actions.update>[1]) => void store.actions.update(task.id, values);
@@ -148,12 +146,6 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
                 <X className="size-5" />
               </button>
             </div>
-
-            {task.dueDate && (
-              <p className={cn("text-2xl font-medium tracking-tight", overdue ? "text-red-400" : "text-foreground")}>
-                {duePhrase(task.dueDate)}
-              </p>
-            )}
 
             {locked ? (
               <div className="space-y-1 text-sm text-muted-foreground">

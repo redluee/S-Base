@@ -74,7 +74,7 @@ export function NotesField({ value, onSave }: Props) {
           saver.current?.flush();
           setEditing(false);
         }}
-        className="min-h-24 w-full resize-none rounded-lg bg-muted p-3 text-sm leading-relaxed text-foreground outline-none focus-visible:outline-2 focus-visible:outline-brand"
+        className="min-h-24 w-full resize-none rounded-lg p-3 text-sm leading-relaxed bg-foreground/[0.06] text-foreground outline-none placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-brand"
       />
     );
   }
@@ -91,7 +91,7 @@ export function NotesField({ value, onSave }: Props) {
         }
       }}
       aria-label={t("todo.block.notes")}
-      className="block min-h-11 w-full cursor-text rounded-lg p-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-brand"
+      className="block min-h-11 w-full cursor-text rounded-lg p-3 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline-2 focus-visible:outline-brand"
     >
       {draft.trim() ? (
         <LightMarkdown source={draft} />

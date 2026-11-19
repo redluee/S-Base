@@ -126,7 +126,7 @@ export function SubtaskList({ task, color }: Props) {
             if (draft.trim()) void submit(false);
             setAdding(false);
           }}
-          className="mt-1 min-h-11 w-full rounded-lg bg-muted px-3 text-sm text-foreground outline-none focus-visible:outline-2 focus-visible:outline-brand"
+          className="mt-1 min-h-11 w-full rounded-lg px-3 text-sm bg-foreground/[0.06] text-foreground outline-none placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-brand"
         />
       ) : (
         <button

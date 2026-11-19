@@ -39,7 +39,7 @@ export function DuePicker({ value, onChange, emptyLabel, disabled = false }: Due
           !badge && emptyLabel && "bg-foreground/[0.06] px-3 text-muted-foreground hover:text-foreground",
           !badge && !emptyLabel && "w-11 justify-center text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
           disabled && "pointer-events-none",
-          badge?.tone === "overdue" && "bg-red-400/12",
+          badge?.tone === "overdue" && "bg-red-400/12 text-red-300",
         )}
       >
         <CalendarDays className={cn("size-[18px] shrink-0", badge && badge.tone !== "overdue" && "text-brand")} aria-hidden="true" />
