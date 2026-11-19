@@ -66,20 +66,28 @@ function TitleField({ task, locked }: { task: TodoTask; locked: boolean }) {
   }, [task.title]);
 
   return (
-    <input
+    <textarea
       value={title}
+      rows={1}
       maxLength={200}
       readOnly={locked}
       aria-label={t("todo.block.title")}
       onChange={(e) => {
-        setTitle(e.target.value);
-        saver.current?.schedule(e.target.value);
+        const value = e.target.value.replace(/\n/g, " ");
+        setTitle(value);
+        saver.current?.schedule(value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
       }}
       onBlur={() => {
         saver.current?.flush();
         if (!title.trim()) setTitle(lastSaved.current);
       }}
-      className="min-h-11 min-w-0 flex-1 bg-transparent text-lg font-medium text-foreground outline-none"
+      className="min-h-11 min-w-0 flex-1 resize-none bg-transparent py-2 text-lg leading-snug font-medium text-pretty text-foreground outline-none field-sizing-content"
     />
   );
 }
@@ -122,8 +130,8 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
             <span className="h-1 w-10 rounded-full bg-muted-foreground/40" />
           </div>
           <div ref={content} className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-5">
-            <div className="flex items-center gap-1">
-              <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+            <div className="flex items-start gap-1">
+              <span className="mt-4 size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
               <TitleField task={task} locked={locked} />
               <button
                 type="button"
