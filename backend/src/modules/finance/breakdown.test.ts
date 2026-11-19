@@ -86,16 +86,7 @@ describe("Finance income and spending breakdown", () => {
     entry(owner, "Sample Lab B.V. ", "2025-03-03", 19500, "NL00DEMO0000000011");
     entry(owner, "Sample Lab B.V. ", "2025-03-12", 91000, "NL00DEMO0000000011");
     entry(owner, "Sample Lab B.V.", "2025-03-20", 84500);
-    entry(
-      owner,
-      "Sample Lab Invoices",
-      "2025-03-21",
-      1000,
-      null,
-      null,
-      accountId,
-      "Naam: X IBAN: NL00DEMO0000000011 Datum",
-    );
+    entry(owner, "SAMPLE LAB BV", "2025-03-21", 1000, null, null, accountId, "Naam: X IBAN: NL00DEMO0000000011 Datum");
     entry(owner, "Sample Shared Name", "2025-03-04", 3000, "NL00DEMO0000000012");
     entry(owner, "Sample Shared Name", "2025-03-05", 4000, "NL00DEMO0000000013");
     entry(owner, "Sample Shared Name", "2025-03-06", 5000);
@@ -106,10 +97,38 @@ describe("Finance income and spending breakdown", () => {
       end: "2025-03-31",
     });
     expect(income.groups.map((group) => [group.name, group.iban, group.totalCents, group.count])).toEqual([
-      ["Sample Lab Invoices", "NL00DEMO0000000011", 196000, 4],
+      ["SAMPLE LAB BV", "NL00DEMO0000000011", 196000, 4],
       ["Sample Shared Name", null, 5000, 1],
       ["Sample Shared Name", "NL00DEMO0000000013", 4000, 1],
       ["Sample Shared Name", "NL00DEMO0000000012", 3000, 1],
+    ]);
+  });
+
+  it("keeps different payees apart when they share a collecting account number", () => {
+    entry(owner, "Sample Club via Rabo Zakelijk Betaalverzoek", "2025-03-20", 2750, "NL00DEMO0000000021");
+    entry(owner, "Rabo Betaalverzoek", "2025-03-02", 221800, "NL00DEMO0000000021");
+    entry(owner, "Sample Market 1403", "2025-03-03", 1200, "NL00DEMO0000000022");
+    entry(owner, "SAMPLE MARKET 2210", "2025-03-04", 800, "NL00DEMO0000000022");
+    entry(owner, "Hr J Example", "2025-03-05", 5000, "NL00DEMO0000000023");
+    entry(owner, "Jan Example", "2025-03-06", 6000, "NL00DEMO0000000023");
+    entry(owner, "Sample Gadgets", "2025-03-07", 900, "NL00DEMO0000000024");
+    entry(owner, "Other Tickets B.V.", "2025-03-08", 700, "NL00DEMO0000000024");
+    entry(owner, "SampleStream", "2025-03-09", 600, "NL00DEMO0000000025");
+    entry(owner, "Sample Stream by Collector", "2025-03-10", 500, "NL00DEMO0000000025");
+
+    const income = service.breakdowns.breakdown(owner, {
+      direction: "income",
+      start: "2025-03-01",
+      end: "2025-03-31",
+    });
+    expect(income.groups.map((group) => [group.name, group.iban, group.totalCents, group.count])).toEqual([
+      ["Rabo Betaalverzoek", "NL00DEMO0000000021", 221800, 1],
+      ["Jan Example", "NL00DEMO0000000023", 11000, 2],
+      ["Sample Club via Rabo Zakelijk Betaalverzoek", "NL00DEMO0000000021", 2750, 1],
+      ["SAMPLE MARKET 2210", "NL00DEMO0000000022", 2000, 2],
+      ["Sample Stream by Collector", "NL00DEMO0000000025", 1100, 2],
+      ["Sample Gadgets", "NL00DEMO0000000024", 900, 1],
+      ["Other Tickets B.V.", "NL00DEMO0000000024", 700, 1],
     ]);
   });
 

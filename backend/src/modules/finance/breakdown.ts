@@ -1,15 +1,12 @@
 import { ValidationError } from "../../utils/errors";
 import type { FinanceBreakdown, FinanceBreakdownDirection, FinanceBreakdownGroup } from "../../types/finance";
+import { payeeClusters, payeeName } from "./breakdown-names";
 import { accountNumberKey, type FinanceTransactions } from "./transactions";
 import { calendarDate, today } from "./validation";
 
 const RECENT_LIMIT = 25;
 
 const DESCRIPTION_IBAN = /\bIBAN:\s*([A-Z]{2}\d{2}[A-Z0-9]{4,30})\b/i;
-
-function normalizedName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
-}
 
 function counterpartyIban(counterparty: string | null, description: string) {
   if (counterparty) return counterparty;
@@ -45,22 +42,31 @@ export class FinanceBreakdowns {
           : entry.counterpartyIdentity !== "unidentified"
             ? entry.counterpartyIdentity
             : null;
-        return { ...entry, iban, identity, normalized: normalizedName(entry.name) };
+        return { ...entry, iban, identity, payee: payeeName(entry.name) };
       });
-    const identitiesByName = new Map<string, Set<string>>();
+    const payeesByIdentity = new Map<string, string[]>();
+    for (const entry of entries)
+      if (entry.identity)
+        payeesByIdentity.set(entry.identity, [...(payeesByIdentity.get(entry.identity) ?? []), entry.payee]);
+    const clusters = new Map([...payeesByIdentity].map(([identity, payees]) => [identity, payeeClusters(payees)]));
+    const clusterKey = (identity: string, payee: string) => `iban:${identity}:${clusters.get(identity)?.get(payee)}`;
+    const keysByPayee = new Map<string, Set<string>>();
     for (const entry of entries) {
       if (!entry.identity) continue;
-      const identities = identitiesByName.get(entry.normalized) ?? new Set<string>();
-      identities.add(entry.identity);
-      identitiesByName.set(entry.normalized, identities);
+      const keys = keysByPayee.get(entry.payee) ?? new Set<string>();
+      keys.add(clusterKey(entry.identity, entry.payee));
+      keysByPayee.set(entry.payee, keys);
     }
     const groups = new Map<string, FinanceBreakdownGroup>();
     let totalCents = 0;
     let transactionCount = 0;
     for (const entry of entries) {
-      const namesake = identitiesByName.get(entry.normalized);
-      const identity = entry.identity ?? (namesake?.size === 1 ? [...namesake][0] : null);
-      const key = identity ? `iban:${identity}` : `name:${entry.normalized}`;
+      const namesake = keysByPayee.get(entry.payee);
+      const key = entry.identity
+        ? clusterKey(entry.identity, entry.payee)
+        : namesake?.size === 1
+          ? [...namesake][0]
+          : `name:${entry.payee}`;
       const amountCents = Math.abs(entry.amountCents);
       const group = groups.get(key) ?? {
         key,
