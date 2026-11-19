@@ -87,7 +87,7 @@ function TitleField({ task, locked }: { task: TodoTask; locked: boolean }) {
         saver.current?.flush();
         if (!title.trim()) setTitle(lastSaved.current);
       }}
-      className="min-h-11 min-w-0 flex-1 resize-none bg-transparent py-2 text-lg leading-snug font-medium text-pretty text-foreground outline-none field-sizing-content"
+      className="min-h-11 min-w-0 flex-1 resize-none bg-transparent py-2 text-lg leading-7 font-medium text-pretty text-foreground outline-none field-sizing-content"
     />
   );
 }
@@ -131,7 +131,7 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
           </div>
           <div ref={content} className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-5">
             <div className="flex items-start gap-1">
-              <span className="mt-4 size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+              <span className="mt-4 mr-2 size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
               <TitleField task={task} locked={locked} />
               <button
                 type="button"
