@@ -3,7 +3,7 @@
 import { Flag } from "lucide-react";
 import { t } from "@/lib/lang";
 import { CategoryStrip } from "./category-strip";
-import { Chip, ChipCount } from "./chip";
+import { Chip } from "./chip";
 import { manualCategories } from "./todo-state";
 import { useTodoUi } from "./todo-ui";
 
@@ -38,10 +38,14 @@ export function FilterChips() {
       categoryCount={(id) => categoryCounts.get(id) ?? 0}
       projectCount={(id) => projectCounts.get(id) ?? 0}
       leading={
-        <Chip active={flagged} onClick={() => actions.toggleFilter({ kind: "flagged" })}>
+        <Chip
+          active={flagged}
+          aria-label={t("todo.filter.flagged")}
+          title={t("todo.filter.flagged")}
+          className="w-8 justify-center px-0 before:-inset-x-1.5"
+          onClick={() => actions.toggleFilter({ kind: "flagged" })}
+        >
           <Flag className="size-3.5 text-brand" aria-hidden="true" />
-          {t("todo.filter.flagged")}
-          <ChipCount value={tasks.filter((task) => task.flagged).length} active={flagged} />
         </Chip>
       }
     />
