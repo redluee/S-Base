@@ -6,7 +6,7 @@ import type { TodoSnapshot } from "@backend/types/todo";
 import { t } from "@/lib/lang";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useTodoStore } from "./use-todo-store";
-import { TodoUiContext, useTodoUi, type TodoUi } from "./todo-ui";
+import { TodoUiContext, type TodoUi } from "./todo-ui";
 import { Counter } from "./counter";
 import { FilterChips } from "./filter-chips";
 import { TaskList } from "./task-list";
@@ -18,46 +18,7 @@ import { UndoButton } from "./undo-button";
 import { CompletionProvider } from "./completion/completion-provider";
 import { useTodoKeys } from "./use-todo-keys";
 import { originFrom, type SheetOrigin } from "./sheet-morph";
-import { listSummary } from "./due-label";
 import { cn } from "@/lib/utils";
-
-const todayLabel = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long" });
-
-function Summary() {
-  const { store } = useTodoUi();
-  const summary = listSummary(store.tasks);
-  const parts = [
-    { key: "open", text: t("todo.summary.open", { count: String(summary.open) }), tone: "" },
-    summary.overdue > 0 && { key: "overdue", text: t("todo.summary.overdue", { count: String(summary.overdue) }), tone: "text-red-400" },
-    summary.today > 0 && { key: "today", text: t("todo.summary.today", { count: String(summary.today) }), tone: "text-brand" },
-  ].filter((part) => part !== false);
-  return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground" suppressHydrationWarning>
-      <span className="w-full first-letter:uppercase sm:w-auto" suppressHydrationWarning>
-        {todayLabel.format(new Date())}
-      </span>
-      {store.status !== "loading" && (
-        <>
-          <span aria-hidden="true" className="hidden sm:inline">
-            ·
-          </span>
-          {summary.open === 0 ? (
-            <span>{t("todo.summary.clear")}</span>
-          ) : (
-            <span className="flex items-center gap-x-1.5 whitespace-nowrap">
-              {parts.map((part, i) => (
-                <span key={part.key} className="flex items-center gap-x-1.5">
-                  {i > 0 && <span aria-hidden="true">·</span>}
-                  <span className={cn("tabular-nums", part.tone)}>{part.text}</span>
-                </span>
-              ))}
-            </span>
-          )}
-        </>
-      )}
-    </p>
-  );
-}
 
 type Overlay =
   | { kind: "none" }
@@ -96,10 +57,9 @@ export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; 
     <TodoUiContext.Provider value={ui}>
       <CompletionProvider>
         <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[640px] flex-col px-4 pt-4 pb-32">
-          <header className="flex items-start justify-between gap-2 pt-1">
+          <header className="flex items-center justify-between gap-2 pt-1">
             <div className="min-w-0">
               <h1 className="font-display text-2xl tracking-tight text-foreground sm:text-3xl">{t("todo.title")}</h1>
-              <Summary />
             </div>
             <div className="flex shrink-0 items-center self-start">
               {(store.offline || store.pending) && (

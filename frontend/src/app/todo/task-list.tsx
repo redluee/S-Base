@@ -3,7 +3,7 @@
 import { Check, Plus } from "lucide-react";
 import { t } from "@/lib/lang";
 import { CompletionRow } from "./completion/completion-row";
-import { taskColor } from "./due-label";
+import { listSummary, taskColor } from "./due-label";
 import { focusQuickAdd } from "./quick-add";
 import { originFrom } from "./sheet-morph";
 import { TaskCheck } from "./task-check";
@@ -26,6 +26,34 @@ function Shortcut() {
   );
 }
 
+function OpenSummary() {
+  const { store } = useTodoUi();
+  const summary = listSummary(store.visibleTasks);
+  const parts = [
+    { key: "open", text: t("todo.summary.open", { count: String(summary.open) }), tone: "" },
+    summary.overdue > 0 && {
+      key: "overdue",
+      text: t("todo.summary.overdue", { count: String(summary.overdue) }),
+      tone: "text-red-400",
+    },
+    summary.today > 0 && {
+      key: "today",
+      text: t("todo.summary.today", { count: String(summary.today) }),
+      tone: "text-brand",
+    },
+  ].filter((part) => part !== false);
+  return (
+    <span className="ml-3 flex shrink-0 items-center gap-x-1.5 text-xs whitespace-nowrap text-muted-foreground tabular-nums sm:mr-2">
+      {parts.map((part, i) => (
+        <span key={part.key} className="flex items-center gap-x-1.5">
+          {i > 0 && <span aria-hidden="true">·</span>}
+          <span className={part.tone}>{part.text}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function AddRow() {
   const ui = useTodoUi();
   return (
@@ -39,7 +67,8 @@ function AddRow() {
           <Plus className="size-3" strokeWidth={3} aria-hidden="true" />
         </span>
       </span>
-      <span className="flex-1 pl-1">{t("todo.add.placeholder")}</span>
+      <span className="min-w-0 flex-1 truncate pl-1">{t("todo.add.placeholder")}</span>
+      <OpenSummary />
       <Shortcut />
     </button>
   );

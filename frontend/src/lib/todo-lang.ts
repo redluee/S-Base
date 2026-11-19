@@ -35,7 +35,6 @@ export const todoNl: Record<string, string> = {
   "todo.summary.open": "{count} open",
   "todo.summary.overdue": "{count} te laat",
   "todo.summary.today": "{count} vandaag",
-  "todo.summary.clear": "Alles afgevinkt",
 
   "todo.row.complete": "Voltooi {title}",
   "todo.row.open": "Open {title}",
