@@ -20,9 +20,9 @@ function DustBurst({ burst, onDone }: { burst: DustBurstData; onDone: (id: numbe
       const p = burst.particles[i];
       return span.animate(
         [
-          { transform: "translate(0, 0) scale(1)", opacity: 1 },
-          { transform: `translate(${p.dx * 0.7}px, ${p.dy * 0.7}px) scale(0.9)`, opacity: 0.8, offset: 0.5 },
-          { transform: `translate(${p.dx}px, ${p.dy}px) scale(0.4)`, opacity: 0 },
+          { transform: "translate(0, 0) scale(1)", opacity: 1, filter: "blur(0.6px)" },
+          { transform: `translate(${p.dx * 0.7}px, ${p.dy * 0.7}px) scale(0.9)`, opacity: 0.8, filter: "blur(1.2px)", offset: 0.5 },
+          { transform: `translate(${p.dx}px, ${p.dy}px) scale(0.4)`, opacity: 0, filter: "blur(2.5px)" },
         ],
         { duration: p.duration, delay: p.delay, easing: EASE_OUT, fill: "both" },
       );
@@ -39,7 +39,7 @@ function DustBurst({ burst, onDone }: { burst: DustBurstData; onDone: (id: numbe
       {burst.particles.map((p, i) => (
         <span
           key={i}
-          className="absolute rounded-full"
+          className="absolute rounded-full blur-[0.6px]"
           style={{ left: p.x, top: p.y, width: p.size, height: p.size, backgroundColor: burst.color }}
         />
       ))}
