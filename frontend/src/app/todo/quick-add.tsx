@@ -81,6 +81,7 @@ export function QuickAdd({ open, origin, onClose }: QuickAddProps) {
       label={t("todo.add")}
       autoFocus={false}
       origin={origin}
+      centered
       sheetRef={(el) => {
         quickAddPanel = el;
       }}

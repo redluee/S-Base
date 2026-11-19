@@ -17,6 +17,7 @@ interface BottomSheetProps {
   autoFocus?: boolean;
   className?: string;
   origin?: SheetOrigin | "instant" | null;
+  centered?: boolean;
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
@@ -96,6 +97,7 @@ export function BottomSheet({
   autoFocus = true,
   className,
   origin = null,
+  centered = false,
 }: BottomSheetProps) {
   const panel = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ pointerId: number; startY: number; startTime: number } | null>(null);
@@ -193,10 +195,15 @@ export function BottomSheet({
           "fixed inset-x-0 bottom-0 z-40 mx-auto flex max-h-[85dvh] w-full max-w-[640px] flex-col rounded-t-2xl bg-card text-card-foreground outline-none ring-1 ring-foreground/10",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 sm:rounded-2xl sm:pb-3",
           offset === 0 &&
-            "motion-safe:transition-[translate,opacity] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "motion-safe:transition-[translate,scale,opacity] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)]",
           open
             ? "translate-y-0 opacity-100 motion-safe:duration-[380ms]"
             : "pointer-events-none translate-y-[calc(100%+1rem)] opacity-0 motion-safe:duration-200",
+          centered && "sm:top-1/2 sm:bottom-auto sm:pt-3",
+          centered &&
+            (open
+              ? "sm:-translate-y-1/2 sm:scale-100 sm:motion-safe:duration-[260ms]"
+              : "sm:translate-y-[calc(-50%+0.75rem)] sm:scale-[0.97] sm:motion-safe:duration-150 sm:motion-safe:ease-out"),
           className,
         )}
       >
@@ -207,7 +214,7 @@ export function BottomSheet({
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
         >
-          <div className="flex h-5 items-center justify-center">
+          <div className={cn("flex h-5 items-center justify-center", centered && "sm:hidden")}>
             <span className="h-1 w-10 rounded-full bg-foreground/20" />
           </div>
           {header}
