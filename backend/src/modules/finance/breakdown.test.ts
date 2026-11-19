@@ -19,6 +19,7 @@ function entry(
   counterparty: string | null = null,
   transferOverride: boolean | null = null,
   targetAccount = accountId,
+  description = `${name} description`,
 ) {
   return db
     .insert(financeTransactions)
@@ -28,7 +29,7 @@ function entry(
       name,
       date,
       amountCents,
-      description: `${name} description`,
+      description,
       counterparty,
       counterpartyKey: counterparty ? accountNumberKey(userId, counterparty) : null,
       transferOverride,
@@ -79,6 +80,37 @@ describe("Finance income and spending breakdown", () => {
       ].sort((a, b) => Number(b[2]) - Number(a[2])),
     );
     expect(income.groups[1].transactions.map((transaction) => transaction.date)).toEqual(["2025-03-15", "2025-03-01"]);
+  });
+
+  it("merges a counterparty's payments that arrive without an account number", () => {
+    entry(owner, "Sample Lab B.V. ", "2025-03-03", 19500, "NL00DEMO0000000011");
+    entry(owner, "Sample Lab B.V. ", "2025-03-12", 91000, "NL00DEMO0000000011");
+    entry(owner, "Sample Lab B.V.", "2025-03-20", 84500);
+    entry(
+      owner,
+      "Sample Lab Invoices",
+      "2025-03-21",
+      1000,
+      null,
+      null,
+      accountId,
+      "Naam: X IBAN: NL00DEMO0000000011 Datum",
+    );
+    entry(owner, "Sample Shared Name", "2025-03-04", 3000, "NL00DEMO0000000012");
+    entry(owner, "Sample Shared Name", "2025-03-05", 4000, "NL00DEMO0000000013");
+    entry(owner, "Sample Shared Name", "2025-03-06", 5000);
+
+    const income = service.breakdowns.breakdown(owner, {
+      direction: "income",
+      start: "2025-03-01",
+      end: "2025-03-31",
+    });
+    expect(income.groups.map((group) => [group.name, group.iban, group.totalCents, group.count])).toEqual([
+      ["Sample Lab Invoices", "NL00DEMO0000000011", 196000, 4],
+      ["Sample Shared Name", null, 5000, 1],
+      ["Sample Shared Name", "NL00DEMO0000000013", 4000, 1],
+      ["Sample Shared Name", "NL00DEMO0000000012", 3000, 1],
+    ]);
   });
 
   it("reports spending as positive amounts and isolates other users", () => {

@@ -1,12 +1,19 @@
 import { ValidationError } from "../../utils/errors";
 import type { FinanceBreakdown, FinanceBreakdownDirection, FinanceBreakdownGroup } from "../../types/finance";
-import type { FinanceTransactions } from "./transactions";
+import { accountNumberKey, type FinanceTransactions } from "./transactions";
 import { calendarDate, today } from "./validation";
 
 const RECENT_LIMIT = 25;
 
+const DESCRIPTION_IBAN = /\bIBAN:\s*([A-Z]{2}\d{2}[A-Z0-9]{4,30})\b/i;
+
 function normalizedName(name: string) {
   return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function counterpartyIban(counterparty: string | null, description: string) {
+  if (counterparty) return counterparty;
+  return DESCRIPTION_IBAN.exec(description)?.[1].toUpperCase() ?? null;
 }
 
 export class FinanceBreakdowns {
@@ -26,19 +33,39 @@ export class FinanceBreakdowns {
     endDate: string,
     userId: number,
   ): FinanceBreakdown {
+    const entries = this.transactions
+      .counterpartyTransactions(userId, startDate, endDate)
+      .filter(
+        (entry) => !entry.internalTransfer && (direction === "income" ? entry.amountCents > 0 : entry.amountCents < 0),
+      )
+      .map((entry) => {
+        const iban = counterpartyIban(entry.counterparty, entry.description);
+        const identity = iban
+          ? accountNumberKey(userId, iban)
+          : entry.counterpartyIdentity !== "unidentified"
+            ? entry.counterpartyIdentity
+            : null;
+        return { ...entry, iban, identity, normalized: normalizedName(entry.name) };
+      });
+    const identitiesByName = new Map<string, Set<string>>();
+    for (const entry of entries) {
+      if (!entry.identity) continue;
+      const identities = identitiesByName.get(entry.normalized) ?? new Set<string>();
+      identities.add(entry.identity);
+      identitiesByName.set(entry.normalized, identities);
+    }
     const groups = new Map<string, FinanceBreakdownGroup>();
     let totalCents = 0;
     let transactionCount = 0;
-    for (const entry of this.transactions.counterpartyTransactions(userId, startDate, endDate)) {
-      if (entry.internalTransfer) continue;
-      if (direction === "income" ? entry.amountCents <= 0 : entry.amountCents >= 0) continue;
+    for (const entry of entries) {
+      const namesake = identitiesByName.get(entry.normalized);
+      const identity = entry.identity ?? (namesake?.size === 1 ? [...namesake][0] : null);
+      const key = identity ? `iban:${identity}` : `name:${entry.normalized}`;
       const amountCents = Math.abs(entry.amountCents);
-      const name = normalizedName(entry.name);
-      const key = entry.counterpartyIdentity !== "unidentified" ? `iban:${entry.counterpartyIdentity}` : `name:${name}`;
       const group = groups.get(key) ?? {
         key,
         name: entry.name.trim(),
-        iban: entry.counterparty,
+        iban: entry.iban,
         totalCents: 0,
         count: 0,
         lastDate: entry.date,
@@ -47,7 +74,7 @@ export class FinanceBreakdowns {
       group.totalCents += amountCents;
       group.count++;
       if (!group.name && entry.name.trim()) group.name = entry.name.trim();
-      if (!group.iban && entry.counterparty) group.iban = entry.counterparty;
+      if (!group.iban && entry.iban) group.iban = entry.iban;
       if (group.transactions.length < RECENT_LIMIT)
         group.transactions.push({
           id: entry.id,
