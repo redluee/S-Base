@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CloudOff, History, Plus, Settings } from "lucide-react";
+import { CloudOff, Plus, Settings } from "lucide-react";
 import type { TodoSnapshot } from "@backend/types/todo";
 import { t } from "@/lib/lang";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -67,10 +67,7 @@ export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; 
                   <CloudOff className="size-4" aria-label={t("todo.header.offline")} />
                 </span>
               )}
-              <Counter value={store.completedCount} />
-              <button type="button" className={iconButton} onClick={ui.openHistory} aria-label={t("todo.header.history")}>
-                <History className="size-5" />
-              </button>
+              <Counter value={store.completedCount} onClick={ui.openHistory} />
               <button type="button" className={iconButton} onClick={ui.openManage} aria-label={t("todo.header.manage")}>
                 <Settings className="size-5" />
               </button>

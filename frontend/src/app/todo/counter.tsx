@@ -52,22 +52,30 @@ function DigitSlot({ digit, direction }: { digit: string; direction: 1 | -1 }) {
   );
 }
 
-export function Counter({ value }: { value: number }) {
+export function Counter({ value, onClick }: { value: number; onClick: () => void }) {
   const [state, setState] = useState({ value, direction: 1 as 1 | -1 });
   if (state.value !== value) setState({ value, direction: value > state.value ? 1 : -1 });
   const digits = counterDigits(value);
 
   return (
-    <span className="mr-1 flex h-8 items-center gap-1 rounded-full bg-foreground/[0.06] pr-2.5 pl-2 text-sm text-foreground tabular-nums ring-1 ring-foreground/10">
-      <Check className="size-3.5 text-brand" strokeWidth={3} aria-hidden="true" />
+    <>
       <span className="sr-only" aria-live="polite">
         {t("todo.header.counter", { count: String(value) })}
       </span>
-      <span aria-hidden="true" className="flex">
-        {digits.map(({ key, digit }) => (
-          <DigitSlot key={key} digit={digit} direction={state.direction} />
-        ))}
-      </span>
-    </span>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`${t("todo.header.history")}: ${t("todo.header.counter", { count: String(value) })}`}
+        title={t("todo.header.history")}
+        className="relative mr-1 flex h-8 items-center gap-1 rounded-full bg-foreground/[0.06] pr-2.5 pl-2 text-sm text-foreground tabular-nums ring-1 ring-foreground/10 transition-[background-color,scale] duration-150 ease-out before:absolute before:-inset-y-1.5 before:inset-x-0 hover:bg-foreground/10 active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        <Check className="size-3.5 text-brand" strokeWidth={3} aria-hidden="true" />
+        <span aria-hidden="true" className="flex">
+          {digits.map(({ key, digit }) => (
+            <DigitSlot key={key} digit={digit} direction={state.direction} />
+          ))}
+        </span>
+      </button>
+    </>
   );
 }
