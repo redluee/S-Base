@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IngredientAutocomplete } from "./ingredient-autocomplete";
 import { t } from "@/lib/lang";
+import { DEFAULT_RECIPE_UNIT, RECIPE_UNITS } from "@backend/shared/recipes";
 
-const UNITS = ["g", "kg", "ml", "l", "pcs", "tsp", "tbsp", "pinch"];
 
 export interface IngredientRow {
   id: string;
@@ -83,7 +83,7 @@ export function RecipeIngredientList({
         return next;
       });
     }, 300);
-    onChange([...ingredients, { id, name: "", quantity: "1", unit: "pcs", isOptional: false }]);
+    onChange([...ingredients, { id, name: "", quantity: "1", unit: DEFAULT_RECIPE_UNIT, isOptional: false }]);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         document.getElementById(`ing-name-${id}`)?.focus();
@@ -385,12 +385,12 @@ export function RecipeIngredientList({
               )}
             </div>
             <div className="flex-[2] sm:w-28 sm:flex-none">
-              <Select value={ing.unit} onValueChange={(v) => updateIngredient(ing.id, "unit", v ?? "pcs")}>
+              <Select value={ing.unit} onValueChange={(v) => updateIngredient(ing.id, "unit", v ?? DEFAULT_RECIPE_UNIT)}>
                 <SelectTrigger className="bg-white/5 border-border h-9 sm:h-8 w-full">
                   <SelectValue>{t(ing.unit)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {UNITS.map((u) => (
+                  {RECIPE_UNITS.map((u) => (
                     <SelectItem key={u} value={u}>{t(u)}</SelectItem>
                   ))}
                 </SelectContent>

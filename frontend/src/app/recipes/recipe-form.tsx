@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_RECIPE_STATUS } from "@backend/shared/recipes";
+import { DEFAULT_RECIPE_STATUS, DEFAULT_RECIPE_UNIT } from "@backend/shared/recipes";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -13,34 +13,37 @@ import { KitchenCombobox } from "./kitchen-combobox";
 import { RecipeIngredientList, IngredientRow } from "./recipe-ingredient-list";
 import { RecipeStepList, StepRow } from "./recipe-step-list";
 import { Loader2 } from "lucide-react";
-import type { FullRecipe } from "@backend/types/recipes";
+import type { FullRecipe, RecipeDraft } from "@backend/types/recipes";
 import { RECIPE_STATUSES, STATUS_IDLE, STATUS_SELECTED } from "./recipe-status";
 
 export function RecipeForm({
   initial,
+  draft,
 }: {
   initial?: FullRecipe;
+  draft?: RecipeDraft;
 }) {
   const router = useRouter();
   const isEdit = !!initial;
+  const source = initial ?? draft;
 
-  const [name, setName] = useState(initial?.name ?? "");
-  const [description, setDescription] = useState(initial?.description ?? "");
-  const [cookingTime, setCookingTime] = useState(initial?.cookingTime?.toString() ?? "");
-  const [kitchen, setKitchen] = useState(initial?.kitchen ?? "");
+  const [name, setName] = useState(source?.name ?? "");
+  const [description, setDescription] = useState(source?.description ?? "");
+  const [cookingTime, setCookingTime] = useState(source?.cookingTime?.toString() ?? "");
+  const [kitchen, setKitchen] = useState(source?.kitchen ?? "");
   const [status, setStatus] = useState(initial?.status ?? DEFAULT_RECIPE_STATUS);
   const [rating, setRating] = useState(initial?.rating?.toString() ?? "");
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
-    initial?.ingredients?.map((i, idx: number) => ({
+    source?.ingredients?.map((i, idx: number) => ({
       id: `ing-${idx}`,
       name: i.name,
       quantity: i.quantity.toString(),
-      unit: i.unit ?? "pcs",
+      unit: i.unit ?? DEFAULT_RECIPE_UNIT,
       isOptional: i.isOptional ?? false,
     })) ?? [],
   );
   const [steps, setSteps] = useState<StepRow[]>(
-    initial?.steps?.map((s, idx: number) => ({
+    source?.steps?.map((s, idx: number) => ({
       id: `step-${idx}`,
       description: s.description,
     })) ?? [],

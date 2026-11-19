@@ -67,4 +67,10 @@ describe("recipe routes error contract", () => {
       expect(await res.json()).toEqual({ error: "common.unauthorized" });
     }
   });
+
+  it("validates pasted recipe text before calling the AI", async () => {
+    const res = await call(cookie, "POST", "/api/recipes/import", { text: "  " });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "recipes.importTextRequired" });
+  });
 });

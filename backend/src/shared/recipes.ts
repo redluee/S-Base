@@ -33,3 +33,13 @@ export function isWineType(value: unknown): value is WineType {
 export function isPurchaseLocation(value: unknown): value is PurchaseLocation {
   return PURCHASE_LOCATIONS.includes(value as PurchaseLocation);
 }
+
+export const RECIPE_UNITS = ["g", "kg", "ml", "l", "pcs", "tsp", "tbsp", "pinch"] as const;
+export type RecipeUnit = (typeof RECIPE_UNITS)[number];
+export const DEFAULT_RECIPE_UNIT: RecipeUnit = "pcs";
+
+export function isRecipeUnit(value: unknown): value is RecipeUnit {
+  return RECIPE_UNITS.includes(value as RecipeUnit);
+}
+
+export const RECIPE_IMPORT_MAX_LENGTH = 40000;

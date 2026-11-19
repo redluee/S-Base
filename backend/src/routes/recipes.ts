@@ -51,6 +51,9 @@ export const recipeRoutes = new Elysia()
       })
       .get("/suggest", ({ query: { q } }) => (q ? recipes.catalog.suggest(q) : []), { query: searchQuery })
       .get("/:id", ({ params: { id } }) => recipes.catalog.getById(id), { params: idParams })
+      .post("/import", ({ body }) => recipes.importer.fromText(body.text), {
+        body: t.Object({ text: t.String() }),
+      })
       .post("/", ({ body }) => recipes.catalog.create(body), {
         body: t.Object({ name: t.String(), ...recipeFields }),
       })

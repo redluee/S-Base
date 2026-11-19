@@ -1,5 +1,5 @@
 import { request as clientRequest, type Fetcher } from "./core";
-import type { FullRecipe, Recipe } from "@backend/types/recipes";
+import type { FullRecipe, Recipe, RecipeDraft } from "@backend/types/recipes";
 
 export const createRecipesApi = (request: Fetcher) => ({
   list: (status?: string, sortBy?: string, sortOrder?: string, q?: string) => {
@@ -17,6 +17,9 @@ export const createRecipesApi = (request: Fetcher) => ({
     ),
 
   get: (id: number) => request<FullRecipe>(`/recipes/${id}`),
+
+  importText: (text: string) =>
+    request<RecipeDraft>("/recipes/import", { method: "POST", body: JSON.stringify({ text }) }),
 
   create: (data: unknown) =>
     request<FullRecipe>("/recipes", { method: "POST", body: JSON.stringify(data) }),

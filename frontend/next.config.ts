@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     "base.stevenheijn.nl",
   ],
   poweredByHeader: false,
+  experimental: {
+    proxyTimeout: 120_000,
+  },
   async headers() {
     return [
       {
