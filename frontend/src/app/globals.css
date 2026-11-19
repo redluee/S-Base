@@ -552,3 +552,12 @@ input[type="number"] {
     transform: translateY(0);
   }
 }
+
+@keyframes finance-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}

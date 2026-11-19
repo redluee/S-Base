@@ -24,11 +24,12 @@ import { CalendarRange, Upload } from "lucide-react";
 import { RangePicker } from "./range-picker";
 import { presetRange, type FinanceRange } from "./lib/finance-range";
 import { Subscriptions } from "./subscriptions";
+import { FinanceProgress, FinanceSkeleton } from "./loading-state";
 
 type Tab = "overview" | "accounts" | "import" | "transactions" | "subscriptions" | "settings";
 
 export function FinanceClient() {
-  return <Suspense fallback={<p role="status" className="text-sm text-muted-foreground">{t("finance.loading")}</p>}>
+  return <Suspense fallback={<FinanceSkeleton />}>
     <FinanceContent />
   </Suspense>;
 }
@@ -115,6 +116,8 @@ function FinanceContent() {
       setResetting(false);
     }
   }
+  const busy = loading || resetting || !!error;
+  const busyClass = `transition-opacity duration-300 ${loading || resetting ? "pointer-events-none opacity-40 delay-150" : "opacity-100"}`;
   return (
     <div className="space-y-6" aria-busy={loading || resetting}>
       <header className="flex items-center justify-between gap-3 sm:gap-5">
@@ -131,29 +134,32 @@ function FinanceContent() {
           </div>
         )}
       </header>
-      <nav
-        aria-label={t("finance.navigation")}
-        className="flex gap-1 overflow-x-auto border-b border-border pb-2"
-      >
-        {(["overview", "transactions", "subscriptions", "accounts", "settings"] as Tab[]).map(
-          (value) => (
-            <Action
-              key={value}
-              variant="ghost"
-              disabled={resetting}
-              aria-current={tab === value ? "page" : undefined}
-              className={
-                tab === value
-                  ? "bg-zinc-900 text-brand hover:bg-zinc-800 hover:text-brand"
-                  : "text-muted-foreground"
-              }
-              onClick={() => setTab(value)}
-            >
-              {t(`finance.${value}`)}
-            </Action>
-          ),
-        )}
-      </nav>
+      <div className="relative">
+        <nav
+          aria-label={t("finance.navigation")}
+          className="flex gap-1 overflow-x-auto border-b border-border pb-2"
+        >
+          {(["overview", "transactions", "subscriptions", "accounts", "settings"] as Tab[]).map(
+            (value) => (
+              <Action
+                key={value}
+                variant="ghost"
+                disabled={resetting}
+                aria-current={tab === value ? "page" : undefined}
+                className={
+                  tab === value
+                    ? "bg-zinc-900 text-brand hover:bg-zinc-800 hover:text-brand"
+                    : "text-muted-foreground"
+                }
+                onClick={() => setTab(value)}
+              >
+                {t(`finance.${value}`)}
+              </Action>
+            ),
+          )}
+        </nav>
+        <FinanceProgress active={(loading && !!data) || resetting} />
+      </div>
       {notice && <Notice>{notice}</Notice>}
       {error && (
         <div className="space-y-2">
@@ -169,11 +175,7 @@ function FinanceContent() {
           </Action>
         </div>
       )}
-      {loading && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {t("finance.loading")}
-        </p>
-      )}
+      {loading && !data && !error && <FinanceSkeleton />}
       {data && report && (
         <>
           {data.accounts.length === 0 && tab === "overview" && (
@@ -189,10 +191,7 @@ function FinanceContent() {
               </Action>
             </section>
           )}
-          <div
-            className={loading || resetting ? "pointer-events-none opacity-50" : ""}
-            inert={loading || resetting || !!error}
-          >
+          <div>
             {(tab === "overview" || tab === "transactions") && data.accounts.length > 0 && (
               <div className="space-y-5">
                 <div className="flex items-end justify-between gap-2 sm:gap-4">
@@ -243,19 +242,23 @@ function FinanceContent() {
                     </div>
                   )}
                 </div>
-                {tab === "overview" ? <Overview report={report} data={data} period={period} /> : (
-                  <Transactions key={`${report.startDate}-${report.endDate}`} data={data} start={report.startDate} end={report.endDate} />
-                )}
+                <div className={busyClass} inert={busy}>
+                  {tab === "overview" ? <Overview report={report} data={data} period={period} /> : (
+                    <Transactions key={`${report.startDate}-${report.endDate}`} data={data} start={report.startDate} end={report.endDate} />
+                  )}
+                </div>
               </div>
             )}
-            {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
-            {tab === "subscriptions" && subscriptions && <Subscriptions report={subscriptions} data={data} onSaved={refresh} />}
-            {tab === "settings" && (
-              <FinanceSettings data={data} subscriptionMonthlyCents={subscriptions?.monthlyCents ?? null} busy={loading || resetting} onReset={() => void resetFinance()} onSaved={refresh} />
-            )}
-            {tab === "import" && (
-              <FinanceImport data={data} onSaved={refresh} />
-            )}
+            <div className={busyClass} inert={busy}>
+              {tab === "accounts" && <Accounts data={data} onSaved={refresh} />}
+              {tab === "subscriptions" && subscriptions && <Subscriptions report={subscriptions} data={data} onSaved={refresh} />}
+              {tab === "settings" && (
+                <FinanceSettings data={data} subscriptionMonthlyCents={subscriptions?.monthlyCents ?? null} busy={loading || resetting} onReset={() => void resetFinance()} onSaved={refresh} />
+              )}
+              {tab === "import" && (
+                <FinanceImport data={data} onSaved={refresh} />
+              )}
+            </div>
           </div>
         </>
       )}
