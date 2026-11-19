@@ -56,7 +56,7 @@ export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; 
   return (
     <TodoUiContext.Provider value={ui}>
       <CompletionProvider>
-        <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[640px] flex-col px-4 pt-4 pb-32">
+        <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[640px] flex-col px-4 pt-4 pb-32 lg:max-w-[880px]">
           <header className="flex items-center justify-between gap-2 pt-1">
             <div className="min-w-0">
               <h1 className="font-display text-2xl tracking-tight text-foreground sm:text-3xl">{t("todo.title")}</h1>
@@ -90,7 +90,7 @@ export function TodoClient({ initial, userId }: { initial: TodoSnapshot | null; 
             <TaskList />
           )}
 
-          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto flex w-full max-w-[640px] items-end justify-between px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto flex w-full max-w-[640px] items-end justify-between lg:max-w-[880px] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <div className="pointer-events-auto">
               <UndoButton />
             </div>

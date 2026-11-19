@@ -120,7 +120,7 @@ function BlockCard({ task, origin, onClose }: { task: TodoTask; origin: DOMRect 
           role="dialog"
           aria-modal="true"
           aria-label={task.title}
-          className="pointer-events-auto flex max-h-[88dvh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl bg-card"
+          className="pointer-events-auto flex max-h-[88dvh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl bg-card lg:max-w-[760px]"
         >
           <div
             {...grabber}

@@ -194,7 +194,7 @@ export function BottomSheet({
           transform: open && offset !== 0 ? `translateY(${offset}px)` : undefined,
         }}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 mx-auto flex max-h-[85dvh] w-full max-w-[640px] flex-col rounded-t-2xl bg-card text-card-foreground outline-none ring-1 ring-foreground/10",
+          "fixed inset-x-0 bottom-0 z-40 mx-auto flex max-h-[85dvh] w-full max-w-[640px] flex-col rounded-t-2xl lg:max-w-[760px] bg-card text-card-foreground outline-none ring-1 ring-foreground/10",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 sm:rounded-2xl sm:pb-3",
           offset === 0 &&
             "motion-safe:transition-[translate,scale,opacity] motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)]",

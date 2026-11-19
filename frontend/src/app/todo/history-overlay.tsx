@@ -46,7 +46,7 @@ function HistoryPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div role="dialog" aria-modal="true" aria-label={t("todo.history.title")} className="fixed inset-0 z-50 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-[640px] flex-col gap-3 px-4 pb-16">
+      <div className="mx-auto flex w-full max-w-[640px] flex-col gap-3 px-4 pb-16 lg:max-w-[880px]">
         <div className="sticky top-0 z-10 flex items-center justify-between bg-background py-2">
           <h2 className="text-lg font-medium">{t("todo.history.title")}</h2>
           <button
