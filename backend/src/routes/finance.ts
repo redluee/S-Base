@@ -36,6 +36,13 @@ export const financeRoutes = new Elysia().group("/api/finance", (app) =>
     .get("/dashboard", ({ userId, query }) => finance.budget.dashboard(userId, query.period, query.date), {
       query: t.Object({ period: t.Optional(t.String()), date: t.Optional(t.String()) }),
     })
+    .get("/breakdown", ({ userId, query }) => finance.breakdowns.breakdown(userId, query), {
+      query: t.Object({
+        direction: t.Union([t.Literal("income"), t.Literal("spending")]),
+        start: t.Optional(t.String()),
+        end: t.Optional(t.String()),
+      }),
+    })
     .get("/budget/transactions", ({ userId, query }) => finance.budget.budgetTransactions(userId, query), {
       query: t.Object({ date: t.Optional(t.String()), page: t.Optional(t.String()) }),
     })

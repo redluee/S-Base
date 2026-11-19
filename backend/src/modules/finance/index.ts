@@ -1,4 +1,5 @@
 import { FinanceAccounts } from "./accounts";
+import { FinanceBreakdowns } from "./breakdown";
 import { FinanceBudget } from "./budget";
 import { FinanceImport } from "./import";
 import { FinanceSubscriptionService } from "./subscription-settings";
@@ -9,5 +10,6 @@ export class FinanceService {
   readonly transactions = new FinanceTransactions();
   readonly imports = new FinanceImport(this.accounts, this.transactions);
   readonly subscriptions = new FinanceSubscriptionService(this.transactions);
+  readonly breakdowns = new FinanceBreakdowns(this.transactions);
   readonly budget = new FinanceBudget(this.accounts, this.transactions, this.subscriptions);
 }

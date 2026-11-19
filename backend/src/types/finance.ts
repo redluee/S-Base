@@ -112,6 +112,32 @@ export interface FinanceActivity {
   excludedCount: number;
   coverage: { accountId: number; firstDate: string; lastDate: string }[];
 }
+export type FinanceBreakdownDirection = "income" | "spending";
+export interface FinanceBreakdownTransaction {
+  id: number;
+  accountId: number;
+  date: string;
+  amountCents: number;
+  name: string;
+  description: string;
+}
+export interface FinanceBreakdownGroup {
+  key: string;
+  name: string;
+  iban: string | null;
+  totalCents: number;
+  count: number;
+  lastDate: string;
+  transactions: FinanceBreakdownTransaction[];
+}
+export interface FinanceBreakdown {
+  direction: FinanceBreakdownDirection;
+  startDate: string;
+  endDate: string;
+  totalCents: number;
+  transactionCount: number;
+  groups: FinanceBreakdownGroup[];
+}
 export interface FinanceTransactionPage {
   entries: FinanceTransaction[];
   total: number;

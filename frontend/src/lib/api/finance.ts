@@ -2,6 +2,8 @@ import type { FinanceAccountIcon } from "@backend/shared/finance";
 import { request as clientRequest, type Fetcher } from "./core";
 import type {
   FinanceAccount,
+  FinanceBreakdown,
+  FinanceBreakdownDirection,
   FinanceDashboard,
   FinanceData,
   FinancePeriod,
@@ -34,6 +36,8 @@ export const createFinanceApi = (request: Fetcher) => ({
     request<{ success: boolean }>("/finance/subscriptions", json("DELETE", { id })),
   setSubscriptionInactive: (id: string, inactive: boolean) =>
     request<{ success: boolean }>("/finance/subscriptions/inactive", json("PUT", { id, inactive })),
+  breakdown: (direction: FinanceBreakdownDirection, start: string, end: string) =>
+    request<FinanceBreakdown>(`/finance/breakdown?direction=${direction}&start=${start}&end=${end}`),
   budgetTransactions: (date: string, page: number) =>
     request<FinanceTransactionPage>(`/finance/budget/transactions?date=${date}&page=${page}`),
   setMonthlyBudget: (monthlyBudgetCents: number | null) =>

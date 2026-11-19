@@ -44,6 +44,7 @@ export class FinanceTransactions {
         name: transactions.name,
         description: transactions.description,
         counterpartyKey: transactions.counterpartyKey,
+        counterparty: transactions.counterparty,
         transferOverride: transactions.transferOverride,
       })
       .from(transactions)
@@ -77,7 +78,12 @@ export class FinanceTransactions {
   }
   periodTransactions(userId: number, start: string, end: string) {
     return this.transferEntries(userId, start, end).map(
-      ({ counterpartyAccountId, counterpartyIdentity, savings, ...entry }) => entry,
+      ({ counterpartyAccountId, counterpartyIdentity, savings, counterparty, ...entry }) => entry,
+    );
+  }
+  counterpartyTransactions(userId: number, start: string, end: string) {
+    return this.transferEntries(userId, start, end).map(
+      ({ counterpartyAccountId, savings, automaticTransfer, ...entry }) => entry,
     );
   }
   dashboardBalances(userId: number, data: FinanceData) {

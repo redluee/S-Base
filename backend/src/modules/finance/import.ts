@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import db from "../../db/client";
 import {
   financeAccounts as accounts,
@@ -198,6 +198,7 @@ export class FinanceImport {
               name: entry.name,
               description: entry.description,
               counterpartyKey: entry.counterparty ? accountNumberKey(userId, entry.counterparty) : null,
+              counterparty: entry.counterparty || null,
             })
             .onConflictDoNothing()
             .returning({ id: transactions.id })
@@ -205,6 +206,17 @@ export class FinanceImport {
           if (inserted) {
             result.transactionsInserted++;
             insertedIds.add(inserted.id);
+          } else if (entry.counterparty) {
+            tx.update(transactions)
+              .set({ counterparty: entry.counterparty })
+              .where(
+                and(
+                  eq(transactions.accountId, account.id),
+                  eq(transactions.fingerprint, fingerprint),
+                  isNull(transactions.counterparty),
+                ),
+              )
+              .run();
           }
         }
         const prior = tx.select().from(transactions).where(eq(transactions.accountId, account.id)).all();

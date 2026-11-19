@@ -1,11 +1,13 @@
 import { useState } from "react";
 import type { FinanceDashboard, FinanceData, FinancePeriod } from "@backend/types/finance";
-import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Wallet } from "lucide-react";
+import type { FinanceBreakdownDirection } from "@backend/types/finance";
 import { t } from "@/lib/lang";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { dateLabel, financeAccountLabel, money } from "./lib/finance";
 import { AccountIcon } from "./account-icon";
 import { AnimatedMoney } from "./animated-money";
+import { BreakdownDialog } from "./breakdown-dialog";
 import { Transactions } from "./transactions";
 import { History } from "./history";
 import { NetChart } from "./net-chart";
@@ -14,6 +16,7 @@ import { Action, Notice, panel } from "./ui";
 export function Overview({ data, report, period }: { data: FinanceData; report: FinanceDashboard; period: FinancePeriod; }) {
   const [chart, setChart] = useState<"balance" | "net">("balance");
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [breakdown, setBreakdown] = useState<FinanceBreakdownDirection | null>(null);
   const activity = report.activity;
   const hasTransactions = !!activity?.transactionCount;
   const lastDataDate = report.end.accounts.reduce<string | null>((latest, account) =>
@@ -60,11 +63,24 @@ export function Overview({ data, report, period }: { data: FinanceData; report: 
         {([
           { key: "income", value: activity?.incomeCents, icon: ArrowDownLeft },
           { key: "spending", value: activity?.spendingCents, icon: ArrowUpRight },
-        ] as const).map(({ key, value, icon: Icon }) => <section key={key} className={panel}>
-          <h2 className="flex items-center gap-2 text-xs text-muted-foreground"><Icon className="size-4" aria-hidden="true" />{t(`finance.${key}`)}</h2>
-          <p className="mt-3 break-words text-xl font-medium tracking-tight tabular-nums sm:text-2xl">{hasTransactions ? <AnimatedMoney cents={value ?? 0} /> : t("finance.unknown")}</p>
-        </section>)}
+        ] as const).map(({ key, value, icon: Icon }) => {
+          const content = <>
+            <span className="flex items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground/10"><Icon className={`size-3.5 ${key === "income" ? "text-brand" : "text-foreground"}`} aria-hidden="true" /></span>
+                <span className="truncate">{t(`finance.${key}`)}</span>
+              </span>
+              {hasTransactions && <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" aria-hidden="true" />}
+            </span>
+            <span className="mt-4 block break-words text-xl font-medium tracking-tight tabular-nums sm:text-3xl">{hasTransactions ? <AnimatedMoney cents={value ?? 0} /> : t("finance.unknown")}</span>
+            {hasTransactions && <span className="mt-2 block text-xs text-muted-foreground">{t("finance.breakdown.open")}</span>}
+          </>;
+          return hasTransactions
+            ? <button key={key} type="button" className={`${panel} group block w-full cursor-pointer text-left transition-[background-color,transform] duration-150 hover:bg-accent focus-visible:outline-2 focus-visible:outline-brand active:scale-[0.985]`} aria-haspopup="dialog" aria-label={t("finance.breakdown.openLabel", { type: t(`finance.${key}`) })} onClick={() => setBreakdown(key)}>{content}</button>
+            : <section key={key} className={panel}>{content}</section>;
+        })}
       </div>
+      {breakdown && <BreakdownDialog key={`${breakdown}-${report.startDate}-${report.endDate}`} direction={breakdown} start={report.startDate} end={report.endDate} data={data} onClose={() => setBreakdown(null)} />}
       <p className="text-xs leading-relaxed text-muted-foreground">{hasTransactions ? t("finance.activity.scope", { count: String(activity!.transactionCount), excluded: String(activity!.excludedCount) }) : t("finance.activity.empty")}</p>
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3">

@@ -150,6 +150,7 @@ export const financeTransactions = sqliteTable(
     name: text("name").notNull(),
     description: text("description").notNull(),
     counterpartyKey: text("counterparty_key"),
+    counterparty: text("counterparty"),
     transferOverride: integer("transfer_override", { mode: "boolean" }),
   },
   (table) => [
