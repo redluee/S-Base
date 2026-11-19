@@ -20,6 +20,7 @@ interface BottomSheetProps {
   centered?: boolean;
 }
 
+const CENTERED_QUERY = "(min-width: 40rem)";
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
 
 function useOpenMorph(panelRef: RefObject<HTMLDivElement | null>, open: boolean, origin: SheetOrigin | "instant" | null) {
@@ -148,6 +149,7 @@ export function BottomSheet({
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (centered && window.matchMedia(CENTERED_QUERY).matches) return;
     if (e.target instanceof Element && e.target.closest("button, input, a, select, textarea")) return;
     drag.current = { pointerId: e.pointerId, startY: e.clientY, startTime: e.timeStamp };
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -208,7 +210,10 @@ export function BottomSheet({
         )}
       >
         <div
-          className="shrink-0 cursor-grab touch-none select-none active:cursor-grabbing"
+          className={cn(
+            "shrink-0 cursor-grab touch-none select-none active:cursor-grabbing",
+            centered && "sm:cursor-auto sm:touch-auto sm:select-auto sm:active:cursor-auto",
+          )}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}

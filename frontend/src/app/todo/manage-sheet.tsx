@@ -140,6 +140,7 @@ export function ManageSheet({ open, onClose }: { open: boolean; onClose: () => v
         open={open}
         onClose={onClose}
         label={t("todo.manage.title")}
+        centered
         header={
           <div className="flex items-center gap-1 px-2 pb-1">
             {current.kind === "list" ? (
