@@ -162,10 +162,10 @@ describe("Money chart geometry", () => {
       expect(chart.ticks.every((tick) => tick >= chart.lower && tick <= chart.upper)).toBe(true);
     }
   });
-  it("labels every thousand euros with padding above a five-thousand-euro range", () => {
+  it("labels every thousand euros up to the first round step above the highest balance", () => {
     const point = { date: "2025-01-01", value: 490_000, savingsValue: null, known: 1, expected: 1 };
     const chart = financeHistoryGeometry([{ ...point, value: 0 }, point], false, point.date, point.date);
-    expect(chart.ticks).toEqual([700_000, 600_000, 500_000, 400_000, 300_000, 200_000, 100_000, 0]);
+    expect(chart.ticks).toEqual([500_000, 400_000, 300_000, 200_000, 100_000, 0]);
   });
   it("centers steady balances within a padded axis instead of anchoring them to zero", () => {
     for (const values of [[680_000, 780_000], [-780_000, -680_000], [700_000, 700_000], [12_000_000, 14_000_000]]) {
