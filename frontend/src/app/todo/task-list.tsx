@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { t } from "@/lib/lang";
 import { CompletionRow } from "./completion/completion-row";
@@ -10,6 +11,10 @@ import { TaskCheck } from "./task-check";
 import { TaskRow } from "./task-row";
 import { useTodoUi, type TodoUi } from "./todo-ui";
 import { useReorder } from "./use-reorder";
+
+const FILTER_STAGGER_MS = 28;
+const FILTER_STAGGER_MAX = 10;
+const FILTER_SETTLE_MS = 700;
 
 const surface = "overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/[0.06]";
 
@@ -125,6 +130,15 @@ function EmptyState() {
 export function TaskList() {
   const { store } = useTodoUi();
   const { visibleTasks, actions } = store;
+  const filterKey = JSON.stringify(store.filter);
+  const [shown, setShown] = useState({ key: filterKey, animate: false });
+  if (shown.key !== filterKey) setShown({ key: filterKey, animate: true });
+
+  useEffect(() => {
+    if (!shown.animate) return;
+    const id = window.setTimeout(() => setShown((s) => ({ ...s, animate: false })), FILTER_SETTLE_MS);
+    return () => window.clearTimeout(id);
+  }, [shown]);
   const reorder = useReorder(
     visibleTasks.map((task) => task.id),
     (id, move) => void actions.move(id, move),
@@ -135,7 +149,7 @@ export function TaskList() {
   return (
     <div className={`mt-4 ${surface}`}>
       <AddRow />
-      <ul className="flex flex-col">
+      <ul key={shown.key} className="flex flex-col">
         {visibleTasks.map((task, index) => {
           const { dragging, ...props } = reorder.rowProps(task.id, index);
           return (
@@ -144,9 +158,16 @@ export function TaskList() {
               {...props}
               className={`relative select-none [-webkit-touch-callout:none] before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-foreground/[0.06] ${dragging ? "z-10 rounded-xl bg-[oklch(0.269_0_0)] ring-1 ring-foreground/10" : ""} ${reorder.dragging ? "cursor-grabbing" : ""}`}
             >
-              <CompletionRow task={task}>
-                <TaskRow task={task} />
-              </CompletionRow>
+              <div
+                className={shown.animate ? "motion-safe:animate-[todo-fade-up_280ms_cubic-bezier(0.23,1,0.32,1)_both]" : undefined}
+                style={
+                  shown.animate ? { animationDelay: `${Math.min(index, FILTER_STAGGER_MAX) * FILTER_STAGGER_MS}ms` } : undefined
+                }
+              >
+                <CompletionRow task={task}>
+                  <TaskRow task={task} />
+                </CompletionRow>
+              </div>
             </li>
           );
         })}
