@@ -174,6 +174,7 @@ export function TaskList() {
               >
                 <RowEnter
                   readyRef={readyRef}
+                  launchKey={task.title}
                   skip={shown.animate || completion.isReturning(task.id)}
                   color={taskColor(task, store.categories)}
                 >

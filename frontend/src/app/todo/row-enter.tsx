@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { EASE_OUT, SPRING_EASING } from "./completion/choreography";
 import { prefersReducedMotion } from "./completion/use-reduced-motion";
+import { flyIntoRow, LAUNCH_MS, takeLaunch } from "./task-launch";
 
 const OPEN_MS = 340;
 const RISE_MS = 380;
@@ -11,25 +12,47 @@ const GLOW_MS = 1100;
 
 interface RowEnterProps {
   readyRef: RefObject<boolean>;
+  launchKey: string;
   skip: boolean;
   color: string;
   children: ReactNode;
 }
 
-export function RowEnter({ readyRef, skip, color, children }: RowEnterProps) {
+export function RowEnter({ readyRef, launchKey, skip, color, children }: RowEnterProps) {
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const glow = useRef<HTMLSpanElement>(null);
   const skipRef = useRef(skip);
+  const launchKeyRef = useRef(launchKey);
 
   useLayoutEffect(() => {
     const box = outer.current;
     if (!readyRef.current || skipRef.current || !box) return;
+    const launch = takeLaunch(launchKeyRef.current);
     if (prefersReducedMotion()) {
       const fade = box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: EASE_OUT });
       return () => fade.cancel();
     }
     const height = box.offsetHeight;
+    const content = inner.current;
+    if (launch && content) {
+      const surface = box.closest(".bg-card");
+      const background = surface ? getComputedStyle(surface).backgroundColor : "transparent";
+      const flight = flyIntoRow(launch, content, height, background);
+      const landing = [
+        box.animate([{ height: "0px" }, { height: `${height}px` }], { duration: OPEN_MS, easing: EASE_OUT }),
+        content.animate([{ opacity: 0 }, { opacity: 0 }], { duration: LAUNCH_MS }),
+        glow.current?.animate([{ opacity: 0.16 }, { opacity: 0 }], {
+          duration: GLOW_MS,
+          delay: LAUNCH_MS,
+          easing: "ease-out",
+          fill: "backwards",
+        }),
+      ];
+      return () => {
+        for (const animation of [...flight, ...landing]) animation?.cancel();
+      };
+    }
     const animations = [
       box.animate([{ height: "0px" }, { height: `${height}px` }], { duration: OPEN_MS, easing: EASE_OUT }),
       inner.current?.animate(

@@ -9,6 +9,7 @@ import { CategoryChips } from "./category-chips";
 import { NO_SELECTION, quickAddPreselection, type ChipSelection } from "./chip-state";
 import { DuePicker } from "./due-picker";
 import { haptic } from "./haptics";
+import { armLaunch } from "./task-launch";
 import type { SheetOrigin } from "./sheet-morph";
 import { useTodoUi } from "./todo-ui";
 
@@ -66,6 +67,7 @@ export function QuickAdd({ open, origin, onClose }: QuickAddProps) {
     e.preventDefault();
     const value = normalizeTodoTitle(title);
     if (!value) return;
+    armLaunch(e.currentTarget.querySelector("button[type=submit]"), value);
     setTitle("");
     const created = await store.actions.create({ title: value, ...selection, dueDate });
     if (created) haptic("tick");
