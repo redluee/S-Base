@@ -44,7 +44,7 @@ export function ModuleGrid({
                   )}
                   {module.id === "todo" && openTodoCount > 0 && (
                     <span
-                      className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--tile-tint)] px-1.5 pt-0.5 text-xs leading-none font-medium tabular-nums text-[var(--tile-color)]"
+                      className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--tile-tint)] px-1.5 text-xs leading-none font-medium tabular-nums text-[var(--tile-color)]"
                       aria-label={t("todo.dashboardOpenCount", { count: String(openTodoCount) })}
                     >
                       {openTodoCount}

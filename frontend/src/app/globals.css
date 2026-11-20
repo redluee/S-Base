@@ -15,6 +15,11 @@
   font-family: 'epilogue';
   src: url('/fonts/epilogue.ttf') format('truetype');
   font-display: swap;
+  /* Same total height as the font's own 1580/470 metrics, rebalanced so the
+     line box centre matches the cap-height centre (1475/2000). */
+  ascent-override: 88.125%;
+  descent-override: 14.375%;
+  line-gap-override: 0%;
 }
 
 @font-face {
