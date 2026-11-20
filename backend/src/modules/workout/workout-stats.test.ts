@@ -19,6 +19,25 @@ describe("workout volume and PR math", () => {
     workout = new WorkoutService();
   });
 
+  describe("summary last workout", () => {
+    it("is null without completed workouts", () => {
+      expect(workout.stats.summary(adminId).lastWorkout).toBeNull();
+    });
+
+    it("reports the most recent completed workout with its volume", () => {
+      const id = finishedSession(workout, adminId, [
+        { exerciseName: "Squat", sortOrder: 0, sets: [{ setNumber: 1, reps: 5, weight: 100, completed: 1 }] },
+        { exerciseName: "Row", sortOrder: 1, sets: [{ setNumber: 1, reps: 10, weight: 40, completed: 0 }] },
+      ]);
+      const last = workout.stats.summary(adminId).lastWorkout;
+      expect(last?.sessionId).toBe(id);
+      expect(last?.volume).toBe(500);
+      expect(last?.exerciseCount).toBe(2);
+      expect(last?.templateId).toBeNull();
+      expect(last?.templateIcon).toBeNull();
+    });
+  });
+
   describe("BIZ-10 volume and PR math", () => {
     it("never produces negative volume for assisted exercises", () => {
       finishedSession(workout, adminId, [

@@ -3,15 +3,16 @@ import { buildTemplateMeta } from "./template-payload";
 
 describe("buildTemplateMeta", () => {
   it("sends explicit nulls when optional fields are cleared", () => {
-    const meta = buildTemplateMeta({ name: "Push", description: "", targetMuscleGroups: "  ", estimatedTime: "" });
-    expect(meta).toEqual({ name: "Push", description: null, targetMuscleGroups: null, estimatedTime: null });
+    const meta = buildTemplateMeta({ name: "Push", description: "", targetMuscleGroups: "  ", estimatedTime: "", icon: null });
+    expect(meta).toEqual({ name: "Push", description: null, targetMuscleGroups: null, estimatedTime: null, icon: null });
+    expect(JSON.parse(JSON.stringify(meta)).icon).toBeNull();
     const json = JSON.parse(JSON.stringify(meta));
     expect("description" in json).toBe(true);
     expect(json.estimatedTime).toBeNull();
   });
 
   it("keeps filled values", () => {
-    const meta = buildTemplateMeta({ name: "Push", description: "Heavy", targetMuscleGroups: "chest", estimatedTime: "45" });
-    expect(meta).toEqual({ name: "Push", description: "Heavy", targetMuscleGroups: "chest", estimatedTime: 45 });
+    const meta = buildTemplateMeta({ name: "Push", description: "Heavy", targetMuscleGroups: "chest", estimatedTime: "45", icon: "biceps" });
+    expect(meta).toEqual({ name: "Push", description: "Heavy", targetMuscleGroups: "chest", estimatedTime: 45, icon: "biceps" });
   });
 });

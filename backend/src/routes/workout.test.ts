@@ -147,6 +147,7 @@ describe("workout routes error contract", () => {
   it("maps schema violations to 400 common.invalidRequest", async () => {
     const cases: [string, string, unknown][] = [
       ["POST", "/api/workouts/templates", { name: 5 }],
+      ["POST", "/api/workouts/templates", { name: "x", icon: "spaceship" }],
       ["POST", "/api/workouts/templates", { name: "x", exercises: [{ exerciseName: "a", sets: "3" }] }],
       ["PATCH", "/api/workouts/templates/reorder", { templateIds: "nope" }],
       ["GET", "/api/workouts/templates/abc", undefined],
@@ -266,6 +267,28 @@ describe("workout routes error contract", () => {
       waist: null,
     });
     expect(measurement.status).toBe(200);
+  });
+
+  it("stores, clears and exposes a template icon", async () => {
+    const created = await call(cookie, "POST", "/api/workouts/templates", { name: "Legs", icon: "footprints" });
+    expect(created.status).toBe(200);
+    const template = (await created.json()) as { templateId: number; icon: string | null };
+    expect(template.icon).toBe("footprints");
+
+    const listed = (await (await call(cookie, "GET", "/api/workouts/templates")).json()) as { icon: string | null }[];
+    expect(listed[0].icon).toBe("footprints");
+
+    const session = (await (
+      await call(cookie, "POST", "/api/workouts/sessions", { templateId: template.templateId })
+    ).json()) as { sessionId: number };
+    const active = (await (await call(cookie, "GET", "/api/workouts/sessions?status=active")).json()) as {
+      sessionId: number;
+      templateIcon: string | null;
+    }[];
+    expect(active.find((s) => s.sessionId === session.sessionId)?.templateIcon).toBe("footprints");
+
+    const cleared = await call(cookie, "PUT", `/api/workouts/templates/${template.templateId}`, { icon: null });
+    expect(((await cleared.json()) as { icon: string | null }).icon).toBeNull();
   });
 
   it("keeps the 401 body of the upload route for anonymous requests", async () => {

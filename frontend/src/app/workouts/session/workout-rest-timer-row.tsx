@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatClock } from "@/app/workouts/duration";
 
 const chipButton =
-  "min-h-11 min-w-11 px-3 inline-flex items-center justify-center rounded-md bg-zinc-800 text-xs font-medium text-zinc-300 hover:bg-zinc-700 active:scale-95 disabled:opacity-50 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "min-h-11 min-w-11 px-3 inline-flex items-center justify-center rounded-full bg-white/[0.08] text-xs font-medium text-zinc-300 hover:bg-white/[0.14] active:scale-95 disabled:opacity-50 outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 interface RestTimerRowProps {
   totalCols: number;
@@ -32,7 +32,7 @@ export function RestTimerRow({
   toggleSound,
 }: RestTimerRowProps) {
   return (
-          <tr className="border-b border-border/10 bg-zinc-950/50">
+          <tr className="border-b border-white/[0.04] bg-black/30">
             <td colSpan={totalCols} className="p-0 relative overflow-hidden">
               <div
                 className="absolute inset-0 bg-brand/10 transition-all duration-1000 ease-linear pointer-events-none"

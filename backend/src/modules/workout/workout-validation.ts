@@ -1,5 +1,6 @@
 import { ValidationError } from "../../utils/errors";
 import { requireObject } from "../../utils/validation";
+import { isWorkoutIcon } from "../../shared/workout";
 
 export const MAX_SETS_PER_EXERCISE = 50;
 export const MAX_EXERCISES = 100;
@@ -86,6 +87,9 @@ export function validateTemplateInput(data: unknown, requireTemplateName: boolea
   optionalText(input.description);
   optionalText(input.targetMuscleGroups);
   optionalInteger(input.estimatedTime);
+  if (input.icon !== undefined && input.icon !== null && !isWorkoutIcon(input.icon)) {
+    throw new ValidationError("workout.iconInvalid");
+  }
   if (typeof input.estimatedTime === "number" && input.estimatedTime < 0) {
     throw new ValidationError("workout.estimatedTimeNegative");
   }

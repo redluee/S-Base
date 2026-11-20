@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { buildTemplateMeta } from "@/app/workouts/templates/template-payload";
+import { buildTemplateMeta, type TemplateMetaForm } from "@/app/workouts/templates/template-payload";
 import { parseDecimal, toInputString } from "@/app/workouts/number-input";
 import { t } from "@/lib/lang";
 import { DEFAULT_CATEGORY, DEFAULT_REPS, DEFAULT_REST_SECONDS, DEFAULT_SETS, normalizeCategory, normalizeEquipment, type ExerciseCategory } from "@backend/shared/workout";
@@ -109,7 +109,7 @@ export function validateTemplate(name: string, exercises: ExerciseRow[]): Record
 }
 
 export function buildTemplatePayload(
-  meta: { name: string; description: string; targetMuscleGroups: string; estimatedTime: string },
+  meta: TemplateMetaForm,
   exercises: ExerciseRow[]
 ) {
   return {

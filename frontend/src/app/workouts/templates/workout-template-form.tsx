@@ -29,6 +29,7 @@ import {
 } from "@/app/workouts/templates/workout-template-form-helpers";
 import type { TemplatePrefill } from "@/app/workouts/templates/session-to-template";
 import { Plus, Loader2 } from "lucide-react";
+import type { WorkoutIcon } from "@backend/shared/workout";
 
 export function WorkoutTemplateForm({
   initial,
@@ -53,6 +54,7 @@ export function WorkoutTemplateForm({
   const [description, setDescription] = useState(source?.description ?? "");
   const [targetMuscleGroups, setTargetMuscleGroups] = useState(source?.targetMuscleGroups ?? "");
   const [estimatedTime, setEstimatedTime] = useState(source?.estimatedTime?.toString() ?? "");
+  const [icon, setIcon] = useState<WorkoutIcon | null>(initial?.icon ?? null);
 
   const [exercises, setExercises] = useState<ExerciseRow[]>(() => buildInitialExercises(source));
 
@@ -67,6 +69,7 @@ export function WorkoutTemplateForm({
     description,
     targetMuscleGroups,
     estimatedTime,
+    icon,
     exercises,
   }));
   const [baseSignature] = useState(() => formSignature(initialForm));
@@ -77,6 +80,7 @@ export function WorkoutTemplateForm({
     setDescription(form.description);
     setTargetMuscleGroups(form.targetMuscleGroups);
     setEstimatedTime(form.estimatedTime);
+    setIcon(form.icon ?? null);
     setExercises(form.exercises.length > 0 ? form.exercises : initialForm.exercises);
   }
 
@@ -116,7 +120,7 @@ export function WorkoutTemplateForm({
   useEffect(() => {
     if (!isMounted || draftNotice?.kind === "stale") return;
     try {
-      const form = { name, description, targetMuscleGroups, estimatedTime, exercises };
+      const form = { name, description, targetMuscleGroups, estimatedTime, icon, exercises };
       if (shouldPersistDraft(form, baseSignature)) {
         localStorage.setItem(storageKey, JSON.stringify(buildDraft(form, baseSignature)));
       } else {
@@ -125,7 +129,7 @@ export function WorkoutTemplateForm({
     } catch (e) {
       console.error("Failed to save template draft to localStorage", e);
     }
-  }, [name, description, targetMuscleGroups, estimatedTime, exercises, isMounted, storageKey, draftNotice, baseSignature]);
+  }, [name, description, targetMuscleGroups, estimatedTime, icon, exercises, isMounted, storageKey, draftNotice, baseSignature]);
 
   function discardDraft() {
     removeStoredDraft();
@@ -198,7 +202,7 @@ export function WorkoutTemplateForm({
       return;
     }
 
-    const data = buildTemplatePayload({ name, description, targetMuscleGroups, estimatedTime }, exercises);
+    const data = buildTemplatePayload({ name, description, targetMuscleGroups, estimatedTime, icon }, exercises);
 
     try {
       let result;
@@ -236,6 +240,8 @@ export function WorkoutTemplateForm({
         setTargetMuscleGroups={setTargetMuscleGroups}
         estimatedTime={estimatedTime}
         setEstimatedTime={setEstimatedTime}
+        icon={icon}
+        setIcon={setIcon}
         errors={errors}
       />
 

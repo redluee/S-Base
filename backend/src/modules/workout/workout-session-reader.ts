@@ -3,8 +3,10 @@ import db from "../../db/client";
 import { sessionExercises, sessionSets, templateExercises, workoutSessions, workoutTemplates } from "../../db/schema";
 import { orNotFound } from "../../utils/errors";
 import { normalizeSearchString } from "../../shared/search";
-import { exerciseKey, type SessionStatusFilter } from "../../shared/workout";
+import { exerciseKey, type SessionStatusFilter, type WorkoutIcon } from "../../shared/workout";
 import { sessionMatchesQuery } from "./workout-helpers";
+
+const templateIconSql = sql<WorkoutIcon | null>`(SELECT icon FROM workout_templates WHERE workout_templates.template_id = workout_sessions.template_id)`;
 
 type TemplateDefaults = typeof templateExercises.$inferSelect;
 
@@ -43,6 +45,7 @@ export class WorkoutSessionReader {
         completedAt: workoutSessions.completedAt,
         notes: workoutSessions.notes,
         name: workoutSessions.name,
+        templateIcon: templateIconSql,
         pausedAt: workoutSessions.pausedAt,
         pausedSeconds: workoutSessions.pausedSeconds,
         exerciseCount: sql<number>`(SELECT COUNT(*) FROM session_exercises WHERE session_exercises.session_id = workout_sessions.session_id)`,

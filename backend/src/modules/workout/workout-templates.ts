@@ -16,6 +16,7 @@ export class WorkoutTemplates {
         description: workoutTemplates.description,
         targetMuscleGroups: workoutTemplates.targetMuscleGroups,
         estimatedTime: workoutTemplates.estimatedTime,
+        icon: workoutTemplates.icon,
         createdAt: workoutTemplates.createdAt,
         exerciseCount: sql<number>`(SELECT COUNT(*) FROM template_exercises WHERE template_exercises.template_id = workout_templates.template_id)`,
       })
@@ -93,6 +94,7 @@ export class WorkoutTemplates {
           description: data.description,
           targetMuscleGroups: data.targetMuscleGroups,
           estimatedTime: data.estimatedTime,
+          icon: data.icon ?? null,
           sortOrder: nextSortOrder,
         })
         .returning()
@@ -122,6 +124,7 @@ export class WorkoutTemplates {
           targetMuscleGroups:
             data.targetMuscleGroups !== undefined ? data.targetMuscleGroups || null : existing.targetMuscleGroups,
           estimatedTime: data.estimatedTime !== undefined ? data.estimatedTime : existing.estimatedTime,
+          icon: data.icon !== undefined ? data.icon : existing.icon,
         })
         .where(and(eq(workoutTemplates.templateId, id), eq(workoutTemplates.userId, userId)))
         .run();

@@ -298,11 +298,15 @@ export function WorkoutSessionLive({
         allExercisesFinished={areAllExercisesFinished(exercises)}
         unsynced={unsynced}
         actionError={actionError}
+        setProgress={{
+          done: exercises.reduce((n, ex) => n + (ex.sets ?? []).filter((s) => s.completed === 1).length, 0),
+          total: exercises.reduce((n, ex) => n + (ex.sets ?? []).length, 0),
+        }}
       />
 
       {/* Workout Notes Card - Only in edit mode of a completed session */}
       {session?.completedAt ? (
-        <div className="bg-card ring-1 ring-foreground/10 rounded-xl p-3.5 mb-6">
+        <div className="bg-card ring-1 ring-white/[0.06] rounded-[1.75rem] p-4 mb-6">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             <FileText className="size-3.5 text-brand" />
             <span>{t("Notes")}</span>

@@ -123,7 +123,7 @@ export function SetsTable({
             {canDeleteSets && <col className="w-11" />}
           </colgroup>
           <thead>
-            <tr className="border-b border-border/40 text-muted-foreground">
+            <tr className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
               <th scope="col" className="text-left py-1 pl-3 sm:pl-2 pr-0 font-normal">{t("Set")}</th>
               <th scope="col" className="hidden sm:table-cell text-left py-1 px-3 font-normal">{t("Target")}</th>
               {columns.map((col) => (
@@ -189,8 +189,8 @@ export function SetsTable({
                       removeSet(exIdx, setIdx);
                     }}
                     className={cn(
-                      "border-b border-border/20 last:border-0",
-                      set.completed ? "bg-brand/5" : "hover:bg-white/[0.01]"
+                      "",
+                      set.completed ? "bg-brand/[0.04]" : ""
                     )}
                   >
                     <td className="py-0 pl-3 sm:pl-2 pr-0 font-medium text-zinc-400 align-middle">{set.setNumber}</td>
@@ -221,11 +221,11 @@ export function SetsTable({
                           value={display}
                           onSave={(val) => saveColumn(col, setIdx, val)}
                           className={cn(
-                            "bg-white/5 h-10 text-center text-sm rounded-md px-1 transition-colors placeholder:text-muted-foreground placeholder:italic placeholder:font-normal",
+                            "bg-white/[0.06] h-11 text-center text-base sm:text-sm rounded-2xl px-1 transition-colors placeholder:text-muted-foreground placeholder:italic placeholder:font-normal",
                             pristine ? "text-muted-foreground italic font-normal" : "text-foreground font-semibold",
                             flagged
                               ? "border-red-500 focus-visible:border-red-500 bg-red-950/20 ring-1 ring-red-500/30"
-                              : "border-border/80 focus-visible:border-brand/40"
+                              : "border-transparent focus-visible:border-brand/50"
                           )}
                         />
                       );
@@ -262,10 +262,10 @@ export function SetsTable({
                       >
                         <span
                           className={cn(
-                            "size-8 rounded-md flex items-center justify-center border transition-all duration-75 group-active/checkbtn:scale-90 group-focus-visible/checkbtn:ring-3 group-focus-visible/checkbtn:ring-ring/50",
+                            "size-9 rounded-full flex items-center justify-center border transition-all duration-75 group-active/checkbtn:scale-90 group-focus-visible/checkbtn:ring-3 group-focus-visible/checkbtn:ring-ring/50",
                             set.completed
-                              ? "bg-brand border-brand text-zinc-900"
-                              : "bg-white/5 border-border text-zinc-500 group-hover/checkbtn:border-brand/40 group-hover/checkbtn:bg-brand/10 group-hover/checkbtn:text-brand"
+                              ? "bg-brand border-brand text-zinc-900 shadow-[0_0_1rem_color-mix(in_oklab,var(--color-brand)_45%,transparent)]"
+                              : "bg-white/[0.06] border-transparent text-zinc-500 group-hover/checkbtn:border-brand/40 group-hover/checkbtn:bg-brand/10 group-hover/checkbtn:text-brand"
                           )}
                         >
                           {set.completed ? (

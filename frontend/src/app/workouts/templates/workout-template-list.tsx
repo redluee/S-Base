@@ -3,18 +3,42 @@
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowUpDown, Check, ChevronDown, ChevronUp, Loader2, Play } from "lucide-react";
 import { api } from "@/lib/api";
 import type { WorkoutTemplate } from "@backend/types/workout";
 import { t } from "@/lib/lang";
-import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { WorkoutIcon } from "@/app/workouts/templates/workout-icon";
+import { splitMuscleGroups, templateIcon } from "@/app/workouts/templates/template-meta";
+import { useStartTemplate } from "@/app/workouts/templates/use-start-template";
 
+const iconButton =
+  "size-11 shrink-0 inline-flex items-center justify-center rounded-full bg-white/[0.06] text-muted-foreground hover:text-brand disabled:opacity-30 disabled:pointer-events-none transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function WorkoutTemplateList({ templates: initialTemplates, actions }: { templates: WorkoutTemplate[]; actions: ReactNode }) {
+function templateMeta(template: WorkoutTemplate) {
+  const parts: string[] = [];
+  if (template.estimatedTime) parts.push(`${template.estimatedTime} ${t("min")}`);
+  const groups = splitMuscleGroups(template.targetMuscleGroups);
+  if (groups.length > 0) parts.push(groups.join(" & "));
+  else if (template.exerciseCount) {
+    parts.push(`${template.exerciseCount} ${template.exerciseCount === 1 ? t("exercise") : t("exercises")}`);
+  }
+  return parts.join(" • ");
+}
+
+export function WorkoutTemplateList({
+  templates: initialTemplates,
+  actions,
+}: {
+  templates: WorkoutTemplate[];
+  actions: ReactNode;
+}) {
   const router = useRouter();
   const [templates, setTemplates] = useState(initialTemplates);
   const [reordering, setReordering] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const { start, startingId, error, dialog } = useStartTemplate();
 
   async function saveOrder(next: WorkoutTemplate[]) {
     setSavingOrder(true);
@@ -38,118 +62,108 @@ export function WorkoutTemplateList({ templates: initialTemplates, actions }: { 
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between mt-3 mb-1 gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">{t("Templates")}</h2>
-        <div className="flex flex-wrap items-center gap-2">
+    <section aria-labelledby="workout-templates-heading" className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="workout-templates-heading" className="text-xl font-semibold text-foreground">
+          {t("Templates")}
+        </h2>
+        <div className="flex items-center gap-1">
           {templates.length > 1 && (
             <button
               type="button"
               onClick={() => setReordering((v) => !v)}
-              className="text-xs font-medium text-brand hover:text-brand-hover px-3 rounded-lg transition-colors min-h-11"
+              aria-pressed={reordering}
+              aria-label={reordering ? t("Done") : t("Reorder")}
+              title={reordering ? t("Done") : t("Reorder")}
+              className={cn(
+                iconButton,
+                "size-12",
+                reordering ? "bg-brand text-zinc-950 hover:text-zinc-950" : "hover:text-foreground"
+              )}
             >
-              {reordering ? t("Done") : t("Reorder")}
+              {reordering ? <Check className="size-5" /> : <ArrowUpDown className="size-5" />}
             </button>
           )}
           {actions}
         </div>
       </div>
 
+      {error && <InlineAlert>{error}</InlineAlert>}
+
       {templates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl bg-card border border-white/5 p-6">
-          <p className="text-sm text-muted-foreground mb-4">{t("No templates yet.")}</p>
-          <Button
-            render={<Link href="/workouts/new" />}
-            className="bg-brand text-zinc-900 hover:bg-brand-hover text-sm"
+        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center rounded-[1.75rem] bg-card">
+          <p className="text-sm text-muted-foreground">{t("No templates yet.")}</p>
+          <Link
+            href="/workouts/new"
+            className="min-h-11 inline-flex items-center px-5 rounded-full bg-brand text-zinc-950 text-sm font-medium hover:bg-brand-hover transition-colors"
           >
             {t("Create your first template")}
-          </Button>
+          </Link>
         </div>
       ) : (
-      <div className="flex flex-col gap-3">
-        {templates.map((template, index) => {
-          const card = (
-            <div className="px-4 sm:px-5 py-3 sm:py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-medium text-foreground text-sm sm:text-base truncate">
-                    {template.name}
-                  </h2>
-                  {template.description && (
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-1">
-                      {template.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2 mt-2 text-[10px] sm:text-xs">
-                    {template.exerciseCount !== undefined && (
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                        {template.exerciseCount} {template.exerciseCount === 1 ? t("exercise") : t("exercises")}
-                      </span>
-                    )}
-                    {template.targetMuscleGroups && (
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                        {template.targetMuscleGroups}
-                      </span>
-                    )}
-                    {template.estimatedTime && (
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground font-medium">
-                        {template.estimatedTime} {t("min")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {!reordering && (
-                  <ChevronRight className="size-4 sm:size-5 text-muted-foreground shrink-0 self-end" strokeWidth={1.5} />
-                )}
-              </div>
-            </div>
-          );
-
-          if (reordering) {
+        <ul className="grid gap-3 md:grid-cols-2">
+          {templates.map((template, index) => {
+            const starting = startingId === template.templateId;
             return (
-              <div
+              <li
                 key={template.templateId}
-                className="flex items-stretch rounded-xl bg-card ring-1 ring-foreground/10"
+                className="group relative flex items-center gap-3 rounded-[1.75rem] bg-card pl-3 pr-3 py-3 transition-colors hover:bg-white/[0.09]"
               >
-                <div className="flex-1 min-w-0">{card}</div>
-                <div className="flex flex-col shrink-0 border-l border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => move(index, -1)}
-                    disabled={index === 0 || savingOrder}
-                    aria-label={t("Move Up")}
-                    title={t("Move Up")}
-                    className="flex-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-brand disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                <WorkoutIcon icon={templateIcon(template)} className="size-11" />
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/workouts/t/${template.templateId}`}
+                    className="block truncate text-base sm:text-lg font-medium text-foreground outline-none after:absolute after:inset-0 after:rounded-[1.75rem] focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
                   >
-                    <ChevronUp className="size-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(index, 1)}
-                    disabled={index === templates.length - 1 || savingOrder}
-                    aria-label={t("Move Down")}
-                    title={t("Move Down")}
-                    className="flex-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-brand disabled:opacity-30 disabled:pointer-events-none transition-colors border-t border-white/10"
-                  >
-                    <ChevronDown className="size-5" />
-                  </button>
+                    {template.name}
+                  </Link>
+                  <p className="truncate text-xs text-muted-foreground mt-0.5">{templateMeta(template)}</p>
                 </div>
-              </div>
+                {reordering ? (
+                  <div className="relative z-10 flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => move(index, -1)}
+                      disabled={index === 0 || savingOrder}
+                      aria-label={t("Move Up")}
+                      title={t("Move Up")}
+                      className={iconButton}
+                    >
+                      <ChevronUp className="size-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(index, 1)}
+                      disabled={index === templates.length - 1 || savingOrder}
+                      aria-label={t("Move Down")}
+                      title={t("Move Down")}
+                      className={iconButton}
+                    >
+                      <ChevronDown className="size-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => start(template.templateId)}
+                    disabled={startingId !== null}
+                    aria-label={`${t("Start Workout")}: ${template.name}`}
+                    title={t("Start Workout")}
+                    className={cn(iconButton, "relative z-10 size-12 text-brand hover:bg-brand hover:text-zinc-950")}
+                  >
+                    {starting ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : (
+                      <Play className="size-4 fill-current translate-x-px" />
+                    )}
+                  </button>
+                )}
+              </li>
             );
-          }
-
-          return (
-            <Link
-              key={template.templateId}
-              href={`/workouts/t/${template.templateId}`}
-              className="block rounded-xl bg-card ring-1 ring-foreground/10 hover:ring-brand/30 transition-all duration-200 active:scale-[0.99]"
-            >
-              {card}
-            </Link>
-          );
-        })}
-      </div>
+          })}
+        </ul>
       )}
-    </div>
+      {dialog}
+    </section>
   );
 }

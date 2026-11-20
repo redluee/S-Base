@@ -31,8 +31,8 @@ function FinishButton({ onFinish, allFinished }: { onFinish: () => void; allFini
       variant={allFinished ? "default" : "outline"}
       onClick={onFinish}
       className={cn(
-        "w-full sm:w-64 min-h-11 font-semibold",
-        allFinished && "bg-brand hover:bg-brand-hover text-zinc-900"
+        "w-full sm:w-64 min-h-12 rounded-full font-semibold",
+        allFinished && "bg-brand hover:bg-brand-hover text-zinc-900 shadow-[0_0_2rem_color-mix(in_oklab,var(--color-brand)_35%,transparent)]"
       )}
     >
       <Trophy className="size-4 mr-1.5" />
@@ -99,7 +99,7 @@ export function WorkoutSessionExerciseList({
     <div className="flex-1 flex flex-col gap-4 pb-20 max-[375px]:-mx-4">
       <div className="flex items-center justify-between px-3 sm:px-4">
         <h2 className="text-sm font-medium text-muted-foreground">{t("Exercises")}</h2>
-        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-brand/10 text-brand">
+        <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/[0.06] text-brand">
           {exercises.length} {exercises.length === 1 ? t("exercise") : t("exercises")}
         </span>
       </div>
@@ -154,7 +154,7 @@ export function WorkoutSessionExerciseList({
         <div className="mt-4 flex flex-col items-center justify-center gap-3">
           <AddExerciseControls
             {...addControls}
-            buttonClassName="bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand font-semibold w-full sm:w-64 min-h-11"
+            buttonClassName="rounded-full bg-white/[0.06] hover:bg-white/10 text-brand font-semibold w-full sm:w-64 min-h-12"
           />
           {onFinish && <FinishButton onFinish={onFinish} allFinished={allFinished} />}
         </div>

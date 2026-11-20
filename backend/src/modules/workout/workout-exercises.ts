@@ -100,6 +100,7 @@ export class WorkoutExercises {
       .select({
         sessionId: workoutSessions.sessionId,
         startedAt: workoutSessions.startedAt,
+        sessionName: workoutSessions.name,
         exerciseName: sessionExercises.exerciseName,
         category: sessionExercises.category,
         equipment: sessionExercises.equipment,
@@ -126,13 +127,14 @@ export class WorkoutExercises {
 
     const sessionsMap = new Map<
       number,
-      { sessionId: number; startedAt: string; equipment: string | null; sets: typeof rows }
+      { sessionId: number; startedAt: string; sessionName: string | null; equipment: string | null; sets: typeof rows }
     >();
     for (const row of rows) {
       if (!sessionsMap.has(row.sessionId)) {
         sessionsMap.set(row.sessionId, {
           sessionId: row.sessionId,
           startedAt: row.startedAt,
+          sessionName: row.sessionName,
           equipment: row.equipment ?? null,
           sets: [],
         });

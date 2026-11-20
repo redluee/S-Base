@@ -1,6 +1,6 @@
 import { eq, and, desc, sql, ne } from "drizzle-orm";
 import db from "../../db/client";
-import { workoutSessions, sessionExercises, sessionSets } from "../../db/schema";
+import { workoutSessions, sessionExercises, sessionSets, workoutTemplates } from "../../db/schema";
 import type { PersonalRecord } from "../../types/shared";
 import { activeSeconds, effectiveVolume, exerciseKey, signedWeight } from "../../shared/workout";
 import { parseDateString, today } from "../../shared/dates";
@@ -53,6 +53,37 @@ export class WorkoutStats {
       daysAgo,
       totalWorkouts,
       totalVolume,
+      lastWorkout: lastSession ? this.sessionSummary(lastSession) : null,
+    };
+  }
+
+  private sessionSummary(session: typeof workoutSessions.$inferSelect) {
+    const sets = db
+      .select({
+        sessionExerciseId: sessionExercises.sessionExerciseId,
+        reps: sessionSets.reps,
+        weight: sessionSets.weight,
+        completed: sessionSets.completed,
+      })
+      .from(sessionExercises)
+      .leftJoin(sessionSets, eq(sessionSets.sessionExerciseId, sessionExercises.sessionExerciseId))
+      .where(eq(sessionExercises.sessionId, session.sessionId))
+      .all();
+    const volume = sets.filter((s) => s.completed === 1).reduce((sum, s) => sum + effectiveVolume(s.weight, s.reps), 0);
+    return {
+      sessionId: session.sessionId,
+      templateId: session.templateId,
+      templateIcon: session.templateId
+        ? (db
+            .select({ icon: workoutTemplates.icon })
+            .from(workoutTemplates)
+            .where(eq(workoutTemplates.templateId, session.templateId))
+            .get()?.icon ?? null)
+        : null,
+      name: session.name,
+      completedAt: session.completedAt,
+      exerciseCount: new Set(sets.map((s) => s.sessionExerciseId)).size,
+      volume,
     };
   }
 

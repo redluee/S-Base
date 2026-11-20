@@ -1,8 +1,11 @@
+import type { WorkoutIcon } from "@backend/shared/workout";
+
 export interface TemplateMetaForm {
   name: string;
   description: string;
   targetMuscleGroups: string;
   estimatedTime: string;
+  icon: WorkoutIcon | null;
 }
 
 export function buildTemplateMeta(form: TemplateMetaForm) {
@@ -12,5 +15,6 @@ export function buildTemplateMeta(form: TemplateMetaForm) {
     description: form.description.trim() ? form.description : null,
     targetMuscleGroups: form.targetMuscleGroups.trim() ? form.targetMuscleGroups : null,
     estimatedTime: estimated ? Number(estimated) : null,
+    icon: form.icon,
   };
 }

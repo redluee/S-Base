@@ -1,4 +1,5 @@
 import { type Static, t } from "elysia";
+import { WORKOUT_ICONS } from "../../shared/workout";
 
 const maybe = <T extends Parameters<typeof t.Nullable>[0]>(schema: T) => t.Optional(t.Nullable(schema));
 
@@ -24,6 +25,7 @@ const templateFields = {
   description: maybe(t.String()),
   targetMuscleGroups: maybe(t.String()),
   estimatedTime: maybe(t.Number()),
+  icon: maybe(t.Union(WORKOUT_ICONS.map((icon) => t.Literal(icon)))),
   exercises: maybe(t.Array(templateExerciseInput)),
 };
 

@@ -1,4 +1,4 @@
-import { DEFAULT_CATEGORY, EXERCISE_CATEGORIES } from "../../shared/workout";
+import { DEFAULT_CATEGORY, EXERCISE_CATEGORIES, WORKOUT_ICONS } from "../../shared/workout";
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { users } from "./auth";
@@ -13,6 +13,7 @@ export const workoutTemplates = sqliteTable("workout_templates", {
   description: text("description"),
   targetMuscleGroups: text("target_muscle_groups"),
   estimatedTime: integer("estimated_time"),
+  icon: text("icon", { enum: WORKOUT_ICONS }),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });

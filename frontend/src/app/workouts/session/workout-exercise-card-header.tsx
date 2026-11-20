@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { WorkoutExerciseCardProps } from "@/app/workouts/session/workout-exercise-card";
 
 const actionButton =
-  "min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-brand hover:bg-white/5 disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-brand hover:bg-white/[0.06] disabled:opacity-20 disabled:hover:text-muted-foreground disabled:hover:bg-transparent transition-colors cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 const menuItem =
   "flex w-full min-h-11 items-center px-4 text-sm text-zinc-300 data-[highlighted]:bg-zinc-800 outline-none text-left cursor-pointer";
 
@@ -96,8 +96,17 @@ export function ExerciseCardHeader({
                 </button>
               </div>
             ) : (
-              <h3 className="font-semibold text-foreground text-base sm:text-lg flex items-center gap-2 min-h-11 break-words">
-                <span className="min-w-0">{exIdx + 1}. {ex.exerciseName}</span>
+              <h3 className="font-medium text-foreground text-base sm:text-lg flex items-center gap-3 min-h-11 break-words">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "size-9 shrink-0 inline-flex items-center justify-center rounded-full text-sm tabular-nums transition-colors",
+                    allSetsDone ? "bg-brand text-zinc-950" : "bg-white/[0.06] text-brand"
+                  )}
+                >
+                  {exIdx + 1}
+                </span>
+                <span className="min-w-0">{ex.exerciseName}</span>
                 {allSetsDone && (
                   <span
                     role="img"
@@ -149,7 +158,7 @@ export function ExerciseCardHeader({
               </Menu.Trigger>
               <Menu.Portal>
                 <Menu.Positioner align="end" sideOffset={4} className="z-50">
-                  <Menu.Popup className="w-52 max-w-[calc(100vw-2rem)] rounded-lg bg-zinc-900 border border-zinc-800 py-1 text-sm outline-none">
+                  <Menu.Popup className="w-52 max-w-[calc(100vw-2rem)] rounded-2xl bg-zinc-900 ring-1 ring-white/10 py-1.5 text-sm outline-none">
                     {onStartEditing && (
                       <Menu.Item className={menuItem} onClick={() => onStartEditing(exIdx)}>
                         <Edit2 className="size-4 mr-2 text-zinc-500" />

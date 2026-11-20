@@ -21,6 +21,45 @@ export type SessionStatusFilter = (typeof SESSION_STATUS_FILTERS)[number];
 
 export type TrackingKind = "resistance" | "bodyweight" | "cardio" | "isometric";
 
+export const WORKOUT_ICONS = [
+  "dumbbell",
+  "biceps",
+  "weight",
+  "person",
+  "footprints",
+  "snowflake",
+  "flower",
+  "activity",
+  "heart-pulse",
+  "zap",
+  "flame",
+  "bike",
+  "waves",
+  "mountain",
+  "timer",
+  "hourglass",
+  "gauge",
+  "repeat",
+  "target",
+  "trophy",
+  "medal",
+  "crown",
+  "rocket",
+  "shield",
+  "swords",
+  "volleyball",
+  "sun",
+  "moon",
+  "wind",
+  "battery-charging",
+] as const;
+export type WorkoutIcon = (typeof WORKOUT_ICONS)[number];
+export const QUICK_START_ICON: WorkoutIcon = "zap";
+
+export function isWorkoutIcon(value: unknown): value is WorkoutIcon {
+  return typeof value === "string" && (WORKOUT_ICONS as readonly string[]).includes(value);
+}
+
 export const DEFAULT_SETS = 3;
 export const DEFAULT_REPS = 10;
 export const DEFAULT_REST_SECONDS = 90;

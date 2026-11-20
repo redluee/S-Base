@@ -176,15 +176,15 @@ export function WorkoutImportModal() {
 
   return (
     <>
-      <Button
-        variant="outline"
+      <button
+        type="button"
         onClick={() => setIsOpen(true)}
-        className="min-h-11 font-medium flex items-center gap-1.5"
+        className="size-12 inline-flex items-center justify-center rounded-full bg-white/[0.06] text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         title={t("workout.Import Template")}
+        aria-label={t("workout.Import Template")}
       >
-        <Download className="size-4" />
-        <span>{t("Import")}</span>
-      </Button>
+        <Download className="size-5" />
+      </button>
 
       {isOpen && (
         <ModalOverlay

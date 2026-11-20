@@ -156,6 +156,7 @@ describe("WorkoutService", () => {
     expect(progress).toBeDefined();
     expect(progress.sessions.length).toBe(2);
     expect(progress.sessions[1].sets[0].weight).toBe(55);
+    expect(progress.sessions[1].sessionName).toBe(s2.name);
   });
 
   it("handles perSide toggles properly across session creation and updates", () => {

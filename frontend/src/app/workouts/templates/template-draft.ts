@@ -1,3 +1,5 @@
+import { isWorkoutIcon, type WorkoutIcon } from "@backend/shared/workout";
+
 export const TEMPLATE_DRAFT_VERSION = 2;
 
 export interface TemplateDraftForm<E extends { id: string }> {
@@ -5,6 +7,7 @@ export interface TemplateDraftForm<E extends { id: string }> {
   description: string;
   targetMuscleGroups: string;
   estimatedTime: string;
+  icon?: WorkoutIcon | null;
   exercises: E[];
 }
 
@@ -30,6 +33,7 @@ export function formSignature<E extends { id: string }>(form: TemplateDraftForm<
       description: form.description,
       targetMuscleGroups: form.targetMuscleGroups,
       estimatedTime: form.estimatedTime,
+      icon: form.icon ?? null,
       exercises: form.exercises.map((ex) => {
         const rest: Record<string, unknown> = { ...ex };
         delete rest.id;
@@ -71,6 +75,7 @@ export function parseDraft<E extends { id: string }>(raw: string | null): Templa
         description: typeof form.description === "string" ? form.description : "",
         targetMuscleGroups: typeof form.targetMuscleGroups === "string" ? form.targetMuscleGroups : "",
         estimatedTime: typeof form.estimatedTime === "string" ? form.estimatedTime : "",
+        icon: isWorkoutIcon(form.icon) ? form.icon : null,
         exercises: exercises as E[],
       },
     };

@@ -38,6 +38,7 @@ interface WorkoutSessionHeaderProps {
   allExercisesFinished: boolean;
   unsynced: boolean;
   actionError: string | null;
+  setProgress: { done: number; total: number };
 }
 
 export function WorkoutSessionHeader({
@@ -59,11 +60,12 @@ export function WorkoutSessionHeader({
   allExercisesFinished,
   unsynced,
   actionError,
+  setProgress,
 }: WorkoutSessionHeaderProps) {
   const isCompleted = Boolean(session.completedAt);
 
   return (
-  <div className="sticky top-0 bg-background z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-6 pt-6 pb-3 border-b border-border/40 mb-6">
+  <div className="sticky top-0 bg-background/95 backdrop-blur z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-6 pt-6 pb-4 mb-6">
     <div className="flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3">
       <div className={cn("min-w-0", isCompleted ? "basis-full sm:basis-0 sm:flex-1" : "flex-1")}>
         {isEditingName ? (
@@ -105,7 +107,7 @@ export function WorkoutSessionHeader({
               type="button"
               onClick={handleBackClick}
               aria-label={t("Back to workouts")}
-              className="min-h-11 min-w-11 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="size-11 shrink-0 mr-1 inline-flex items-center justify-center rounded-full bg-white/[0.06] text-muted-foreground hover:text-foreground hover:bg-white/10 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <ArrowLeft className="size-5" />
             </button>
@@ -126,7 +128,7 @@ export function WorkoutSessionHeader({
 
       <div
         className={cn(
-          "items-center gap-2 bg-card border border-border pl-3 pr-1 rounded-lg shrink-0",
+          "items-center gap-2 bg-card ring-1 ring-white/[0.06] pl-4 pr-1 rounded-full shrink-0",
           isEditingName && !isCompleted ? "hidden sm:flex" : "flex"
         )}
       >
@@ -159,14 +161,14 @@ export function WorkoutSessionHeader({
           </div>
         ) : (
           <>
-            <span className="text-base tabular-nums font-semibold text-zinc-200">
+            <span className="text-lg tabular-nums font-medium text-foreground">
               {formatClock(elapsed)}
             </span>
             <button
               type="button"
               onClick={togglePause}
               aria-label={isPaused ? t("Resume") : t("Pause")}
-              className="min-h-11 min-w-11 inline-flex items-center justify-center rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="size-11 inline-flex items-center justify-center rounded-full bg-white/[0.06] hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               {isPaused ? <Play className="size-4 text-brand" /> : <Pause className="size-4" />}
             </button>
@@ -178,7 +180,7 @@ export function WorkoutSessionHeader({
         <Button
           onClick={handleSaveHistoryEdit}
           disabled={saving}
-          className="ml-auto shrink-0 bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 min-h-11"
+          className="ml-auto shrink-0 rounded-full bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-5 min-h-11"
         >
           <Save className="size-4 mr-1.5" />
           {t("Save")}
@@ -187,7 +189,7 @@ export function WorkoutSessionHeader({
         <div className="flex basis-full justify-end sm:basis-auto sm:shrink-0">
           <Button
             onClick={handleFinishClick}
-            className="animate-scale-in bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-4 min-h-11"
+            className="animate-scale-in rounded-full bg-brand hover:bg-brand-hover text-zinc-900 font-semibold px-5 min-h-11 shadow-[0_0_2rem_color-mix(in_oklab,var(--color-brand)_35%,transparent)]"
           >
             <Trophy className="size-4 mr-1.5" />
             {t("Finish")}
@@ -195,6 +197,26 @@ export function WorkoutSessionHeader({
         </div>
       ) : null}
     </div>
+    {!isCompleted && setProgress.total > 0 && (
+      <div className="mt-4 flex items-center gap-3">
+        <div
+          role="progressbar"
+          aria-label={t("Sets completed")}
+          aria-valuemin={0}
+          aria-valuemax={setProgress.total}
+          aria-valuenow={setProgress.done}
+          className="h-1.5 flex-1 rounded-full bg-white/[0.06] overflow-hidden"
+        >
+          <div
+            className="h-full rounded-full bg-brand shadow-[0_0_0.75rem_var(--color-brand)] transition-[width] duration-500 ease-out"
+            style={{ width: `${(setProgress.done / setProgress.total) * 100}%` }}
+          />
+        </div>
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+          {setProgress.done}/{setProgress.total} {t("sets")}
+        </span>
+      </div>
+    )}
     {unsynced && (
       <p role="status" className="mt-2 text-xs text-muted-foreground">
         {t("Changes not yet synced. Saved on this device.")}

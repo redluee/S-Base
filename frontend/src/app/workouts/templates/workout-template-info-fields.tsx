@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/lib/lang";
+import type { WorkoutIcon } from "@backend/shared/workout";
+import { WorkoutIconPicker } from "@/app/workouts/templates/workout-icon-picker";
 
 interface TemplateInfoFieldsProps {
   name: string;
@@ -14,6 +16,8 @@ interface TemplateInfoFieldsProps {
   setTargetMuscleGroups: (v: string) => void;
   estimatedTime: string;
   setEstimatedTime: (v: string) => void;
+  icon: WorkoutIcon | null;
+  setIcon: (v: WorkoutIcon | null) => void;
   errors: Record<string, string>;
 }
 
@@ -26,6 +30,8 @@ export function TemplateInfoFields({
   setTargetMuscleGroups,
   estimatedTime,
   setEstimatedTime,
+  icon,
+  setIcon,
   errors,
 }: TemplateInfoFieldsProps) {
   return (
@@ -44,6 +50,8 @@ export function TemplateInfoFields({
           />
           {errors.name && <p role="alert" className="text-xs text-destructive mt-1">{errors.name}</p>}
         </div>
+
+        <WorkoutIconPicker value={icon} onChange={setIcon} name={name} muscleGroups={targetMuscleGroups} />
 
         <div className="grid gap-2">
           <Label htmlFor="description" className="text-sm font-medium">{t("Description")} <span className="text-muted-foreground font-normal">({t("Optional")})</span></Label>

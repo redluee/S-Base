@@ -122,9 +122,9 @@ export function WorkoutExerciseCard({
       id={`session-exercise-${ex.sessionExerciseId ?? exIdx}`}
       data-ex-id={ex.sessionExerciseId ?? exIdx}
       className={cn(
-        "scroll-mt-24 rounded-xl bg-card/60 border px-3 pt-2 pb-3 sm:px-4 sm:pt-3 sm:pb-4 relative transition-colors duration-300 max-[375px]:border-0 max-[375px]:rounded-none max-[375px]:bg-transparent",
-        allSetsDone ? "border-brand/60 ring-1 ring-brand/30" : "border-border",
-        exIdx > 0 && "max-[375px]:border-t max-[375px]:border-border/40"
+        "scroll-mt-32 rounded-[1.75rem] bg-card px-3 pt-3 pb-3 sm:px-5 sm:pt-4 sm:pb-5 relative transition-shadow duration-300 max-[375px]:rounded-none max-[375px]:bg-transparent max-[375px]:ring-0",
+        allSetsDone ? "ring-1 ring-brand/40" : "ring-1 ring-white/[0.06]",
+        exIdx > 0 && "max-[375px]:border-t max-[375px]:border-white/[0.06]"
       )}
     >
       <ExerciseCardHeader
@@ -189,7 +189,7 @@ export function WorkoutExerciseCard({
         <Button
           variant="ghost"
           onClick={() => addSet(exIdx)}
-          className="flex-1 min-w-0 min-h-11 border border-dashed border-border/60 text-muted-foreground hover:text-foreground text-sm rounded-lg transition-colors hover:bg-white/[0.01]"
+          className="flex-1 min-w-0 min-h-11 rounded-full bg-white/[0.04] text-muted-foreground hover:text-brand hover:bg-white/[0.08] text-sm transition-colors"
         >
           <Plus className="size-4 mr-1" />
           {t("Add Set")}

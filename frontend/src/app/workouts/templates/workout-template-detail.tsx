@@ -1,18 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t } from "@/lib/lang";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Play, Upload, Check } from "lucide-react";
-import { SessionConflictDialog } from "@/app/workouts/session/session-conflict-dialog";
+import { useStartTemplate } from "@/app/workouts/templates/use-start-template";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { formatNumberNl } from "@/app/workouts/number-input";
-import { parseSessionConflict, type ActiveSessionInfo } from "@/app/workouts/session/session-conflict";
 import { trackingKind } from "@backend/shared/workout";
 import { formatClock } from "@/app/workouts/duration";
 
@@ -71,13 +70,11 @@ export function cleanTemplateForExport(template: any) {
 export function WorkoutTemplateDetail({ template }: { template: any }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const [conflict, setConflict] = useState<ActiveSessionInfo | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
+  const { start, startingId, error: startError, dialog: conflictDialog } = useStartTemplate();
+  const starting = startingId !== null;
   const [actionError, setActionError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const startingRef = useRef(false);
 
   function handleExport() {
     const cleaned = cleanTemplateForExport(template);
@@ -108,38 +105,6 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
     } finally {
       setDeleting(false);
     }
-  }
-
-  async function handleStart(force = false) {
-    if (startingRef.current) return;
-    startingRef.current = true;
-    setStarting(true);
-    setStartError(null);
-    try {
-      const session = await api.workouts.sessions.create(template.templateId, force);
-      router.push(`/workouts/session/${session.sessionId}`);
-      router.refresh();
-    } catch (err) {
-      const active = parseSessionConflict(err);
-      if (active) {
-        setConflict(active);
-      } else {
-        console.error("Failed to start workout", err);
-        setStartError(t("Failed to start workout. Please try again."));
-      }
-      startingRef.current = false;
-      setStarting(false);
-    }
-  }
-
-  function handleResume() {
-    if (!conflict) return;
-    router.push(`/workouts/session/${conflict.sessionId}`);
-  }
-
-  async function handleStartNew() {
-    setConflict(null);
-    await handleStart();
   }
 
   return (
@@ -226,21 +191,12 @@ export function WorkoutTemplateDetail({ template }: { template: any }) {
         onConfirm={handleDelete}
       />
 
-      {conflict && (
-        <SessionConflictDialog
-          key={conflict.sessionId}
-          session={conflict}
-          busy={starting}
-          onResume={handleResume}
-          onStartNew={handleStartNew}
-          onCancel={() => setConflict(null)}
-        />
-      )}
+      {conflictDialog}
 
       <InlineAlert className="mb-3">{startError}</InlineAlert>
 
       <Button
-        onClick={() => handleStart()}
+        onClick={() => start(template.templateId)}
         disabled={starting}
         className="w-full mb-8 bg-brand text-zinc-900 hover:bg-brand-hover text-base sm:text-lg min-h-14 font-semibold"
       >
