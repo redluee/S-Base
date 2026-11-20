@@ -63,15 +63,22 @@ export function QuickAdd({ open, origin, onClose }: QuickAddProps) {
     quickAddReturn = null;
   }, [open]);
 
+  const keepTyping = () => {
+    const field = input.current;
+    if (openRef.current && field && document.activeElement !== field) field.focus({ preventScroll: true });
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const value = normalizeTodoTitle(title);
     if (!value) return;
     armLaunch(e.currentTarget.querySelector("button[type=submit]"), value);
     setTitle("");
+    keepTyping();
     const created = await store.actions.create({ title: value, ...selection, dueDate });
     if (created) haptic("tick");
     else setTitle((current) => current || value);
+    keepTyping();
   };
 
   const onBlur = () => {
