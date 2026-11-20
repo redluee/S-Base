@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { t } from "@/lib/lang";
 import { CompletionRow } from "./completion/completion-row";
+import { useCompletion } from "./completion/completion-provider";
+import { RowEnter } from "./row-enter";
 import { listSummary, taskColor } from "./due-label";
 import { focusQuickAdd } from "./quick-add";
 import { originFrom } from "./sheet-morph";
@@ -129,7 +131,13 @@ function EmptyState() {
 
 export function TaskList() {
   const { store } = useTodoUi();
+  const completion = useCompletion();
   const { visibleTasks, actions } = store;
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    readyRef.current = true;
+  }, []);
   const filterKey = JSON.stringify(store.filter);
   const [shown, setShown] = useState({ key: filterKey, animate: false });
   if (shown.key !== filterKey) setShown({ key: filterKey, animate: true });
@@ -164,9 +172,15 @@ export function TaskList() {
                   shown.animate ? { animationDelay: `${Math.min(index, FILTER_STAGGER_MAX) * FILTER_STAGGER_MS}ms` } : undefined
                 }
               >
-                <CompletionRow task={task}>
-                  <TaskRow task={task} />
-                </CompletionRow>
+                <RowEnter
+                  readyRef={readyRef}
+                  skip={shown.animate || completion.isReturning(task.id)}
+                  color={taskColor(task, store.categories)}
+                >
+                  <CompletionRow task={task}>
+                    <TaskRow task={task} />
+                  </CompletionRow>
+                </RowEnter>
               </div>
             </li>
           );

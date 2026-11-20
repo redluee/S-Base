@@ -8,6 +8,7 @@ import { BottomSheet } from "./bottom-sheet";
 import { CategoryChips } from "./category-chips";
 import { NO_SELECTION, quickAddPreselection, type ChipSelection } from "./chip-state";
 import { DuePicker } from "./due-picker";
+import { haptic } from "./haptics";
 import type { SheetOrigin } from "./sheet-morph";
 import { useTodoUi } from "./todo-ui";
 
@@ -67,7 +68,8 @@ export function QuickAdd({ open, origin, onClose }: QuickAddProps) {
     if (!value) return;
     setTitle("");
     const created = await store.actions.create({ title: value, ...selection, dueDate });
-    if (!created) setTitle((current) => current || value);
+    if (created) haptic("tick");
+    else setTitle((current) => current || value);
   };
 
   const onBlur = () => {
