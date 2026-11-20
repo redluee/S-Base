@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { t } from "@/lib/lang";
 import { EASE_OUT } from "./completion/choreography";
 import { prefersReducedMotion } from "./completion/use-reduced-motion";
@@ -67,7 +67,7 @@ export function Counter({ value, onClick }: { value: number; onClick: () => void
         onClick={onClick}
         aria-label={`${t("todo.header.history")}: ${t("todo.header.counter", { count: String(value) })}`}
         title={t("todo.header.history")}
-        className="relative mr-1 flex h-8 items-center gap-1 rounded-full bg-foreground/[0.06] pr-2.5 pl-2 text-sm text-foreground tabular-nums ring-1 ring-foreground/10 transition-[background-color,scale] duration-150 ease-out before:absolute before:-inset-y-1.5 before:inset-x-0 hover:bg-foreground/10 active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="group relative mr-1 flex h-9 cursor-pointer items-center gap-1 rounded-full bg-brand/10 pr-2 pl-2.5 text-sm text-foreground tabular-nums ring-1 ring-brand/25 transition-[background-color,box-shadow,scale] duration-150 ease-out before:absolute before:-inset-y-1 before:inset-x-0 hover:bg-brand/15 hover:ring-brand/40 active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <Check className="size-3.5 text-brand" strokeWidth={3} aria-hidden="true" />
         <span aria-hidden="true" className="flex">
@@ -75,6 +75,13 @@ export function Counter({ value, onClick }: { value: number; onClick: () => void
             <DigitSlot key={key} digit={digit} direction={state.direction} />
           ))}
         </span>
+        <span aria-hidden="true" className="ml-0.5 text-muted-foreground">
+          {t("todo.header.done")}
+        </span>
+        <ChevronRight
+          className="size-4 text-brand transition-transform duration-150 ease-out group-hover:translate-x-0.5"
+          aria-hidden="true"
+        />
       </button>
     </>
   );

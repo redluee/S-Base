@@ -8,6 +8,7 @@ export const todoNl: Record<string, string> = {
 
   "todo.header.counter": "{count} taken afgerond",
   "todo.header.history": "Geschiedenis",
+  "todo.header.done": "afgerond",
   "todo.header.manage": "Categorieën beheren",
   "todo.header.offline": "Offline of nog niet gesynchroniseerd",
 
